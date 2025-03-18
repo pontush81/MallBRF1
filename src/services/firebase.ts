@@ -1,6 +1,3 @@
-// Make this file a module
-export {};
-
 // Firebase konfiguration
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
