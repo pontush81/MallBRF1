@@ -14,15 +14,34 @@ import {
   CircularProgress,
   Tab,
   Tabs,
-  Checkbox
+  Checkbox,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  IconButton,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import SimpleMDE from 'react-simplemde-editor';
 import ReactMarkdown from 'react-markdown';
-import { Save as SaveIcon, Preview as PreviewIcon, ArrowBack as ArrowBackIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { 
+  Save as SaveIcon, 
+  Preview as PreviewIcon, 
+  ArrowBack as ArrowBackIcon, 
+  Visibility as VisibilityIcon,
+  Delete as DeleteIcon,
+  AttachFile as AttachFileIcon,
+  PictureAsPdf as PdfIcon,
+  Image as ImageIcon
+} from '@mui/icons-material';
 import 'easymde/dist/easymde.min.css';
 
-import { Page } from '../../types/Page';
+import { Page, FileInfo } from '../../types/Page';
 import pageService from '../../services/pageService';
 
 // Interfacet för våra TabPanel komponenter
@@ -68,6 +87,8 @@ const PageEditor: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [uploadLoading, setUploadLoading] = useState(false);
   
   const navigate = useNavigate();
 
@@ -94,6 +115,7 @@ const PageEditor: React.FC = () => {
       setSlug(page.slug);
       setIsPublished(page.isPublished);
       setShow(page.show !== undefined ? page.show : true);
+      setFiles(page.files || []);
     } catch (err) {
       setError('Ett fel uppstod vid hämtning av sidan');
       console.error(err);
@@ -156,7 +178,8 @@ const PageEditor: React.FC = () => {
         content,
         slug,
         isPublished,
-        show
+        show,
+        files
       };
       
       let result: Page | null;
@@ -190,6 +213,58 @@ const PageEditor: React.FC = () => {
     }
   };
 
+  // Hantera filuppladdning
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0 || !id) {
+      return;
+    }
+    
+    const file = event.target.files[0];
+    
+    try {
+      setUploadLoading(true);
+      setError(null);
+      
+      const result = await pageService.uploadFile(id, file);
+      
+      setFiles(prevFiles => [...prevFiles, result]);
+      setSnackbarMessage('Filen har laddats upp');
+      setSnackbarOpen(true);
+      
+      // Återställ fil-inputen
+      event.target.value = '';
+    } catch (err) {
+      setError('Ett fel uppstod vid uppladdning av filen');
+      console.error(err);
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  // Hantera radering av fil
+  const handleDeleteFile = async (fileId: string) => {
+    if (!id) return;
+    
+    try {
+      setUploadLoading(true);
+      
+      const success = await pageService.deleteFile(id, fileId);
+      
+      if (success) {
+        setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+        setSnackbarMessage('Filen har raderats');
+        setSnackbarOpen(true);
+      } else {
+        throw new Error('Kunde inte radera filen');
+      }
+    } catch (err) {
+      setError('Ett fel uppstod vid radering av filen');
+      console.error(err);
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   // Hantera byte av flikar
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -212,6 +287,119 @@ const PageEditor: React.FC = () => {
   const handleShowChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setShow(e.target.checked);
   }, []);
+
+  // Få rätt ikon baserat på filtyp
+  const getFileIcon = (mimetype: string) => {
+    if (mimetype.startsWith('image/')) {
+      return <ImageIcon />;
+    } else if (mimetype === 'application/pdf') {
+      return <PdfIcon />;
+    } else {
+      return <AttachFileIcon />;
+    }
+  };
+
+  // Rendera filbiblioteket
+  const renderFileLibrary = () => {
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="h6" component="h3" gutterBottom>
+          Filbibliotek
+        </Typography>
+        
+        {isEditMode ? (
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={<AttachFileIcon />}
+            disabled={saving || uploadLoading}
+            sx={{ mb: 2 }}
+          >
+            Ladda upp fil
+            <input
+              type="file"
+              hidden
+              onChange={handleFileUpload}
+              accept="image/jpeg,image/png,image/gif,application/pdf"
+            />
+          </Button>
+        ) : (
+          <Typography color="textSecondary" sx={{ mb: 2 }}>
+            Spara sidan först för att kunna ladda upp filer.
+          </Typography>
+        )}
+        
+        {uploadLoading && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <CircularProgress size={24} sx={{ mr: 1 }} />
+            <Typography>Arbetar med filer...</Typography>
+          </Box>
+        )}
+        
+        {files.length === 0 ? (
+          <Typography color="textSecondary">
+            Inga filer har laddats upp ännu.
+          </Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {files.map((file) => (
+              <Grid item xs={12} sm={6} md={4} key={file.id}>
+                <Card>
+                  {file.mimetype.startsWith('image/') ? (
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={file.path}
+                      alt={file.originalName}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 140,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'action.hover'
+                      }}
+                    >
+                      {getFileIcon(file.mimetype)}
+                    </Box>
+                  )}
+                  <CardContent sx={{ pt: 1, pb: 1 }}>
+                    <Typography noWrap title={file.originalName}>
+                      {file.originalName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </Typography>
+                  </CardContent>
+                  <CardActions disableSpacing>
+                    <Button 
+                      size="small" 
+                      component="a"
+                      href={file.path}
+                      target="_blank"
+                    >
+                      Visa
+                    </Button>
+                    <Button 
+                      size="small" 
+                      color="error"
+                      onClick={() => handleDeleteFile(file.id)}
+                      disabled={uploadLoading}
+                    >
+                      Ta bort
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
+    );
+  };
 
   if (loading) {
     return (
@@ -325,6 +513,12 @@ const PageEditor: React.FC = () => {
                   )}
                 </Paper>
               </TabPanel>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Divider sx={{ mb: 2 }} />
+              
+              {renderFileLibrary()}
             </Grid>
             
             <Grid item xs={12}>

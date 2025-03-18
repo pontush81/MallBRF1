@@ -26,6 +26,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PersonIcon from '@mui/icons-material/Person';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import EventIcon from '@mui/icons-material/Event';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
@@ -63,16 +64,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate('/login');
   };
   
-  const menuItems = [
-    { text: 'Hem', icon: <HomeIcon />, path: '/' },
-    { text: 'Sidor', icon: <ArticleIcon />, path: '/pages' }
+  const navItems = [
+    { label: 'Sidor', path: '/pages', icon: <ArticleIcon /> },
+    { label: 'Boka', path: '/booking', icon: <EventIcon /> }
   ];
   
   if (isLoggedIn) {
     if (isAdmin) {
-      menuItems.push({ text: 'Admin', icon: <DashboardIcon />, path: '/admin' });
+      navItems.push({ label: 'Admin', path: '/admin', icon: <DashboardIcon /> });
     }
-    menuItems.push({ text: 'Profil', icon: <PersonIcon />, path: '/profile' });
+    navItems.push({ label: 'Profil', path: '/profile', icon: <PersonIcon /> });
   }
   
   const drawer = (
@@ -82,14 +83,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       onClick={() => setDrawerOpen(false)}
     >
       <List>
-        {menuItems.map((item) => (
+        {navItems.map((item) => (
           <ListItem 
-            key={item.text} 
+            key={item.label} 
             component={RouterLink} 
             to={item.path}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
+            <ListItemText primary={item.label} />
           </ListItem>
         ))}
       </List>
@@ -128,7 +129,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography 
             variant="h6" 
             component={RouterLink} 
-            to="/" 
+            to="/pages" 
             sx={{ 
               flexGrow: 1, 
               textDecoration: 'none', 
@@ -143,16 +144,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Button 
                 color="inherit" 
                 component={RouterLink} 
-                to="/"
-              >
-                Hem
-              </Button>
-              <Button 
-                color="inherit" 
-                component={RouterLink} 
                 to="/pages"
               >
                 Sidor
+              </Button>
+              
+              <Button 
+                color="inherit" 
+                component={RouterLink} 
+                to="/booking"
+              >
+                Boka
               </Button>
               
               {isAdmin && (

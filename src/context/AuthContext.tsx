@@ -1,4 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../services/firebase';
+import userService from '../services/userService';
 
 // Make this file a module
 export {};
@@ -32,60 +35,91 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Försök att återställa användardata från localStorage vid start
+  // Lyssna på Firebase Auth state
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setCurrentUser(parsedUser);
-      } catch (error) {
-        console.error('Kunde inte läsa användardata från localStorage:', error);
-        localStorage.removeItem('user');
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Hämta användardata från Firestore
+          const userData = await userService.getUserById(firebaseUser.uid);
+          
+          if (userData) {
+            setCurrentUser(userData);
+            // Spara även i localStorage som fallback
+            localStorage.setItem('user', JSON.stringify(userData));
+          } else {
+            console.warn('Hittade ingen användardata för inloggad användare');
+            // Skapa standardanvändare baserat på Firebase-användare
+            const basicUser: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: 'user',
+              name: firebaseUser.displayName || undefined
+            };
+            setCurrentUser(basicUser);
+            localStorage.setItem('user', JSON.stringify(basicUser));
+          }
+        } catch (error) {
+          console.error('Kunde inte hämta användardata:', error);
+        }
+      } else {
+        // Ingen Firebase-användare, prova att återställa från localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setCurrentUser(parsedUser);
+          } catch (error) {
+            console.error('Kunde inte läsa användardata från localStorage:', error);
+            localStorage.removeItem('user');
+            setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe(); // Städa upp vid unmount
   }, []);
   
-  // Spara användardata till localStorage när den ändras
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('user', JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [currentUser]);
-  
-  // Logga in användare
+  // Login-funktion (används när vi explicit loggar in)
   const login = (user: User) => {
     setCurrentUser(user);
+    localStorage.setItem('user', JSON.stringify(user));
   };
   
-  // Logga ut användare
-  const logout = () => {
-    setCurrentUser(null);
+  // Logout-funktion
+  const logout = async () => {
+    try {
+      await signOut(auth); // Logga ut från Firebase
+      setCurrentUser(null);
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Kunde inte logga ut:', error);
+    }
   };
   
-  // Kontrollera om användaren är admin
-  const isAdmin = !!currentUser && currentUser.role === 'admin';
-  
-  // Kontrollera om användaren är inloggad
-  const isLoggedIn = !!currentUser;
-  
+  // Kontextvärdena
   const value = {
     currentUser,
-    isLoggedIn,
-    isAdmin,
+    isLoggedIn: !!currentUser,
+    isAdmin: currentUser?.role === 'admin',
     login,
     logout,
     loading
   };
   
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// Hook för enkel åtkomst till context
-export const useAuth = (): AuthContextType => {
+// Hook för att använda auth-kontexten
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth måste användas inom en AuthProvider');

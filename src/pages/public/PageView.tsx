@@ -10,14 +10,25 @@ import {
   Chip, 
   Skeleton, 
   Alert,
-  IconButton
+  IconButton,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Link
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ImageIcon from '@mui/icons-material/Image';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import pageService from '../../services/pageService';
-import { Page } from '../../types/Page';
+import { Page, FileInfo } from '../../types/Page';
+import { BASE_URL } from '../../services/pageService';
 
 // Komponentstilar för Markdown-innehåll
 const markdownStyles = {
@@ -166,6 +177,27 @@ const PageView: React.FC = () => {
     navigate(-1);
   };
 
+  // Få rätt ikon baserat på filtyp
+  const getFileIcon = (mimetype: string) => {
+    if (mimetype.startsWith('image/')) {
+      return <ImageIcon />;
+    } else if (mimetype === 'application/pdf') {
+      return <PictureAsPdfIcon />;
+    } else {
+      return <AttachFileIcon />;
+    }
+  };
+
+  // Kategorisera filer
+  const categorizeFiles = (files?: FileInfo[]) => {
+    if (!files || files.length === 0) return { images: [], documents: [] };
+    
+    return {
+      images: files.filter(file => file.mimetype && file.mimetype.startsWith('image/')),
+      documents: files.filter(file => file.mimetype && !file.mimetype.startsWith('image/'))
+    };
+  };
+
   if (loading) {
     return (
       <Container maxWidth="md">
@@ -234,6 +266,9 @@ const PageView: React.FC = () => {
     );
   }
 
+  const { images, documents } = categorizeFiles(page.files);
+  const hasAttachments = (images.length > 0 || documents.length > 0);
+
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -249,7 +284,7 @@ const PageView: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} />
           <Typography variant="body2" color="text.secondary">
-            {formatDate(page.updatedAt || page.createdAt)}
+            {formatDate((page.updatedAt || page.createdAt || '') as string)}
           </Typography>
           
           {page.slug && (
@@ -284,6 +319,94 @@ const PageView: React.FC = () => {
               {page.content}
             </ReactMarkdown>
           </Box>
+          
+          {hasAttachments && (
+            <Box sx={{ mt: 4 }}>
+              <Divider sx={{ mb: 3 }} />
+              
+              {images.length > 0 && (
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h5" gutterBottom>
+                    Bilder
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {images.map((file) => (
+                      <Grid item xs={12} sm={6} md={4} key={file.id}>
+                        <Card>
+                          <CardMedia
+                            component="img"
+                            height="180"
+                            image={`${BASE_URL}${file.path}`}
+                            alt={file.originalName}
+                            sx={{ objectFit: 'cover' }}
+                          />
+                          <CardContent sx={{ py: 1 }}>
+                            <Typography variant="body2" noWrap title={file.originalName}>
+                              {file.originalName}
+                            </Typography>
+                          </CardContent>
+                          <CardActions>
+                            <Button 
+                              size="small" 
+                              component="a"
+                              href={`${BASE_URL}${file.path}`}
+                              target="_blank"
+                              startIcon={<ImageIcon />}
+                            >
+                              Öppna
+                            </Button>
+                          </CardActions>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+              
+              {documents.length > 0 && (
+                <Box>
+                  <Typography variant="h5" gutterBottom>
+                    Dokument
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 0 }}>
+                    {documents.map((file, index) => (
+                      <React.Fragment key={file.id}>
+                        {index > 0 && <Divider />}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          p: 2,
+                          '&:hover': { bgcolor: 'action.hover' }
+                        }}>
+                          <Box sx={{ pr: 2 }}>
+                            {getFileIcon(file.mimetype)}
+                          </Box>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="body1">
+                              {file.originalName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {(file.size / 1024).toFixed(1)} KB • {file.mimetype}
+                            </Typography>
+                          </Box>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            component="a" 
+                            href={`${BASE_URL}${file.path}`}
+                            download={file.originalName}
+                            startIcon={<FileDownloadIcon />}
+                          >
+                            Ladda ner
+                          </Button>
+                        </Box>
+                      </React.Fragment>
+                    ))}
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+          )}
         </Paper>
       </Box>
     </Container>

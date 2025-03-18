@@ -11,25 +11,22 @@ import {
   Alert,
   Link,
   Divider,
-  ButtonGroup
+  ButtonGroup,
+  CircularProgress
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
+import userService from '../../services/userService';
 
 // Förinställda konton för demo
+// (Vid användning av Firebase kommer dessa konton att skapas automatiskt i Firebase Auth)
 const PRESET_ACCOUNTS = {
   user: {
-    id: 'user1',
     email: 'user@example.com',
-    password: 'password123',
-    role: 'user',
-    name: 'Test Användare'
+    password: 'password123'
   },
   admin: {
-    id: 'admin1',
     email: 'admin@example.com',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Admin User'
+    password: 'admin123'
   }
 };
 
@@ -50,155 +47,132 @@ const Login: React.FC = () => {
       return;
     }
     
-    // TODO: Implementera faktisk inloggningslogik med Firebase
     try {
       setError(null);
       setLoading(true);
       
-      // Simulerar en inloggning
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Logga in med Firebase via userService
+      const user = await userService.loginUser(email, password);
       
-      // För demo-syfte, kontrollera med preset accounts
-      let user = null;
-      
-      if (email === PRESET_ACCOUNTS.admin.email && password === PRESET_ACCOUNTS.admin.password) {
-        user = {
-          id: PRESET_ACCOUNTS.admin.id,
-          email: PRESET_ACCOUNTS.admin.email,
-          role: 'admin' as const,
-          name: PRESET_ACCOUNTS.admin.name
-        };
-      } else if (email === PRESET_ACCOUNTS.user.email && password === PRESET_ACCOUNTS.user.password) {
-        user = {
-          id: PRESET_ACCOUNTS.user.id,
-          email: PRESET_ACCOUNTS.user.email,
-          role: 'user' as const,
-          name: PRESET_ACCOUNTS.user.name
-        };
-      } else {
-        // För testning, acceptera alla inloggningar och anta en användarroll
-        user = {
-          id: 'demo' + Date.now(),
-          email: email,
-          role: 'user' as const
-        };
-      }
-      
-      console.log('Inloggad med:', user);
-      
-      // Logga in användaren i AuthContext
       if (user) {
+        // Användaren är inloggad via Firebase, uppdatera kontexten
         login(user);
+        
+        // Navigera till sidlistan
+        navigate('/pages');
+      } else {
+        setError('Felaktig e-post eller lösenord');
       }
-      
-      // Alla användare omdirigeras till sidlistan
-      navigate('/pages');
     } catch (err: any) {
-      setError(err.message || 'Kunde inte logga in');
-      console.error(err);
+      const errorMessage = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
+        ? 'Felaktig e-post eller lösenord'
+        : err.code === 'auth/too-many-requests'
+        ? 'För många försök. Försök igen senare.'
+        : 'Kunde inte logga in. Kontrollera dina uppgifter.';
+        
+      setError(errorMessage);
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Funktion för att fylla i förinställda konton
-  const fillPresetAccount = (type: 'user' | 'admin') => {
-    setEmail(PRESET_ACCOUNTS[type].email);
-    setPassword(PRESET_ACCOUNTS[type].password);
+  // Funktion för att fylla i demo-användarkonton
+  const fillDemoCredentials = (type: 'user' | 'admin') => {
+    const account = PRESET_ACCOUNTS[type];
+    setEmail(account.email);
+    setPassword(account.password);
   };
 
   return (
     <Container maxWidth="sm">
       <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Typography variant="h4" component="h1" align="center" gutterBottom>
             Logga in
           </Typography>
           
-          {error && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="E-post"
-                  variant="outlined"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                />
+          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="E-postadress"
+              name="email"
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Lösenord"
+              type="password"
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+            />
+            
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2, py: 1.2 }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Logga in'}
+            </Button>
+            
+            <Grid container>
+              <Grid item xs>
+                <Link href="#" variant="body2">
+                  Glömt lösenord?
+                </Link>
               </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Lösenord"
-                  type="password"
-                  variant="outlined"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  disabled={loading}
-                >
-                  {loading ? 'Loggar in...' : 'Logga in'}
-                </Button>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }}>
-                  <Typography variant="body2" color="textSecondary">
-                    Testanvändare
-                  </Typography>
-                </Divider>
-                
-                <Box display="flex" justifyContent="center" sx={{ mb: 2 }}>
-                  <ButtonGroup variant="outlined" size="small">
-                    <Button onClick={() => fillPresetAccount('user')}>
-                      Användare
-                    </Button>
-                    <Button onClick={() => fillPresetAccount('admin')}>
-                      Admin
-                    </Button>
-                  </ButtonGroup>
-                </Box>
-                
-                <Box display="flex" justifyContent="center" sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    Klicka på knapparna ovan för att fylla i förinställda inloggningsuppgifter
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Box display="flex" justifyContent="center">
-                  <Typography variant="body2">
-                    Har du inget konto?{' '}
-                    <Link href="/register" color="primary">
-                      Registrera dig här
-                    </Link>
-                  </Typography>
-                </Box>
+              <Grid item>
+                <Link href="/register" variant="body2">
+                  {"Har du inget konto? Registrera dig"}
+                </Link>
               </Grid>
             </Grid>
-          </form>
+            
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                Demo-konton
+              </Typography>
+            </Divider>
+            
+            <ButtonGroup variant="outlined" fullWidth>
+              <Button 
+                onClick={() => fillDemoCredentials('user')}
+                sx={{ py: 1 }}
+                disabled={loading}
+              >
+                Användare
+              </Button>
+              <Button 
+                onClick={() => fillDemoCredentials('admin')}
+                sx={{ py: 1 }}
+                disabled={loading}
+              >
+                Administratör
+              </Button>
+            </ButtonGroup>
+          </Box>
         </Paper>
       </Box>
     </Container>

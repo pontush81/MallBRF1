@@ -176,7 +176,7 @@ const PagesList: React.FC = () => {
                       size="small" 
                     />
                   </TableCell>
-                  <TableCell>{formatDate(page.updatedAt)}</TableCell>
+                  <TableCell>{formatDate(page.updatedAt || '')}</TableCell>
                   <TableCell align="right">
                     <IconButton 
                       color="primary" 

@@ -10,54 +10,86 @@ import {
   Box,
   Alert,
   Link,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  CircularProgress
 } from '@mui/material';
-
-// User role options
-type UserRole = 'user' | 'admin';
+import { useAuth } from '../../context/AuthContext';
+import userService from '../../services/userService';
 
 const Register: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('user');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: ''
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const validateForm = () => {
+    if (!formData.email || !formData.password || !formData.name) {
+      setError('Alla fält måste fyllas i');
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Lösenorden matchar inte');
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Lösenordet måste vara minst 6 tecken');
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
-      setError('Vänligen fyll i alla fält');
-      return;
-    }
+    if (!validateForm()) return;
     
-    if (password !== confirmPassword) {
-      setError('Lösenorden matchar inte');
-      return;
-    }
-    
-    // TODO: Implementera faktisk registreringslogik med Firebase
     try {
       setError(null);
       setLoading(true);
       
-      // Simulerar en registrering
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Skapa användaren med Firebase via userService
+      const newUser = await userService.createUser({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: 'user',
+        isActive: true
+      });
       
-      // För demo-syfte, acceptera alla registreringar
-      console.log('Registrerad med:', { email, role });
-      
-      // Navigera till login-sidan efter registrering
-      navigate('/login');
+      if (newUser) {
+        // Användaren är nu registrerad och inloggad via Firebase
+        login(newUser);
+        navigate('/pages');
+      }
     } catch (err: any) {
-      setError(err.message || 'Kunde inte registrera konto');
-      console.error(err);
+      const errorMessage = 
+        err.code === 'auth/email-already-in-use' 
+          ? 'E-postadressen används redan av ett annat konto' 
+          : err.code === 'auth/invalid-email' 
+          ? 'Ogiltig e-postadress'
+          : err.code === 'auth/weak-password'
+          ? 'Lösenordet är för svagt'
+          : 'Kunde inte skapa kontot. Försök igen.';
+      
+      setError(errorMessage);
+      console.error('Registration error:', err);
     } finally {
       setLoading(false);
     }
@@ -66,98 +98,91 @@ const Register: React.FC = () => {
   return (
     <Container maxWidth="sm">
       <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Typography variant="h4" component="h1" align="center" gutterBottom>
-            Registrera konto
+            Registrera nytt konto
           </Typography>
           
-          {error && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="E-post"
-                  variant="outlined"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Lösenord"
-                  type="password"
-                  variant="outlined"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Bekräfta lösenord"
-                  type="password"
-                  variant="outlined"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel id="role-select-label">Roll</InputLabel>
-                  <Select
-                    labelId="role-select-label"
-                    id="role-select"
-                    value={role}
-                    label="Roll"
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                  >
-                    <MenuItem value="user">Användare</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  disabled={loading}
-                >
-                  {loading ? 'Registrerar...' : 'Registrera'}
-                </Button>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Box display="flex" justifyContent="center">
-                  <Typography variant="body2">
-                    Har du redan ett konto?{' '}
-                    <Link href="/login" color="primary">
-                      Logga in här
-                    </Link>
-                  </Typography>
-                </Box>
+          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="name"
+              label="Namn"
+              name="name"
+              autoComplete="name"
+              autoFocus
+              value={formData.name}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="E-postadress"
+              name="email"
+              autoComplete="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Lösenord"
+              type="password"
+              id="password"
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="confirmPassword"
+              label="Bekräfta lösenord"
+              type="password"
+              id="confirmPassword"
+              autoComplete="new-password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2, py: 1.2 }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Registrera'}
+            </Button>
+            
+            <Grid container justifyContent="flex-end">
+              <Grid item>
+                <Link href="/login" variant="body2">
+                  Har du redan ett konto? Logga in
+                </Link>
               </Grid>
             </Grid>
-          </form>
+          </Box>
         </Paper>
       </Box>
     </Container>

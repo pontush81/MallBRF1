@@ -12,6 +12,8 @@ import Dashboard from './pages/admin/Dashboard';
 import Profile from './pages/user/Profile';
 import PageView from './pages/public/PageView';
 import PublicPages from './pages/PublicPages';
+import NotFound from './pages/NotFound';
+import BookingPage from './pages/public/BookingPage';
 
 // Layout
 import Layout from './components/Layout';
@@ -39,11 +41,12 @@ function AppRoutes() {
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/" element={<Navigate to="/pages" replace />} />
         <Route path="/login" element={<Layout><Login /></Layout>} />
         <Route path="/register" element={<Layout><Register /></Layout>} />
         <Route path="/page/:id" element={<Layout><PageView /></Layout>} />
         <Route path="/pages" element={<Layout><PublicPages /></Layout>} />
+        <Route path="/booking" element={<Layout><BookingPage /></Layout>} />
         
         {/* Protected routes */}
         <Route path="/profile" element={
@@ -64,7 +67,7 @@ function AppRoutes() {
         } />
         
         {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Layout><NotFound /></Layout>} />
       </Routes>
     </Router>
   );
