@@ -1,25 +1,83 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme';
+
+// Pages
+import Home from './pages/Home';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Dashboard from './pages/admin/Dashboard';
+import Profile from './pages/user/Profile';
+import PageView from './pages/public/PageView';
+import PublicPages from './pages/PublicPages';
+
+// Layout
+import Layout from './components/Layout';
+
+// Auth Context
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Protected route component
+const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
+  const { isLoggedIn, isAdmin } = useAuth();
+  
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/pages" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+function AppRoutes() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/login" element={<Layout><Login /></Layout>} />
+        <Route path="/register" element={<Layout><Register /></Layout>} />
+        <Route path="/page/:id" element={<Layout><PageView /></Layout>} />
+        <Route path="/pages" element={<Layout><PublicPages /></Layout>} />
+        
+        {/* Protected routes */}
+        <Route path="/profile" element={
+          <Layout>
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          </Layout>
+        } />
+        
+        {/* Admin routes */}
+        <Route path="/admin/*" element={
+          <Layout>
+            <ProtectedRoute adminOnly>
+              <Dashboard />
+            </ProtectedRoute>
+          </Layout>
+        } />
+        
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
