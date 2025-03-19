@@ -27,11 +27,16 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Skapa och konfigurera databaspool med Supabase
 const db = new Pool({
-  connectionString: process.env.POSTGRES_URL_NON_POOLING || "postgres://localhost:5432/mall_brf"
-  // Ta bort SSL-konfigurationen för lokal utveckling eftersom localhost inte använder SSL
+  connectionString: process.env.POSTGRES_URL_NON_POOLING || "postgres://localhost:5432/mall_brf",
+  ssl: process.env.POSTGRES_URL_NON_POOLING ? {
+    rejectUnauthorized: process.env.NODE_ENV === 'production' // Accept self-signed certs in dev, reject in prod
+  } : false // No SSL for localhost
 });
 
-console.log('Använder databas-URL:', process.env.POSTGRES_URL_NON_POOLING ? 'Supabase URL (dold)' : 'localhost');
+console.log('Database connection configured with:');
+console.log('- URL:', process.env.POSTGRES_URL_NON_POOLING ? 'Supabase URL (hidden)' : 'localhost');
+console.log('- SSL:', process.env.POSTGRES_URL_NON_POOLING ? 'Enabled' : 'Disabled');
+console.log('- Node Env:', process.env.NODE_ENV || 'not set');
 
 // Testa databaskopplingen
 db.connect((err, client, done) => {
@@ -269,6 +274,27 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API fungerar!' });
 });
 
+// Test endpoint to verify database connection
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const result = await db.query('SELECT NOW()');
+    res.json({
+      success: true,
+      message: 'Database connection successful',
+      timestamp: result.rows[0].now,
+      dbUrl: process.env.POSTGRES_URL_NON_POOLING ? 'Set (hidden)' : 'Not set',
+      nodeEnv: process.env.NODE_ENV || 'not set'
+    });
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message
+    });
+  }
+});
+
 // Hämta alla sidor
 app.get('/api/pages', async (req, res) => {
   try {
@@ -314,8 +340,11 @@ app.get('/api/pages/published', async (req, res) => {
 // Hämta sidor som ska visas
 app.get('/api/pages/visible', async (req, res) => {
   try {
+    console.log('Fetching visible pages...');
     const result = await db.query('SELECT * FROM pages WHERE isPublished = true AND show = true');
     const pages = result.rows;
+    
+    console.log(`Found ${pages.length} visible pages`);
     
     const formattedPages = pages.map(page => ({
       ...page,
@@ -326,7 +355,13 @@ app.get('/api/pages/visible', async (req, res) => {
     res.json(formattedPages);
   } catch (err) {
     console.error('Kunde inte hämta synliga sidor:', err);
-    res.status(500).json({ error: 'Kunde inte hämta sidor' });
+    console.error('Error details:', {
+      message: err.message,
+      stack: err.stack,
+      code: err.code,
+      detail: err.detail
+    });
+    res.status(500).json({ error: 'Kunde inte hämta synliga sidor', details: err.message });
   }
 });
 
