@@ -39,14 +39,13 @@ console.log('Using connection string (masked):', connectionString.replace(/postg
 
 const db = new Pool({
   connectionString: connectionString,
-  // Let the connection string's sslmode=require handle SSL settings
-  // Only add specific SSL settings if not present in connection string
-  ssl: !connectionString.includes('sslmode=') && process.env.NODE_ENV === 'production' ? 
-    { rejectUnauthorized: true } : undefined
+  // Disable SSL certificate validation in production to fix the self-signed certificate issue
+  ssl: process.env.NODE_ENV === 'production' ? 
+    { rejectUnauthorized: false } : undefined
 });
 
 console.log('Database connection configured with:');
-console.log('- SSL mode from connection string:', connectionString.includes('sslmode=require') ? 'Required from connection string' : 'Not specified in connection string');
+console.log('- SSL mode:', process.env.NODE_ENV === 'production' ? 'SSL enabled with rejectUnauthorized: false' : 'Using connection string defaults');
 console.log('- Node Env:', process.env.NODE_ENV || 'not set');
 
 // Testa databaskopplingen
