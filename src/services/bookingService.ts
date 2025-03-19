@@ -1,7 +1,9 @@
 import { Booking } from '../types/Booking';
 
-// API URL
-const API_URL = 'http://localhost:3001/api';
+// För samma domän
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : '/api';
 
 // Interface för tillgänglighetskontroll
 interface AvailabilityResponse {

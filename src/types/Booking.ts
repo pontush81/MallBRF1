@@ -7,4 +7,5 @@ export interface Booking {
   createdAt: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   notes?: string;
+  phone?: string;
 } 
