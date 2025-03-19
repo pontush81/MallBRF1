@@ -19,10 +19,15 @@ const multer = require('multer');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Säkerställ att uploads-mappen finns
+// Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+if (process.env.NODE_ENV !== 'production') {
+  // Only attempt to create directories in development environment
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+  }
+} else {
+  console.log('Running in production mode - skipping uploads directory creation (using read-only filesystem)');
 }
 
 // Skapa och konfigurera databaspool med Supabase
@@ -77,18 +82,26 @@ app.use('/uploads', (req, res, next) => {
   }
 }));
 
-// Konfigurera Multer för filuppladdning
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    // Skapa ett unikt filnamn med originalfilens filändelse
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
+// Konfigurera Multer för filuppladdning - use memory storage in production
+let storage;
+if (process.env.NODE_ENV === 'production') {
+  // In production (Vercel), use memory storage
+  console.log('Using memory storage for file uploads in production');
+  storage = multer.memoryStorage();
+} else {
+  // In development, use disk storage
+  storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+      // Skapa ett unikt filnamn med originalfilens filändelse
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    }
+  });
+}
 
 const upload = multer({ 
   storage: storage,
@@ -661,24 +674,46 @@ app.post('/api/pages/:id/upload', upload.single('file'), async (req, res) => {
     const existingPageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
     
     if (existingPageResult.rows.length === 0) {
-      // Ta bort filen om sidan inte finns
-      fs.unlinkSync(file.path);
+      // Ta bort filen om sidan inte finns (endast i utvecklingsmiljö)
+      if (process.env.NODE_ENV !== 'production' && file.path) {
+        fs.unlinkSync(file.path);
+      }
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
     }
     
     const existingPage = existingPageResult.rows[0];
     
-    // Lägg till den nya filen i sidans fillista
-    const fileInfo = {
-      id: Date.now().toString(),
-      filename: file.filename,
-      originalName: file.originalname,
-      path: `/uploads/${file.filename}`,
-      size: file.size,
-      mimetype: file.mimetype,
-      uploadedAt: new Date().toISOString()
-    };
+    // Handle file storage differently based on environment
+    let fileInfo;
     
+    if (process.env.NODE_ENV === 'production') {
+      // In production, store file details without actual file
+      // NOTE: In a real app, you would upload to Supabase Storage or similar
+      fileInfo = {
+        id: Date.now().toString(),
+        originalName: file.originalname,
+        path: `/uploads/${file.originalname}`, // This path won't work, but is a placeholder
+        size: file.size,
+        mimetype: file.mimetype,
+        uploadedAt: new Date().toISOString(),
+        note: "File storage not available in production - implement Supabase Storage"
+      };
+      
+      console.log('File upload in production (data stored but file discarded):', fileInfo);
+    } else {
+      // In development, use the filesystem
+      fileInfo = {
+        id: Date.now().toString(),
+        filename: file.filename,
+        originalName: file.originalname,
+        path: `/uploads/${file.filename}`,
+        size: file.size,
+        mimetype: file.mimetype,
+        uploadedAt: new Date().toISOString()
+      };
+    }
+    
+    // Lägg till den nya filen i sidans fillista
     let files = existingPage.files ? JSON.parse(existingPage.files) : [];
     files.push(fileInfo);
     
@@ -720,7 +755,7 @@ app.delete('/api/pages/:id/files/:fileId', async (req, res) => {
       return res.status(404).json({ error: 'Inga filer hittades för sidan' });
     }
     
-    // Hitta filen och ta bort den från filsystemet och databasen
+    // Hitta filen i databasen
     const files = JSON.parse(existingPage.files);
     const fileIndex = files.findIndex(file => file.id === fileId);
     
@@ -729,11 +764,15 @@ app.delete('/api/pages/:id/files/:fileId', async (req, res) => {
     }
     
     const file = files[fileIndex];
-    const filePath = path.join(uploadsDir, file.filename);
     
-    // Ta bort filen från filsystemet om den finns
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Radera filen från filsystemet endast i utvecklingsmiljö
+    if (process.env.NODE_ENV !== 'production' && file.filename) {
+      const filePath = path.join(uploadsDir, file.filename);
+      
+      // Ta bort filen från filsystemet om den finns
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
     
     // Ta bort filen från arrayen
