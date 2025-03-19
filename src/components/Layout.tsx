@@ -28,7 +28,6 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {

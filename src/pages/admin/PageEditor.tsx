@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Typography, 
   Box, 
@@ -18,10 +18,7 @@ import {
   Card,
   CardMedia,
   CardContent,
-  CardActions,
-  FormControl,
-  Chip,
-  Stack
+  CardActions
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import SimpleMDE from 'react-simplemde-editor';
@@ -33,8 +30,7 @@ import {
   Visibility as VisibilityIcon,
   AttachFile as AttachFileIcon,
   PictureAsPdf as PdfIcon,
-  Image as ImageIcon,
-  CloudUpload as UploadIcon
+  Image as ImageIcon
 } from '@mui/icons-material';
 import 'easymde/dist/easymde.min.css';
 

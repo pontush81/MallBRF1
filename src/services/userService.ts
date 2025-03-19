@@ -10,14 +10,14 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { 
-  createUserWithEmailAndPassword, 
-  updateEmail, 
-  deleteUser as firebaseDeleteUser,
+  getAuth, 
+  createUserWithEmailAndPassword,
+  updateProfile,
   signInWithEmailAndPassword,
-  signOut,
+  deleteUser,
+  updateEmail,
 } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { initializeApp } from 'firebase/app';
 
 // Användarsamling i Firestore
 const USERS_COLLECTION = 'users';

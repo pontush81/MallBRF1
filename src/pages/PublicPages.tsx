@@ -22,13 +22,7 @@ import {
   CardContent,
   CardActions,
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  NavigateBefore as BackIcon,
-  NavigateNext as ForwardIcon,
-  Event as EventIcon,
-  CalendarMonth as CalendarIcon,
-  Description as DocumentIcon,
   Image as ImageIcon,
 } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';

@@ -18,9 +18,9 @@ import {
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, addDays, isAfter, differenceInDays, isWithinInterval, parseISO } from 'date-fns';
+import { format, addDays, isAfter, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { CalendarMonth, Person, Email, Check } from '@mui/icons-material';
+import { Person, Email, Check } from '@mui/icons-material';
 // FullCalendar-komponenter
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -353,51 +353,6 @@ const BookingPage: React.FC = () => {
     setBookingId(null);
     setValidationErrors({});
     setErrorMessage('');
-  };
-
-  // Rendera valda datum som selected i kalendern
-  const getSelectedDateEvents = () => {
-    const selectedEvents = [];
-    
-    if (startDate) {
-      selectedEvents.push({
-        title: 'Ankomst',
-        start: startDate,
-        display: 'block',
-        backgroundColor: '#1976d2',
-        borderColor: '#1565c0',
-        textColor: '#ffffff'
-      });
-    }
-    
-    if (endDate) {
-      selectedEvents.push({
-        title: 'Avresa',
-        start: endDate,
-        display: 'block',
-        backgroundColor: '#1976d2',
-        borderColor: '#1565c0',
-        textColor: '#ffffff'
-      });
-    }
-    
-    // Om både start och slut är valda, lägg till alla dagar däremellan
-    if (startDate && endDate) {
-      const dayAfterStart = addDays(startDate, 1);
-      const dayBeforeEnd = addDays(endDate, -1);
-      
-      if (isAfter(dayBeforeEnd, dayAfterStart)) {
-        selectedEvents.push({
-          title: 'Vald period',
-          start: dayAfterStart,
-          end: addDays(dayBeforeEnd, 1), // FullCalendar behöver exklusivt slutdatum
-          display: 'background',
-          backgroundColor: 'rgba(25, 118, 210, 0.2)'
-        });
-      }
-    }
-    
-    return selectedEvents;
   };
 
   // Hantera val av datumintervall i kalendern

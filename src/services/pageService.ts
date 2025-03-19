@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { Page, FileInfo } from '../types/Page';
+import { Page } from '../types/Page';
 
 // Base URL for the API (dynamically determined)
 export const BASE_URL = '';
