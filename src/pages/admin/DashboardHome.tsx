@@ -4,21 +4,18 @@ import {
   Box, 
   Paper, 
   Grid, 
-  Card, 
-  CardContent, 
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Button,
-  Divider
+  Divider,
+  Stack
 } from '@mui/material';
 import { 
-  Dashboard as DashboardIcon, 
-  BarChart as ChartIcon, 
-  Description as PageIcon, 
-  People as UserIcon,
+  People as PeopleIcon, 
+  Article as PageIcon, 
   Event as BookingIcon,
   Add as AddIcon,
   Edit as EditIcon,
@@ -232,7 +229,7 @@ const DashboardHome: React.FC = () => {
               <ListItem disablePadding>
                 <ListItemButton onClick={() => navigate('/admin/users')}>
                   <ListItemIcon>
-                    <UserIcon />
+                    <PeopleIcon />
                   </ListItemIcon>
                   <ListItemText primary="Hantera användare" />
                 </ListItemButton>

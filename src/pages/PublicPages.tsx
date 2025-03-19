@@ -7,7 +7,6 @@ import {
   Divider, 
   Skeleton, 
   Alert,
-  Chip,
   useTheme,
   Tabs,
   Tab,
@@ -22,8 +21,16 @@ import {
   CardMedia,
   CardContent,
   CardActions,
-  Link
 } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  NavigateBefore as BackIcon,
+  NavigateNext as ForwardIcon,
+  Event as EventIcon,
+  CalendarMonth as CalendarIcon,
+  Description as DocumentIcon,
+  Image as ImageIcon,
+} from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -31,9 +38,7 @@ import pageService from '../services/pageService';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import MenuIcon from '@mui/icons-material/Menu';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import ImageIcon from '@mui/icons-material/Image';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { BASE_URL } from '../services/pageService';

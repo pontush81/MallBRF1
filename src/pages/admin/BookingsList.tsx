@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Typography, 
   Box, 
@@ -62,10 +62,32 @@ const BookingsList: React.FC = () => {
     fetchBookings();
   }, []);
 
+  // Filtrera bokningar baserat på status och sökterm
+  const filterBookings = useCallback(() => {
+    let filtered = [...bookings];
+    
+    // Filtrera efter status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(booking => booking.status === statusFilter);
+    }
+    
+    // Filtrera efter sökterm
+    if (searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        booking => 
+          booking.name.toLowerCase().includes(term) || 
+          booking.email.toLowerCase().includes(term)
+      );
+    }
+    
+    setFilteredBookings(filtered);
+  }, [bookings, statusFilter, searchTerm]);
+
   // Uppdatera filtrerade bokningar när filter eller sökterm ändras
   useEffect(() => {
     filterBookings();
-  }, [bookings, statusFilter, searchTerm]);
+  }, [filterBookings]);
 
   // Funktion för att hämta bokningar
   const fetchBookings = async () => {
@@ -87,28 +109,6 @@ const BookingsList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Filtrera bokningar baserat på status och sökterm
-  const filterBookings = () => {
-    let filtered = [...bookings];
-    
-    // Filtrera efter status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => booking.status === statusFilter);
-    }
-    
-    // Filtrera efter sökterm
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        booking => 
-          booking.name.toLowerCase().includes(term) || 
-          booking.email.toLowerCase().includes(term)
-      );
-    }
-    
-    setFilteredBookings(filtered);
   };
 
   // Formatera datum

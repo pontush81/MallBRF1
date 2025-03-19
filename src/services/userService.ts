@@ -7,17 +7,17 @@ import {
   setDoc, 
   updateDoc, 
   deleteDoc, 
-  query, 
-  where,
   Timestamp
 } from 'firebase/firestore';
 import { 
   createUserWithEmailAndPassword, 
   updateEmail, 
   deleteUser as firebaseDeleteUser,
-  signInWithEmailAndPassword 
+  signInWithEmailAndPassword,
+  signOut,
 } from 'firebase/auth';
 import { auth, db } from './firebase';
+import { initializeApp } from 'firebase/app';
 
 // Användarsamling i Firestore
 const USERS_COLLECTION = 'users';

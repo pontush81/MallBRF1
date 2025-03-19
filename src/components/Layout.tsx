@@ -19,14 +19,16 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import MenuIcon from '@mui/icons-material/Menu';
+import { 
+  Menu as MenuIcon,
+  Person as PersonIcon,
+  Article as ArticleIcon,
+  EventAvailable as EventIcon,
+  Dashboard as DashboardIcon,
+  Logout as LogoutIcon
+} from '@mui/icons-material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
-import HomeIcon from '@mui/icons-material/Home';
-import ArticleIcon from '@mui/icons-material/Article';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PersonIcon from '@mui/icons-material/Person';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import EventIcon from '@mui/icons-material/Event';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
@@ -102,7 +104,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <ListItem 
               onClick={handleLogout}
             >
-              <ListItemIcon><ExitToAppIcon /></ListItemIcon>
+              <ListItemIcon><LogoutIcon /></ListItemIcon>
               <ListItemText primary="Logga ut" />
             </ListItem>
           </List>

@@ -9,10 +9,9 @@ import {
 } from '@mui/material';
 import { 
   Dashboard as DashboardIcon, 
-  BarChart as ChartIcon, 
-  Description as PageIcon, 
-  People as UserIcon,
-  Event as BookingIcon
+  People as PeopleIcon, 
+  Article as ArticleIcon,
+  Event as EventIcon
 } from '@mui/icons-material';
 import { useNavigate, Route, Routes } from 'react-router-dom';
 
@@ -99,7 +98,7 @@ const Dashboard: React.FC = () => {
           <Grid item>
             <Button
               variant={selectedItem === 'pages' ? 'contained' : 'outlined'}
-              startIcon={<PageIcon />}
+              startIcon={<ArticleIcon />}
               onClick={() => handleNavItemClick('pages')}
             >
               Hantera Sidor
@@ -109,7 +108,7 @@ const Dashboard: React.FC = () => {
           <Grid item>
             <Button
               variant={selectedItem === 'bookings' ? 'contained' : 'outlined'}
-              startIcon={<BookingIcon />}
+              startIcon={<EventIcon />}
               onClick={() => handleNavItemClick('bookings')}
             >
               Bokningar
@@ -119,7 +118,7 @@ const Dashboard: React.FC = () => {
           <Grid item>
             <Button
               variant={selectedItem === 'users' ? 'contained' : 'outlined'}
-              startIcon={<UserIcon />}
+              startIcon={<PeopleIcon />}
               onClick={() => handleNavItemClick('users')}
             >
               Användare

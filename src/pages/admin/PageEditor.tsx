@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   Typography, 
   Box, 
@@ -15,16 +15,13 @@ import {
   Tab,
   Tabs,
   Checkbox,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  IconButton,
   Card,
   CardMedia,
   CardContent,
-  CardActions
+  CardActions,
+  FormControl,
+  Chip,
+  Stack
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import SimpleMDE from 'react-simplemde-editor';
@@ -34,10 +31,10 @@ import {
   Preview as PreviewIcon, 
   ArrowBack as ArrowBackIcon, 
   Visibility as VisibilityIcon,
-  Delete as DeleteIcon,
   AttachFile as AttachFileIcon,
   PictureAsPdf as PdfIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CloudUpload as UploadIcon
 } from '@mui/icons-material';
 import 'easymde/dist/easymde.min.css';
 

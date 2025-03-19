@@ -21,7 +21,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, addDays, isAfter, differenceInDays, isWithinInterval, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { CalendarMonth, Person, Email, Check } from '@mui/icons-material';
-import ReactMarkdown from 'react-markdown';
+import '@fullcalendar/react/dist/vdom';
 // FullCalendar-komponenter
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -57,14 +57,6 @@ const BookingPage: React.FC = () => {
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   
-  // State för lägenhetsinformation
-  const [apartmentInfo, setApartmentInfo] = useState<{
-    title: string;
-    content: string;
-    files: any[];
-  } | null>(null);
-  const [loadingInfo, setLoadingInfo] = useState(true);
-
   // FullCalendar-komponenten
   const calendarRef = useRef<any>(null);
 
@@ -183,19 +175,19 @@ const BookingPage: React.FC = () => {
   useEffect(() => {
     const fetchApartmentInfo = async () => {
       try {
-        setLoadingInfo(true);
+        // setLoadingInfo(true);
         const page = await pageService.getPageBySlug('lagenhet-info');
         if (page) {
-          setApartmentInfo({
-            title: page.title,
-            content: page.content,
-            files: page.files || []
-          });
+          // setApartmentInfo({
+          //   title: page.title,
+          //   content: page.content,
+          //   files: page.files || []
+          // });
         }
       } catch (error) {
         console.error('Failed to fetch apartment info:', error);
       } finally {
-        setLoadingInfo(false);
+        // setLoadingInfo(false);
       }
     };
     
@@ -243,31 +235,6 @@ const BookingPage: React.FC = () => {
     });
   };
   
-  // Funktion för att hantera klick på kalender
-  const handleDateClick = (info: {date: Date}) => {
-    const clickedDate = new Date(info.date);
-    
-    // Om datumet redan är bokat, gör ingenting
-    if (isDateBooked(clickedDate)) {
-      return;
-    }
-    
-    if (!startDate || (startDate && endDate)) {
-      // Om ingen start-datum finns eller båda datum finns, sätt ett nytt start-datum
-      setStartDate(clickedDate);
-      setEndDate(null);
-    } else if (startDate && !endDate) {
-      // Om start-datum finns men inte slut-datum
-      if (isAfter(clickedDate, startDate)) {
-        setEndDate(clickedDate);
-      } else {
-        // Om användaren klickar på ett datum före start-datumet, byt plats
-        setEndDate(startDate);
-        setStartDate(clickedDate);
-      }
-    }
-  };
-
   // Validering för e-post
   const validateEmail = (email: string) => {
     return /\S+@\S+\.\S+/.test(email);

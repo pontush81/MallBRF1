@@ -1,5 +1,5 @@
-import { Page } from '../types/Page';
-import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
+import { Page, FileInfo } from '../types/Page';
 
 // Base URL for the API (dynamically determined)
 export const BASE_URL = '';

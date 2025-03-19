@@ -16,7 +16,7 @@ import {
   CardMedia,
   CardContent,
   CardActions,
-  Link
+  Stack
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
