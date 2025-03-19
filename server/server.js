@@ -56,9 +56,17 @@ const db = new Pool({
   }
 });
 
+// Välj rätt schema baserat på NODE_ENV
+const DB_SCHEMA = process.env.NODE_ENV === 'production' ? 'public' : 'staging';
+console.log(`Using database schema: ${DB_SCHEMA}`);
+
+// Helper function för att lägga till schema i SQL-frågor
+const withSchema = (tableName) => `${DB_SCHEMA}.${tableName}`;
+
 console.log('Database connection configured with:');
 console.log('- SSL mode: SSL enabled with rejectUnauthorized: false (required for Vercel)');
 console.log('- Node Env:', process.env.NODE_ENV || 'not set');
+console.log('- Schema:', DB_SCHEMA);
 
 // Testa databaskopplingen
 db.connect((err, client, done) => {
@@ -229,7 +237,7 @@ const initDb = async () => {
   try {
     // Skapa pages-tabell om den inte finns - with lowercase column names
     await db.query(`
-      CREATE TABLE IF NOT EXISTS pages (
+      CREATE TABLE IF NOT EXISTS ${withSchema('pages')} (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         content TEXT NOT NULL,
@@ -246,18 +254,18 @@ const initDb = async () => {
     const tableInfo = await db.query(`
       SELECT column_name 
       FROM information_schema.columns 
-      WHERE table_name = 'pages' AND column_name = 'files'
+      WHERE table_name = '${withSchema('pages')}' AND column_name = 'files'
     `);
     
     // Lägg till files-kolumn om den saknas
     if (tableInfo.rows.length === 0) {
       console.log('Lägger till files-kolumn i pages-tabellen...');
-      await db.query('ALTER TABLE pages ADD COLUMN files TEXT');
+      await db.query(`ALTER TABLE ${withSchema('pages')} ADD COLUMN files TEXT`);
     }
     
     // Skapa bookings-tabell om den inte finns
     await db.query(`
-      CREATE TABLE IF NOT EXISTS bookings (
+      CREATE TABLE IF NOT EXISTS ${withSchema('bookings')} (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT NOT NULL,
@@ -272,7 +280,7 @@ const initDb = async () => {
     
     // Skapa users-tabell om den inte finns
     await db.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS ${withSchema('users')} (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
         name TEXT,
@@ -285,7 +293,7 @@ const initDb = async () => {
     `);
     
     // Kontrollera om det finns några användare
-    const userCount = await db.query('SELECT COUNT(*) as count FROM users');
+    const userCount = await db.query(`SELECT COUNT(*) as count FROM ${withSchema('users')}`);
     
     if (parseInt(userCount.rows[0].count) === 0) {
       // Lägg till några demo-användare
@@ -314,14 +322,14 @@ const initDb = async () => {
       
       for (const user of initialUsers) {
         await db.query(
-          'INSERT INTO users(id, email, name, password, role, isActive, createdAt, lastLogin) VALUES($1, $2, $3, $4, $5, $6, $7, $8)',
+          `INSERT INTO ${withSchema('users')} (id, email, name, password, role, isActive, createdAt, lastLogin) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
           [user.id, user.email, user.name, user.password, user.role, user.isActive, user.createdAt, user.lastLogin]
         );
       }
     }
     
     // Kontrollera om det finns några sidor
-    const pageCount = await db.query('SELECT COUNT(*) as count FROM pages');
+    const pageCount = await db.query(`SELECT COUNT(*) as count FROM ${withSchema('pages')}`);
     
     if (parseInt(pageCount.rows[0].count) === 0) {
       // Lägg till några demo-sidor
@@ -374,7 +382,7 @@ const initDb = async () => {
       
       for (const page of initialPages) {
         await db.query(
-          'INSERT INTO pages(id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          `INSERT INTO ${withSchema('pages')} (id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [page.id, page.title, page.content, page.slug, page.ispublished, page.show, page.createdat, page.updatedat, page.files]
         );
       }
@@ -388,6 +396,71 @@ const initDb = async () => {
 
 // Initiera databasen vid start
 initDb();
+
+// Funktion för att säkerställa att staging-schemat finns
+async function ensureStagingSchema() {
+  if (DB_SCHEMA === 'staging') {
+    try {
+      // Kontrollera om staging-schemat finns
+      const schemaResult = await db.query(`
+        SELECT schema_name
+        FROM information_schema.schemata
+        WHERE schema_name = 'staging'
+      `);
+      
+      // Om schemat inte finns, skapa det
+      if (schemaResult.rows.length === 0) {
+        console.log('Creating staging schema...');
+        await db.query('CREATE SCHEMA IF NOT EXISTS staging');
+        
+        // Kopiera tabellstrukturer från public-schemat
+        console.log('Copying table structures from public schema...');
+        
+        // Kontrollera om pages-tabellen finns i public
+        const publicPagesResult = await db.query(`
+          SELECT table_name
+          FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'pages'
+        `);
+        
+        if (publicPagesResult.rows.length > 0) {
+          await db.query('CREATE TABLE IF NOT EXISTS staging.pages (LIKE public.pages INCLUDING ALL)');
+        }
+        
+        // Kontrollera om bookings-tabellen finns i public
+        const publicBookingsResult = await db.query(`
+          SELECT table_name
+          FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'bookings'
+        `);
+        
+        if (publicBookingsResult.rows.length > 0) {
+          await db.query('CREATE TABLE IF NOT EXISTS staging.bookings (LIKE public.bookings INCLUDING ALL)');
+        }
+        
+        // Kontrollera om users-tabellen finns i public
+        const publicUsersResult = await db.query(`
+          SELECT table_name
+          FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'users'
+        `);
+        
+        if (publicUsersResult.rows.length > 0) {
+          await db.query('CREATE TABLE IF NOT EXISTS staging.users (LIKE public.users INCLUDING ALL)');
+        }
+        
+        console.log('Staging schema created and tables copied successfully!');
+      } else {
+        console.log('Staging schema already exists');
+      }
+    } catch (err) {
+      console.error('Error ensuring staging schema:', err);
+    }
+  }
+}
+
+// Kör säkerställningen av staging-schemat efter databas-init
+ensureStagingSchema();
 
 // API-endpoints
 
@@ -426,26 +499,26 @@ app.get('/api/debug-db', async (req, res) => {
     const tablesResult = await db.query(`
       SELECT table_name
       FROM information_schema.tables
-      WHERE table_schema = 'public'
+      WHERE table_schema = '${DB_SCHEMA}'
     `);
     dbInfo.tables = tablesResult.rows.map(row => row.table_name);
     
     // 2. Check pages table schema
-    if (dbInfo.tables.includes('pages')) {
+    if (dbInfo.tables.includes(withSchema('pages'))) {
       const pagesSchemaResult = await db.query(`
         SELECT column_name, data_type 
         FROM information_schema.columns 
-        WHERE table_name = 'pages'
+        WHERE table_name = '${withSchema('pages')}'
       `);
       dbInfo.pagesSchema = pagesSchemaResult.rows;
       
       // 3. Check for sample data
-      const pagesDataResult = await db.query('SELECT COUNT(*) FROM pages');
+      const pagesDataResult = await db.query(`SELECT COUNT(*) FROM ${withSchema('pages')}`);
       dbInfo.pagesCount = parseInt(pagesDataResult.rows[0].count);
       
       // 4. Get sample page
       if (dbInfo.pagesCount > 0) {
-        const samplePageResult = await db.query('SELECT * FROM pages LIMIT 1');
+        const samplePageResult = await db.query(`SELECT * FROM ${withSchema('pages')} LIMIT 1`);
         dbInfo.samplePage = samplePageResult.rows[0];
       }
       
@@ -453,7 +526,7 @@ app.get('/api/debug-db', async (req, res) => {
       try {
         // Try lowercase first
         const visiblePagesResult = await db.query(`
-          SELECT COUNT(*) FROM pages WHERE ispublished = true AND show = true
+          SELECT COUNT(*) FROM ${withSchema('pages')} WHERE ispublished = true AND show = true
         `);
         dbInfo.visiblePagesCount = parseInt(visiblePagesResult.rows[0].count);
         dbInfo.visiblePagesQuery = "ispublished = true AND show = true";
@@ -461,7 +534,7 @@ app.get('/api/debug-db', async (req, res) => {
         // If that fails, try with camelCase
         try {
           const visiblePagesResult = await db.query(`
-            SELECT COUNT(*) FROM pages WHERE "isPublished" = true AND "show" = true
+            SELECT COUNT(*) FROM ${withSchema('pages')} WHERE "isPublished" = true AND "show" = true
           `);
           dbInfo.visiblePagesCount = parseInt(visiblePagesResult.rows[0].count);
           dbInfo.visiblePagesQuery = "\"isPublished\" = true AND \"show\" = true";
@@ -496,7 +569,7 @@ app.get('/api/debug-db', async (req, res) => {
 // Hämta alla sidor
 app.get('/api/pages', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM pages');
+    const result = await db.query(`SELECT * FROM ${withSchema('pages')}`);
     const pages = result.rows;
     
     // Konvertera till rätt format för frontend
@@ -517,7 +590,7 @@ app.get('/api/pages', async (req, res) => {
 // Hämta publicerade sidor
 app.get('/api/pages/published', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM pages WHERE isPublished = true');
+    const result = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE isPublished = true`);
     const pages = result.rows;
     
     // Konvertera till rätt format för frontend
@@ -546,7 +619,7 @@ app.get('/api/pages/visible', async (req, res) => {
       const schemaResult = await db.query(`
         SELECT column_name, data_type 
         FROM information_schema.columns 
-        WHERE table_name = 'pages'
+        WHERE table_name = '${withSchema('pages')}'
       `);
       console.log('Pages table schema:', schemaResult.rows.map(r => `${r.column_name} (${r.data_type})`));
     } catch (schemaErr) {
@@ -555,7 +628,7 @@ app.get('/api/pages/visible', async (req, res) => {
     
     // Use lowercase column names to avoid case-sensitivity issues
     const result = await db.query(`
-      SELECT * FROM pages 
+      SELECT * FROM ${withSchema('pages')} 
       WHERE "ispublished" = true AND "show" = true
     `);
     
@@ -595,7 +668,7 @@ app.get('/api/pages/visible', async (req, res) => {
 // Hämta en specifik sida med ID
 app.get('/api/pages/:id', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM pages WHERE id = $1', [req.params.id]);
+    const result = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [req.params.id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
@@ -621,7 +694,7 @@ app.get('/api/pages/:id', async (req, res) => {
 // Hämta en specifik sida med slug
 app.get('/api/pages/slug/:slug', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM pages WHERE slug = $1', [req.params.slug]);
+    const result = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE slug = $1`, [req.params.slug]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
@@ -657,7 +730,7 @@ app.post('/api/pages', async (req, res) => {
     const id = Date.now().toString();
     
     const result = await db.query(
-      'INSERT INTO pages(id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      `INSERT INTO ${withSchema('pages')} (id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [id, title, content, slug, isPublished, show, now, now, '[]']
     );
     
@@ -683,7 +756,7 @@ app.put('/api/pages/:id', async (req, res) => {
     const { id } = req.params;
     
     // Kontrollera om sidan finns
-    const existingPageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
+    const existingPageResult = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [id]);
     
     if (existingPageResult.rows.length === 0) {
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
@@ -707,7 +780,7 @@ app.put('/api/pages/:id', async (req, res) => {
     const updatedFiles = JSON.stringify(filesList);
     
     const result = await db.query(
-      `UPDATE pages 
+      `UPDATE ${withSchema('pages')} 
        SET title = $1, content = $2, slug = $3, 
            ispublished = $4, show = $5, updatedat = $6, files = $7
        WHERE id = $8
@@ -736,7 +809,7 @@ app.delete('/api/pages/:id', async (req, res) => {
     const { id } = req.params;
     
     // Kontrollera om sidan finns
-    const existingPageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
+    const existingPageResult = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [id]);
     
     if (existingPageResult.rows.length === 0) {
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
@@ -756,7 +829,7 @@ app.delete('/api/pages/:id', async (req, res) => {
     }
     
     // Radera sidan
-    await db.query('DELETE FROM pages WHERE id = $1', [id]);
+    await db.query(`DELETE FROM ${withSchema('pages')} WHERE id = $1`, [id]);
     
     res.json({ success: true, message: 'Sidan har raderats' });
   } catch (err) {
@@ -776,7 +849,7 @@ app.post('/api/pages/:id/upload', upload.single('file'), async (req, res) => {
     }
     
     // Kontrollera om sidan existerar
-    const pageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
+    const pageResult = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [id]);
     
     if (pageResult.rows.length === 0) {
       return res.status(404).json({ error: 'Sidan hittades inte' });
@@ -821,7 +894,7 @@ app.post('/api/pages/:id/upload', upload.single('file'), async (req, res) => {
     
     // Uppdatera databasen
     await db.query(
-      'UPDATE pages SET files = $1, updatedat = $2 WHERE id = $3',
+      `UPDATE ${withSchema('pages')} SET files = $1, updatedat = $2 WHERE id = $3`,
       [JSON.stringify(existingFiles), new Date().toISOString(), id]
     );
     
@@ -842,7 +915,7 @@ app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
     const { pageId, fileIndex } = req.params;
     
     // Hämta sidan och dess filer
-    const pageResult = await db.query('SELECT * FROM pages WHERE id = $1', [pageId]);
+    const pageResult = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [pageId]);
     
     if (pageResult.rows.length === 0) {
       return res.status(404).json({ error: 'Sidan hittades inte' });
@@ -906,7 +979,7 @@ app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
     files.splice(index, 1);
     
     await db.query(
-      'UPDATE pages SET files = $1, updatedat = $2 WHERE id = $3',
+      `UPDATE ${withSchema('pages')} SET files = $1, updatedat = $2 WHERE id = $3`,
       [JSON.stringify(files), new Date().toISOString(), pageId]
     );
     
@@ -922,7 +995,7 @@ app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
 // Hämta alla bokningar
 app.get('/api/bookings', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM bookings');
+    const result = await db.query(`SELECT * FROM ${withSchema('bookings')}`);
     res.json(result.rows);
   } catch (err) {
     console.error('Kunde inte hämta bokningar:', err);
@@ -933,7 +1006,7 @@ app.get('/api/bookings', async (req, res) => {
 // Hämta en specifik bokning med ID
 app.get('/api/bookings/:id', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM bookings WHERE id = $1', [req.params.id]);
+    const result = await db.query(`SELECT * FROM ${withSchema('bookings')} WHERE id = $1`, [req.params.id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Bokningen kunde inte hittas' });
@@ -958,7 +1031,7 @@ app.post('/api/bookings/check-availability', async (req, res) => {
     console.log('Checking availability for dates:', { startDate, endDate });
     
     // Räkna totala antalet bokningar
-    const totalBookingsResult = await db.query('SELECT COUNT(*) FROM bookings');
+    const totalBookingsResult = await db.query(`SELECT COUNT(*) FROM ${withSchema('bookings')}`);
     console.log('Total bookings in database:', totalBookingsResult.rows[0].count);
     
     // Eftersom det inte finns några bokningar i databasen, returnera alltid tillgängligt
@@ -985,7 +1058,7 @@ app.post('/api/bookings', async (req, res) => {
     console.log('Creating booking with dates:', { name, email, startDate, endDate });
     
     // Räkna totala antalet bokningar
-    const totalBookingsResult = await db.query('SELECT COUNT(*) FROM bookings');
+    const totalBookingsResult = await db.query(`SELECT COUNT(*) FROM ${withSchema('bookings')}`);
     console.log('Total bookings in database before insert:', totalBookingsResult.rows[0].count);
     
     const now = new Date().toISOString();
@@ -995,7 +1068,7 @@ app.post('/api/bookings', async (req, res) => {
     
     try {
       const result = await db.query(
-        'INSERT INTO bookings(id, name, email, startDate, endDate, createdAt, status, notes, phone) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+        `INSERT INTO ${withSchema('bookings')} (id, name, email, startDate, endDate, createdAt, status, notes, phone) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
         [id, name, email, startDate, endDate, now, 'pending', notes || null, phone || null]
       );
       
@@ -1006,7 +1079,7 @@ app.post('/api/bookings', async (req, res) => {
         console.log('Booking created successfully:', newBooking);
         
         // Verifiera att bokningen har sparats genom att hämta alla bokningar igen
-        const verifyBookingsResult = await db.query('SELECT COUNT(*) FROM bookings');
+        const verifyBookingsResult = await db.query(`SELECT COUNT(*) FROM ${withSchema('bookings')}`);
         console.log('Total bookings in database after insert:', verifyBookingsResult.rows[0].count);
         
         res.status(201).json(newBooking);
@@ -1033,7 +1106,7 @@ app.put('/api/bookings/:id', async (req, res) => {
     console.log('Updating booking with string dates:', id, req.body);
     
     // Kontrollera om bokningen finns
-    const existingResult = await db.query('SELECT * FROM bookings WHERE id = $1', [id]);
+    const existingResult = await db.query(`SELECT * FROM ${withSchema('bookings')} WHERE id = $1`, [id]);
     
     if (existingResult.rows.length === 0) {
       return res.status(404).json({ error: 'Bokningen kunde inte hittas' });
@@ -1051,7 +1124,7 @@ app.put('/api/bookings/:id', async (req, res) => {
       console.log('Checking availability for updated dates:', { newStartDate, newEndDate });
       
       const overlappingResult = await db.query(`
-        SELECT * FROM bookings 
+        SELECT * FROM ${withSchema('bookings')} 
         WHERE 
           id != $1 AND
           status != 'cancelled' AND
@@ -1077,7 +1150,7 @@ app.put('/api/bookings/:id', async (req, res) => {
     }
     
     const result = await db.query(
-      `UPDATE bookings 
+      `UPDATE ${withSchema('bookings')} 
        SET name = COALESCE($1, name), 
            email = COALESCE($2, email), 
            startDate = COALESCE($3, startDate), 
@@ -1106,13 +1179,13 @@ app.delete('/api/bookings/:id', async (req, res) => {
     const { id } = req.params;
     
     // Kontrollera om bokningen finns
-    const existingResult = await db.query('SELECT * FROM bookings WHERE id = $1', [id]);
+    const existingResult = await db.query(`SELECT * FROM ${withSchema('bookings')} WHERE id = $1`, [id]);
     
     if (existingResult.rows.length === 0) {
       return res.status(404).json({ error: 'Bokningen kunde inte hittas' });
     }
     
-    await db.query('DELETE FROM bookings WHERE id = $1', [id]);
+    await db.query(`DELETE FROM ${withSchema('bookings')} WHERE id = $1`, [id]);
     
     res.json({ success: true, message: 'Bokningen har raderats' });
   } catch (err) {
@@ -1155,7 +1228,7 @@ app.post('/api/admin/execute-sql', (req, res) => {
 // Hämta alla användare
 app.get('/api/users', async (req, res) => {
   try {
-    const result = await db.query('SELECT id, email, name, role, isActive, createdAt, lastLogin FROM users');
+    const result = await db.query(`SELECT id, email, name, role, isActive, createdAt, lastLogin FROM ${withSchema('users')}`);
     // Formatera för frontend
     const formattedUsers = result.rows.map(user => ({
       ...user,
@@ -1171,7 +1244,7 @@ app.get('/api/users', async (req, res) => {
 // Hämta en specifik användare med ID
 app.get('/api/users/:id', async (req, res) => {
   try {
-    const result = await db.query('SELECT id, email, name, role, isActive, createdAt, lastLogin FROM users WHERE id = $1', [req.params.id]);
+    const result = await db.query(`SELECT id, email, name, role, isActive, createdAt, lastLogin FROM ${withSchema('users')} WHERE id = $1`, [req.params.id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Användaren kunde inte hittas' });
@@ -1202,7 +1275,7 @@ app.post('/api/users', async (req, res) => {
     }
     
     // Kontrollera om användaren redan finns
-    const existingResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const existingResult = await db.query(`SELECT * FROM ${withSchema('users')} WHERE email = $1`, [email]);
     
     if (existingResult.rows.length > 0) {
       return res.status(409).json({ error: 'En användare med den e-postadressen finns redan' });
@@ -1213,7 +1286,7 @@ app.post('/api/users', async (req, res) => {
     
     // I produktion bör lösenordet hashas!
     const result = await db.query(
-      'INSERT INTO users(id, email, name, password, role, isActive, createdAt, lastLogin) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, name, role, isActive, createdAt, lastLogin',
+      `INSERT INTO ${withSchema('users')} (id, email, name, password, role, isActive, createdAt, lastLogin) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, name, role, isActive, createdAt, lastLogin`,
       [id, email, name || null, password, role || 'user', true, now, null]
     );
     
@@ -1239,7 +1312,7 @@ app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
     
     // Kontrollera om användaren finns
-    const existingResult = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    const existingResult = await db.query(`SELECT * FROM ${withSchema('users')} WHERE id = $1`, [id]);
     
     if (existingResult.rows.length === 0) {
       return res.status(404).json({ error: 'Användaren kunde inte hittas' });
@@ -1247,7 +1320,7 @@ app.put('/api/users/:id', async (req, res) => {
     
     // Om e-postadressen ändras, kontrollera att den inte redan används
     if (email && email !== existingResult.rows[0].email) {
-      const emailCheckResult = await db.query('SELECT * FROM users WHERE email = $1 AND id != $2', [email, id]);
+      const emailCheckResult = await db.query(`SELECT * FROM ${withSchema('users')} WHERE email = $1 AND id != $2`, [email, id]);
       
       if (emailCheckResult.rows.length > 0) {
         return res.status(409).json({ error: 'E-postadressen används redan av en annan användare' });
@@ -1258,7 +1331,7 @@ app.put('/api/users/:id', async (req, res) => {
     const activeValue = isActive !== undefined ? isActive : existingResult.rows[0].isactive;
     
     const result = await db.query(
-      `UPDATE users 
+      `UPDATE ${withSchema('users')} 
        SET email = COALESCE($1, email), 
            name = COALESCE($2, name), 
            password = COALESCE($3, password), 
@@ -1290,13 +1363,13 @@ app.delete('/api/users/:id', async (req, res) => {
     const { id } = req.params;
     
     // Kontrollera om användaren finns
-    const existingResult = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    const existingResult = await db.query(`SELECT * FROM ${withSchema('users')} WHERE id = $1`, [id]);
     
     if (existingResult.rows.length === 0) {
       return res.status(404).json({ error: 'Användaren kunde inte hittas' });
     }
     
-    await db.query('DELETE FROM users WHERE id = $1', [id]);
+    await db.query(`DELETE FROM ${withSchema('users')} WHERE id = $1`, [id]);
     
     res.json({ success: true, message: 'Användaren har raderats' });
   } catch (err) {
