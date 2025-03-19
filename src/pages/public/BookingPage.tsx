@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Container, 
   Typography, 
@@ -65,33 +65,97 @@ const BookingPage: React.FC = () => {
   } | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
 
+  // FullCalendar-komponenten
+  const calendarRef = useRef<any>(null);
+
   // Hämta befintliga bokningar när komponenten laddas
   const fetchBookings = async () => {
     try {
       setLoadingBookings(true);
       const bookings = await bookingService.getAllBookings();
-      setExistingBookings(bookings);
+      console.log('Hämtade bokningar:', bookings); // Logga bokningarna
+      
+      if (!bookings || bookings.length === 0) {
+        console.log('Inga bokningar hittades');
+        setExistingBookings([]);
+        setCalendarEvents([]);
+        setLoadingBookings(false);
+        return;
+      }
+      
+      // Normalisera bokningarna för att se till att de använder kamelnotation 
+      const normalizedBookings = bookings.map(booking => ({
+        ...booking,
+        startDate: booking.startDate || booking.startdate, // Använd startDate om det finns, annars startdate
+        endDate: booking.endDate || booking.enddate, // Använd endDate om det finns, annars enddate
+      }));
+      
+      console.log('Normaliserade bokningar:', normalizedBookings);
+      setExistingBookings(normalizedBookings);
       
       // Konvertera bokningar till FullCalendar-format
-      const events = bookings
-        .filter(booking => booking.status !== 'cancelled')
-        .map(booking => ({
-          title: `${booking.name}`,
-          start: booking.startDate,
-          end: booking.endDate,
-          backgroundColor: '#ffcccc',
-          borderColor: '#ff8888',
-          textColor: '#222222',
-          display: 'block',
-          extendedProps: {
-            bookingId: booking.id,
-            bookerName: booking.name,
-            bookerEmail: booking.email,
-            bookerPhone: booking.phone || '',
-            dates: `${format(new Date(booking.startDate), 'dd/MM', { locale: sv })} - ${format(new Date(booking.endDate), 'dd/MM', { locale: sv })}`
+      const events = normalizedBookings
+        .filter(booking => {
+          if (booking.status === 'cancelled') {
+            console.log('Filtrerar bort avbokad bokning:', booking.id);
+            return false;
           }
-        }));
+          return true;
+        })
+        .map(booking => {
+          // Logga varje bokning som konverteras
+          console.log('Konverterar bokning till händelse:', booking.id, booking.startDate, booking.endDate);
+          
+          try {
+            // Kontrollera att datumen finns innan vi skapar Date-objekt
+            if (!booking.startDate || !booking.endDate) {
+              console.warn('Saknar datum i bokning:', booking.id, 'startDate:', booking.startDate, 'endDate:', booking.endDate);
+              return null;
+            }
+            
+            const startDateObj = new Date(booking.startDate);
+            const endDateObj = new Date(booking.endDate);
+            
+            // Kontrollera att datumen är giltiga
+            if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+              console.warn('Ogiltiga datum i bokning:', booking.id, booking.startDate, booking.endDate);
+              return null;
+            }
+            
+            return {
+              title: `${booking.name}`,
+              start: booking.startDate,
+              end: booking.endDate,
+              backgroundColor: '#ffcccc',
+              borderColor: '#ff8888',
+              textColor: '#222222',
+              display: 'block',
+              extendedProps: {
+                bookingId: booking.id,
+                bookerName: booking.name,
+                bookerEmail: booking.email,
+                bookerPhone: booking.phone || '',
+                dates: (() => {
+                  try {
+                    // Försök parsa och formatera datumen, annars använd standardvärden
+                    const startFormatted = booking.startDate ? format(startDateObj, 'dd/MM', { locale: sv }) : 'N/A';
+                    const endFormatted = booking.endDate ? format(endDateObj, 'dd/MM', { locale: sv }) : 'N/A';
+                    return `${startFormatted} - ${endFormatted}`;
+                  } catch (error) {
+                    console.warn('Invalid date in booking:', booking.id);
+                    return 'Ogiltigt datumformat';
+                  }
+                })()
+              }
+            };
+          } catch (e) {
+            console.error('Fel vid konvertering av bokning till kalenderhändelse:', e);
+            return null;
+          }
+        })
+        .filter(event => event !== null); // Filtrera bort händelser som är null
         
+      console.log('Kalenderhändelser efter filtrering:', events.length); // Logga kalenderhändelserna
       setCalendarEvents(events);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -103,6 +167,17 @@ const BookingPage: React.FC = () => {
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  useEffect(() => {
+    // Uppdatera FullCalendar när calendarEvents ändras
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.removeAllEvents();
+      calendarApi.addEventSource(calendarEvents);
+      calendarApi.render();
+      console.log('FullCalendar uppdaterad med', calendarEvents.length, 'händelser');
+    }
+  }, [calendarEvents]);
 
   // Hämta lägenhetsinformation när komponenten monteras
   useEffect(() => {
@@ -131,13 +206,40 @@ const BookingPage: React.FC = () => {
   const isDateBooked = (date: Date) => {
     if (!existingBookings.length || !date) return false;
     
+    console.log('Checking availability for date:', format(date, 'yyyy-MM-dd'));
+    
     return existingBookings.some(booking => {
       // Ignorera avbokade bokningar
       if (booking.status === 'cancelled') return false;
       
-      const bookingStart = new Date(booking.startDate);
-      const bookingEnd = new Date(booking.endDate);
-      return isWithinInterval(date, { start: bookingStart, end: bookingEnd });
+      try {
+        if (!booking.startDate || !booking.endDate) return false;
+        
+        const bookingStart = new Date(booking.startDate);
+        const bookingEnd = new Date(booking.endDate);
+        
+        // Kontrollera att datumen är giltiga
+        if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) {
+          console.warn('Ogiltiga datum i bokning vid kontroll:', booking.id, booking.startDate, booking.endDate);
+          return false;
+        }
+        
+        // Justera datum för att jämföra enbart datum (inte tid)
+        const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const startDate = new Date(bookingStart.getFullYear(), bookingStart.getMonth(), bookingStart.getDate());
+        const endDate = new Date(bookingEnd.getFullYear(), bookingEnd.getMonth(), bookingEnd.getDate());
+        
+        // Kontrollera om datum är inom intervallet (inklusive start- och slutdatum)
+        const result = dateToCheck >= startDate && dateToCheck <= endDate;
+        
+        if (result) {
+          console.log('Date is booked:', format(date, 'yyyy-MM-dd'), 'by booking:', booking.id);
+        }
+        return result;
+      } catch (error) {
+        console.error('Error checking date availability:', error, booking);
+        return false;
+      }
     });
   };
   
@@ -332,6 +434,26 @@ const BookingPage: React.FC = () => {
     return selectedEvents;
   };
 
+  // Hantera val av datumintervall i kalendern
+  const handleDateRangeSelect = (dateRange: Date[]) => {
+    if (dateRange.length < 2) return;
+    
+    // Första datumet är startdatum, andra är slutdatum (exklusive)
+    const startDateSelected = dateRange[0];
+    // Slutdatumet som kommer från FullCalendar är exklusivt, så vi subtraherar en dag
+    const endDateSelected = new Date(dateRange[1]);
+    endDateSelected.setDate(endDateSelected.getDate() - 1);
+    
+    console.log('Datumintervall valt:', format(startDateSelected, 'yyyy-MM-dd'), 'till', format(endDateSelected, 'yyyy-MM-dd'));
+    
+    // Uppdatera datumväljarna
+    setStartDate(startDateSelected);
+    setEndDate(endDateSelected);
+    
+    // Rensa eventuella felmeddelanden
+    setValidationErrors(prev => ({ ...prev, dates: '' }));
+  };
+
   // Visa olika innehåll beroende på aktivt steg
   const getStepContent = (step: number) => {
     switch (step) {
@@ -504,136 +626,50 @@ const BookingPage: React.FC = () => {
                   Bokningskalender
                 </Typography>
               </Divider>
-              <Typography variant="body2" gutterBottom>
+              <Typography variant="h6" sx={{ mt: 5, mb: 2 }}>
                 Nedan kan du se alla bokade datum (markerade i rött). Veckonummer visas till vänster. Klicka på kalendern för att välja datum.
               </Typography>
-            </Grid>
 
-            <Grid item xs={12}>
-              <Box sx={{ 
-                p: { xs: 0.5, sm: 1 }, 
-                boxShadow: 2,
-                borderRadius: 2,
-                '.fc-view-harness': {
-                  minHeight: { xs: '300px', sm: '400px', md: '500px' }
-                },
-                '.fc-day-today': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.05) !important'
-                },
-                '.fc-day-today.fc-day-other': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.02) !important'
-                },
-                '.fc .fc-col-header-cell-cushion': {
-                  color: 'inherit',
-                  textDecoration: 'none'
-                },
-                '.fc .fc-daygrid-day-number': {
-                  color: 'inherit',
-                  textDecoration: 'none',
-                  padding: '4px 8px'
-                },
-                '.fc .fc-daygrid-day.fc-day-today': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.1)'
-                },
-                // Responsiva stilar för mobil
-                '.fc .fc-toolbar': {
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  gap: { xs: 1, sm: 0 }
-                },
-                '.fc .fc-toolbar-title': {
-                  fontSize: { xs: '1.2rem', sm: '1.5rem' }
-                },
-                // Stil för bokningsevent
-                '.fc-event': {
-                  borderRadius: '4px',
-                  padding: '2px 4px',
-                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                },
-                // Hover effekt för event
-                '.fc-event:hover': {
-                  filter: 'brightness(0.9)'
-                }
-              }}>
-                <FullCalendar
-                  plugins={[dayGridPlugin, interactionPlugin]}
-                  initialView="dayGridMonth"
-                  locale={svLocale}
-                  headerToolbar={{
-                    left: 'prev,next',
-                    center: 'title',
-                    right: ''
-                  }}
-                  events={[...calendarEvents, ...getSelectedDateEvents()]}
-                  dateClick={handleDateClick}
-                  weekNumbers={true}
-                  weekNumberFormat={{ week: 'numeric' }}
-                  firstDay={1} // Måndag som första dag
-                  height="auto"
-                  fixedWeekCount={false}
-                  eventContent={(eventInfo) => {
-                    if (eventInfo.event.display === 'background') {
-                      return null; // Bakgrundsevents visar ingen text
-                    }
-                    
-                    // Hämta utökad information från event
-                    const extendedProps = eventInfo.event.extendedProps || {};
-                    
-                    // Om det är ett bokningsevent (har bookerName)
-                    if (extendedProps.bookerName) {
-                      return (
-                        <Tooltip 
-                          title={
-                            <React.Fragment>
-                              <Typography variant="subtitle2">{extendedProps.bookerName}</Typography>
-                              <Typography variant="body2">
-                                {extendedProps.dates}
-                              </Typography>
-                              {extendedProps.bookerPhone && (
-                                <Typography variant="body2">
-                                  Tel: {extendedProps.bookerPhone}
-                                </Typography>
-                              )}
-                            </React.Fragment>
-                          } 
-                          arrow
-                          placement="top"
-                        >
-                          <Box sx={{ 
-                            display: 'flex',
-                            flexDirection: 'column',
-                            width: '100%'
-                          }}>
-                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
-                              {extendedProps.bookerName}
-                            </Typography>
-                          </Box>
-                        </Tooltip>
-                      );
-                    }
-                    
-                    // För valda datum (Ankomst/Avresa)
-                    return (
-                      <Tooltip title={eventInfo.event.title} arrow>
-                        <div className="fc-event-title">{eventInfo.event.title}</div>
-                      </Tooltip>
-                    );
-                  }}
-                  // Gör kalendern mer responsiv
-                  windowResize={(view) => {
-                    const calendarEl = document.querySelector('.fc');
-                    if (calendarEl && window.innerWidth < 768) {
-                      const fc = calendarEl as HTMLElement;
-                      fc.style.fontSize = '0.8rem';
-                    } else if (calendarEl) {
-                      const fc = calendarEl as HTMLElement;
-                      fc.style.fontSize = '1rem';
-                    }
-                  }}
-                />
-              </Box>
+              {loadingBookings ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Box sx={{ mt: 2, mb: 4 }}>
+                  <Paper elevation={3} sx={{ p: 2 }}>
+                    <FullCalendar
+                      ref={calendarRef}
+                      plugins={[dayGridPlugin, interactionPlugin]}
+                      initialView="dayGridMonth"
+                      locale={svLocale}
+                      headerToolbar={{
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth'
+                      }}
+                      height="auto"
+                      events={calendarEvents}
+                      weekNumbers={true}
+                      weekNumberCalculation="ISO"
+                      selectable={true}
+                      select={(info) => {
+                        // Hantera klick i kalendern
+                        handleDateRangeSelect([info.start, info.end]);
+                      }}
+                      eventContent={(eventInfo) => {
+                        return (
+                          <Tooltip title={`${eventInfo.event.extendedProps.bookerName}: ${eventInfo.event.extendedProps.dates}`}>
+                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <b>{eventInfo.timeText}</b>
+                              <i>{eventInfo.event.title}</i>
+                            </div>
+                          </Tooltip>
+                        );
+                      }}
+                    />
+                  </Paper>
+                </Box>
+              )}
             </Grid>
           </Grid>
         );
