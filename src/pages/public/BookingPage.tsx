@@ -21,7 +21,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, addDays, isAfter, differenceInDays, isWithinInterval, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { CalendarMonth, Person, Email, Check } from '@mui/icons-material';
-import '@fullcalendar/react/dist/vdom';
 // FullCalendar-komponenter
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
