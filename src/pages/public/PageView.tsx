@@ -16,7 +16,6 @@ import {
   CardMedia,
   CardContent,
   CardActions,
-  CircularProgress
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';

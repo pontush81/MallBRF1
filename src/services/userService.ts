@@ -10,11 +10,8 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { 
-  getAuth, 
   createUserWithEmailAndPassword,
-  updateProfile,
   signInWithEmailAndPassword,
-  deleteUser,
   updateEmail,
 } from 'firebase/auth';
 import { auth, db } from './firebase';
