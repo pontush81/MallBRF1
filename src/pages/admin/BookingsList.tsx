@@ -73,7 +73,12 @@ const BookingsList: React.FC = () => {
       setLoading(true);
       const allBookings = await bookingService.getAllBookings();
       // Sortera bokningarna efter startdatum (nyaste först)
-      allBookings.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+      allBookings.sort((a, b) => {
+        // Safely handle potential undefined values
+        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return dateB - dateA;
+      });
       setBookings(allBookings);
       setError(null);
     } catch (err) {
@@ -107,8 +112,9 @@ const BookingsList: React.FC = () => {
   };
 
   // Formatera datum
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
     try {
+      if (!dateString) return 'Ogiltigt datum';
       return format(new Date(dateString), 'd MMM yyyy', { locale: sv });
     } catch (error) {
       return 'Ogiltigt datum';
