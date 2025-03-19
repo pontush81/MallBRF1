@@ -15,6 +15,8 @@ const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+// Import Supabase client
+const supabase = require('./utils/supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -118,6 +120,65 @@ const upload = multer({
     cb(new Error('Endast bilder (jpeg, jpg, png, gif) och PDF-filer är tillåtna'));
   }
 });
+
+// Utility function to upload file to Supabase Storage
+async function uploadToSupabaseStorage(file) {
+  try {
+    // Create filename with timestamp for uniqueness
+    const fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase
+      .storage
+      .from('page-files')  // your bucket name
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        cacheControl: '3600'
+      });
+      
+    if (error) {
+      console.error('Supabase Storage upload error:', error);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('page-files')
+      .getPublicUrl(fileName);
+      
+    return {
+      originalname: file.originalname,
+      filename: fileName,
+      mimetype: file.mimetype,
+      size: file.size,
+      url: publicUrl
+    };
+  } catch (error) {
+    console.error('Error uploading to Supabase:', error);
+    return null;
+  }
+}
+
+// Utility function to delete file from Supabase Storage
+async function deleteFromSupabaseStorage(filename) {
+  try {
+    const { error } = await supabase
+      .storage
+      .from('page-files')
+      .remove([filename]);
+      
+    if (error) {
+      console.error('Supabase Storage delete error:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting from Supabase:', error);
+    return false;
+  }
+}
 
 // Initiera databastabeller
 const initDb = async () => {
@@ -660,136 +721,145 @@ app.delete('/api/pages/:id', async (req, res) => {
   }
 });
 
-// Ladda upp fil för en sida
+// API - Ladda upp fil till sida
 app.post('/api/pages/:id/upload', upload.single('file'), async (req, res) => {
   try {
     const { id } = req.params;
     const file = req.file;
     
     if (!file) {
-      return res.status(400).json({ error: 'Ingen fil har laddats upp' });
+      return res.status(400).json({ error: 'Ingen fil laddades upp' });
     }
     
-    // Kontrollera om sidan finns
-    const existingPageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
+    // Kontrollera om sidan existerar
+    const pageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
     
-    if (existingPageResult.rows.length === 0) {
-      // Ta bort filen om sidan inte finns (endast i utvecklingsmiljö)
-      if (process.env.NODE_ENV !== 'production' && file.path) {
-        fs.unlinkSync(file.path);
-      }
-      return res.status(404).json({ error: 'Sidan kunde inte hittas' });
+    if (pageResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Sidan hittades inte' });
     }
     
-    const existingPage = existingPageResult.rows[0];
-    
-    // Handle file storage differently based on environment
     let fileInfo;
     
     if (process.env.NODE_ENV === 'production') {
-      // In production, store file details without actual file
-      // NOTE: In a real app, you would upload to Supabase Storage or similar
-      fileInfo = {
-        id: Date.now().toString(),
-        originalName: file.originalname,
-        path: `/uploads/${file.originalname}`, // This path won't work, but is a placeholder
-        size: file.size,
-        mimetype: file.mimetype,
-        uploadedAt: new Date().toISOString(),
-        note: "File storage not available in production - implement Supabase Storage"
-      };
+      // In production, upload to Supabase Storage
+      fileInfo = await uploadToSupabaseStorage(file);
       
-      console.log('File upload in production (data stored but file discarded):', fileInfo);
+      if (!fileInfo) {
+        return res.status(500).json({ error: 'Kunde inte ladda upp filen till Supabase Storage' });
+      }
     } else {
       // In development, use the filesystem
+      const filePath = `/uploads/${file.filename}`;
       fileInfo = {
-        id: Date.now().toString(),
+        originalname: file.originalname,
         filename: file.filename,
-        originalName: file.originalname,
-        path: `/uploads/${file.filename}`,
-        size: file.size,
         mimetype: file.mimetype,
-        uploadedAt: new Date().toISOString()
+        size: file.size,
+        url: filePath
       };
     }
     
-    // Lägg till den nya filen i sidans fillista
-    let files = existingPage.files ? JSON.parse(existingPage.files) : [];
-    files.push(fileInfo);
+    // Uppdatera files-fältet i databasen
+    const page = pageResult.rows[0];
     
-    // Uppdatera sidan med den nya filen
-    const updatedAt = new Date().toISOString();
-    await db.query('UPDATE pages SET files = $1, updatedAt = $2 WHERE id = $3', [
-      JSON.stringify(files),
-      updatedAt,
-      id
-    ]);
-    
-    res.status(201).json(fileInfo);
-  } catch (err) {
-    console.error('Kunde inte ladda upp filen:', err);
-    // Ta bort filen vid fel
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
-    res.status(500).json({ error: 'Kunde inte ladda upp filen' });
-  }
-});
-
-// Radera fil från en sida
-app.delete('/api/pages/:id/files/:fileId', async (req, res) => {
-  try {
-    const { id, fileId } = req.params;
-    
-    // Kontrollera om sidan finns
-    const existingPageResult = await db.query('SELECT * FROM pages WHERE id = $1', [id]);
-    
-    if (existingPageResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Sidan kunde inte hittas' });
-    }
-    
-    const existingPage = existingPageResult.rows[0];
-    
-    // Kontrollera om sidan har filer
-    if (!existingPage.files) {
-      return res.status(404).json({ error: 'Inga filer hittades för sidan' });
-    }
-    
-    // Hitta filen i databasen
-    const files = JSON.parse(existingPage.files);
-    const fileIndex = files.findIndex(file => file.id === fileId);
-    
-    if (fileIndex === -1) {
-      return res.status(404).json({ error: 'Filen kunde inte hittas' });
-    }
-    
-    const file = files[fileIndex];
-    
-    // Radera filen från filsystemet endast i utvecklingsmiljö
-    if (process.env.NODE_ENV !== 'production' && file.filename) {
-      const filePath = path.join(uploadsDir, file.filename);
-      
-      // Ta bort filen från filsystemet om den finns
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+    // Kontrollera om page.files är en JSON-sträng eller null
+    let existingFiles = [];
+    if (page.files) {
+      try {
+        existingFiles = JSON.parse(page.files);
+      } catch (e) {
+        console.error('Fel vid parsning av files JSON:', e);
       }
     }
     
-    // Ta bort filen från arrayen
-    files.splice(fileIndex, 1);
+    // Lägg till nya filen i fältet
+    existingFiles.push(fileInfo);
     
-    // Uppdatera sidan med den nya fillistan
-    const updatedAt = new Date().toISOString();
-    await db.query('UPDATE pages SET files = $1, updatedAt = $2 WHERE id = $3', [
-      JSON.stringify(files),
-      updatedAt,
-      id
-    ]);
+    // Uppdatera databasen
+    await db.query(
+      'UPDATE pages SET files = $1, updatedat = $2 WHERE id = $3',
+      [JSON.stringify(existingFiles), new Date().toISOString(), id]
+    );
     
-    res.json({ success: true, message: 'Filen har raderats' });
-  } catch (err) {
-    console.error('Kunde inte radera filen:', err);
-    res.status(500).json({ error: 'Kunde inte radera filen' });
+    // Skicka tillbaka filinfo
+    res.status(200).json({
+      success: true,
+      file: fileInfo
+    });
+  } catch (error) {
+    console.error('Fel vid filuppladdning:', error);
+    res.status(500).json({ error: 'Fel vid filuppladdning: ' + error.message });
+  }
+});
+
+// API - Ta bort fil från sida
+app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
+  try {
+    const { pageId, fileIndex } = req.params;
+    
+    // Hämta sidan och dess filer
+    const pageResult = await db.query('SELECT * FROM pages WHERE id = $1', [pageId]);
+    
+    if (pageResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Sidan hittades inte' });
+    }
+    
+    const page = pageResult.rows[0];
+    let files = [];
+    
+    if (page.files) {
+      try {
+        files = JSON.parse(page.files);
+      } catch (e) {
+        console.error('Fel vid parsning av files JSON:', e);
+        return res.status(500).json({ error: 'Fel vid parsning av fildata' });
+      }
+    }
+    
+    const index = parseInt(fileIndex, 10);
+    
+    if (isNaN(index) || index < 0 || index >= files.length) {
+      return res.status(400).json({ error: 'Ogiltigt filindex' });
+    }
+    
+    const fileToDelete = files[index];
+    
+    // Ta bort filen fysiskt baserat på miljö
+    if (process.env.NODE_ENV === 'production') {
+      // In production, delete from Supabase Storage
+      if (fileToDelete.filename) {
+        const success = await deleteFromSupabaseStorage(fileToDelete.filename);
+        if (!success) {
+          console.warn('Could not delete file from Supabase Storage:', fileToDelete.filename);
+          // Continue anyway to keep the database in sync
+        }
+      }
+    } else if (fileToDelete.filename) {
+      // In development, delete from filesystem
+      const filePath = path.join(uploadsDir, fileToDelete.filename);
+      
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (error) {
+          console.error('Kunde inte ta bort fil från filsystemet:', error);
+          // Continue anyway to keep the database in sync
+        }
+      }
+    }
+    
+    // Ta bort filen från databasen
+    files.splice(index, 1);
+    
+    await db.query(
+      'UPDATE pages SET files = $1, updatedat = $2 WHERE id = $3',
+      [JSON.stringify(files), new Date().toISOString(), pageId]
+    );
+    
+    res.status(200).json({ success: true, message: 'Filen har tagits bort' });
+  } catch (error) {
+    console.error('Fel vid borttagning av fil:', error);
+    res.status(500).json({ error: 'Kunde inte ta bort filen: ' + error.message });
   }
 });
 

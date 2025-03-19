@@ -272,6 +272,17 @@ const PublicPages: React.FC = () => {
     </Box>
   );
 
+  // Helper function to get file URL (either Supabase Storage URL or local path)
+  const getFileUrl = (file: any): string => {
+    // If the file has a url property, it's from Supabase Storage
+    if (file.url && (file.url.startsWith('http://') || file.url.startsWith('https://'))) {
+      return file.url;
+    }
+    
+    // Otherwise use the path with BASE_URL for local files
+    return `${BASE_URL}${file.path}`;
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -424,25 +435,25 @@ const PublicPages: React.FC = () => {
                         {page.files
                           .filter(file => file.mimetype && file.mimetype.startsWith('image/'))
                           .map((file) => (
-                            <Grid item xs={12} sm={6} md={4} key={file.id}>
+                            <Grid item xs={12} sm={6} md={4} key={file.id || file.filename}>
                               <Card>
                                 <CardMedia
                                   component="img"
                                   height="180"
-                                  image={`${BASE_URL}${file.path}`}
-                                  alt={file.originalName}
+                                  image={getFileUrl(file)}
+                                  alt={file.originalName || file.originalname}
                                   sx={{ objectFit: 'cover' }}
                                 />
                                 <CardContent sx={{ py: 1 }}>
-                                  <Typography variant="body2" noWrap title={file.originalName}>
-                                    {file.originalName}
+                                  <Typography variant="body2" noWrap title={file.originalName || file.originalname}>
+                                    {file.originalName || file.originalname}
                                   </Typography>
                                 </CardContent>
                                 <CardActions>
                                   <Button 
                                     size="small" 
                                     component="a"
-                                    href={`${BASE_URL}${file.path}`}
+                                    href={getFileUrl(file)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     startIcon={<ImageIcon />}
@@ -467,7 +478,7 @@ const PublicPages: React.FC = () => {
                         {page.files
                           .filter(file => file.mimetype && !file.mimetype.startsWith('image/'))
                           .map((file, index, arr) => (
-                            <React.Fragment key={file.id}>
+                            <React.Fragment key={file.id || file.filename}>
                               {index > 0 && <Divider />}
                               <Box sx={{ 
                                 display: 'flex', 
@@ -484,7 +495,7 @@ const PublicPages: React.FC = () => {
                                 </Box>
                                 <Box sx={{ flexGrow: 1 }}>
                                   <Typography variant="body1">
-                                    {file.originalName}
+                                    {file.originalName || file.originalname}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary">
                                     {(file.size / 1024).toFixed(1)} KB • {file.mimetype}
@@ -494,8 +505,8 @@ const PublicPages: React.FC = () => {
                                   variant="outlined"
                                   size="small"
                                   component="a" 
-                                  href={`${BASE_URL}${file.path}`}
-                                  download={file.originalName}
+                                  href={getFileUrl(file)}
+                                  download={file.originalName || file.originalname}
                                   startIcon={<FileDownloadIcon />}
                                 >
                                   Ladda ner

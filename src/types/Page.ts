@@ -11,11 +11,13 @@ export interface Page {
 }
 
 export interface FileInfo {
-  id: string;
+  id?: string;
   filename: string;
-  originalName: string;
-  path: string;
+  originalName?: string;
+  originalname?: string;
+  path?: string;
+  url?: string;
   size: number;
   mimetype: string;
-  uploadedAt: string;
+  uploadedAt?: string;
 } 
