@@ -3,12 +3,16 @@ const express = require('express');
 const cors = require('cors');
 // Lägg till dotenv för miljövariabler
 require('dotenv').config();
+
+// Force disable SSL certificate validation for Postgres connections
+// This is needed for Vercel serverless functions connecting to Supabase
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // Åsidosätt certifikatverifiering för utvecklingsmiljö
 if (process.env.NODE_ENV !== 'production') {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   console.log('SSL-certifikatverifiering inaktiverad för utvecklingsmiljö');
 } else {
-  console.log('SSL-certifikatverifiering aktiv för produktionsmiljö');
+  console.log('SSL-certifikatverifiering inaktiverad för produktionsmiljö (required for Vercel)');
 }
 // Ersätt SQLite med PostgreSQL-klient
 const { Pool } = require('pg');
@@ -37,15 +41,23 @@ if (process.env.NODE_ENV !== 'production') {
 const connectionString = process.env.POSTGRES_URL_NON_POOLING || "postgres://localhost:5432/mall_brf";
 console.log('Using connection string (masked):', connectionString.replace(/postgres:\/\/[^:]+:[^@]+@/, 'postgres://user:password@'));
 
+// Parse connection string to remove sslmode if present
+let finalConnectionString = connectionString;
+if (finalConnectionString.includes('sslmode=')) {
+  finalConnectionString = finalConnectionString.replace(/\?sslmode=(require|verify-ca|verify-full)/, '');
+  console.log('Removed sslmode from connection string to use custom SSL settings');
+}
+
 const db = new Pool({
-  connectionString: connectionString,
-  // Disable SSL certificate validation in production to fix the self-signed certificate issue
-  ssl: process.env.NODE_ENV === 'production' ? 
-    { rejectUnauthorized: false } : undefined
+  connectionString: finalConnectionString,
+  // Force disable SSL certificate validation for all environments
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 console.log('Database connection configured with:');
-console.log('- SSL mode:', process.env.NODE_ENV === 'production' ? 'SSL enabled with rejectUnauthorized: false' : 'Using connection string defaults');
+console.log('- SSL mode: SSL enabled with rejectUnauthorized: false (required for Vercel)');
 console.log('- Node Env:', process.env.NODE_ENV || 'not set');
 
 // Testa databaskopplingen
