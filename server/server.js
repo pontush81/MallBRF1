@@ -816,13 +816,23 @@ app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
       }
     }
     
-    const index = parseInt(fileIndex, 10);
+    // Find the file to delete by index or ID
+    let index = parseInt(fileIndex, 10);
+    let fileToDelete;
     
+    // If it's not a valid index, try to find by ID
     if (isNaN(index) || index < 0 || index >= files.length) {
-      return res.status(400).json({ error: 'Ogiltigt filindex' });
+      // Try to find by ID instead
+      index = files.findIndex(file => 
+        file.id === fileIndex || file.filename === fileIndex
+      );
+      
+      if (index === -1) {
+        return res.status(400).json({ error: 'Filen hittades inte' });
+      }
     }
     
-    const fileToDelete = files[index];
+    fileToDelete = files[index];
     
     // Ta bort filen fysiskt baserat på miljö
     if (process.env.NODE_ENV === 'production') {

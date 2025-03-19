@@ -244,7 +244,10 @@ const PageEditor: React.FC = () => {
       const success = await pageService.deleteFile(id, fileId);
       
       if (success) {
-        setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+        setFiles(prevFiles => prevFiles.filter(file => 
+          // Check both id and filename to handle both storage methods
+          (file.id === fileId || file.filename === fileId)
+        ));
         setSnackbarMessage('Filen har raderats');
         setSnackbarOpen(true);
       } else {
@@ -379,7 +382,7 @@ const PageEditor: React.FC = () => {
                     <Button 
                       size="small" 
                       color="error"
-                      onClick={() => handleDeleteFile(file.id)}
+                      onClick={() => handleDeleteFile(file.id || file.filename)}
                       disabled={uploadLoading}
                     >
                       Ta bort

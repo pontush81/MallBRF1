@@ -172,9 +172,15 @@ const pageService = {
   },
 
   // Radera en fil från en sida
-  deleteFile: async (pageId: string, fileId: string): Promise<boolean> => {
+  deleteFile: async (pageId: string, fileIdOrIndex: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/pages/${pageId}/files/${fileId}`, {
+      // Check if fileIdOrIndex is a number (index) or string (ID)
+      const isIndex = !isNaN(Number(fileIdOrIndex));
+      const endpoint = isIndex ? 
+        `${API_URL}/pages/${pageId}/files/${fileIdOrIndex}` : 
+        `${API_URL}/pages/${pageId}/files/${fileIdOrIndex}`;
+      
+      const response = await fetch(endpoint, {
         method: 'DELETE',
       });
 
