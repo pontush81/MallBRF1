@@ -2,12 +2,10 @@ import { Page } from '../types/Page';
 import { v4 as uuidv4 } from 'uuid';
 
 // Base URL for the API (dynamically determined)
-export const BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3001' 
-  : window.location.origin;
+export const BASE_URL = '';
 
-// API URL
-const API_URL = `${BASE_URL}/api`;
+// API URL - simplifierad för att fungera med Vercel och utveckling
+const API_URL = '/api';
 
 // Service för att hantera sidor
 const pageService = {

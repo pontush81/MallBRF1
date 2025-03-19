@@ -1,9 +1,7 @@
 import { Booking } from '../types/Booking';
 
-// För samma domän
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : 'http://localhost:3001/api';
+// För samma domän - fungerar både i produktion och utveckling
+const API_URL = '/api';
 
 console.log('BookingService använder API URL:', API_URL);
 
