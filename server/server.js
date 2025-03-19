@@ -26,16 +26,20 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Skapa och konfigurera databaspool med Supabase
+// Don't override SSL config since it's already in the connection string
+const connectionString = process.env.POSTGRES_URL_NON_POOLING || "postgres://localhost:5432/mall_brf";
+console.log('Using connection string (masked):', connectionString.replace(/postgres:\/\/[^:]+:[^@]+@/, 'postgres://user:password@'));
+
 const db = new Pool({
-  connectionString: process.env.POSTGRES_URL_NON_POOLING || "postgres://localhost:5432/mall_brf",
-  ssl: process.env.POSTGRES_URL_NON_POOLING ? {
-    rejectUnauthorized: process.env.NODE_ENV === 'production' // Accept self-signed certs in dev, reject in prod
-  } : false // No SSL for localhost
+  connectionString: connectionString,
+  // Let the connection string's sslmode=require handle SSL settings
+  // Only add specific SSL settings if not present in connection string
+  ssl: !connectionString.includes('sslmode=') && process.env.NODE_ENV === 'production' ? 
+    { rejectUnauthorized: true } : undefined
 });
 
 console.log('Database connection configured with:');
-console.log('- URL:', process.env.POSTGRES_URL_NON_POOLING ? 'Supabase URL (hidden)' : 'localhost');
-console.log('- SSL:', process.env.POSTGRES_URL_NON_POOLING ? 'Enabled' : 'Disabled');
+console.log('- SSL mode from connection string:', connectionString.includes('sslmode=require') ? 'Required from connection string' : 'Not specified in connection string');
 console.log('- Node Env:', process.env.NODE_ENV || 'not set');
 
 // Testa databaskopplingen
@@ -105,17 +109,17 @@ const upload = multer({
 // Initiera databastabeller
 const initDb = async () => {
   try {
-    // Skapa pages-tabell om den inte finns
+    // Skapa pages-tabell om den inte finns - with lowercase column names
     await db.query(`
       CREATE TABLE IF NOT EXISTS pages (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         slug TEXT NOT NULL,
-        isPublished BOOLEAN NOT NULL,
+        ispublished BOOLEAN NOT NULL,
         show BOOLEAN NOT NULL,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
+        createdat TEXT NOT NULL,
+        updatedat TEXT NOT NULL,
         files TEXT
       )
     `);
@@ -209,10 +213,10 @@ const initDb = async () => {
           title: 'Välkomstsida',
           content: '# Välkommen\n\nDetta är vår välkomstsida.\n\n## Underrubrik\n\nDetta är en underrubrik med **fet text** och *kursiv text*.',
           slug: 'valkomstsida',
-          isPublished: true,
+          ispublished: true,
           show: true,
-          createdAt: '2023-03-15T12:00:00Z',
-          updatedAt: '2023-03-15T12:00:00Z',
+          createdat: '2023-03-15T12:00:00Z',
+          updatedat: '2023-03-15T12:00:00Z',
           files: null
         },
         {
@@ -220,10 +224,10 @@ const initDb = async () => {
           title: 'Om oss',
           content: '# Om oss\n\nVi är ett företag som fokuserar på kvalitet och kundnöjdhet.\n\n## Vår historia\n\nVårt företag grundades 2010 med målet att erbjuda de bästa produkterna på marknaden.',
           slug: 'om-oss',
-          isPublished: true,
+          ispublished: true,
           show: true,
-          createdAt: '2023-03-16T12:00:00Z',
-          updatedAt: '2023-03-16T12:00:00Z',
+          createdat: '2023-03-16T12:00:00Z',
+          updatedat: '2023-03-16T12:00:00Z',
           files: null
         },
         {
@@ -231,10 +235,10 @@ const initDb = async () => {
           title: 'Kontakt',
           content: '# Kontakta oss\n\nDu kan nå oss via följande kanaler:\n\n- Email: info@example.com\n- Telefon: 08-123 45 67\n- Adress: Exempelgatan 123, 123 45 Stockholm',
           slug: 'kontakt',
-          isPublished: true,
+          ispublished: true,
           show: false,
-          createdAt: '2023-03-17T12:00:00Z',
-          updatedAt: '2023-03-17T12:00:00Z',
+          createdat: '2023-03-17T12:00:00Z',
+          updatedat: '2023-03-17T12:00:00Z',
           files: null
         },
         {
@@ -242,18 +246,18 @@ const initDb = async () => {
           title: 'Information om lägenheten',
           content: '# Information om lägenheten\n\n## Beskrivning\nVår mysiga lägenhet erbjuder en perfekt miljö för din semester. Med 2 sovrum och ett fullt utrustat kök är detta ditt hem hemifrån.\n\n## Bekvämligheter\n- Trådlöst internet\n- Fullt utrustat kök\n- Smart-TV\n- Tvättmaskin\n- Balkong med utsikt\n\n## Regler\n1. Incheckning: 15:00\n2. Utcheckning: 11:00\n3. Ingen rökning\n4. Inga husdjur\n5. Inga fester\n6. Respektera grannarna - tyst efter 22:00\n\n## Viktigt att veta\nLägenheten ligger på andra våningen och det finns ingen hiss. Parkering finns tillgänglig på gatan (avgift tillkommer).',
           slug: 'lagenhet-info',
-          isPublished: true,
+          ispublished: true,
           show: true,
-          createdAt: '2023-03-18T12:00:00Z',
-          updatedAt: '2023-03-18T12:00:00Z',
+          createdat: '2023-03-18T12:00:00Z',
+          updatedat: '2023-03-18T12:00:00Z',
           files: null
         }
       ];
       
       for (const page of initialPages) {
         await db.query(
-          'INSERT INTO pages(id, title, content, slug, isPublished, show, createdAt, updatedAt, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-          [page.id, page.title, page.content, page.slug, page.isPublished, page.show, page.createdAt, page.updatedAt, page.files]
+          'INSERT INTO pages(id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [page.id, page.title, page.content, page.slug, page.ispublished, page.show, page.createdat, page.updatedat, page.files]
         );
       }
     }
@@ -291,6 +295,82 @@ app.get('/api/test-db', async (req, res) => {
       success: false,
       message: 'Database connection failed',
       error: error.message
+    });
+  }
+});
+
+// Add this right after the test-db endpoint
+app.get('/api/debug-db', async (req, res) => {
+  try {
+    const dbInfo = {};
+    
+    // 1. Check if tables exist
+    const tablesResult = await db.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+    `);
+    dbInfo.tables = tablesResult.rows.map(row => row.table_name);
+    
+    // 2. Check pages table schema
+    if (dbInfo.tables.includes('pages')) {
+      const pagesSchemaResult = await db.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'pages'
+      `);
+      dbInfo.pagesSchema = pagesSchemaResult.rows;
+      
+      // 3. Check for sample data
+      const pagesDataResult = await db.query('SELECT COUNT(*) FROM pages');
+      dbInfo.pagesCount = parseInt(pagesDataResult.rows[0].count);
+      
+      // 4. Get sample page
+      if (dbInfo.pagesCount > 0) {
+        const samplePageResult = await db.query('SELECT * FROM pages LIMIT 1');
+        dbInfo.samplePage = samplePageResult.rows[0];
+      }
+      
+      // 5. Check for visible pages specifically
+      try {
+        // Try lowercase first
+        const visiblePagesResult = await db.query(`
+          SELECT COUNT(*) FROM pages WHERE ispublished = true AND show = true
+        `);
+        dbInfo.visiblePagesCount = parseInt(visiblePagesResult.rows[0].count);
+        dbInfo.visiblePagesQuery = "ispublished = true AND show = true";
+      } catch (err) {
+        // If that fails, try with camelCase
+        try {
+          const visiblePagesResult = await db.query(`
+            SELECT COUNT(*) FROM pages WHERE "isPublished" = true AND "show" = true
+          `);
+          dbInfo.visiblePagesCount = parseInt(visiblePagesResult.rows[0].count);
+          dbInfo.visiblePagesQuery = "\"isPublished\" = true AND \"show\" = true";
+        } catch (err2) {
+          dbInfo.visiblePagesError = err2.message;
+        }
+      }
+    }
+    
+    // 6. Check connection string
+    dbInfo.connectionInfo = {
+      hasConnectionString: !!process.env.POSTGRES_URL_NON_POOLING,
+      sslInConnectionString: process.env.POSTGRES_URL_NON_POOLING?.includes('sslmode=require'),
+      nodeEnv: process.env.NODE_ENV || 'not set'
+    };
+    
+    res.json({
+      success: true,
+      debug: dbInfo
+    });
+  } catch (error) {
+    console.error('Debug database test failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Debug database test failed',
+      error: error.message,
+      stack: error.stack
     });
   }
 });
@@ -341,17 +421,46 @@ app.get('/api/pages/published', async (req, res) => {
 app.get('/api/pages/visible', async (req, res) => {
   try {
     console.log('Fetching visible pages...');
-    const result = await db.query('SELECT * FROM pages WHERE isPublished = true AND show = true');
-    const pages = result.rows;
     
+    // Log column names from the table to debug
+    console.log('Checking pages table schema...');
+    try {
+      const schemaResult = await db.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'pages'
+      `);
+      console.log('Pages table schema:', schemaResult.rows.map(r => `${r.column_name} (${r.data_type})`));
+    } catch (schemaErr) {
+      console.error('Failed to fetch schema:', schemaErr);
+    }
+    
+    // Use lowercase column names to avoid case-sensitivity issues
+    const result = await db.query(`
+      SELECT * FROM pages 
+      WHERE "ispublished" = true AND "show" = true
+    `);
+    
+    const pages = result.rows;
     console.log(`Found ${pages.length} visible pages`);
+    
+    if (pages.length > 0) {
+      console.log('Sample page columns:', Object.keys(pages[0]));
+    }
     
     const formattedPages = pages.map(page => ({
       ...page,
+      id: page.id,
+      title: page.title,
+      content: page.content,
+      slug: page.slug,
       isPublished: Boolean(page.ispublished),
       show: Boolean(page.show),
+      createdAt: page.createdat,
+      updatedAt: page.updatedat,
       files: page.files ? JSON.parse(page.files) : []
     }));
+    
     res.json(formattedPages);
   } catch (err) {
     console.error('Kunde inte hämta synliga sidor:', err);
@@ -430,7 +539,7 @@ app.post('/api/pages', async (req, res) => {
     const id = Date.now().toString();
     
     const result = await db.query(
-      'INSERT INTO pages(id, title, content, slug, isPublished, show, createdAt, updatedAt, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      'INSERT INTO pages(id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
       [id, title, content, slug, isPublished, show, now, now, '[]']
     );
     
@@ -482,7 +591,7 @@ app.put('/api/pages/:id', async (req, res) => {
     const result = await db.query(
       `UPDATE pages 
        SET title = $1, content = $2, slug = $3, 
-           isPublished = $4, show = $5, updatedAt = $6, files = $7
+           ispublished = $4, show = $5, updatedat = $6, files = $7
        WHERE id = $8
        RETURNING *`,
       [updatedTitle, updatedContent, updatedSlug, updatedIsPublished, updatedShow, updatedAt, updatedFiles, id]
