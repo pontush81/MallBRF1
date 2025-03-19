@@ -389,7 +389,7 @@ const BookingsList: React.FC = () => {
           <DialogContentText sx={{ mb: 2 }}>
             Uppdatera status för bokningen av{' '}
             <strong>{bookingToUpdate?.name}</strong> med ankomst{' '}
-            {bookingToUpdate ? formatDate(bookingToUpdate.startDate) : ''}.
+            {bookingToUpdate && bookingToUpdate.startDate ? formatDate(bookingToUpdate.startDate) : ''}.
           </DialogContentText>
           
           <TextField
