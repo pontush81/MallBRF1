@@ -12,7 +12,23 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true
+    },
+    db: {
+        schema: 'public'
+    },
+    global: {
+        headers: { 'x-my-custom-header': 'my-app-name' }
     }
 });
+
+// Konfigurera SSL-inställningar för PostgreSQL-klienten
+if (process.env.NODE_ENV === 'production') {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
+}
 
 module.exports = supabase; 
