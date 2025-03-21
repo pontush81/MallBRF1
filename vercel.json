@@ -13,22 +13,25 @@
       }
     }
   ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://www.stage.gulmaran.com" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, Origin, Accept, X-Requested-With" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Max-Age", "value": "86400" }
-      ]
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/server.js"
+      "dest": "server/server.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://www.stage.gulmaran.com",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin, Accept, X-Requested-With",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400"
+      }
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "server/public/manifest.json",
+      "headers": {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      }
     },
     {
       "src": "/uploads/(.*)",
@@ -37,14 +40,6 @@
     {
       "src": "/static/(.*)",
       "dest": "build/static/$1"
-    },
-    {
-      "src": "/manifest.json",
-      "headers": {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      },
-      "dest": "server/public/manifest.json"
     },
     {
       "src": "/(.+\\.[a-zA-Z0-9]+)$",

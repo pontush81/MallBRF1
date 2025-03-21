@@ -34,21 +34,25 @@ const pagesRouter = require('./routes/pages');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Add CSP middleware before other middleware
+// Use the cors middleware directly with proper configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://www.stage.gulmaran.com' 
+    : '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With',
+  credentials: true,
+  maxAge: 86400, // 24 hours in seconds
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+
+// Log all requests for debugging
 app.use((req, res, next) => {
-  // In development, allow 'unsafe-eval' for React development tools
-  if (process.env.NODE_ENV === 'development') {
-    res.setHeader(
-      'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; manifest-src 'self'"
-    );
-  } else {
-    // In production, use stricter CSP but still allow manifest
-    res.setHeader(
-      'Content-Security-Policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; manifest-src 'self'"
-    );
-  }
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from ${req.headers.origin}`);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   next();
 });
 
@@ -157,39 +161,14 @@ db.connect((err, client, done) => {
   }
 });
 
-// Simplified CORS configuration
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  console.log('Incoming request:', {
-    method: req.method,
-    path: req.path,
-    origin: origin,
-    headers: req.headers
-  });
-
-  // Always set CORS headers for the stage domain
-  res.setHeader('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request');
-    res.status(200).end();
-    return;
-  }
-
-  next();
-});
-
 // Serve static files including manifest.json
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Handle manifest.json specifically
+// Handle manifest.json specifically with proper CORS headers
 app.get('/manifest.json', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Content-Type', 'application/json');
+  
   res.json({
     "short_name": "MallBRF",
     "name": "MallBRF",
@@ -209,13 +188,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.use(express.json());
 
-// Add request logging
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
-// Mount routes
+// Mount routes with proper error handling
 app.use('/api/pages', pagesRouter);
 
 // Error handling middleware
