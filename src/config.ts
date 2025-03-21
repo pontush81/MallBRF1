@@ -1,7 +1,10 @@
 // API base URL configuration
 export const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://proxy.cors.sh/https://mallbrf1.vercel.app/api'  // Production URL with different CORS proxy
+  ? '/api'  // Use relative URL to avoid CORS
   : 'http://localhost:3002/api';  // Development URL
+
+// Fallback API URL (used when the regular API fails)
+export const FALLBACK_API_ENABLED = true;
 
 // Supabase configuration
 export const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
