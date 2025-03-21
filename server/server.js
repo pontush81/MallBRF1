@@ -1,4 +1,5 @@
 // server.js
+// Trigger new deployment - 2024-03-21
 const express = require('express');
 const cors = require('cors');
 // Lägg till dotenv för miljövariabler
