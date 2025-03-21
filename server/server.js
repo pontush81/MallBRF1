@@ -158,7 +158,19 @@ db.connect((err, client, done) => {
 
 // Konfigurera Express
 // VIKTIGT: CORS måste konfigureras innan routes
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://www.stage.gulmaran.com',
+    'https://stage.gulmaran.com',
+    'https://www.gulmaran.com',
+    'https://gulmaran.com',
+    'https://mallbrf1.vercel.app'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Mount routes
