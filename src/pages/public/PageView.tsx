@@ -27,7 +27,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import pageService from '../../services/pageService';
 import { Page, FileInfo } from '../../types/Page';
-import { BASE_URL } from '../../services/pageService';
+import { API_BASE_URL } from '../../config';
 
 // Komponentstilar för Markdown-innehåll
 const markdownStyles = {
@@ -335,7 +335,7 @@ const PageView: React.FC = () => {
                           <CardMedia
                             component="img"
                             height="180"
-                            image={`${BASE_URL}${file.path}`}
+                            image={`${API_BASE_URL}${file.path}`}
                             alt={file.originalName}
                             sx={{ objectFit: 'cover' }}
                           />
@@ -348,7 +348,7 @@ const PageView: React.FC = () => {
                             <Button 
                               size="small" 
                               component="a"
-                              href={`${BASE_URL}${file.path}`}
+                              href={`${API_BASE_URL}${file.path}`}
                               target="_blank"
                               startIcon={<ImageIcon />}
                             >
@@ -392,7 +392,7 @@ const PageView: React.FC = () => {
                             variant="outlined"
                             size="small"
                             component="a" 
-                            href={`${BASE_URL}${file.path}`}
+                            href={`${API_BASE_URL}${file.path}`}
                             download={file.originalName}
                             startIcon={<FileDownloadIcon />}
                           >

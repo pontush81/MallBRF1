@@ -35,7 +35,7 @@ import remarkGfm from 'remark-gfm';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import { BASE_URL } from '../services/pageService';
+import { API_BASE_URL } from '../config';
 
 const STICKY_NAV_HEIGHT = 64; // Höjd på sticky navbar i pixlar
 
@@ -280,7 +280,7 @@ const PublicPages: React.FC = () => {
     }
     
     // Otherwise use the path with BASE_URL for local files
-    return `${BASE_URL}${file.path}`;
+    return `${API_BASE_URL}${file.path}`;
   };
 
   if (loading) {

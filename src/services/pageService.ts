@@ -1,17 +1,12 @@
 import { Page } from '../types/Page';
-
-// Base URL for the API (dynamically determined)
-export const BASE_URL = '';
-
-// API URL - simplifierad för att fungera med Vercel och utveckling
-const API_URL = '/api';
+import { API_BASE_URL } from '../config';
 
 // Service för att hantera sidor
 const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
-      const response = await fetch(`${API_URL}/pages`);
+      const response = await fetch(`${API_BASE_URL}/pages`);
       if (!response.ok) {
         throw new Error('Kunde inte hämta sidor');
       }
@@ -25,7 +20,7 @@ const pageService = {
   // Hämta publicerade sidor
   getPublishedPages: async (): Promise<Page[]> => {
     try {
-      const response = await fetch(`${API_URL}/pages/published`);
+      const response = await fetch(`${API_BASE_URL}/pages/published`);
       if (!response.ok) {
         throw new Error('Kunde inte hämta publicerade sidor');
       }
@@ -39,7 +34,7 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      const response = await fetch(`${API_URL}/pages/visible`);
+      const response = await fetch(`${API_BASE_URL}/pages/visible`);
       if (!response.ok) {
         throw new Error('Kunde inte hämta synliga sidor');
       }
@@ -53,7 +48,7 @@ const pageService = {
   // Hämta en specifik sida med ID
   getPageById: async (id: string): Promise<Page | null> => {
     try {
-      const response = await fetch(`${API_URL}/pages/${id}`);
+      const response = await fetch(`${API_BASE_URL}/pages/${id}`);
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -70,7 +65,7 @@ const pageService = {
   // Hämta en specifik sida med slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
-      const response = await fetch(`${API_URL}/pages/slug/${slug}`);
+      const response = await fetch(`${API_BASE_URL}/pages/slug/${slug}`);
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -87,7 +82,7 @@ const pageService = {
   // Skapa en ny sida
   createPage: async (pageData: Omit<Page, 'id' | 'createdAt' | 'updatedAt'>): Promise<Page> => {
     try {
-      const response = await fetch(`${API_URL}/pages`, {
+      const response = await fetch(`${API_BASE_URL}/pages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +104,7 @@ const pageService = {
   // Uppdatera en befintlig sida
   updatePage: async (id: string, pageData: Partial<Omit<Page, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Page | null> => {
     try {
-      const response = await fetch(`${API_URL}/pages/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +129,7 @@ const pageService = {
   // Radera en sida
   deletePage: async (id: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/pages/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
         method: 'DELETE',
       });
 
@@ -155,7 +150,7 @@ const pageService = {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${API_URL}/pages/${pageId}/upload`, {
+      const response = await fetch(`${API_BASE_URL}/pages/${pageId}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -174,11 +169,7 @@ const pageService = {
   // Radera en fil från en sida
   deleteFile: async (pageId: string, fileIdOrIndex: string): Promise<boolean> => {
     try {
-      // Check if fileIdOrIndex is a number (index) or string (ID)
-      const isIndex = !isNaN(Number(fileIdOrIndex));
-      const endpoint = isIndex ? 
-        `${API_URL}/pages/${pageId}/files/${fileIdOrIndex}` : 
-        `${API_URL}/pages/${pageId}/files/${fileIdOrIndex}`;
+      const endpoint = `${API_BASE_URL}/pages/${pageId}/files/${fileIdOrIndex}`;
       
       const response = await fetch(endpoint, {
         method: 'DELETE',
@@ -221,7 +212,7 @@ const pageService = {
       // på servern för att importera flera sidor samtidigt.
       // Här laddar vi upp varje sida separat
       for (const page of pages) {
-        await fetch(`${API_URL}/pages/${page.id}`, {
+        await fetch(`${API_BASE_URL}/pages/${page.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
