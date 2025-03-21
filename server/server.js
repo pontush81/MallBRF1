@@ -173,15 +173,22 @@ app.use((req, res, next) => {
       'https://mallbrf1.vercel.app'
     ];
 
+    // Log the incoming request origin for debugging
+    console.log('Incoming request origin:', origin);
+    console.log('Allowed origins:', allowedOrigins);
+
     if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      console.log('Origin not allowed:', origin);
     }
   }
 
   // Standard CORS headers
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
