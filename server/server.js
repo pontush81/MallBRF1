@@ -160,17 +160,26 @@ db.connect((err, client, done) => {
 // VIKTIGT: CORS måste konfigureras innan routes
 app.use(cors({
   origin: function(origin, callback) {
+    // In development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      callback(null, true);
+      return;
+    }
+
     const allowedOrigins = [
       'http://localhost:3000',
       'https://www.stage.gulmaran.com',
       'https://stage.gulmaran.com',
       'https://www.gulmaran.com',
       'https://gulmaran.com',
-      'https://mallbrf1.vercel.app',
-      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app'
+      'https://mallbrf1.vercel.app'
     ];
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+
+    // Allow all Vercel preview URLs
+    if (origin && (
+      origin.endsWith('.vercel.app') || 
+      allowedOrigins.includes(origin)
+    )) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -178,10 +187,23 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200 // For legacy browser support
+  optionsSuccessStatus: 200, // For legacy browser support
+  preflightContinue: false
 }));
+
+// Add CORS headers to all responses
+app.use((req, res, next) => {
+  // Ensure CORS headers are set even if the CORS middleware doesn't handle it
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
 app.use(express.json());
 
 // Mount routes
