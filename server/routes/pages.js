@@ -73,6 +73,7 @@ router.get('/published', async (req, res) => {
 router.get('/visible', async (req, res) => {
   try {
     console.log('Fetching visible pages...');
+    console.log('Request headers:', req.headers);
     
     const { data, error } = await supabase
       .from('pages')
@@ -81,7 +82,15 @@ router.get('/visible', async (req, res) => {
       .eq('show', true)
       .order('createdat', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No visible pages found');
+      return res.json([]);
+    }
 
     // Format response
     const formattedPages = data.map(page => ({
@@ -98,19 +107,24 @@ router.get('/visible', async (req, res) => {
 
     console.log(`Found ${formattedPages.length} visible pages`);
     if (formattedPages.length > 0) {
-      console.log('Sample page:', formattedPages[0]);
+      console.log('Sample page:', {
+        id: formattedPages[0].id,
+        title: formattedPages[0].title,
+        isPublished: formattedPages[0].isPublished,
+        show: formattedPages[0].show
+      });
     }
     
     res.json(formattedPages);
   } catch (error) {
-    console.error('Kunde inte hämta synliga sidor:', error);
+    console.error('Error fetching visible pages:', error);
     console.error('Error details:', {
       message: error.message,
       stack: error.stack,
       code: error.code,
       detail: error.detail
     });
-    res.status(500).json({ error: 'Kunde inte hämta synliga sidor' });
+    res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
   }
 });
 
