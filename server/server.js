@@ -34,24 +34,12 @@ const pagesRouter = require('./routes/pages');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Use the cors middleware directly with proper configuration
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://www.stage.gulmaran.com' 
-    : '*',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With',
-  credentials: true,
-  maxAge: 86400, // 24 hours in seconds
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-
-app.use(cors(corsOptions));
+// Use CORS middleware with a simple configuration that allows all origins
+app.use(cors());
 
 // Log all requests for debugging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from ${req.headers.origin}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from ${req.headers.origin || 'unknown'}`);
   console.log('Headers:', JSON.stringify(req.headers, null, 2));
   next();
 });
@@ -190,6 +178,72 @@ app.use(express.json());
 
 // Mount routes with proper error handling
 app.use('/api/pages', pagesRouter);
+
+// Add direct api/pages/visible endpoint to ensure it's accessible
+app.get('/api/pages/visible', async (req, res) => {
+  try {
+    console.log('Direct endpoint: fetching visible pages...');
+    
+    // Set CORS headers directly
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
+    
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('ispublished', true)
+      .eq('show', true)
+      .order('createdat', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No visible pages found');
+      return res.json([]);
+    }
+
+    // Format response
+    const formattedPages = data.map(page => ({
+      id: page.id,
+      title: page.title,
+      content: page.content,
+      slug: page.slug,
+      isPublished: Boolean(page.ispublished),
+      show: Boolean(page.show),
+      files: page.files ? JSON.parse(page.files) : [],
+      createdAt: page.createdat,
+      updatedAt: page.updatedat
+    }));
+
+    console.log(`Found ${formattedPages.length} visible pages`);
+    if (formattedPages.length > 0) {
+      console.log('Sample page:', {
+        id: formattedPages[0].id,
+        title: formattedPages[0].title,
+        isPublished: formattedPages[0].isPublished,
+        show: formattedPages[0].show
+      });
+    }
+    
+    res.json(formattedPages);
+  } catch (error) {
+    console.error('Error fetching visible pages:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+    res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
+  }
+});
+
+// Handle OPTIONS requests for CORS preflight
+app.options('*', cors());
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -707,63 +761,6 @@ app.get('/api/pages/published', async (req, res) => {
   } catch (err) {
     console.error('Kunde inte hämta publicerade sidor:', err);
     res.status(500).json({ error: 'Kunde inte hämta publicerade sidor' });
-  }
-});
-
-// Hämta sidor som ska visas
-app.get('/api/pages/visible', async (req, res) => {
-  try {
-    console.log('Fetching visible pages...');
-    
-    // Log column names from the table to debug
-    console.log('Checking pages table schema...');
-    try {
-      const schemaResult = await db.query(`
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_name = '${withSchema('pages')}'
-      `);
-      console.log('Pages table schema:', schemaResult.rows.map(r => `${r.column_name} (${r.data_type})`));
-    } catch (schemaErr) {
-      console.error('Failed to fetch schema:', schemaErr);
-    }
-    
-    // Use lowercase column names to avoid case-sensitivity issues
-    const result = await db.query(`
-      SELECT * FROM ${withSchema('pages')} 
-      WHERE "ispublished" = true AND "show" = true
-    `);
-    
-    const pages = result.rows;
-    console.log(`Found ${pages.length} visible pages`);
-    
-    if (pages.length > 0) {
-      console.log('Sample page columns:', Object.keys(pages[0]));
-    }
-    
-    const formattedPages = pages.map(page => ({
-      ...page,
-      id: page.id,
-      title: page.title,
-      content: page.content,
-      slug: page.slug,
-      isPublished: Boolean(page.ispublished),
-      show: Boolean(page.show),
-      createdAt: page.createdat,
-      updatedAt: page.updatedat,
-      files: page.files ? JSON.parse(page.files) : []
-    }));
-    
-    res.json(formattedPages);
-  } catch (err) {
-    console.error('Kunde inte hämta synliga sidor:', err);
-    console.error('Error details:', {
-      message: err.message,
-      stack: err.stack,
-      code: err.code,
-      detail: err.detail
-    });
-    res.status(500).json({ error: 'Kunde inte hämta synliga sidor', details: err.message });
   }
 });
 
