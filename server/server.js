@@ -160,9 +160,17 @@ db.connect((err, client, done) => {
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
+  console.log('Incoming request:', {
+    method: req.method,
+    path: req.path,
+    origin: origin,
+    headers: req.headers
+  });
+  
   // Allow all origins in development
   if (process.env.NODE_ENV === 'development') {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    console.log('Development mode: allowing all origins');
   } else {
     // In production, check against allowed origins
     const allowedOrigins = [
@@ -173,14 +181,19 @@ app.use((req, res, next) => {
       'https://mallbrf1.vercel.app'
     ];
 
-    // Log the incoming request origin for debugging
-    console.log('Incoming request origin:', origin);
-    console.log('Allowed origins:', allowedOrigins);
+    console.log('Production mode:', {
+      origin: origin,
+      allowedOrigins: allowedOrigins,
+      isVercelPreview: origin?.endsWith('.vercel.app')
+    });
 
     if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+      console.log('Origin allowed:', origin);
     } else {
       console.log('Origin not allowed:', origin);
+      // Still set the header to prevent CORS errors
+      res.setHeader('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
     }
   }
 
@@ -192,7 +205,9 @@ app.use((req, res, next) => {
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    console.log('Handling OPTIONS preflight request');
+    res.status(200).end();
+    return;
   }
 
   next();

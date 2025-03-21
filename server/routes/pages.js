@@ -75,6 +75,12 @@ router.get('/visible', async (req, res) => {
     console.log('Fetching visible pages...');
     console.log('Request headers:', req.headers);
     
+    // Add CORS headers specifically for this endpoint
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
     const { data, error } = await supabase
       .from('pages')
       .select('*')
