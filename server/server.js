@@ -39,13 +39,13 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;"
+      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; manifest-src 'self'"
     );
   } else {
-    // In production, use stricter CSP
+    // In production, use stricter CSP but still allow manifest
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;"
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; manifest-src 'self'"
     );
   }
   next();
@@ -156,18 +156,16 @@ db.connect((err, client, done) => {
   }
 });
 
-// Konfigurera Express
-// VIKTIGT: CORS måste konfigureras innan routes
-app.use(cors({
-  origin: function(origin, callback) {
-    // In development, allow all origins
-    if (process.env.NODE_ENV === 'development') {
-      callback(null, true);
-      return;
-    }
-
+// Simplified CORS configuration
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow all origins in development
+  if (process.env.NODE_ENV === 'development') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    // In production, check against allowed origins
     const allowedOrigins = [
-      'http://localhost:3000',
       'https://www.stage.gulmaran.com',
       'https://stage.gulmaran.com',
       'https://www.gulmaran.com',
@@ -175,51 +173,70 @@ app.use(cors({
       'https://mallbrf1.vercel.app'
     ];
 
-    // Allow all Vercel preview URLs
-    if (origin && (
-      origin.endsWith('.vercel.app') || 
-      allowedOrigins.includes(origin)
-    )) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+    if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
     }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-  exposedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  optionsSuccessStatus: 200, // For legacy browser support
-  preflightContinue: false
-}));
+  }
 
-// Add CORS headers to all responses
-app.use((req, res, next) => {
-  // Ensure CORS headers are set even if the CORS middleware doesn't handle it
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  // Standard CORS headers
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   next();
+});
+
+// Serve static files including manifest.json
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Handle manifest.json specifically
+app.get('/manifest.json', (req, res) => {
+  res.json({
+    "short_name": "MallBRF",
+    "name": "MallBRF",
+    "icons": [
+      {
+        "src": "favicon.ico",
+        "sizes": "64x64 32x32 24x24 16x16",
+        "type": "image/x-icon"
+      }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+  });
 });
 
 app.use(express.json());
 
+// Add request logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Mount routes
 app.use('/api/pages', pagesRouter);
 
-// Förbättra hanteringen av statiska filer för debugging
-app.use('/uploads', (req, res, next) => {
-  console.log(`File request: ${req.path}`);
-  next();
-}, express.static(path.join(__dirname, 'uploads'), {
-  setHeaders: (res, filePath) => {
-    // Sätt lämpliga headers för filnedladdning
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Disposition', 'attachment');
-  }
-}));
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+// Catch-all route handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
 
 // Konfigurera Multer för filuppladdning - use memory storage in production
 let storage;
