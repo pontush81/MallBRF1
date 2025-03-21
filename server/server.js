@@ -19,11 +19,37 @@ const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+// Import database connection and test function
+const { pool, testConnection } = require('./db');
 // Import Supabase client
 const supabase = require('./utils/supabase');
 
+// Importera backup-funktioner
+const { createBackup, restoreFromBackup, listBackups } = require('./utils/backup');
+
+// Importera routes
+const pagesRouter = require('./routes/pages');
+
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
+
+// Add CSP middleware before other middleware
+app.use((req, res, next) => {
+  // In development, allow 'unsafe-eval' for React development tools
+  if (process.env.NODE_ENV === 'development') {
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;"
+    );
+  } else {
+    // In production, use stricter CSP
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;"
+    );
+  }
+  next();
+});
 
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -48,11 +74,27 @@ if (finalConnectionString.includes('sslmode=')) {
   console.log('Removed sslmode from connection string to use custom SSL settings');
 }
 
+// Add connection timeout parameter
+finalConnectionString = finalConnectionString + (finalConnectionString.includes('?') ? '&' : '?') + 'connect_timeout=30';
+
 const db = new Pool({
   connectionString: finalConnectionString,
-  // Force disable SSL certificate validation for all environments
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
+  } : {
+    rejectUnauthorized: false
+  },
+  connectionTimeoutMillis: 30000, // 30 seconds
+  query_timeout: 10000, // 10 seconds
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000 // Close idle clients after 30 seconds
+});
+
+// Add error handler for the pool
+db.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  if (err.code === 'ETIMEDOUT') {
+    console.error('Connection timed out. Please check your network connection and database availability.');
   }
 });
 
@@ -71,17 +113,45 @@ console.log('- Schema:', DB_SCHEMA);
 // Testa databaskopplingen
 db.connect((err, client, done) => {
   if (err) {
-    console.error('Databaskoppling misslyckades:', err);
+    console.error('Database connection failed:', err);
+    console.error('Connection details:', {
+      host: db.options.host,
+      port: db.options.port,
+      database: db.options.database,
+      user: db.options.user,
+      ssl: db.options.ssl,
+      schema: DB_SCHEMA
+    });
+    console.error('Connection string (masked):', connectionString.replace(/postgres:\/\/[^:]+:[^@]+@/, 'postgres://user:password@'));
   } else {
-    console.log('Ansluten till PostgreSQL-databas');
-    // Testa med en enkel fråga
+    console.log('Connected to PostgreSQL database');
+    console.log('Connection details:', {
+      host: db.options.host,
+      port: db.options.port,
+      database: db.options.database,
+      user: db.options.user,
+      schema: DB_SCHEMA
+    });
+    // Test with a simple query
     client.query('SELECT NOW()', (err, result) => {
       if (err) {
-        console.error('Fel vid testfråga:', err);
+        console.error('Error with test query:', err);
       } else {
-        console.log('Databasfråga fungerar, datum från server:', result.rows[0].now);
+        console.log('Database query works, server time:', result.rows[0].now);
+        // Test schema access
+        client.query(`SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = $1 
+          AND table_name = 'pages'
+        )`, [DB_SCHEMA], (err, result) => {
+          if (err) {
+            console.error('Error checking pages table:', err);
+          } else {
+            console.log(`Pages table exists in schema ${DB_SCHEMA}:`, result.rows[0].exists);
+          }
+          done();
+        });
       }
-      done();
     });
   }
 });
@@ -90,6 +160,9 @@ db.connect((err, client, done) => {
 // VIKTIGT: CORS måste konfigureras innan routes
 app.use(cors());
 app.use(express.json());
+
+// Mount routes
+app.use('/api/pages', pagesRouter);
 
 // Förbättra hanteringen av statiska filer för debugging
 app.use('/uploads', (req, res, next) => {
@@ -1402,9 +1475,59 @@ app.get('/api/files/:filename', (req, res) => {
   }
 });
 
-// Starta servern
-app.listen(PORT, () => {
-  console.log(`Server körs på http://localhost:${PORT}`);
-  console.log(`Boknings-API tillgängligt på http://localhost:${PORT}/api/bookings`);
-  console.log(`Databasanslutning: ${process.env.POSTGRES_URL_NON_POOLING}`);
+// Backup endpoints
+app.post('/api/backup', async (req, res) => {
+    try {
+        const result = await createBackup();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
+
+app.get('/api/backups', async (req, res) => {
+    try {
+        const result = listBackups();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/restore/:fileName', async (req, res) => {
+    try {
+        const result = await restoreFromBackup(req.params.fileName);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Initialize server
+async function startServer() {
+  try {
+    // Test database connection
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      console.error('Could not establish database connection. Server will start but may not function correctly.');
+    } else {
+      console.log('Database connection test successful');
+    }
+
+    // Start the server
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`API available at http://localhost:${PORT}/api`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
