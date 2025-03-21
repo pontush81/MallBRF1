@@ -159,17 +159,26 @@ db.connect((err, client, done) => {
 // Konfigurera Express
 // VIKTIGT: CORS måste konfigureras innan routes
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://www.stage.gulmaran.com',
-    'https://stage.gulmaran.com',
-    'https://www.gulmaran.com',
-    'https://gulmaran.com',
-    'https://mallbrf1.vercel.app'
-  ],
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://www.stage.gulmaran.com',
+      'https://stage.gulmaran.com',
+      'https://www.gulmaran.com',
+      'https://gulmaran.com',
+      'https://mallbrf1.vercel.app'
+    ];
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200 // For legacy browser support
 }));
 app.use(express.json());
 
