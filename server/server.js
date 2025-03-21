@@ -166,12 +166,14 @@ app.use(cors({
       'https://stage.gulmaran.com',
       'https://www.gulmaran.com',
       'https://gulmaran.com',
-      'https://mallbrf1.vercel.app'
+      'https://mallbrf1.vercel.app',
+      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app'
     ];
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
