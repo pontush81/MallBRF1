@@ -1,6 +1,6 @@
 // API base URL configuration
 export const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://corsproxy.io/?https://mallbrf1.vercel.app/api'  // Production URL with CORS proxy
+  ? 'https://proxy.cors.sh/https://mallbrf1.vercel.app/api'  // Production URL with different CORS proxy
   : 'http://localhost:3002/api';  // Development URL
 
 // Supabase configuration
