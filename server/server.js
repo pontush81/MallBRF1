@@ -166,38 +166,9 @@ app.use((req, res, next) => {
     origin: origin,
     headers: req.headers
   });
-  
-  // Allow all origins in development
-  if (process.env.NODE_ENV === 'development') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    console.log('Development mode: allowing all origins');
-  } else {
-    // In production, check against allowed origins
-    const allowedOrigins = [
-      'https://www.stage.gulmaran.com',
-      'https://stage.gulmaran.com',
-      'https://www.gulmaran.com',
-      'https://gulmaran.com',
-      'https://mallbrf1.vercel.app'
-    ];
 
-    console.log('Production mode:', {
-      origin: origin,
-      allowedOrigins: allowedOrigins,
-      isVercelPreview: origin?.endsWith('.vercel.app')
-    });
-
-    if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      console.log('Origin allowed:', origin);
-    } else {
-      console.log('Origin not allowed:', origin);
-      // Still set the header to prevent CORS errors
-      res.setHeader('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
-    }
-  }
-
-  // Standard CORS headers
+  // Always set CORS headers for the stage domain
+  res.setHeader('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
