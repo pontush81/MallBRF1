@@ -58,8 +58,13 @@ const pagesRouter = pagesModule.router;
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Configure CORS
-app.use(cors());
+// Configure CORS with more specific options
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Configure file upload
 app.use(fileUpload({
@@ -1407,3 +1412,20 @@ async function startServer() {
 
 // Start the server
 startServer();
+
+// Add authentication bypass for public routes
+app.use((req, res, next) => {
+  const publicRoutes = [
+    '/api/pages/visible',
+    '/api/pages/published',
+    '/api/pages/slug'
+  ];
+  
+  if (publicRoutes.some(route => req.path.startsWith(route))) {
+    console.log('Public route accessed:', req.path);
+    return next();
+  }
+
+  // For protected routes, check authentication here
+  next();
+});
