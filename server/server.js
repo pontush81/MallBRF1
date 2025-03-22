@@ -6,9 +6,10 @@ const fileUpload = require('express-fileupload');
 // Lägg till dotenv för miljövariabler
 require('dotenv').config();
 
-// Force disable SSL certificate validation for Postgres connections
-// This is needed for Vercel serverless functions connecting to Supabase
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// Disable SSL verification in production (required for Vercel)
+if (process.env.NODE_ENV === 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 // Log environment configuration
 console.log('Server Configuration:');
@@ -57,10 +58,10 @@ const pagesRouter = pagesModule.router;
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Use CORS middleware with a simple configuration that allows all origins
+// Configure CORS
 app.use(cors());
 
-// Add express-fileupload middleware
+// Configure file upload
 app.use(fileUpload({
   createParentPath: true,
   limits: {
@@ -71,12 +72,33 @@ app.use(fileUpload({
   tempFileDir: '/tmp/'
 }));
 
-// Log all requests for debugging
+// Body parser middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Logging middleware
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from ${req.headers.origin || 'unknown'}`);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log(`${req.method} ${req.path}`);
   next();
 });
+
+// Verify environment variables
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
+console.log('Environment variables verified successfully');
+console.log('Supabase URL:', process.env.SUPABASE_URL);
+console.log('Service Role Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+console.log('Anon Key length:', process.env.SUPABASE_ANON_KEY?.length);
+
+// Routes
+const pagesRouter = require('./routes/pages');
+app.use('/api/pages', pagesRouter);
 
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -149,8 +171,6 @@ app.get('/manifest.json', (req, res) => {
     "background_color": "#ffffff"
   });
 });
-
-app.use(express.json());
 
 // Add file upload middleware
 pagesModule.setupFileUpload(app);
