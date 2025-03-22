@@ -9,12 +9,23 @@ require('dotenv').config();
 // This is needed for Vercel serverless functions connecting to Supabase
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-// Åsidosätt certifikatverifiering för utvecklingsmiljö
-if (process.env.NODE_ENV !== 'production') {
-  console.log('SSL-certifikatverifiering inaktiverad för utvecklingsmiljö');
+// Log environment configuration
+console.log('Server Configuration:');
+console.log('- Environment:', process.env.NODE_ENV);
+console.log('- SSL Verification:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
+console.log('- Supabase URL:', process.env.SUPABASE_URL);
+console.log('- Supabase Key Length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+
+// Ensure SSL certificate validation is disabled in production
+if (process.env.NODE_ENV === 'production') {
+  console.log('Running in production mode - SSL certificate validation is disabled');
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  process.env.PGSSLMODE = 'no-verify';
 } else {
-  console.log('SSL-certifikatverifiering inaktiverad för produktionsmiljö (required for Vercel)');
+  console.log('Running in development mode - SSL certificate validation is disabled for development');
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
+
 // Ersätt SQLite med PostgreSQL-klient
 const { Pool } = require('pg');
 const path = require('path');
