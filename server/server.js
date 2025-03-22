@@ -2,6 +2,7 @@
 // Trigger new deployment - 2024-03-21
 const express = require('express');
 const cors = require('cors');
+const fileUpload = require('express-fileupload');
 // Lägg till dotenv för miljövariabler
 require('dotenv').config();
 
@@ -58,6 +59,17 @@ const PORT = process.env.PORT || 3002;
 
 // Use CORS middleware with a simple configuration that allows all origins
 app.use(cors());
+
+// Add express-fileupload middleware
+app.use(fileUpload({
+  createParentPath: true,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max file size
+  },
+  abortOnLimit: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}));
 
 // Log all requests for debugging
 app.use((req, res, next) => {
