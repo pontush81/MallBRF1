@@ -25,7 +25,15 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
         persistSession: false
     },
     db: {
-        schema: 'public' // Always use public schema for now
+        schema: 'public', // Always use public schema for now
+        ssl: {
+            rejectUnauthorized: false // Disable SSL certificate validation
+        }
+    },
+    global: {
+        headers: {
+            'x-application-name': 'mallbrf-server'
+        }
     }
 });
 

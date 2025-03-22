@@ -5,10 +5,12 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 
-const DB_SCHEMA = process.env.NODE_ENV === 'production' ? 'public' : 'staging';
+// Always use public schema for now
+const DB_SCHEMA = 'public';
+console.log('Using database schema:', DB_SCHEMA);
 
 // Helper function för att lägga till schema i SQL-frågor
-const withSchema = (tableName) => `${DB_SCHEMA}.${tableName}`;
+const withSchema = (tableName) => tableName; // Don't add schema prefix for now
 
 // Hämta alla sidor
 router.get('/', async (req, res) => {
@@ -203,6 +205,8 @@ router.put('/:id', async (req, res) => {
   try {
     console.log('Updating page:', req.params.id);
     console.log('Update data:', req.body);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Supabase URL:', process.env.SUPABASE_URL);
     
     const { title, content, slug, isPublished, show, files } = req.body;
     
@@ -218,13 +222,18 @@ router.put('/:id', async (req, res) => {
       .eq('id', req.params.id)
       .single();
       
-    if (findError || !existingPage) {
+    if (findError) {
+      console.error('Error finding page:', findError);
+      return res.status(500).json({ error: 'Kunde inte hitta sidan' });
+    }
+    
+    if (!existingPage) {
       console.error('Page not found:', req.params.id);
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
     }
     
     // Convert files array to JSON string
-    const filesJson = files ? JSON.stringify(files) : null;
+    const filesJson = files ? JSON.stringify(files) : '[]';
     
     // Update the page
     const { data, error } = await supabase
@@ -236,7 +245,7 @@ router.put('/:id', async (req, res) => {
         ispublished: isPublished,
         show: show,
         files: filesJson,
-        updatedat: new Date()
+        updatedat: new Date().toISOString()
       })
       .eq('id', req.params.id)
       .select()
@@ -244,10 +253,11 @@ router.put('/:id', async (req, res) => {
     
     if (error) {
       console.error('Error updating page:', error);
-      throw error;
+      return res.status(500).json({ error: 'Kunde inte uppdatera sidan', details: error.message });
     }
     
     if (!data) {
+      console.error('No data returned after update');
       return res.status(404).json({ error: 'Sidan kunde inte uppdateras' });
     }
     
@@ -264,10 +274,11 @@ router.put('/:id', async (req, res) => {
       updatedAt: data.updatedat
     };
     
+    console.log('Page updated successfully:', formattedPage);
     res.json(formattedPage);
   } catch (error) {
     console.error('Could not update page:', error);
-    res.status(500).json({ error: 'Kunde inte uppdatera sidan' });
+    res.status(500).json({ error: 'Kunde inte uppdatera sidan', details: error.message });
   }
 });
 
