@@ -16,6 +16,7 @@
   "routes": [
     {
       "src": "/api/pages/visible",
+      "dest": "server/server.js",
       "methods": ["GET"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
@@ -26,6 +27,7 @@
     },
     {
       "src": "/api/pages/published",
+      "dest": "server/server.js",
       "methods": ["GET"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
@@ -36,6 +38,7 @@
     },
     {
       "src": "/api/pages/slug/(.*)",
+      "dest": "server/server.js",
       "methods": ["GET"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
@@ -46,6 +49,7 @@
     },
     {
       "src": "/api/(.*)",
+      "dest": "server/server.js",
       "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
@@ -56,6 +60,7 @@
     },
     {
       "src": "/manifest.json",
+      "dest": "build/manifest.json",
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json"
@@ -63,13 +68,14 @@
     },
     {
       "src": "/favicon.ico",
+      "dest": "build/favicon.ico",
       "headers": {
         "Access-Control-Allow-Origin": "*"
       }
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
+      "dest": "build/index.html",
       "headers": {
         "Access-Control-Allow-Origin": "*"
       }
