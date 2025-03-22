@@ -102,7 +102,6 @@ console.log('Service Role Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.l
 console.log('Anon Key length:', process.env.SUPABASE_ANON_KEY?.length);
 
 // Routes
-const pagesRouter = require('./routes/pages');
 app.use('/api/pages', pagesRouter);
 
 // Säkerställ att uploads-mappen finns - but only in development
