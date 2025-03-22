@@ -377,81 +377,62 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// File upload endpoint
-router.post('/:id/upload', async (req, res) => {
+// File upload setup function (not needed anymore as we're using express-fileupload middleware)
+function setupFileUpload(app) {
+  console.log('File upload middleware already configured in server.js');
+}
+
+// Add file upload endpoint
+router.post('/upload', async (req, res) => {
   try {
-    const pageId = req.params.id;
-    console.log('File upload for page:', pageId);
+    console.log('File upload request received');
     
-    // Get the current page first to retrieve existing files
-    const { data: page, error: getError } = await supabase
-      .from('pages')
-      .select('files')
-      .eq('id', pageId)
-      .single();
-    
-    if (getError || !page) {
-      console.error('Page not found:', pageId);
-      return res.status(404).json({ error: 'Sidan kunde inte hittas' });
+    if (!req.files || Object.keys(req.files).length === 0) {
+      console.log('No files were uploaded');
+      return res.status(400).json({ error: 'No files were uploaded.' });
     }
-    
-    // Simple implementation for now - in a real app you'd use multer and storage
-    if (!req.files || !req.files.file) {
-      return res.status(400).json({ error: 'Ingen fil hittades' });
-    }
-    
+
     const file = req.files.file;
-    const fileName = `${Date.now()}-${file.name}`;
-    const uploadPath = path.join(__dirname, '../uploads', fileName);
-    
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('Received file:', file.name);
+
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const uniqueFilename = `${timestamp}-${file.name}`;
+    const uploadPath = path.join('/tmp', uniqueFilename);
+
+    // Move the file to the temporary directory
+    await file.mv(uploadPath);
+    console.log('File moved to:', uploadPath);
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .upload(uniqueFilename, fs.createReadStream(uploadPath), {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    // Clean up the temporary file
+    fs.unlinkSync(uploadPath);
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw error;
     }
-    
-    // Move the file to the uploads directory
-    file.mv(uploadPath, async (err) => {
-      if (err) {
-        console.error('Error moving file:', err);
-        return res.status(500).json({ error: 'Kunde inte ladda upp filen' });
-      }
-      
-      // Add the file to the page's files array
-      const existingFiles = page.files ? JSON.parse(page.files) : [];
-      const fileInfo = {
-        id: fileName,
-        filename: fileName,
-        originalName: file.name,
-        mimetype: file.mimetype,
+
+    console.log('File uploaded successfully:', data);
+    res.json({
+      success: true,
+      file: {
+        name: file.name,
+        path: data.path,
         size: file.size,
-        path: `/uploads/${fileName}`,
-        uploadedAt: new Date().toISOString()
-      };
-      
-      const updatedFiles = [...existingFiles, fileInfo];
-      
-      // Update the page with the new files array
-      const { data, error } = await supabase
-        .from('pages')
-        .update({
-          files: JSON.stringify(updatedFiles),
-          updatedat: new Date()
-        })
-        .eq('id', pageId)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating page with file:', error);
-        return res.status(500).json({ error: 'Kunde inte uppdatera sidan med filen' });
+        type: file.mimetype
       }
-      
-      res.json(fileInfo);
     });
   } catch (error) {
-    console.error('Could not upload file:', error);
-    res.status(500).json({ error: 'Kunde inte ladda upp filen' });
+    console.error('File upload error:', error);
+    res.status(500).json({ error: 'Could not upload file', details: error.message });
   }
 });
 
@@ -517,15 +498,6 @@ router.delete('/:id/files/:fileId', async (req, res) => {
     res.status(500).json({ error: 'Kunde inte ta bort filen' });
   }
 });
-
-// Ensure Express has file upload middleware
-const setupFileUpload = (app) => {
-  const fileUpload = require('express-fileupload');
-  app.use(fileUpload({
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
-    createParentPath: true
-  }));
-};
 
 module.exports = { 
   router,
