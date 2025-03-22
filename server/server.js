@@ -62,9 +62,53 @@ const PORT = process.env.PORT || 3002;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass'],
   credentials: true
 }));
+
+// Authentication middleware
+const authenticateRequest = (req, res, next) => {
+  // Check for Vercel protection bypass header
+  if (req.headers['x-vercel-protection-bypass'] === 'true') {
+    return next();
+  }
+
+  // Check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No authorization header' });
+  }
+
+  // Extract token from Authorization header
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  // Verify token against environment variable
+  if (token !== process.env.API_SECRET) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  next();
+};
+
+// Define public routes that don't require authentication
+const publicRoutes = [
+  '/api/pages/visible',
+  '/api/pages/published',
+  '/api/pages/slug',
+  '/health',
+  '/manifest.json'
+];
+
+// Add middleware to handle public routes
+app.use((req, res, next) => {
+  if (publicRoutes.some(route => req.path.startsWith(route))) {
+    return next();
+  }
+  authenticateRequest(req, res, next);
+});
 
 // Configure file upload
 app.use(fileUpload({
@@ -1411,20 +1455,3 @@ async function startServer() {
 
 // Start the server
 startServer();
-
-// Add authentication bypass for public routes
-app.use((req, res, next) => {
-  const publicRoutes = [
-    '/api/pages/visible',
-    '/api/pages/published',
-    '/api/pages/slug'
-  ];
-  
-  if (publicRoutes.some(route => req.path.startsWith(route))) {
-    console.log('Public route accessed:', req.path);
-    return next();
-  }
-
-  // For protected routes, check authentication here
-  next();
-});
