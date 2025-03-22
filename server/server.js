@@ -14,13 +14,23 @@ console.log('Server Configuration:');
 console.log('- Environment:', process.env.NODE_ENV);
 console.log('- SSL Verification:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
 console.log('- Supabase URL:', process.env.SUPABASE_URL);
-console.log('- Supabase Key Length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+console.log('- Supabase Service Key Length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+console.log('- Supabase Anon Key Length:', process.env.SUPABASE_ANON_KEY ? process.env.SUPABASE_ANON_KEY.length : 0);
 
 // Ensure SSL certificate validation is disabled in production
 if (process.env.NODE_ENV === 'production') {
   console.log('Running in production mode - SSL certificate validation is disabled');
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   process.env.PGSSLMODE = 'no-verify';
+  
+  // Validate required environment variables in production
+  if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
+    console.error('Missing required environment variables in production:');
+    console.error('- SUPABASE_URL:', !!process.env.SUPABASE_URL);
+    console.error('- SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.error('- SUPABASE_ANON_KEY:', !!process.env.SUPABASE_ANON_KEY);
+    process.exit(1);
+  }
 } else {
   console.log('Running in development mode - SSL certificate validation is disabled for development');
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
