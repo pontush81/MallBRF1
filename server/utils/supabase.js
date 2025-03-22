@@ -1,6 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
+// Force disable SSL certificate validation
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -11,16 +14,15 @@ console.log('- URL:', supabaseUrl);
 console.log('- Service Key length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
 console.log('- Anon Key length:', supabaseAnonKey ? supabaseAnonKey.length : 0);
 console.log('- Environment:', process.env.NODE_ENV);
+console.log('- SSL Verify:', process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? 'Disabled' : 'Enabled');
 
-if (!supabaseUrl) {
-    console.error('Missing Supabase URL');
-    process.exit(1);
-}
+// Validate configuration
+const missingConfig = [];
+if (!supabaseUrl) missingConfig.push('SUPABASE_URL');
+if (!supabaseServiceKey && !supabaseAnonKey) missingConfig.push('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY');
 
-if (!supabaseServiceKey && !supabaseAnonKey) {
-    console.error('Missing Supabase keys:');
-    console.error('- SUPABASE_SERVICE_ROLE_KEY:', !!supabaseServiceKey);
-    console.error('- SUPABASE_ANON_KEY:', !!supabaseAnonKey);
+if (missingConfig.length > 0) {
+    console.error('Missing required Supabase configuration:', missingConfig.join(', '));
     process.exit(1);
 }
 
@@ -32,17 +34,19 @@ const supabase = createClient(
     {
         auth: {
             autoRefreshToken: false,
-            persistSession: false
+            persistSession: false,
+            detectSessionInUrl: false
         },
         db: {
-            schema: 'public', // Always use public schema for now
+            schema: 'public',
             ssl: {
-                rejectUnauthorized: false // Disable SSL certificate validation
+                rejectUnauthorized: false
             }
         },
         global: {
             headers: {
-                'x-application-name': 'mallbrf-server'
+                'x-application-name': 'mallbrf-server',
+                'x-client-info': 'supabase-js'
             }
         }
     }
