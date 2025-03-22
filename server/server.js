@@ -23,13 +23,14 @@ const multer = require('multer');
 // Import database connection and test function
 const { pool, testConnection } = require('./db');
 // Import Supabase client
-const supabase = require('./utils/supabase');
+const { supabase, testSupabaseConnection } = require('./utils/supabase');
 
 // Importera backup-funktioner
 const { createBackup, restoreFromBackup, listBackups } = require('./utils/backup');
 
 // Importera routes
-const pagesRouter = require('./routes/pages');
+const pagesModule = require('./routes/pages');
+const pagesRouter = pagesModule.router;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -46,108 +47,50 @@ app.use((req, res, next) => {
 
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
+const backupDir = path.join(__dirname, 'backups');
+
 if (process.env.NODE_ENV !== 'production') {
-  // Only attempt to create directories in development environment
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-  }
+    // Only attempt to create directories in development environment
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir);
+    }
+    if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir);
+        console.log('Created backup directory:', backupDir);
+    }
 } else {
-  console.log('Running in production mode - skipping uploads directory creation (using read-only filesystem)');
+    console.log('Running in production mode - skipping directory creation (using read-only filesystem)');
 }
 
-// Skapa och konfigurera databaspool med Supabase
-// Don't override SSL config since it's already in the connection string
-const connectionString = process.env.POSTGRES_URL_NON_POOLING || "postgres://localhost:5432/mall_brf";
-console.log('Using connection string (masked):', connectionString.replace(/postgres:\/\/[^:]+:[^@]+@/, 'postgres://user:password@'));
-
-// Parse connection string to remove sslmode if present
-let finalConnectionString = connectionString;
-if (finalConnectionString.includes('sslmode=')) {
-  finalConnectionString = finalConnectionString.replace(/\?sslmode=(require|verify-ca|verify-full)/, '');
-  console.log('Removed sslmode from connection string to use custom SSL settings');
-}
-
-// Add connection timeout parameter
-finalConnectionString = finalConnectionString + (finalConnectionString.includes('?') ? '&' : '?') + 'connect_timeout=30';
-
-const db = new Pool({
-  connectionString: finalConnectionString,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false
-  } : {
-    rejectUnauthorized: false
-  },
-  connectionTimeoutMillis: 30000, // 30 seconds
-  query_timeout: 10000, // 10 seconds
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000 // Close idle clients after 30 seconds
-});
-
-// Add error handler for the pool
-db.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  if (err.code === 'ETIMEDOUT') {
-    console.error('Connection timed out. Please check your network connection and database availability.');
-  }
-});
-
-// Välj rätt schema baserat på NODE_ENV
-const DB_SCHEMA = process.env.NODE_ENV === 'production' ? 'public' : 'staging';
+// Update the schema handling
+const DB_SCHEMA = 'public'; // Always use public schema for now
 console.log(`Using database schema: ${DB_SCHEMA}`);
 
-// Helper function för att lägga till schema i SQL-frågor
-const withSchema = (tableName) => `${DB_SCHEMA}.${tableName}`;
+// Helper function to add schema to table names
+function withSchema(tableName) {
+  return tableName; // Don't add schema prefix for now
+}
 
 console.log('Database connection configured with:');
 console.log('- SSL mode: SSL enabled with rejectUnauthorized: false (required for Vercel)');
 console.log('- Node Env:', process.env.NODE_ENV || 'not set');
 console.log('- Schema:', DB_SCHEMA);
 
-// Testa databaskopplingen
-db.connect((err, client, done) => {
-  if (err) {
-    console.error('Database connection failed:', err);
-    console.error('Connection details:', {
-      host: db.options.host,
-      port: db.options.port,
-      database: db.options.database,
-      user: db.options.user,
-      ssl: db.options.ssl,
-      schema: DB_SCHEMA
-    });
-    console.error('Connection string (masked):', connectionString.replace(/postgres:\/\/[^:]+:[^@]+@/, 'postgres://user:password@'));
-  } else {
-    console.log('Connected to PostgreSQL database');
-    console.log('Connection details:', {
-      host: db.options.host,
-      port: db.options.port,
-      database: db.options.database,
-      user: db.options.user,
-      schema: DB_SCHEMA
-    });
-    // Test with a simple query
-    client.query('SELECT NOW()', (err, result) => {
-      if (err) {
-        console.error('Error with test query:', err);
-      } else {
-        console.log('Database query works, server time:', result.rows[0].now);
-        // Test schema access
-        client.query(`SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = $1 
-          AND table_name = 'pages'
-        )`, [DB_SCHEMA], (err, result) => {
-          if (err) {
-            console.error('Error checking pages table:', err);
-          } else {
-            console.log(`Pages table exists in schema ${DB_SCHEMA}:`, result.rows[0].exists);
-          }
-          done();
-        });
-      }
-    });
+// Test database connection
+async function testDatabaseConnection() {
+  try {
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      console.error('Database connection failed');
+      return false;
+    }
+    console.log('Database connected successfully');
+    return true;
+  } catch (error) {
+    console.error('Database connection error:', error);
+    return false;
   }
-});
+}
 
 // Serve static files including manifest.json
 app.use(express.static(path.join(__dirname, 'public')));
@@ -176,8 +119,90 @@ app.get('/manifest.json', (req, res) => {
 
 app.use(express.json());
 
+// Add file upload middleware
+pagesModule.setupFileUpload(app);
+
 // Mount routes with proper error handling
 app.use('/api/pages', pagesRouter);
+
+// Backup endpoints
+app.get('/api/backups', async (req, res) => {
+    try {
+        console.log('Listing backups...');
+        const result = listBackups();
+        if (result.success) {
+            console.log('Found backups:', result.files ? result.files.length : 0);
+            res.json({ success: true, files: result.files || [] });
+        } else {
+            console.error('Error listing backups:', result.error);
+            res.status(500).json({ success: false, error: result.error });
+        }
+    } catch (error) {
+        console.error('Error listing backups:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/backup', async (req, res) => {
+    try {
+        console.log('Creating backup...', req.body);
+        const { tables } = req.body || {};
+        const result = await createBackup(tables);
+        
+        if (result.success) {
+            console.log('Backup created:', result.fileName);
+            
+            // If we had partial success (some tables failed)
+            if (result.partialSuccess) {
+                console.warn('Some tables failed during backup:', result.errors);
+                return res.json({ 
+                    success: true, 
+                    partialSuccess: true,
+                    fileName: result.fileName,
+                    errors: result.errors,
+                    message: 'Backup created with some tables skipped due to permission issues'
+                });
+            }
+            
+            return res.json({ success: true, fileName: result.fileName });
+        } else {
+            console.error('Error creating backup:', result.error);
+            res.status(500).json({ success: false, error: result.error });
+        }
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/backups/:fileName/restore', async (req, res) => {
+    try {
+        console.log('Restoring backup...', req.params);
+        const { fileName } = req.params;
+        const result = await restoreFromBackup(fileName);
+        
+        if (result.success) {
+            console.log('Restore completed for:', fileName);
+            res.json({ success: true });
+        } else {
+            console.error('Error restoring backup:', result.error);
+            
+            // Check for permission error message
+            if (result.error && result.error.includes('permission denied')) {
+                return res.status(403).json({ 
+                    success: false, 
+                    error: result.error,
+                    message: 'Behörighetsproblem: Din Supabase-användare saknar rättigheter att göra detta. Kontakta systemadministratören.'
+                });
+            }
+            
+            res.status(500).json({ success: false, error: result.error });
+        }
+    } catch (error) {
+        console.error('Error restoring backup:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // Add direct api/pages/visible endpoint to ensure it's accessible
 app.get('/api/pages/visible', async (req, res) => {
@@ -391,226 +416,104 @@ async function deleteFromSupabaseStorage(filename) {
 // Initiera databastabeller
 const initDb = async () => {
   try {
-    // Skapa pages-tabell om den inte finns - with lowercase column names
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS ${withSchema('pages')} (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        slug TEXT NOT NULL,
-        ispublished BOOLEAN NOT NULL,
-        show BOOLEAN NOT NULL,
-        createdat TEXT NOT NULL,
-        updatedat TEXT NOT NULL,
-        files TEXT
-      )
-    `);
-    
-    // Kontrollera om pages-tabellen saknar files-kolumnen
-    const tableInfo = await db.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = '${withSchema('pages')}' AND column_name = 'files'
-    `);
-    
-    // Lägg till files-kolumn om den saknas
-    if (tableInfo.rows.length === 0) {
-      console.log('Lägger till files-kolumn i pages-tabellen...');
-      await db.query(`ALTER TABLE ${withSchema('pages')} ADD COLUMN files TEXT`);
-    }
-    
-    // Skapa bookings-tabell om den inte finns
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS ${withSchema('bookings')} (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        startDate TEXT NOT NULL,
-        endDate TEXT NOT NULL,
-        createdAt TEXT NOT NULL,
-        status TEXT NOT NULL,
-        notes TEXT,
-        phone TEXT
-      )
-    `);
-    
-    // Skapa users-tabell om den inte finns
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS ${withSchema('users')} (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE,
-        name TEXT,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL,
-        isActive BOOLEAN NOT NULL DEFAULT TRUE,
-        createdAt TEXT NOT NULL,
-        lastLogin TEXT
-      )
-    `);
-    
-    // Kontrollera om det finns några användare
-    const userCount = await db.query(`SELECT COUNT(*) as count FROM ${withSchema('users')}`);
-    
-    if (parseInt(userCount.rows[0].count) === 0) {
-      // Lägg till några demo-användare
-      const initialUsers = [
-        {
-          id: '1',
-          email: 'admin@example.com',
-          name: 'Admin Användare',
-          password: 'admin123', // I praktiken bör lösenord hashas
-          role: 'admin',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          lastLogin: null
-        },
-        {
-          id: '2',
-          email: 'user@example.com',
-          name: 'Test Användare',
-          password: 'user123', // I praktiken bör lösenord hashas
-          role: 'user',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          lastLogin: null
-        }
-      ];
-      
-      for (const user of initialUsers) {
-        await db.query(
-          `INSERT INTO ${withSchema('users')} (id, email, name, password, role, isActive, createdAt, lastLogin) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [user.id, user.email, user.name, user.password, user.role, user.isActive, user.createdAt, user.lastLogin]
-        );
+    // Create tables using Supabase's API
+    try {
+      const { error: pagesError } = await supabase.rpc('create_pages_table', { schema: DB_SCHEMA });
+      if (pagesError) {
+        console.warn('Warning creating pages table:', pagesError.message);
       }
+    } catch (err) {
+      console.warn('Warning creating pages table:', err.message);
     }
-    
-    // Kontrollera om det finns några sidor
-    const pageCount = await db.query(`SELECT COUNT(*) as count FROM ${withSchema('pages')}`);
-    
-    if (parseInt(pageCount.rows[0].count) === 0) {
-      // Lägg till några demo-sidor
-      const initialPages = [
-        {
-          id: '1',
-          title: 'Välkomstsida',
-          content: '# Välkommen\n\nDetta är vår välkomstsida.\n\n## Underrubrik\n\nDetta är en underrubrik med **fet text** och *kursiv text*.',
-          slug: 'valkomstsida',
-          ispublished: true,
-          show: true,
-          createdat: '2023-03-15T12:00:00Z',
-          updatedat: '2023-03-15T12:00:00Z',
-          files: null
-        },
-        {
-          id: '2',
-          title: 'Om oss',
-          content: '# Om oss\n\nVi är ett företag som fokuserar på kvalitet och kundnöjdhet.\n\n## Vår historia\n\nVårt företag grundades 2010 med målet att erbjuda de bästa produkterna på marknaden.',
-          slug: 'om-oss',
-          ispublished: true,
-          show: true,
-          createdat: '2023-03-16T12:00:00Z',
-          updatedat: '2023-03-16T12:00:00Z',
-          files: null
-        },
-        {
-          id: '3',
-          title: 'Kontakt',
-          content: '# Kontakta oss\n\nDu kan nå oss via följande kanaler:\n\n- Email: info@example.com\n- Telefon: 08-123 45 67\n- Adress: Exempelgatan 123, 123 45 Stockholm',
-          slug: 'kontakt',
-          ispublished: true,
-          show: false,
-          createdat: '2023-03-17T12:00:00Z',
-          updatedat: '2023-03-17T12:00:00Z',
-          files: null
-        },
-        {
-          id: '4',
-          title: 'Information om lägenheten',
-          content: '# Information om lägenheten\n\n## Beskrivning\nVår mysiga lägenhet erbjuder en perfekt miljö för din semester. Med 2 sovrum och ett fullt utrustat kök är detta ditt hem hemifrån.\n\n## Bekvämligheter\n- Trådlöst internet\n- Fullt utrustat kök\n- Smart-TV\n- Tvättmaskin\n- Balkong med utsikt\n\n## Regler\n1. Incheckning: 15:00\n2. Utcheckning: 11:00\n3. Ingen rökning\n4. Inga husdjur\n5. Inga fester\n6. Respektera grannarna - tyst efter 22:00\n\n## Viktigt att veta\nLägenheten ligger på andra våningen och det finns ingen hiss. Parkering finns tillgänglig på gatan (avgift tillkommer).',
-          slug: 'lagenhet-info',
-          ispublished: true,
-          show: true,
-          createdat: '2023-03-18T12:00:00Z',
-          updatedat: '2023-03-18T12:00:00Z',
-          files: null
-        }
-      ];
-      
-      for (const page of initialPages) {
-        await db.query(
-          `INSERT INTO ${withSchema('pages')} (id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [page.id, page.title, page.content, page.slug, page.ispublished, page.show, page.createdat, page.updatedat, page.files]
-        );
+
+    try {
+      const { error: bookingsError } = await supabase.rpc('create_bookings_table', { schema: DB_SCHEMA });
+      if (bookingsError) {
+        console.warn('Warning creating bookings table:', bookingsError.message);
       }
+    } catch (err) {
+      console.warn('Warning creating bookings table:', err.message);
     }
-    
-    console.log('Databastabeller initierade');
-  } catch (err) {
-    console.error('Fel vid initiering av databas:', err);
+
+    try {
+      const { error: usersError } = await supabase.rpc('create_users_table', { schema: DB_SCHEMA });
+      if (usersError) {
+        console.warn('Warning creating users table:', usersError.message);
+      }
+    } catch (err) {
+      console.warn('Warning creating users table:', err.message);
+    }
+
+    // Check if there are any users
+    try {
+      const { data: users, error: countError } = await supabase
+        .from('users')
+        .select('count');
+      
+      if (countError) {
+        console.warn('Warning checking users:', countError.message);
+      } else if (!users || users.length === 0) {
+        // Add demo users using Supabase's API
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: '1',
+              email: 'admin@example.com',
+              name: 'Admin Användare',
+              password: 'admin123', // Should be hashed in practice
+              role: 'admin',
+              isActive: true,
+              createdAt: new Date().toISOString()
+            }
+          ]);
+        
+        if (insertError) {
+          console.warn('Warning inserting demo user:', insertError.message);
+        }
+      }
+    } catch (err) {
+      console.warn('Warning managing users:', err.message);
+    }
+
+    console.log('Database initialization completed with warnings');
+  } catch (error) {
+    console.error('Error initializing database:', error.message);
+    // Don't throw the error, just log it and continue
   }
 };
 
 // Initiera databasen vid start
 initDb();
 
-// Funktion för att säkerställa att staging-schemat finns
+// Function to ensure staging schema exists
 async function ensureStagingSchema() {
   if (DB_SCHEMA === 'staging') {
     try {
-      // Kontrollera om staging-schemat finns
-      const schemaResult = await db.query(`
-        SELECT schema_name
-        FROM information_schema.schemata
-        WHERE schema_name = 'staging'
-      `);
-      
-      // Om schemat inte finns, skapa det
-      if (schemaResult.rows.length === 0) {
+      // Check if staging schema exists using Supabase's API
+      const { data: schemas, error: schemaError } = await supabase.rpc('check_schema_exists', { schema_name: 'staging' });
+      if (schemaError) throw schemaError;
+
+      if (!schemas || schemas.length === 0) {
         console.log('Creating staging schema...');
-        await db.query('CREATE SCHEMA IF NOT EXISTS staging');
         
-        // Kopiera tabellstrukturer från public-schemat
+        // Create staging schema using Supabase's API
+        const { error: createError } = await supabase.rpc('create_staging_schema');
+        if (createError) throw createError;
+
+        // Copy table structures from public schema
         console.log('Copying table structures from public schema...');
         
-        // Kontrollera om pages-tabellen finns i public
-        const publicPagesResult = await db.query(`
-          SELECT table_name
-          FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_name = 'pages'
-        `);
-        
-        if (publicPagesResult.rows.length > 0) {
-          await db.query('CREATE TABLE IF NOT EXISTS staging.pages (LIKE public.pages INCLUDING ALL)');
-        }
-        
-        // Kontrollera om bookings-tabellen finns i public
-        const publicBookingsResult = await db.query(`
-          SELECT table_name
-          FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_name = 'bookings'
-        `);
-        
-        if (publicBookingsResult.rows.length > 0) {
-          await db.query('CREATE TABLE IF NOT EXISTS staging.bookings (LIKE public.bookings INCLUDING ALL)');
-        }
-        
-        // Kontrollera om users-tabellen finns i public
-        const publicUsersResult = await db.query(`
-          SELECT table_name
-          FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_name = 'users'
-        `);
-        
-        if (publicUsersResult.rows.length > 0) {
-          await db.query('CREATE TABLE IF NOT EXISTS staging.users (LIKE public.users INCLUDING ALL)');
-        }
-        
+        const { error: copyError } = await supabase.rpc('copy_tables_to_staging');
+        if (copyError) throw copyError;
+
         console.log('Staging schema created and tables copied successfully!');
       } else {
         console.log('Staging schema already exists');
       }
-    } catch (err) {
-      console.error('Error ensuring staging schema:', err);
+    } catch (error) {
+      console.error('Error ensuring staging schema:', error.message);
+      throw error;
     }
   }
 }
@@ -816,127 +719,6 @@ app.get('/api/pages/slug/:slug', async (req, res) => {
   }
 });
 
-// Skapa en ny sida
-app.post('/api/pages', async (req, res) => {
-  try {
-    const { title, content, slug, isPublished, show } = req.body;
-    
-    if (!title || !content || !slug) {
-      return res.status(400).json({ error: 'Titel, innehåll och slug krävs' });
-    }
-    
-    const now = new Date().toISOString();
-    const id = Date.now().toString();
-    
-    const result = await db.query(
-      `INSERT INTO ${withSchema('pages')} (id, title, content, slug, ispublished, show, createdat, updatedat, files) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [id, title, content, slug, isPublished, show, now, now, '[]']
-    );
-    
-    const newPage = result.rows[0];
-    
-    // Returnera med rätt format för frontend
-    res.status(201).json({
-      ...newPage,
-      isPublished: Boolean(newPage.ispublished),
-      show: Boolean(newPage.show),
-      files: []
-    });
-  } catch (err) {
-    console.error('Kunde inte skapa sidan:', err);
-    res.status(500).json({ error: 'Kunde inte skapa sidan' });
-  }
-});
-
-// Uppdatera en sida
-app.put('/api/pages/:id', async (req, res) => {
-  try {
-    const { title, content, slug, isPublished, show, files } = req.body;
-    const { id } = req.params;
-    
-    // Kontrollera om sidan finns
-    const existingPageResult = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [id]);
-    
-    if (existingPageResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Sidan kunde inte hittas' });
-    }
-    
-    const existingPage = existingPageResult.rows[0];
-    
-    // Hantera filarray
-    let filesList = existingPage.files ? JSON.parse(existingPage.files) : [];
-    if (files) {
-      filesList = files;
-    }
-    
-    // Uppdatera sidan
-    const updatedAt = new Date().toISOString();
-    const updatedTitle = title || existingPage.title;
-    const updatedContent = content || existingPage.content;
-    const updatedSlug = slug || existingPage.slug;
-    const updatedIsPublished = isPublished !== undefined ? isPublished : existingPage.ispublished;
-    const updatedShow = show !== undefined ? show : existingPage.show;
-    const updatedFiles = JSON.stringify(filesList);
-    
-    const result = await db.query(
-      `UPDATE ${withSchema('pages')} 
-       SET title = $1, content = $2, slug = $3, 
-           ispublished = $4, show = $5, updatedat = $6, files = $7
-       WHERE id = $8
-       RETURNING *`,
-      [updatedTitle, updatedContent, updatedSlug, updatedIsPublished, updatedShow, updatedAt, updatedFiles, id]
-    );
-    
-    const updatedPage = result.rows[0];
-    
-    // Returnera med rätt format för frontend
-    res.json({
-      ...updatedPage,
-      isPublished: Boolean(updatedPage.ispublished),
-      show: Boolean(updatedPage.show),
-      files: filesList
-    });
-  } catch (err) {
-    console.error('Kunde inte uppdatera sidan:', err);
-    res.status(500).json({ error: 'Kunde inte uppdatera sidan' });
-  }
-});
-
-// Radera en sida
-app.delete('/api/pages/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Kontrollera om sidan finns
-    const existingPageResult = await db.query(`SELECT * FROM ${withSchema('pages')} WHERE id = $1`, [id]);
-    
-    if (existingPageResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Sidan kunde inte hittas' });
-    }
-    
-    const existingPage = existingPageResult.rows[0];
-    
-    // Ta bort tillhörande filer om de finns
-    if (existingPage.files) {
-      const files = JSON.parse(existingPage.files);
-      files.forEach(file => {
-        const filePath = path.join(uploadsDir, file.filename);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      });
-    }
-    
-    // Radera sidan
-    await db.query(`DELETE FROM ${withSchema('pages')} WHERE id = $1`, [id]);
-    
-    res.json({ success: true, message: 'Sidan har raderats' });
-  } catch (err) {
-    console.error('Kunde inte radera sidan:', err);
-    res.status(500).json({ error: 'Kunde inte radera sidan' });
-  }
-});
-
 // API - Ladda upp fil till sida
 app.post('/api/pages/:id/upload', upload.single('file'), async (req, res) => {
   try {
@@ -1094,27 +876,61 @@ app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
 // Hämta alla bokningar
 app.get('/api/bookings', async (req, res) => {
   try {
-    const result = await db.query(`SELECT * FROM ${withSchema('bookings')}`);
-    res.json(result.rows);
+    console.log('Fetching all bookings from Supabase...');
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('createdat', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error fetching bookings:', error);
+      return res.status(500).json({ 
+        error: 'Kunde inte hämta bokningar', 
+        details: error.message 
+      });
+    }
+
+    if (!bookings) {
+      console.log('No bookings found');
+      return res.json([]);
+    }
+
+    // Normalisera fältnamnen för frontend
+    const normalizedBookings = bookings.map(booking => ({
+      ...booking,
+      startDate: booking.startdate,
+      endDate: booking.enddate,
+      createdAt: booking.createdat
+    }));
+
+    console.log(`Found ${normalizedBookings.length} bookings`);
+    res.json(normalizedBookings);
   } catch (err) {
-    console.error('Kunde inte hämta bokningar:', err);
-    res.status(500).json({ error: 'Kunde inte hämta bokningar' });
+    console.error('Error fetching bookings:', err);
+    res.status(500).json({ 
+      error: 'Kunde inte hämta bokningar', 
+      details: err.message 
+    });
   }
 });
 
 // Hämta en specifik bokning med ID
 app.get('/api/bookings/:id', async (req, res) => {
   try {
-    const result = await db.query(`SELECT * FROM ${withSchema('bookings')} WHERE id = $1`, [req.params.id]);
+    const { data: booking, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
     
-    if (result.rows.length === 0) {
+    if (error || !booking) {
       return res.status(404).json({ error: 'Bokningen kunde inte hittas' });
     }
     
-    res.json(result.rows[0]);
+    res.json(booking);
   } catch (err) {
     console.error('Kunde inte hämta bokningen:', err);
-    res.status(500).json({ error: 'Kunde inte hämta bokningen' });
+    res.status(500).json({ error: 'Kunde inte hämta bokningen', details: err.message });
   }
 });
 
@@ -1141,7 +957,7 @@ app.post('/api/bookings/check-availability', async (req, res) => {
     
   } catch (err) {
     console.error('Kunde inte kontrollera tillgänglighet:', err);
-    res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet: ' + err.message });
+    res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet', details: err.message });
   }
 });
 
@@ -1154,45 +970,57 @@ app.post('/api/bookings', async (req, res) => {
       return res.status(400).json({ error: 'Namn, e-post, startdatum och slutdatum krävs' });
     }
     
-    console.log('Creating booking with dates:', { name, email, startDate, endDate });
-    
-    // Räkna totala antalet bokningar
-    const totalBookingsResult = await db.query(`SELECT COUNT(*) FROM ${withSchema('bookings')}`);
-    console.log('Total bookings in database before insert:', totalBookingsResult.rows[0].count);
+    console.log('Creating booking with data:', { name, email, startDate, endDate });
     
     const now = new Date().toISOString();
     const id = Date.now().toString();
     
-    console.log('Inserting new booking with ID:', id);
+    const { data: newBooking, error } = await supabase
+      .from('bookings')
+      .insert([
+        {
+          id,
+          name,
+          email,
+          startdate: startDate,
+          enddate: endDate,
+          createdat: now,
+          status: 'pending',
+          notes: notes || null,
+          phone: phone || null
+        }
+      ])
+      .select()
+      .single();
     
-    try {
-      const result = await db.query(
-        `INSERT INTO ${withSchema('bookings')} (id, name, email, startDate, endDate, createdAt, status, notes, phone) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-        [id, name, email, startDate, endDate, now, 'pending', notes || null, phone || null]
-      );
-      
-      console.log('INSERT query executed. Returned rows:', result.rows.length);
-      
-      if (result.rows.length > 0) {
-        const newBooking = result.rows[0];
-        console.log('Booking created successfully:', newBooking);
-        
-        // Verifiera att bokningen har sparats genom att hämta alla bokningar igen
-        const verifyBookingsResult = await db.query(`SELECT COUNT(*) FROM ${withSchema('bookings')}`);
-        console.log('Total bookings in database after insert:', verifyBookingsResult.rows[0].count);
-        
-        res.status(201).json(newBooking);
-      } else {
-        console.error('No rows returned after INSERT');
-        res.status(500).json({ error: 'Bokningen skapades men inget resultat returnerades' });
-      }
-    } catch (insertErr) {
-      console.error('Error inserting booking:', insertErr);
-      res.status(500).json({ error: 'Kunde inte spara bokningen i databasen: ' + insertErr.message });
+    if (error) {
+      console.error('Supabase error creating booking:', error);
+      return res.status(500).json({ 
+        error: 'Kunde inte skapa bokningen', 
+        details: error.message 
+      });
     }
+    
+    if (!newBooking) {
+      return res.status(500).json({ error: 'Bokningen skapades men inget resultat returnerades' });
+    }
+    
+    // Normalisera fältnamnen för frontend
+    const normalizedBooking = {
+      ...newBooking,
+      startDate: newBooking.startdate,
+      endDate: newBooking.enddate,
+      createdAt: newBooking.createdat
+    };
+    
+    console.log('Booking created successfully:', normalizedBooking);
+    res.status(201).json(normalizedBooking);
   } catch (err) {
-    console.error('Kunde inte skapa bokningen:', err);
-    res.status(500).json({ error: 'Kunde inte skapa bokningen: ' + err.message });
+    console.error('Error creating booking:', err);
+    res.status(500).json({ 
+      error: 'Kunde inte skapa bokningen', 
+      details: err.message 
+    });
   }
 });
 
@@ -1501,59 +1329,28 @@ app.get('/api/files/:filename', (req, res) => {
   }
 });
 
-// Backup endpoints
-app.post('/api/backup', async (req, res) => {
-    try {
-        const result = await createBackup();
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.get('/api/backups', async (req, res) => {
-    try {
-        const result = listBackups();
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.post('/api/restore/:fileName', async (req, res) => {
-    try {
-        const result = await restoreFromBackup(req.params.fileName);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Initialize server
+// Test Supabase connection before starting server
 async function startServer() {
   try {
-    // Test database connection
-    const isConnected = await testConnection();
+    const isConnected = await testDatabaseConnection();
     if (!isConnected) {
-      console.error('Could not establish database connection. Server will start but may not function correctly.');
-    } else {
-      console.log('Database connection test successful');
+      console.error('Could not connect to database. Please check your credentials and connection settings.');
+      process.exit(1);
     }
 
-    // Start the server
     app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      console.log(`API available at http://localhost:${PORT}/api`);
+      console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('Error starting server:', error);
     process.exit(1);
   }
 }
 
+// Start the server
 startServer();

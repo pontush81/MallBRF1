@@ -141,6 +141,8 @@ const pageService = {
   // Uppdatera en befintlig sida
   updatePage: async (id: string, pageData: Partial<Omit<Page, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Page | null> => {
     try {
+      console.log('Updating page:', { id, pageData });
+      
       const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
         method: 'PUT',
         headers: {
@@ -150,16 +152,26 @@ const pageService = {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          details: errorData.details
+        });
+        
         if (response.status === 404) {
           return null;
         }
-        throw new Error('Kunde inte uppdatera sidan');
+        throw new Error(errorData.details || errorData.error || 'Kunde inte uppdatera sidan');
       }
 
-      return await response.json();
+      const updatedPage = await response.json();
+      console.log('Page updated successfully:', updatedPage);
+      return updatedPage;
     } catch (error) {
-      console.error('Fel vid uppdatering av sida:', error);
-      return null;
+      console.error('Error updating page:', error);
+      throw error;
     }
   },
 
