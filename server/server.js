@@ -81,7 +81,7 @@ const PORT = process.env.PORT || 3002;
 
 // CORS configuration - must be first!
 const corsOptions = {
-  origin: ['https://www.stage.gulmaran.com', 'https://stage.gulmaran.com'],
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
   credentials: false, // Don't send credentials
@@ -97,7 +97,7 @@ app.use(cors(corsOptions));
 app.options('*', (req, res) => {
   console.log('Handling OPTIONS request for:', req.path);
   res.status(204).header({
-    'Access-Control-Allow-Origin': 'https://www.stage.gulmaran.com',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,Origin,Accept,X-Requested-With',
     'Access-Control-Max-Age': '86400'
@@ -383,7 +383,7 @@ app.get('/api/pages/visible', async (req, res) => {
   console.log('Request headers:', req.headers);
   
   // Add explicit CORS headers for this specific route
-  res.header('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
   res.header('Access-Control-Max-Age', '86400');
@@ -782,7 +782,7 @@ app.get('/api/debug-db', async (req, res) => {
 // Hämta alla sidor
 app.get('/api/pages', async (req, res) => {
   // Add explicit CORS headers for this specific route
-  res.header('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
   res.header('Access-Control-Max-Age', '86400');
@@ -1036,7 +1036,7 @@ app.delete('/api/pages/:pageId/files/:fileIndex', async (req, res) => {
 // Hämta alla bokningar
 app.get('/api/bookings', async (req, res) => {
   // Add explicit CORS headers for this specific route
-  res.header('Access-Control-Allow-Origin', 'https://www.stage.gulmaran.com');
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
   res.header('Access-Control-Max-Age', '86400');
