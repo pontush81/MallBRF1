@@ -11,7 +11,8 @@ import {
   Dashboard as DashboardIcon, 
   People as PeopleIcon, 
   Article as ArticleIcon,
-  Event as EventIcon
+  Event as EventIcon,
+  Backup as BackupIcon
 } from '@mui/icons-material';
 import { useNavigate, Route, Routes } from 'react-router-dom';
 
@@ -20,6 +21,7 @@ import PageEditor from './PageEditor';
 import BookingsList from './BookingsList';
 import DashboardHome from './DashboardHome';
 import UsersList from './UsersList';
+import BackupManager from '../../components/BackupManager';
 
 // Huvudkomponent för admin-dashboarden med sidebar och routing
 const Dashboard: React.FC = () => {
@@ -35,8 +37,8 @@ const Dashboard: React.FC = () => {
       setSelectedItem('users');
     } else if (path.includes('/admin/bookings')) {
       setSelectedItem('bookings');
-    } else if (path.includes('/admin/stats')) {
-      setSelectedItem('stats');
+    } else if (path.includes('/admin/backup')) {
+      setSelectedItem('backup');
     } else {
       setSelectedItem('dashboard');
     }
@@ -58,8 +60,8 @@ const Dashboard: React.FC = () => {
       case 'users':
         navigate('/admin/users');
         break;
-      case 'stats':
-        navigate('/admin/stats');
+      case 'backup':
+        navigate('/admin/backup');
         break;
     }
   };
@@ -124,6 +126,16 @@ const Dashboard: React.FC = () => {
               Användare
             </Button>
           </Grid>
+
+          <Grid item>
+            <Button
+              variant={selectedItem === 'backup' ? 'contained' : 'outlined'}
+              startIcon={<BackupIcon />}
+              onClick={() => handleNavItemClick('backup')}
+            >
+              Backup
+            </Button>
+          </Grid>
         </Grid>
       </Paper>
       
@@ -135,6 +147,7 @@ const Dashboard: React.FC = () => {
           <Route path="/pages/edit/:id" element={<PageEditor />} />
           <Route path="/bookings" element={<BookingsList />} />
           <Route path="/users" element={<UsersList />} />
+          <Route path="/backup" element={<BackupManager />} />
         </Routes>
       </Container>
     </Box>

@@ -1,9 +1,8 @@
 import { Booking } from '../types/Booking';
+import { API_BASE_URL } from '../config';
 
-// För samma domän - fungerar både i produktion och utveckling
-const API_URL = '/api';
-
-console.log('BookingService använder API URL:', API_URL);
+// Use the same API base URL as other services
+console.log('BookingService använder API URL:', API_BASE_URL);
 
 // Interface för tillgänglighetskontroll
 interface AvailabilityResponse {
@@ -36,8 +35,8 @@ const bookingService = {
   // Hämta alla bokningar
   getAllBookings: async (): Promise<Booking[]> => {
     try {
-      console.log('Försöker hämta alla bokningar från:', `${API_URL}/bookings`);
-      const response = await fetch(`${API_URL}/bookings`);
+      console.log('Försöker hämta alla bokningar från:', `${API_BASE_URL}/bookings`);
+      const response = await fetch(`${API_BASE_URL}/bookings`);
       console.log('Bokningsrespons status:', response.status);
       
       if (!response.ok) {
@@ -67,7 +66,7 @@ const bookingService = {
   getBookingById: async (id: string): Promise<Booking | null> => {
     try {
       console.log('Hämtar bokning med ID:', id);
-      const response = await fetch(`${API_URL}/bookings/${id}`);
+      const response = await fetch(`${API_BASE_URL}/bookings/${id}`);
       console.log('Bokningsrespons status:', response.status);
       
       if (!response.ok) {
@@ -91,7 +90,7 @@ const bookingService = {
   checkAvailability: async (startDate: string, endDate: string): Promise<AvailabilityResponse> => {
     try {
       console.log('Kontrollerar tillgänglighet för:', startDate, 'till', endDate);
-      const response = await fetch(`${API_URL}/bookings/check-availability`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/check-availability`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +116,7 @@ const bookingService = {
   createBooking: async (bookingData: CreateBookingData): Promise<Booking | null> => {
     try {
       console.log('Skapar ny bokning:', bookingData);
-      const response = await fetch(`${API_URL}/bookings`, {
+      const response = await fetch(`${API_BASE_URL}/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +148,7 @@ const bookingService = {
   updateBooking: async (id: string, bookingData: UpdateBookingData): Promise<Booking | null> => {
     try {
       console.log('Uppdaterar bokning:', id, bookingData);
-      const response = await fetch(`${API_URL}/bookings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +185,7 @@ const bookingService = {
   deleteBooking: async (id: string): Promise<boolean> => {
     try {
       console.log('Raderar bokning:', id);
-      const response = await fetch(`${API_URL}/bookings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
         method: 'DELETE',
       });
       console.log('Radera bokning respons status:', response.status);

@@ -38,35 +38,42 @@ async function initDatabase() {
       // Create pages table
       await pool.query(`
         CREATE TABLE ${DB_SCHEMA}.pages (
-          id SERIAL PRIMARY KEY,
-          title VARCHAR(255) NOT NULL,
-          content TEXT,
-          slug VARCHAR(255) UNIQUE NOT NULL,
-          ispublished BOOLEAN DEFAULT false,
-          show BOOLEAN DEFAULT false,
-          files JSONB DEFAULT '[]',
-          createdat TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updatedat TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          slug TEXT NOT NULL,
+          ispublished BOOLEAN NOT NULL,
+          show BOOLEAN NOT NULL,
+          createdat TEXT NOT NULL,
+          updatedat TEXT NOT NULL,
+          files TEXT
         )
       `);
       console.log('Pages table created successfully');
       
       // Insert a test page
+      const now = new Date().toISOString();
       const testPage = await pool.query(`
         INSERT INTO ${DB_SCHEMA}.pages (
+          id,
           title,
           content,
           slug,
           ispublished,
           show,
+          createdat,
+          updatedat,
           files
-        ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
       `, [
+        Date.now().toString(),
         'Welcome',
         'Welcome to our website! This is a test page.',
         'welcome',
         true,
         true,
+        now,
+        now,
         '[]'
       ]);
       

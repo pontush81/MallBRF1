@@ -25,33 +25,73 @@ const getBackupFileName = () => {
 
 // Funktion för att ta backup av en tabell
 const backupTable = async (tableName) => {
-    const { data, error } = await supabase
-        .from(tableName)
-        .select('*');
+    try {
+        const { data, error } = await supabase
+            .from(tableName)
+            .select('*');
 
-    if (error) {
-        console.log(`Hoppar över tabell ${tableName}: ${error.message}`);
-        return { tableName, data: [] };
+        if (error) {
+            let errorMessage = error.message;
+            if (error.message.includes('permission denied')) {
+                errorMessage = `Åtkomst nekad för tabell ${tableName}. Kontrollera dina Supabase-behörigheter.`;
+            }
+            console.log(`Hoppar över tabell ${tableName}: ${errorMessage}`);
+            return { tableName, data: [], error: errorMessage };
+        }
+        return { tableName, data: data || [] };
+    } catch (err) {
+        console.error(`Fel vid backup av tabell ${tableName}:`, err);
+        return { tableName, data: [], error: err.message };
     }
-    return { tableName, data };
 };
 
 // Funktion för att ta backup
-const createBackup = async () => {
+const createBackup = async (tablesToBackup = TABLES_TO_BACKUP) => {
     try {
-        console.log('Startar backup-process...');
+        console.log('Startar backup-process...', { tablesToBackup });
         
         const fileName = getBackupFileName();
         const filePath = path.join(backupDir, fileName);
 
+        // Validate tables to backup
+        const validTables = tablesToBackup.filter(table => TABLES_TO_BACKUP.includes(table));
+        if (validTables.length === 0) {
+            throw new Error('Inga giltiga tabeller att backa upp');
+        }
+
         // Backup data för varje tabell
-        console.log('Skapar backup för varje tabell...');
+        console.log('Skapar backup för valda tabeller...');
         const backupData = {};
-        for (const table of TABLES_TO_BACKUP) {
+        const errors = {};
+        let hasSuccessfulBackups = false;
+
+        for (const table of validTables) {
             console.log(`Backup av tabell: ${table}`);
             const tableData = await backupTable(table);
             backupData[table] = tableData.data;
+            
+            if (tableData.error) {
+                errors[table] = tableData.error;
+            } else if (tableData.data && tableData.data.length > 0) {
+                hasSuccessfulBackups = true;
+            }
         }
+
+        // If no successful backups at all, return an error
+        if (!hasSuccessfulBackups && Object.keys(errors).length > 0) {
+            const errorMessage = Object.entries(errors)
+                .map(([table, error]) => `${table}: ${error}`)
+                .join(', ');
+            throw new Error(`Kunde inte backa upp några tabeller: ${errorMessage}`);
+        }
+
+        // Add metadata to backup
+        const metadata = {
+            createdAt: new Date().toISOString(),
+            tables: validTables,
+            errors: errors
+        };
+        backupData._metadata = metadata;
 
         // Spara backup till fil
         console.log(`Sparar backup till fil: ${fileName}`);
@@ -61,7 +101,13 @@ const createBackup = async () => {
         // Ta bort backuper äldre än 7 dagar
         cleanOldBackups();
 
-        return { success: true, fileName };
+        // Return both success and any errors that occurred
+        return { 
+            success: true, 
+            fileName,
+            partialSuccess: Object.keys(errors).length > 0,
+            errors: Object.keys(errors).length > 0 ? errors : null
+        };
     } catch (error) {
         console.error('Backup error:', error);
         return { success: false, error: error.message };
@@ -82,28 +128,39 @@ const restoreFromBackup = async (fileName) => {
 
         // Återställ varje tabell
         for (const tableName of TABLES_TO_BACKUP) {
-            if (backupData[tableName]) {
+            if (backupData[tableName] && backupData[tableName].length > 0) {
                 console.log(`Återställer tabell: ${tableName}`);
                 
-                // Radera existerande data
-                const { error: deleteError } = await supabase
-                    .from(tableName)
-                    .delete()
-                    .neq('id', 0); // Delete all rows
-
-                if (deleteError) {
-                    throw new Error(`Fel vid rensning av tabell ${tableName}: ${deleteError.message}`);
-                }
-
-                // Lägg till data från backup
-                if (backupData[tableName].length > 0) {
-                    const { error: insertError } = await supabase
+                try {
+                    // Instead of deleting all rows and then inserting,
+                    // use upsert to update existing or insert new
+                    const { error } = await supabase
                         .from(tableName)
-                        .insert(backupData[tableName]);
+                        .upsert(backupData[tableName], { 
+                            onConflict: 'id',
+                            ignoreDuplicates: false
+                        });
 
-                    if (insertError) {
-                        throw new Error(`Fel vid återställning av tabell ${tableName}: ${insertError.message}`);
+                    if (error) {
+                        console.error(`Fel vid återställning av tabell ${tableName}:`, error);
+                        console.log('Försöker fallback-metod...');
+                        
+                        // Try individual inserts if bulk upsert fails
+                        for (const row of backupData[tableName]) {
+                            try {
+                                await supabase
+                                    .from(tableName)
+                                    .upsert([row], { 
+                                        onConflict: 'id',
+                                        ignoreDuplicates: false
+                                    });
+                            } catch (innerError) {
+                                console.error(`Kunde inte återställa rad i ${tableName}:`, innerError);
+                            }
+                        }
                     }
+                } catch (tableError) {
+                    console.error(`Fel vid återställning av tabell ${tableName}:`, tableError);
                 }
             }
         }

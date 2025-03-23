@@ -23,7 +23,7 @@ const Home: React.FC = () => {
             color: 'primary.main' 
           }}
         >
-          Välkommen till React Webapp
+          Välkommen till Gulmåran
         </Typography>
         
         <Typography 

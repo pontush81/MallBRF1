@@ -137,7 +137,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               color: 'white' 
             }}
           >
-            React Webapp
+            Gulmåran
           </Typography>
           
           {!isMobile && (
