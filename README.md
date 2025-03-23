@@ -143,7 +143,7 @@ Innan deployment, säkerställ att du har:
 2. Sparat alla environment variables
 3. Dokumenterat eventuella customizations
 
-## Support
+## Support.
 
 Vid problem, kontrollera:
 1. [Vercel Status](https://status.vercel.com)
