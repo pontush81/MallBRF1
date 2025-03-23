@@ -98,7 +98,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
   credentials: true,
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
+  maxAge: 86400 // 24 hours
 };
 
 // Apply CORS configuration before any other middleware
@@ -381,14 +382,9 @@ app.post('/api/backups/:fileName/restore', async (req, res) => {
 });
 
 // Add direct api/pages/visible endpoint to ensure it's accessible
-app.get('/api/pages/visible', async (req, res) => {
+app.get('/api/pages/visible', cors(corsOptions), async (req, res) => {
   try {
     console.log('Direct endpoint: fetching visible pages...');
-    
-    // Set CORS headers directly
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
     
     const { data, error } = await supabase
       .from('pages')
@@ -421,25 +417,13 @@ app.get('/api/pages/visible', async (req, res) => {
     }));
 
     console.log(`Found ${formattedPages.length} visible pages`);
-    if (formattedPages.length > 0) {
-      console.log('Sample page:', {
-        id: formattedPages[0].id,
-        title: formattedPages[0].title,
-        isPublished: formattedPages[0].isPublished,
-        show: formattedPages[0].show
-      });
-    }
-    
     res.json(formattedPages);
   } catch (error) {
     console.error('Error fetching visible pages:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-      detail: error.detail
+    res.status(500).json({ 
+      error: 'Could not fetch visible pages', 
+      details: error.message 
     });
-    res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
   }
 });
 
