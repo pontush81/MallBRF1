@@ -156,3 +156,51 @@ Vid problem, kontrollera:
 - Skydda dina API keys
 - Regelbunden backup av data
 - Följ security best practices för Node.js applikationer
+
+# MallBRF1
+
+## Deployment Status
+Last deployment: 2024-03-23
+
+## About
+A web application for managing apartment bookings and information.
+
+## Features
+- User authentication with Firebase
+- Booking management
+- Page content management
+- Admin dashboard
+- Public pages for visitors
+
+## Environment Setup
+The application requires the following environment variables:
+
+### Firebase Configuration
+```
+REACT_APP_FIREBASE_API_KEY
+REACT_APP_FIREBASE_AUTH_DOMAIN
+REACT_APP_FIREBASE_PROJECT_ID
+REACT_APP_FIREBASE_STORAGE_BUCKET
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID
+REACT_APP_FIREBASE_APP_ID
+REACT_APP_FIREBASE_MEASUREMENT_ID
+```
+
+### API Configuration
+```
+REACT_APP_API_URL
+```
+
+## Development
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables in `.env.local`
+4. Start development server: `npm start`
+
+## Production Build
+1. Build the application: `npm run build`
+2. Deploy to Vercel: Automatic deployment on push to main branch
+
+## Testing
+- Run unit tests: `npm test`
+- Run E2E tests: `npm run cypress:open`
