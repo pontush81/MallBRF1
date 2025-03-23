@@ -16,18 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "methods": ["OPTIONS"],
-      "status": 204,
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With",
-        "Access-Control-Max-Age": "86400"
-      }
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "server/server.js"
+      "dest": "/server/server.js"
     },
     {
       "handle": "filesystem"
@@ -41,9 +30,7 @@
     "NODE_ENV": "production"
   },
   "public": true,
-  "alias": ["stage.gulmaran.com"],
   "github": {
-    "enabled": true,
-    "silent": false
+    "enabled": true
   }
 } 
