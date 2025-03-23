@@ -1480,3 +1480,16 @@ async function startServer() {
 
 // Start the server
 startServer();
+
+// Serve static files from the build directory
+app.use(express.static(path.join(__dirname, '../build')));
+
+// Handle root route - serve the frontend application
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build/index.html'));
+});
+
+// Handle all other routes - serve the frontend application
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build/index.html'));
+});
