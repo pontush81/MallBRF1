@@ -14,10 +14,21 @@ if (process.env.NODE_ENV === 'production') {
 // Log environment configuration
 console.log('Server Configuration:');
 console.log('- Environment:', process.env.NODE_ENV);
-console.log('- SSL Verification:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
-console.log('- Supabase URL:', process.env.SUPABASE_URL);
-console.log('- Supabase Service Key Length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
-console.log('- Supabase Anon Key Length:', process.env.SUPABASE_ANON_KEY ? process.env.SUPABASE_ANON_KEY.length : 0);
+console.log('- SSL Verification:', process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? 'Disabled' : 'Enabled');
+console.log('- Port:', process.env.PORT || 3000);
+
+console.log('\nDatabase Configuration:');
+console.log('- Environment:', process.env.NODE_ENV);
+console.log('- Connection String:', process.env.POSTGRES_URL ? 'Set' : 'Missing');
+console.log('- SSL Enabled:', true);
+console.log('- SSL Verify:', false);
+
+console.log('\nSupabase Configuration:');
+console.log('- URL:', process.env.SUPABASE_URL);
+console.log('- Service Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+console.log('- Anon Key length:', process.env.SUPABASE_ANON_KEY ? process.env.SUPABASE_ANON_KEY.length : 0);
+console.log('- Environment:', process.env.NODE_ENV);
+console.log('- SSL Verify:', process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? 'Disabled' : 'Enabled');
 
 // Ensure SSL certificate validation is disabled in production
 if (process.env.NODE_ENV === 'production') {
