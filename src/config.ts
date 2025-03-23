@@ -1,7 +1,10 @@
-// API base URL configuration
-export const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? '/api'  // Use relative URL to avoid CORS
-  : 'http://localhost:3002/api';  // Development URL
+// API base URL from environment variable
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production'
+    ? process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}/api`  // Vercel deployment
+      : '/api'  // Other production environments
+    : 'http://localhost:3001/api');  // Development URL
 
 // Fallback API URL (used when the regular API fails)
 export const FALLBACK_API_ENABLED = true;
