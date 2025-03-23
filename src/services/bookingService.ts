@@ -36,7 +36,15 @@ const bookingService = {
   getAllBookings: async (): Promise<Booking[]> => {
     try {
       console.log('Försöker hämta alla bokningar från:', `${API_BASE_URL}/bookings`);
-      const response = await fetch(`${API_BASE_URL}/bookings`);
+      const response = await fetch(`${API_BASE_URL}/bookings`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
       console.log('Bokningsrespons status:', response.status);
       
       if (!response.ok) {
@@ -66,7 +74,15 @@ const bookingService = {
   getBookingById: async (id: string): Promise<Booking | null> => {
     try {
       console.log('Hämtar bokning med ID:', id);
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`);
+      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
       console.log('Bokningsrespons status:', response.status);
       
       if (!response.ok) {
@@ -93,9 +109,12 @@ const bookingService = {
       const response = await fetch(`${API_BASE_URL}/bookings/check-availability`, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ startDate, endDate }),
+        mode: 'cors',
+        credentials: 'omit'
       });
       console.log('Tillgänglighetsrespons status:', response.status);
 
@@ -119,9 +138,12 @@ const bookingService = {
       const response = await fetch(`${API_BASE_URL}/bookings`, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(bookingData),
+        mode: 'cors',
+        credentials: 'omit'
       });
       console.log('Skapa bokning respons status:', response.status);
 
@@ -151,9 +173,12 @@ const bookingService = {
       const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
         method: 'PUT',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(bookingData),
+        mode: 'cors',
+        credentials: 'omit'
       });
       console.log('Uppdatera bokning respons status:', response.status);
 
@@ -187,6 +212,12 @@ const bookingService = {
       console.log('Raderar bokning:', id);
       const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
       });
       console.log('Radera bokning respons status:', response.status);
 
