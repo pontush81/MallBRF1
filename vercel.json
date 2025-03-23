@@ -22,7 +22,8 @@
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true"
+        "x-vercel-protection-bypass": "true",
+        "x-vercel-skip-auth": "true"
       }
     },
     {
@@ -33,7 +34,8 @@
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true"
+        "x-vercel-protection-bypass": "true",
+        "x-vercel-skip-auth": "true"
       }
     },
     {
@@ -44,7 +46,8 @@
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true"
+        "x-vercel-protection-bypass": "true",
+        "x-vercel-skip-auth": "true"
       }
     },
     {
@@ -52,14 +55,16 @@
       "dest": "build/manifest.json",
       "headers": {
         "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-vercel-skip-auth": "true"
       }
     },
     {
       "src": "/favicon.ico",
       "dest": "build/favicon.ico",
       "headers": {
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "x-vercel-skip-auth": "true"
       }
     },
     {
@@ -68,11 +73,13 @@
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass"
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
+        "x-vercel-protection-bypass": "true"
       }
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "alias": ["stage.gulmaran.com"]
 } 
