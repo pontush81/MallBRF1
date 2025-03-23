@@ -4,6 +4,16 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+// Debug: Log environment variables (remove in production)
+console.log('Environment Variables Status:', {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY ? 'Set' : 'Missing',
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN ? 'Set' : 'Missing',
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID ? 'Set' : 'Missing',
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET ? 'Set' : 'Missing',
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID ? 'Set' : 'Missing',
+  appId: process.env.REACT_APP_FIREBASE_APP_ID ? 'Set' : 'Missing'
+});
+
 // Firebase konfiguration med miljövariabler
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -16,6 +26,7 @@ const firebaseConfig = {
 
 // Kontrollera att alla nödvändiga miljövariabler finns
 if (!firebaseConfig.apiKey) {
+  console.error('Firebase Configuration:', firebaseConfig);
   throw new Error('Firebase API Key saknas i miljövariablerna');
 }
 
