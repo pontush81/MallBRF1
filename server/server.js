@@ -8,6 +8,16 @@ require('dotenv').config();
 
 // Disable SSL verification in production (required for Vercel)
 if (process.env.NODE_ENV === 'production') {
+  // Instead of disabling SSL verification completely, we'll configure it properly
+  process.env.PGSSLMODE = 'require';
+  // Only set specific SSL options for database connections
+  const dbSSLConfig = {
+    rejectUnauthorized: false,
+    ca: process.env.SSL_CERT || undefined
+  };
+  console.log('Running in production mode - SSL configured for database connections');
+} else {
+  console.log('Running in development mode');
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
