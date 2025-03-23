@@ -42,7 +42,10 @@
     },
     {
       "src": "/(.*)",
-      "dest": "build/index.html"
+      "dest": "build/index.html",
+      "headers": {
+        "Cache-Control": "no-store, must-revalidate"
+      }
     }
   ],
   "env": {
@@ -57,5 +60,9 @@
     "REACT_APP_FIREBASE_MEASUREMENT_ID": "@react_app_firebase_measurement_id"
   },
   "public": true,
-  "alias": ["stage.gulmaran.com"]
+  "alias": ["stage.gulmaran.com"],
+  "github": {
+    "enabled": true,
+    "silent": false
+  }
 } 
