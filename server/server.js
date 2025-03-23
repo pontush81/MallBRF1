@@ -79,9 +79,21 @@ const pagesRouter = pagesModule.router;
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// CORS configuration
+// CORS configuration - must be first!
 const corsOptions = {
-  origin: ['https://www.stage.gulmaran.com', 'https://stage.gulmaran.com'],
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'https://www.stage.gulmaran.com',
+      'https://stage.gulmaran.com',
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
   credentials: true,
@@ -89,7 +101,7 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
-// Apply CORS configuration - must be first!
+// Apply CORS configuration before any other middleware
 app.use(cors(corsOptions));
 
 // Handle OPTIONS requests explicitly
