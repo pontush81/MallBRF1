@@ -1,10 +1,7 @@
-// API base URL from environment variable
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production'
-    ? process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}/api`  // Vercel deployment
-      : '/api'  // Other production environments
-    : 'http://localhost:3001/api');  // Development URL
+// API base URL configuration
+export const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://stage.gulmaran.com/api'  // Production URL
+  : 'http://localhost:3001/api';  // Development URL
 
 // Fallback API URL (used when the regular API fails)
 export const FALLBACK_API_ENABLED = true;
