@@ -13,7 +13,7 @@ const pageService = {
           'Content-Type': 'application/json',
         },
         mode: 'cors',
-        credentials: 'same-origin'
+        credentials: 'omit'
       });
       if (!response.ok) {
         throw new Error('Kunde inte hämta sidor');
@@ -35,7 +35,7 @@ const pageService = {
           'Content-Type': 'application/json',
         },
         mode: 'cors',
-        credentials: 'same-origin'
+        credentials: 'omit'
       });
       if (!response.ok) {
         throw new Error('Kunde inte hämta publicerade sidor');
@@ -58,6 +58,7 @@ const pageService = {
           'Content-Type': 'application/json',
         },
         mode: 'cors',
+        credentials: 'omit'
       });
       
       if (!response.ok) {
