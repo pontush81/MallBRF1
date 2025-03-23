@@ -39,7 +39,7 @@ import { API_BASE_URL } from '../config';
 
 const STICKY_NAV_HEIGHT = 64; // Höjd på sticky navbar i pixlar
 
-const PublicPages: React.FC = () => {
+const PublicPages: React.FC = (): JSX.Element => {
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -408,14 +408,7 @@ const PublicPages: React.FC = () => {
                 ...markdownStyles,
                 typography: 'body1' 
               }}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    h1: ({ node, ...props }) => <Typography variant="h4" gutterBottom {...props} />,
-                    h2: ({ node, ...props }) => <Typography variant="h5" gutterBottom {...props} />,
-                    h3: ({ node, ...props }) => <Typography variant="h6" gutterBottom {...props} />
-                  }}
-                >
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {page.content}
                 </ReactMarkdown>
               </Box>
