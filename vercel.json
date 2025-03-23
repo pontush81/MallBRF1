@@ -16,7 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/server.js",
+      "dest": "server/server.js",
       "headers": {
         "Access-Control-Allow-Origin": "https://www.stage.gulmaran.com",
         "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
@@ -26,20 +26,12 @@
       }
     },
     {
-      "src": "/manifest.json",
-      "dest": "/build/manifest.json"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/build/favicon.ico"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/build/static/$1"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/build/index.html"
+      "dest": "/build/index.html",
+      "status": 200
     }
   ],
   "env": {
