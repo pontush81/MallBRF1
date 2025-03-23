@@ -3,9 +3,9 @@ export interface User {
   email: string;
   name?: string;
   role: 'user' | 'admin';
-  createdAt: string;
+  isActive?: boolean;
+  createdAt?: string;
   lastLogin?: string;
-  isActive: boolean;
 }
 
 export interface UserFormData {

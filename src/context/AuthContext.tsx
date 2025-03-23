@@ -1,130 +1,91 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User } from '../types/User';
 import { auth } from '../services/firebase';
-import userService from '../services/userService';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { userService } from '../services/userService';
 
 // Make this file a module
 export {};
 
 // Typer för context
-interface User {
-  id: string;
-  email: string;
-  role: 'user' | 'admin';
-  name?: string;
-}
-
 interface AuthContextType {
-  currentUser: User | null;
-  isLoggedIn: boolean;
-  isAdmin: boolean;
-  login: (user: User) => void;
-  logout: () => void;
+  user: User | null;
   loading: boolean;
+  error: string | null;
+  logout: () => Promise<void>;
 }
 
 // Skapa context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  error: null,
+  logout: async () => {},
+});
 
 // Context provider
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Lyssna på Firebase Auth state
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
+    // Listen to Firebase Auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Hämta användardata från Firestore
           const userData = await userService.getUserById(firebaseUser.uid);
-          
-          if (userData) {
-            setCurrentUser(userData);
-            // Spara även i localStorage som fallback
-            localStorage.setItem('user', JSON.stringify(userData));
-          } else {
-            console.warn('Hittade ingen användardata för inloggad användare');
-            // Skapa standardanvändare baserat på Firebase-användare
-            const basicUser: User = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              role: 'user',
-              name: firebaseUser.displayName || undefined
-            };
-            setCurrentUser(basicUser);
-            localStorage.setItem('user', JSON.stringify(basicUser));
-          }
+          setUser(userData || {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            role: 'user',
+            name: firebaseUser.displayName || undefined
+          });
         } catch (error) {
-          console.error('Kunde inte hämta användardata:', error);
+          console.error('Error fetching user data:', error);
+          setError('Failed to fetch user data');
         }
       } else {
-        // Ingen Firebase-användare, prova att återställa från localStorage
+        // No Firebase user, try to restore from localStorage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           try {
-            const parsedUser = JSON.parse(storedUser);
-            setCurrentUser(parsedUser);
+            setUser(JSON.parse(storedUser));
           } catch (error) {
-            console.error('Kunde inte läsa användardata från localStorage:', error);
+            console.error('Error parsing stored user:', error);
             localStorage.removeItem('user');
-            setCurrentUser(null);
+            setUser(null);
           }
         } else {
-          setCurrentUser(null);
+          setUser(null);
         }
       }
       setLoading(false);
     });
-    
-    return () => unsubscribe(); // Städa upp vid unmount
+
+    // Cleanup subscription
+    return () => unsubscribe();
   }, []);
-  
-  // Login-funktion (används när vi explicit loggar in)
-  const login = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem('user', JSON.stringify(user));
-  };
-  
-  // Logout-funktion
+
   const logout = async () => {
     try {
-      await signOut(auth); // Logga ut från Firebase
-      setCurrentUser(null);
+      await signOut(auth);
       localStorage.removeItem('user');
+      setUser(null);
     } catch (error) {
-      console.error('Kunde inte logga ut:', error);
+      console.error('Error during logout:', error);
+      setError('Failed to logout');
     }
   };
-  
-  // Kontextvärdena
-  const value = {
-    currentUser,
-    isLoggedIn: !!currentUser,
-    isAdmin: currentUser?.role === 'admin',
-    login,
-    logout,
-    loading
-  };
-  
+
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, error, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 // Hook för att använda auth-kontexten
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth måste användas inom en AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
 
 export default AuthContext;

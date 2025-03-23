@@ -6,12 +6,12 @@ import { getStorage } from 'firebase/storage';
 
 // Firebase konfiguration med direkta värden
 const firebaseConfig = {
-  apiKey: "AIzaSyBcejOQaE8Zz9evK-YGQkgfbtZN5YdDubM",
+  apiKey: "AIzaSyDxBm9QUgWVa4gEHHWMz6EqXApOZEyoN8Y",
   authDomain: "mallbrf.firebaseapp.com",
   projectId: "mallbrf",
-  storageBucket: "mallbrf.firebasestorage.app",
-  messagingSenderId: "126578972440", // Antaget värde baserat på app-ID
-  appId: "1:126578972440:web:6ad785f99a7b344dd5b06d"
+  storageBucket: "mallbrf.appspot.com",
+  messagingSenderId: "654889533399",
+  appId: "1:654889533399:web:0b0b0b0b0b0b0b0b0b0b0b"
 };
 
 // Initialisera Firebase
