@@ -171,13 +171,28 @@ const UsersList: React.FC = () => {
   const handleCreateSubmit = async () => {
     try {
       setLoading(true);
-      const newUser = await userService.createUser(formData);
+      // Först registrera användaren med Firebase Auth
+      const newUser = await userService.register(
+        formData.email,
+        formData.password,
+        formData.name
+      );
       
       if (newUser) {
-        setUsers([...users, newUser]);
-        setSnackbarMessage(`Användaren "${newUser.email}" har skapats`);
-        setSnackbarOpen(true);
-        setCreateDialogOpen(false);
+        // Uppdatera användarens roll och aktiv-status i Firestore
+        const updatedUser = await userService.updateUser(newUser.id, {
+          role: formData.role,
+          isActive: formData.isActive
+        });
+
+        if (updatedUser) {
+          setUsers([...users, updatedUser]);
+          setSnackbarMessage(`Användaren "${updatedUser.email}" har skapats`);
+          setSnackbarOpen(true);
+          setCreateDialogOpen(false);
+        } else {
+          setError('Ett fel uppstod vid uppdatering av användarens roll');
+        }
       } else {
         setError('Ett fel uppstod vid skapande av användaren');
       }

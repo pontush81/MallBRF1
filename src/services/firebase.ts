@@ -4,15 +4,20 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Firebase konfiguration med direkta värden
+// Firebase konfiguration med miljövariabler
 const firebaseConfig = {
-  apiKey: "AIzaSyDxBm9QUgWVa4gEHHWMz6EqXApOZEyoN8Y",
-  authDomain: "mallbrf.firebaseapp.com",
-  projectId: "mallbrf",
-  storageBucket: "mallbrf.appspot.com",
-  messagingSenderId: "654889533399",
-  appId: "1:654889533399:web:0b0b0b0b0b0b0b0b0b0b0b"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
+
+// Kontrollera att alla nödvändiga miljövariabler finns
+if (!firebaseConfig.apiKey) {
+  throw new Error('Firebase API Key saknas i miljövariablerna');
+}
 
 // Initialisera Firebase
 const app = initializeApp(firebaseConfig);
