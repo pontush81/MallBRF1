@@ -309,10 +309,10 @@ const PageView: React.FC = () => {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                h1: ({ node, ...props }) => <Typography variant="h1" gutterBottom {...props} />,
-                h2: ({ node, ...props }) => <Typography variant="h2" gutterBottom {...props} />,
-                h3: ({ node, ...props }) => <Typography variant="h3" gutterBottom {...props} />,
-                h4: ({ node, ...props }) => <Typography variant="h4" gutterBottom {...props} />
+                h1: ({ node, children, ref, ...props }) => <Typography variant="h1" component="h1" gutterBottom {...props}>{children}</Typography>,
+                h2: ({ node, children, ref, ...props }) => <Typography variant="h2" component="h2" gutterBottom {...props}>{children}</Typography>,
+                h3: ({ node, children, ref, ...props }) => <Typography variant="h3" component="h3" gutterBottom {...props}>{children}</Typography>,
+                h4: ({ node, children, ref, ...props }) => <Typography variant="h4" component="h4" gutterBottom {...props}>{children}</Typography>
               }}
             >
               {page.content}
