@@ -6,7 +6,15 @@ const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pages`);
+      const response = await fetch(`${API_BASE_URL}/pages`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'same-origin'
+      });
       if (!response.ok) {
         throw new Error('Kunde inte hämta sidor');
       }
@@ -20,7 +28,15 @@ const pageService = {
   // Hämta publicerade sidor
   getPublishedPages: async (): Promise<Page[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pages/published`);
+      const response = await fetch(`${API_BASE_URL}/pages/published`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'same-origin'
+      });
       if (!response.ok) {
         throw new Error('Kunde inte hämta publicerade sidor');
       }
