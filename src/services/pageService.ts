@@ -102,7 +102,15 @@ const pageService = {
   // Hämta en specifik sida med ID
   getPageById: async (id: string): Promise<Page | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pages/${id}`);
+      const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -119,7 +127,15 @@ const pageService = {
   // Hämta en specifik sida med slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pages/slug/${slug}`);
+      const response = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -139,9 +155,12 @@ const pageService = {
       const response = await fetch(`${API_BASE_URL}/pages`, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(pageData),
+        mode: 'cors',
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -163,9 +182,12 @@ const pageService = {
       const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
         method: 'PUT',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(pageData),
+        mode: 'cors',
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -197,6 +219,12 @@ const pageService = {
     try {
       const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
       });
 
       if (!response.ok) {

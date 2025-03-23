@@ -81,22 +81,10 @@ const PORT = process.env.PORT || 3002;
 
 // CORS configuration - must be first!
 const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://www.stage.gulmaran.com',
-      'https://stage.gulmaran.com',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ];
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*', // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
-  credentials: true,
+  credentials: false, // Don't send credentials
   preflightContinue: false,
   optionsSuccessStatus: 204,
   maxAge: 86400 // 24 hours
@@ -381,30 +369,25 @@ app.post('/api/backups/:fileName/restore', async (req, res) => {
     }
 });
 
-// Add direct api/pages/visible endpoint to ensure it's accessible
-app.get('/api/pages/visible', cors(corsOptions), async (req, res) => {
+// Direct endpoint for visible pages
+app.get('/api/pages/visible', async (req, res) => {
+  console.log('Direct endpoint - Fetching visible pages...');
+  console.log('Request headers:', req.headers);
+  
   try {
-    console.log('Direct endpoint: fetching visible pages...');
+    const result = await db.query(`
+      SELECT * FROM ${withSchema('pages')} 
+      WHERE ispublished = true AND show = true
+      ORDER BY createdat DESC
+    `);
     
-    const { data, error } = await supabase
-      .from('pages')
-      .select('*')
-      .eq('ispublished', true)
-      .eq('show', true)
-      .order('createdat', { ascending: false });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
-
-    if (!data || data.length === 0) {
+    if (result.rows.length === 0) {
       console.log('No visible pages found');
       return res.json([]);
     }
-
+    
     // Format response
-    const formattedPages = data.map(page => ({
+    const formattedPages = result.rows.map(page => ({
       id: page.id,
       title: page.title,
       content: page.content,
@@ -415,7 +398,7 @@ app.get('/api/pages/visible', cors(corsOptions), async (req, res) => {
       createdAt: page.createdat,
       updatedAt: page.updatedat
     }));
-
+    
     console.log(`Found ${formattedPages.length} visible pages`);
     res.json(formattedPages);
   } catch (error) {
