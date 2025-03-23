@@ -220,8 +220,38 @@ async function testDatabaseConnection() {
   }
 }
 
-// Serve static files including manifest.json
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the build directory
+app.use(express.static(path.join(__dirname, '../build')));
+
+// Handle root route - serve the frontend application
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build/index.html'));
+});
+
+// Handle all other routes - serve the frontend application
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build/index.html'));
+});
+
+async function startServer() {
+  try {
+    const isConnected = await testDatabaseConnection();
+    if (!isConnected) {
+      console.error('Could not connect to database. Please check your credentials and connection settings.');
+      process.exit(1);
+    }
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
 
 // Handle manifest.json specifically with proper CORS headers
 app.get('/manifest.json', (req, res) => {
@@ -1458,38 +1488,4 @@ app.get('/api/files/:filename', (req, res) => {
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
-});
-
-// Test Supabase connection before starting server
-async function startServer() {
-  try {
-    const isConnected = await testDatabaseConnection();
-    if (!isConnected) {
-      console.error('Could not connect to database. Please check your credentials and connection settings.');
-      process.exit(1);
-    }
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Error starting server:', error);
-    process.exit(1);
-  }
-}
-
-// Start the server
-startServer();
-
-// Serve static files from the build directory
-app.use(express.static(path.join(__dirname, '../build')));
-
-// Handle root route - serve the frontend application
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
-});
-
-// Handle all other routes - serve the frontend application
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
 });
