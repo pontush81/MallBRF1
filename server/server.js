@@ -115,7 +115,10 @@ const publicRoutes = [
 
 // Add middleware to handle public routes
 app.use((req, res, next) => {
-  if (publicRoutes.some(route => req.path.startsWith(route))) {
+  const isPublicRoute = publicRoutes.some(route => req.path.startsWith(route));
+  console.log(`[${new Date().toISOString()}] Accessing ${req.path} - Public route: ${isPublicRoute}`);
+  
+  if (isPublicRoute) {
     return next();
   }
   authenticateRequest(req, res, next);
