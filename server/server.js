@@ -116,6 +116,7 @@ const authenticateRequest = (req, res, next) => {
 
 // Define public routes that don't require authentication
 const publicRoutes = [
+  '/',
   '/api/pages/visible',
   '/api/pages/published',
   '/api/pages/slug',
