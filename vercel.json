@@ -17,54 +17,52 @@
     {
       "src": "/api/pages/visible",
       "dest": "server/server.js",
-      "methods": ["GET"],
+      "methods": ["GET", "OPTIONS"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true",
-        "x-vercel-skip-auth": "true"
-      }
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With",
+        "Access-Control-Allow-Credentials": "true"
+      },
+      "continue": true
     },
     {
       "src": "/api/pages/published",
       "dest": "server/server.js",
-      "methods": ["GET"],
+      "methods": ["GET", "OPTIONS"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true",
-        "x-vercel-skip-auth": "true"
-      }
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With",
+        "Access-Control-Allow-Credentials": "true"
+      },
+      "continue": true
     },
     {
       "src": "/api/pages/slug/(.*)",
       "dest": "server/server.js",
-      "methods": ["GET"],
+      "methods": ["GET", "OPTIONS"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true",
-        "x-vercel-skip-auth": "true"
-      }
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With",
+        "Access-Control-Allow-Credentials": "true"
+      },
+      "continue": true
     },
     {
       "src": "/manifest.json",
       "dest": "build/manifest.json",
       "headers": {
         "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-        "x-vercel-skip-auth": "true"
+        "Content-Type": "application/json"
       }
     },
     {
       "src": "/favicon.ico",
       "dest": "build/favicon.ico",
       "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "x-vercel-skip-auth": "true"
+        "Access-Control-Allow-Origin": "*"
       }
     },
     {
@@ -73,13 +71,14 @@
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass",
-        "x-vercel-protection-bypass": "true"
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With",
+        "Access-Control-Allow-Credentials": "true"
       }
     }
   ],
   "env": {
     "NODE_ENV": "production"
   },
+  "public": true,
   "alias": ["stage.gulmaran.com"]
 } 
