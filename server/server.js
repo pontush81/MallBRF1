@@ -81,19 +81,19 @@ const PORT = process.env.PORT || 3002;
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    'https://stage.gulmaran.com',
-    'https://www.stage.gulmaran.com',
-    'http://localhost:3000',
-    'http://localhost:3001'
-  ],
+  origin: ['https://www.stage.gulmaran.com', 'https://stage.gulmaran.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
-// Apply CORS configuration
+// Apply CORS configuration - must be first!
 app.use(cors(corsOptions));
+
+// Handle OPTIONS requests explicitly
+app.options('*', cors(corsOptions));
 
 // Authentication middleware
 const authenticateRequest = (req, res, next) => {
@@ -430,9 +430,6 @@ app.get('/api/pages/visible', async (req, res) => {
     res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
   }
 });
-
-// Handle OPTIONS requests for CORS preflight
-app.options('*', cors());
 
 // Error handling middleware
 app.use((err, req, res, next) => {
