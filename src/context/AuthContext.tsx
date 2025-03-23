@@ -13,6 +13,10 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   logout: () => Promise<void>;
+  login: (user: User) => void;
+  isLoggedIn: boolean;
+  isAdmin: boolean;
+  currentUser: User | null;
 }
 
 // Skapa context
@@ -21,6 +25,10 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   error: null,
   logout: async () => {},
+  login: () => {},
+  isLoggedIn: false,
+  isAdmin: false,
+  currentUser: null
 });
 
 // Context provider
@@ -28,6 +36,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Computed properties
+  const isLoggedIn = !!user;
+  const isAdmin = user?.role === 'admin';
+  const currentUser = user;
 
   useEffect(() => {
     // Listen to Firebase Auth state changes
@@ -78,8 +91,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      error, 
+      logout, 
+      login,
+      isLoggedIn,
+      isAdmin,
+      currentUser
+    }}>
       {children}
     </AuthContext.Provider>
   );

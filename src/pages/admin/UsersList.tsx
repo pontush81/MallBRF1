@@ -40,7 +40,7 @@ import {
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { User, UserFormData } from '../../types/User';
-import userService from '../../services/userService';
+import { userService } from '../../services/userService';
 
 const UsersList: React.FC = () => {
   // State för användarlista

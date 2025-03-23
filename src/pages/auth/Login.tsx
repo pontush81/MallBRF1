@@ -15,7 +15,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import userService from '../../services/userService';
+import { userService } from '../../services/userService';
 
 // Förinställda konton för demo
 // (Vid användning av Firebase kommer dessa konton att skapas automatiskt i Firebase Auth)
@@ -37,7 +37,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login: authLogin } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +52,11 @@ const Login: React.FC = () => {
       setLoading(true);
       
       // Logga in med Firebase via userService
-      const user = await userService.loginUser(email, password);
+      const user = await userService.login(email, password);
       
       if (user) {
         // Användaren är inloggad via Firebase, uppdatera kontexten
-        login(user);
+        authLogin(user);
         
         // Navigera till sidlistan
         navigate('/pages');

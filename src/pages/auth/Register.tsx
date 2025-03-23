@@ -13,7 +13,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import userService from '../../services/userService';
+import { userService } from '../../services/userService';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -65,18 +65,18 @@ const Register: React.FC = () => {
       setLoading(true);
       
       // Skapa användaren med Firebase via userService
-      const newUser = await userService.createUser({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        role: 'user',
-        isActive: true
-      });
+      const newUser = await userService.register(
+        formData.email,
+        formData.password,
+        formData.name
+      );
       
       if (newUser) {
         // Användaren är nu registrerad och inloggad via Firebase
         login(newUser);
         navigate('/pages');
+      } else {
+        setError('Kunde inte skapa kontot. Försök igen.');
       }
     } catch (err: any) {
       const errorMessage = 
