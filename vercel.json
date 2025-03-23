@@ -19,7 +19,7 @@
       "dest": "server/server.js",
       "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       "headers": {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://www.stage.gulmaran.com",
         "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept,X-Requested-With",
         "Access-Control-Allow-Credentials": "true"
