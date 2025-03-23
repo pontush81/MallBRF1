@@ -79,13 +79,21 @@ const pagesRouter = pagesModule.router;
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Configure CORS with more specific options
-app.use(cors({
-  origin: '*',
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'https://stage.gulmaran.com',
+    'https://www.stage.gulmaran.com',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
   credentials: true
-}));
+};
+
+// Apply CORS configuration
+app.use(cors(corsOptions));
 
 // Authentication middleware
 const authenticateRequest = (req, res, next) => {
