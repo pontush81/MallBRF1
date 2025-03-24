@@ -13,12 +13,16 @@ import {
   Step,
   StepLabel, 
   CircularProgress,
-  Tooltip
+  Tooltip,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, addDays, isAfter, differenceInDays } from 'date-fns';
+import { format, addDays, isAfter, differenceInDays, isSameDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Person, Email, Check } from '@mui/icons-material';
 // FullCalendar-komponenter
@@ -33,6 +37,46 @@ import pageService from '../../services/pageService';
 
 // Förenklade steg i bokningsprocessen
 const steps = ['Välj datum och dina uppgifter', 'Klar'];
+
+// Ny komponent för att rendera anpassade dagsceller
+const CustomPickersDay = (props: any) => {
+  const { day, selectedDays, bookedDates, ...other } = props;
+  
+  const isBooked = bookedDates.some((booking: any) => {
+    const startDate = new Date(booking.startDate);
+    const endDate = new Date(booking.endDate);
+    return day >= startDate && day <= endDate;
+  });
+
+  const isSelected = selectedDays.some((selectedDay: Date) => 
+    isSameDay(day, selectedDay)
+  );
+
+  return (
+    <Tooltip 
+      title={isBooked ? "Upptaget" : "Tillgängligt"} 
+      arrow
+    >
+      <PickersDay 
+        {...other} 
+        day={day}
+        selected={isSelected}
+        sx={{
+          ...(isBooked && {
+            backgroundColor: '#ffcccc',
+            '&:hover': {
+              backgroundColor: '#ffb3b3',
+            },
+          }),
+          ...(isSelected && {
+            backgroundColor: '#2196f3 !important',
+            color: 'white !important',
+          }),
+        }}
+      />
+    </Tooltip>
+  );
+};
 
 const BookingPage: React.FC = () => {
   // State för formulärdata
@@ -58,6 +102,10 @@ const BookingPage: React.FC = () => {
   
   // FullCalendar-komponenten
   const calendarRef = useRef<any>(null);
+
+  // Flytta hooks till komponentnivån
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Hämta befintliga bokningar när komponenten laddas
   const fetchBookings = async () => {
@@ -355,24 +403,149 @@ const BookingPage: React.FC = () => {
     setErrorMessage('');
   };
 
-  // Hantera val av datumintervall i kalendern
-  const handleDateRangeSelect = (dateRange: Date[]) => {
-    if (dateRange.length < 2) return;
-    
-    // Första datumet är startdatum, andra är slutdatum (exklusive)
-    const startDateSelected = dateRange[0];
-    // Slutdatumet som kommer från FullCalendar är exklusivt, så vi subtraherar en dag
-    const endDateSelected = new Date(dateRange[1]);
-    endDateSelected.setDate(endDateSelected.getDate() - 1);
-    
-    console.log('Datumintervall valt:', format(startDateSelected, 'yyyy-MM-dd'), 'till', format(endDateSelected, 'yyyy-MM-dd'));
-    
-    // Uppdatera datumväljarna
-    setStartDate(startDateSelected);
-    setEndDate(endDateSelected);
-    
-    // Rensa eventuella felmeddelanden
-    setValidationErrors(prev => ({ ...prev, dates: '' }));
+  // Ny funktion för att rendera kalendern
+  const renderCalendar = () => {
+    return (
+      <Box sx={{ mt: 2, mb: 4 }}>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 2,
+            '& .MuiDateCalendar-root': {
+              width: '100%',
+              maxWidth: '100%',
+              height: 'auto',
+            }
+          }}
+        >
+          <LocalizationProvider 
+            dateAdapter={AdapterDateFns} 
+            adapterLocale={sv}
+            localeText={{
+              calendarWeekNumberText: (weekNumber) => `v${weekNumber}`,
+              calendarWeekNumberAriaLabelText: (weekNumber) => `Vecka ${weekNumber}`
+            }}
+          >
+            <DateCalendar
+              value={startDate}
+              onChange={(newDate) => {
+                if (newDate) {
+                  if (!startDate) {
+                    setStartDate(newDate);
+                  } else if (!endDate) {
+                    // Om det valda datumet är före startDate, byt plats på dem
+                    if (newDate < startDate) {
+                      setEndDate(startDate);
+                      setStartDate(newDate);
+                    } else {
+                      setEndDate(newDate);
+                    }
+                  } else {
+                    // Om båda datum är satta, börja om med nytt startdatum
+                    setStartDate(newDate);
+                    setEndDate(null);
+                  }
+                }
+              }}
+              displayWeekNumber
+              disablePast
+              slots={{
+                day: (props) => (
+                  <CustomPickersDay 
+                    {...props} 
+                    selectedDays={[startDate, endDate].filter(Boolean)}
+                    bookedDates={existingBookings.filter(b => b.status !== 'cancelled')}
+                  />
+                ),
+              }}
+              showDaysOutsideCurrentMonth
+              sx={{
+                width: '100%',
+                '& .MuiPickersCalendarHeader-root': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: theme.spacing(1),
+                  paddingBottom: 0
+                },
+                '& .MuiDayCalendar-weekContainer': {
+                  justifyContent: 'space-between',
+                  margin: '4px 0',
+                  minHeight: isMobile ? '32px' : '44px'
+                },
+                '& .MuiPickersDay-root': {
+                  width: isMobile ? '28px' : '40px',
+                  height: isMobile ? '28px' : '40px',
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
+                  margin: '0',
+                  padding: '0',
+                  '&.Mui-disabled': {
+                    color: theme.palette.text.disabled,
+                    opacity: 0.5,
+                    backgroundColor: 'transparent',
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }
+                },
+                '& .MuiDayCalendar-weekDayLabel': {
+                  width: isMobile ? '28px' : '40px',
+                  height: isMobile ? '28px' : '40px',
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
+                  color: theme.palette.text.secondary,
+                  margin: '0',
+                  padding: '0',
+                  textTransform: 'uppercase'
+                },
+                '& .MuiDayCalendar-header': {
+                  justifyContent: 'space-between',
+                  padding: '0 12px'
+                },
+                '& .MuiDateCalendar-root': {
+                  maxHeight: 'none',
+                  height: 'auto',
+                  width: '100%',
+                  margin: '0',
+                  padding: '0 0 32px 0'
+                },
+                '& .MuiPickersCalendarHeader-label': {
+                  textTransform: 'none',
+                  fontSize: '1.25rem',
+                  fontWeight: 500,
+                  '&.MuiTypography-root': {
+                    '&::first-letter': {
+                      textTransform: 'uppercase'
+                    }
+                  }
+                },
+                '& .MuiDayCalendar-monthContainer': {
+                  minHeight: isMobile ? '360px' : '400px',
+                  padding: '0 12px',
+                  marginBottom: '24px'
+                },
+                '& .MuiDayCalendar-slideTransition': {
+                  minHeight: isMobile ? '360px' : '400px'
+                },
+                '& .MuiPickersCalendarHeader-switchViewButton': {
+                  display: 'none'
+                },
+                '& .MuiPickersArrowSwitcher-spacer': {
+                  width: isMobile ? '8px' : '16px'
+                },
+                '& .MuiDayCalendar-weekNumber': {
+                  width: isMobile ? '24px' : '32px',
+                  height: isMobile ? '28px' : '40px',
+                  fontSize: isMobile ? '0.7rem' : '0.75rem',
+                  margin: '0',
+                  padding: '0',
+                  color: theme.palette.text.secondary
+                }
+              }}
+            />
+          </LocalizationProvider>
+        </Paper>
+      </Box>
+    );
   };
 
   // Visa olika innehåll beroende på aktivt steg
@@ -392,53 +565,31 @@ const BookingPage: React.FC = () => {
                 </Alert>
               )}
             </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
-                <DatePicker
-                  label="Ankomstdatum"
-                  value={startDate}
-                  onChange={setStartDate}
-                  disablePast
-                  shouldDisableDate={isDateBooked}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      variant: "outlined",
-                      error: !!validationErrors.startDate,
-                      helperText: validationErrors.startDate || '',
-                    },
-                  }}
-                />
-              </LocalizationProvider>
+
+            <Grid item xs={12}>
+              {loadingBookings ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : renderCalendar()}
             </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
-                <DatePicker
-                  label="Avresedatum"
-                  value={endDate}
-                  onChange={setEndDate}
-                  disablePast
-                  shouldDisableDate={isDateBooked}
-                  minDate={startDate ? addDays(startDate, 1) : undefined}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      variant: "outlined",
-                      error: !!validationErrors.endDate,
-                      helperText: validationErrors.endDate || '',
-                    },
-                  }}
-                />
-              </LocalizationProvider>
-            </Grid>
-            
-            {validationErrors.dateRange && (
+
+            {startDate && endDate && (
               <Grid item xs={12}>
-                <Alert severity="error">{validationErrors.dateRange}</Alert>
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    <strong>Bokningsöversikt:</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Ankomst:</strong> {format(startDate, 'PPP', { locale: sv })}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Avresa:</strong> {format(endDate, 'PPP', { locale: sv })}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Antal nätter:</strong> {differenceInDays(endDate, startDate)}
+                  </Typography>
+                </Box>
               </Grid>
             )}
 
@@ -520,76 +671,6 @@ const BookingPage: React.FC = () => {
                   Bekräfta bokning
                 </Button>
               </Box>
-            </Grid>
-
-            {startDate && endDate && (
-              <Grid item xs={12}>
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0' }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    <strong>Bokningsöversikt:</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Ankomst:</strong> {format(startDate, 'PPP', { locale: sv })}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Avresa:</strong> {format(endDate, 'PPP', { locale: sv })}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Antal nätter:</strong> {differenceInDays(endDate, startDate)}
-                  </Typography>
-                </Box>
-              </Grid>
-            )}
-            
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Bokningskalender
-                </Typography>
-              </Divider>
-              <Typography variant="h6" sx={{ mt: 5, mb: 2 }}>
-                Nedan kan du se alla bokade datum (markerade i rött). Veckonummer visas till vänster. Klicka på kalendern för att välja datum.
-              </Typography>
-
-              {loadingBookings ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <Box sx={{ mt: 2, mb: 4 }}>
-                  <Paper elevation={3} sx={{ p: 2 }}>
-                    <FullCalendar
-                      ref={calendarRef}
-                      plugins={[dayGridPlugin, interactionPlugin]}
-                      initialView="dayGridMonth"
-                      locale={svLocale}
-                      headerToolbar={{
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth'
-                      }}
-                      height="auto"
-                      events={calendarEvents}
-                      weekNumbers={true}
-                      weekNumberCalculation="ISO"
-                      selectable={true}
-                      select={(info) => {
-                        // Hantera klick i kalendern
-                        handleDateRangeSelect([info.start, info.end]);
-                      }}
-                      eventContent={(eventInfo) => {
-                        return (
-                          <Tooltip title={`${eventInfo.event.extendedProps.bookerName}: ${eventInfo.event.extendedProps.dates}`}>
-                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              <i>{eventInfo.event.title}</i>
-                            </div>
-                          </Tooltip>
-                        );
-                      }}
-                    />
-                  </Paper>
-                </Box>
-              )}
             </Grid>
           </Grid>
         );
