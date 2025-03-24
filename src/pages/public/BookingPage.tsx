@@ -114,7 +114,7 @@ const BookingPage: React.FC = () => {
             }
             
             return {
-              title: `${booking.name}`,
+              title: booking.name,
               start: booking.startDate,
               end: booking.endDate,
               backgroundColor: '#ffcccc',
