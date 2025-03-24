@@ -482,10 +482,10 @@ router.delete('/:id/files/:fileId', async (req, res) => {
 
     console.log('Found file to delete:', fileToDelete);
 
-    // Delete from Supabase Storage
+    // Delete from Supabase Storage using the correct path
     const { error: storageError } = await supabase.storage
       .from('files')
-      .remove([`${id}/${fileId}`]);
+      .remove([`pages/${fileToDelete.filename}`]);
 
     if (storageError) {
       console.error('Error deleting from storage:', storageError);
