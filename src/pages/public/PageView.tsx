@@ -22,12 +22,10 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import pageService from '../../services/pageService';
 import { Page, FileInfo } from '../../types/Page';
-import { API_BASE_URL } from '../../config';
 
 // Komponentstilar för Markdown-innehåll
 const markdownStyles = {
