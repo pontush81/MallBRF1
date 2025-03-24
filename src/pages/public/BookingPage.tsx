@@ -581,7 +581,6 @@ const BookingPage: React.FC = () => {
                         return (
                           <Tooltip title={`${eventInfo.event.extendedProps.bookerName}: ${eventInfo.event.extendedProps.dates}`}>
                             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              <b>{eventInfo.timeText}</b>
                               <i>{eventInfo.event.title}</i>
                             </div>
                           </Tooltip>
