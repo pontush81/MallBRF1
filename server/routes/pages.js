@@ -499,6 +499,132 @@ router.delete('/:id/files/:fileId', async (req, res) => {
   }
 });
 
+// Ladda upp en fil till en sida
+router.post('/:id/upload', async (req, res) => {
+  try {
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ error: 'Ingen fil uppladdad' });
+    }
+
+    const file = req.files.file;
+    const pageId = req.params.id;
+
+    console.log('Starting file upload process...');
+    console.log('File details:', {
+      name: file.name,
+      size: file.size,
+      mimetype: file.mimetype
+    });
+
+    // Upload to Supabase Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${pageId}/${Date.now()}.${fileExt}`;
+    const filePath = `pages/${fileName}`;
+
+    console.log('Attempting to upload to Supabase storage...');
+    console.log('Target path:', filePath);
+
+    // First, try to create the bucket if it doesn't exist
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    if (bucketsError) {
+      console.error('Error listing buckets:', bucketsError);
+      throw bucketsError;
+    }
+
+    const filesBucket = buckets.find(b => b.name === 'files');
+    if (!filesBucket) {
+      console.log('Creating files bucket...');
+      const { error: createBucketError } = await supabase.storage.createBucket('files', {
+        public: true,
+        fileSizeLimit: 52428800, // 50MB
+      });
+      if (createBucketError) {
+        console.error('Error creating bucket:', createBucketError);
+        throw createBucketError;
+      }
+    }
+
+    // Upload the file
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('files')
+      .upload(filePath, file.data, {
+        contentType: file.mimetype,
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error details:', {
+        statusCode: uploadError.statusCode,
+        error: uploadError.error,
+        message: uploadError.message
+      });
+      throw uploadError;
+    }
+
+    console.log('File uploaded successfully to Supabase');
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('files')
+      .getPublicUrl(filePath);
+
+    console.log('Generated public URL:', publicUrl);
+
+    // Get current page data
+    const { data: page, error: pageError } = await supabase
+      .from('pages')
+      .select('files')
+      .eq('id', pageId)
+      .single();
+
+    if (pageError) {
+      console.error('Error fetching page:', pageError);
+      throw pageError;
+    }
+
+    // Parse existing files or use empty array
+    const files = page.files ? JSON.parse(page.files) : [];
+
+    // Add new file to the array
+    const newFile = {
+      id: Date.now().toString(),
+      filename: fileName,
+      originalName: file.name,
+      mimetype: file.mimetype,
+      url: publicUrl,
+      size: file.size,
+      uploadedAt: new Date().toISOString()
+    };
+
+    files.push(newFile);
+
+    // Update page with new files array
+    const { error: updateError } = await supabase
+      .from('pages')
+      .update({ files: JSON.stringify(files) })
+      .eq('id', pageId);
+
+    if (updateError) {
+      console.error('Error updating page:', updateError);
+      throw updateError;
+    }
+
+    console.log('Page updated successfully with new file');
+    res.json({ 
+      success: true, 
+      file: newFile,
+      message: 'Filen har laddats upp'
+    });
+  } catch (error) {
+    console.error('Error in file upload process:', error);
+    res.status(500).json({ 
+      error: 'Kunde inte ladda upp filen',
+      details: error.message || 'Ett oväntat fel uppstod'
+    });
+  }
+});
+
 module.exports = { 
   router,
   setupFileUpload

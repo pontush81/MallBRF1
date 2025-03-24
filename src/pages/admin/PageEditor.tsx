@@ -207,30 +207,80 @@ const PageEditor: React.FC = () => {
   };
 
   // Hantera filuppladdning
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0 || !id) {
-      return;
-    }
-    
-    const file = event.target.files[0];
-    
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
     try {
-      setUploadLoading(true);
+      setLoading(true);
       setError(null);
-      
-      const result = await pageService.uploadFile(id, file);
-      
-      setFiles(prevFiles => [...prevFiles, result]);
+
+      console.log('Starting file upload for:', file.name);
+      const response = await pageService.uploadFile(id, file);
+      console.log('Upload response:', response);
+
+      if (!response || !response.success || !response.file) {
+        throw new Error('Kunde inte ladda upp filen: Ogiltig svarsdata');
+      }
+
+      // Kontrollera att filobjektet har alla nödvändiga fält
+      const fileData = response.file;
+      console.log('File data received:', fileData);
+
+      // Lägg till den nya filen i listan
+      setFiles(prevFiles => [...prevFiles, fileData]);
       setSnackbarMessage('Filen har laddats upp');
       setSnackbarOpen(true);
-      
-      // Återställ fil-inputen
-      event.target.value = '';
+
+      // Vänta en kort stund för att låta Supabase processa filen
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Hämta den uppdaterade sidan
+      console.log('Fetching updated page data');
+      const updatedPage = await pageService.getPageById(id);
+      console.log('Updated page data:', updatedPage);
+
+      if (!updatedPage) {
+        throw new Error('Kunde inte uppdatera sidan med den nya filen');
+      }
+
+      // Säkerställ att files-arrayen är giltig
+      if (!updatedPage.files) {
+        updatedPage.files = [];
+      } else if (!Array.isArray(updatedPage.files)) {
+        updatedPage.files = [];
+      }
+
+      // Skapa en säker kopia av sidan med validerade filobjekt
+      const safePage = {
+        ...updatedPage,
+        files: updatedPage.files.map(f => {
+          // Om f är null eller undefined, skapa ett tomt filobjekt
+          if (!f) return null;
+          
+          return {
+            id: f.id || String(Date.now()),
+            filename: f.filename || 'unknown',
+            originalName: f.originalName || f.filename || 'Namnlös fil',
+            mimetype: f.mimetype || 'application/octet-stream',
+            size: typeof f.size === 'number' ? f.size : 0,
+            url: typeof f.url === 'string' ? f.url : '',
+            uploadedAt: f.uploadedAt || new Date().toISOString()
+          };
+        }).filter(Boolean) // Ta bort eventuella null-värden
+      };
+
+      console.log('Setting safe page:', safePage);
+      setError(null);
     } catch (err) {
-      setError('Ett fel uppstod vid uppladdning av filen');
-      console.error(err);
+      console.error('File upload error:', err);
+      setError(err instanceof Error ? err.message : 'Ett fel uppstod vid uppladdning av filen');
     } finally {
-      setUploadLoading(false);
+      setLoading(false);
+      // Rensa filinputen
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -345,7 +395,7 @@ const PageEditor: React.FC = () => {
                     <CardMedia
                       component="img"
                       height="140"
-                      image={file.path}
+                      image={file.url}
                       alt={file.originalName}
                       sx={{ objectFit: 'cover' }}
                     />
@@ -374,7 +424,7 @@ const PageEditor: React.FC = () => {
                     <Button 
                       size="small" 
                       component="a"
-                      href={file.path}
+                      href={file.url}
                       target="_blank"
                     >
                       Visa

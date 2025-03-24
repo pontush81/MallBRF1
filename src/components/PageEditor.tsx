@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import pageService from '../services/pageService';
 import { Page } from '../types/Page';
+import '../styles/PageEditor.css';
 
 const PageEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,15 +84,71 @@ const PageEditor: React.FC = () => {
     if (!file || !id) return;
 
     try {
-      const fileInfo = await pageService.uploadFile(id, file);
-      if (fileInfo && page) {
-        setPage({
-          ...page,
-          files: [...(page.files || []), fileInfo]
-        });
+      setLoading(true);
+      setError(null);
+
+      console.log('Starting file upload for:', file.name);
+      const response = await pageService.uploadFile(id, file);
+      console.log('Upload response:', response);
+
+      if (!response || !response.success || !response.file) {
+        throw new Error('Kunde inte ladda upp filen: Ogiltig svarsdata');
       }
+
+      // Kontrollera att filobjektet har alla nödvändiga fält
+      const fileData = response.file;
+      console.log('File data received:', fileData);
+
+      // Vänta en kort stund för att låta Supabase processa filen
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Hämta den uppdaterade sidan
+      console.log('Fetching updated page data');
+      const updatedPage = await pageService.getPageById(id);
+      console.log('Updated page data:', updatedPage);
+
+      if (!updatedPage) {
+        throw new Error('Kunde inte uppdatera sidan med den nya filen');
+      }
+
+      // Säkerställ att files-arrayen är giltig
+      if (!updatedPage.files) {
+        updatedPage.files = [];
+      } else if (!Array.isArray(updatedPage.files)) {
+        updatedPage.files = [];
+      }
+
+      // Skapa en säker kopia av sidan med validerade filobjekt
+      const safePage = {
+        ...updatedPage,
+        files: updatedPage.files.map(f => {
+          // Om f är null eller undefined, skapa ett tomt filobjekt
+          if (!f) return null;
+          
+          return {
+            id: f.id || String(Date.now()),
+            filename: f.filename || 'unknown',
+            originalName: f.originalName || f.filename || 'Namnlös fil',
+            mimetype: f.mimetype || 'application/octet-stream',
+            size: typeof f.size === 'number' ? f.size : 0,
+            url: typeof f.url === 'string' ? f.url : '',
+            uploadedAt: f.uploadedAt || new Date().toISOString()
+          };
+        }).filter(Boolean) // Ta bort eventuella null-värden
+      };
+
+      console.log('Setting safe page:', safePage);
+      setPage(safePage);
+      setError(null);
     } catch (err) {
-      setError('Ett fel uppstod vid uppladdning av filen');
+      console.error('File upload error:', err);
+      setError(err instanceof Error ? err.message : 'Ett fel uppstod vid uppladdning av filen');
+    } finally {
+      setLoading(false);
+      // Rensa filinputen
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -105,6 +162,13 @@ const PageEditor: React.FC = () => {
           ...page,
           files: page.files?.filter(f => f.id !== fileId) || []
         });
+
+        const updatedPage = await pageService.getPageById(id);
+        if (updatedPage) {
+          setPage(updatedPage);
+        }
+
+        setError(null);
       } else {
         setError('Kunde inte ta bort filen');
       }
@@ -198,21 +262,51 @@ const PageEditor: React.FC = () => {
           />
         </div>
 
-        {page.files && page.files.length > 0 && (
+        {page.files && Array.isArray(page.files) && page.files.length > 0 && (
           <div className="files-list">
             <h3>Uppladdade filer</h3>
             <ul>
-              {page.files.map(file => (
-                <li key={file.id}>
-                  {file.originalName || file.filename}
-                  <button
-                    type="button"
-                    onClick={() => file.id && handleFileDelete(file.id)}
-                  >
-                    Ta bort
-                  </button>
-                </li>
-              ))}
+              {page.files.filter(file => file && typeof file === 'object').map(file => {
+                // Säkerställ att alla nödvändiga fält finns
+                const fileId = String(file.id || Date.now());
+                const fileName = String(file.originalName || file.filename || 'Namnlös fil');
+                const fileSize = typeof file.size === 'number' ? Math.round(file.size / 1024) : 0;
+                // Konvertera url till en säker sträng
+                const fileUrl = typeof file.url === 'string' ? file.url : '';
+
+                return (
+                  <li key={fileId} className="file-item">
+                    <div className="file-info">
+                      <span className="file-name">{fileName}</span>
+                      <span className="file-size">({fileSize} KB)</span>
+                    </div>
+                    <div className="file-actions">
+                      {fileUrl && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            try {
+                              window.open(fileUrl, '_blank');
+                            } catch (err) {
+                              console.error('Could not open file:', err);
+                            }
+                          }}
+                          className="download-link"
+                        >
+                          Ladda ner
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleFileDelete(fileId)}
+                        className="delete-button"
+                      >
+                        Ta bort
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
