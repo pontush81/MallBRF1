@@ -335,7 +335,7 @@ const PageView: React.FC = () => {
                           <CardMedia
                             component="img"
                             height="180"
-                            image={`${API_BASE_URL}${file.path}`}
+                            image={file.url}
                             alt={file.originalName}
                             sx={{ objectFit: 'cover' }}
                           />
@@ -348,8 +348,9 @@ const PageView: React.FC = () => {
                             <Button 
                               size="small" 
                               component="a"
-                              href={`${API_BASE_URL}${file.path}`}
+                              href={file.url}
                               target="_blank"
+                              rel="noopener noreferrer"
                               startIcon={<ImageIcon />}
                             >
                               Öppna
@@ -389,12 +390,11 @@ const PageView: React.FC = () => {
                             </Typography>
                           </Box>
                           <Button
-                            variant="outlined"
-                            size="small"
-                            component="a" 
-                            href={`${API_BASE_URL}${file.path}`}
-                            download={file.originalName}
-                            startIcon={<FileDownloadIcon />}
+                            variant="contained"
+                            color="primary"
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
                             Ladda ner
                           </Button>

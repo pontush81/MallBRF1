@@ -487,11 +487,14 @@ const PublicPages: React.FC = (): JSX.Element => {
                                   )}
                                 </Box>
                                 <Box sx={{ flexGrow: 1 }}>
-                                  <Typography variant="body1">
-                                    {file.originalName || file.originalname}
+                                  <Typography variant="subtitle1" gutterBottom>
+                                    {file.originalName}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {(file.size / 1024).toFixed(1)} KB • {file.mimetype}
+                                  <Typography variant="body2" color="text.secondary">
+                                    {file.originalName}
+                                  </Typography>
+                                  <Typography variant="caption" display="block" color="text.secondary">
+                                    {file.originalName}
                                   </Typography>
                                 </Box>
                                 <Button
