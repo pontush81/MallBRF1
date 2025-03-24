@@ -439,63 +439,79 @@ router.post('/upload', async (req, res) => {
 // File deletion endpoint
 router.delete('/:id/files/:fileId', async (req, res) => {
   try {
-    const pageId = req.params.id;
-    const fileId = req.params.fileId;
-    console.log('Deleting file:', fileId, 'from page:', pageId);
-    
-    // Get the current page first to retrieve existing files
-    const { data: page, error: getError } = await supabase
+    const { id, fileId } = req.params;
+    console.log('Attempting to delete file:', { id, fileId });
+
+    // Get current page data
+    const { data: page, error: pageError } = await supabase
       .from('pages')
-      .select('files')
-      .eq('id', pageId)
+      .select('*')
+      .eq('id', id)
       .single();
-    
-    if (getError || !page) {
-      console.error('Page not found:', pageId);
+
+    if (pageError) {
+      console.error('Error fetching page:', pageError);
+      return res.status(500).json({ error: 'Kunde inte hitta sidan' });
+    }
+
+    if (!page) {
+      console.error('Page not found:', id);
       return res.status(404).json({ error: 'Sidan kunde inte hittas' });
     }
-    
-    // Remove the file from the files array
-    const existingFiles = page.files ? JSON.parse(page.files) : [];
-    const fileToRemove = existingFiles.find(f => f.id === fileId || f.filename === fileId);
-    
-    if (!fileToRemove) {
+
+    // Parse files array from JSON string if needed
+    let files = [];
+    try {
+      files = typeof page.files === 'string' ? JSON.parse(page.files) : page.files;
+    } catch (e) {
+      console.error('Error parsing files array:', e);
+      files = [];
+    }
+
+    if (!Array.isArray(files)) {
+      console.error('Invalid files data:', files);
+      return res.status(500).json({ error: 'Ogiltig siddata' });
+    }
+
+    // Find the file to delete
+    const fileToDelete = files.find(f => f.id === fileId);
+    if (!fileToDelete) {
+      console.error('File not found:', fileId);
       return res.status(404).json({ error: 'Filen kunde inte hittas' });
     }
-    
-    // Try to delete the file from the filesystem
-    try {
-      const filePath = path.join(__dirname, '..', fileToRemove.path);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (fsError) {
-      console.error('Error deleting file from filesystem:', fsError);
-      // Continue even if file deletion fails
+
+    console.log('Found file to delete:', fileToDelete);
+
+    // Delete from Supabase Storage
+    const { error: storageError } = await supabase.storage
+      .from('files')
+      .remove([`${id}/${fileId}`]);
+
+    if (storageError) {
+      console.error('Error deleting from storage:', storageError);
+      return res.status(500).json({ error: 'Kunde inte radera filen från lagringen' });
     }
-    
-    const updatedFiles = existingFiles.filter(f => f.id !== fileId && f.filename !== fileId);
-    
-    // Update the page with the new files array
-    const { data, error } = await supabase
+
+    // Update page data
+    const updatedFiles = files.filter(f => f.id !== fileId);
+    const { error: updateError } = await supabase
       .from('pages')
-      .update({
+      .update({ 
         files: JSON.stringify(updatedFiles),
-        updatedat: new Date()
+        updatedat: new Date().toISOString()
       })
-      .eq('id', pageId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating page after file deletion:', error);
-      return res.status(500).json({ error: 'Kunde inte uppdatera sidan efter filborttagning' });
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('Error updating page:', updateError);
+      return res.status(500).json({ error: 'Kunde inte uppdatera sidan' });
     }
-    
+
+    console.log('Successfully deleted file and updated page');
     res.json({ success: true });
   } catch (error) {
-    console.error('Could not delete file:', error);
-    res.status(500).json({ error: 'Kunde inte ta bort filen' });
+    console.error('Error in delete file endpoint:', error);
+    res.status(500).json({ error: 'Ett oväntat fel uppstod' });
   }
 });
 
