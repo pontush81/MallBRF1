@@ -1,159 +1,179 @@
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../../services/firebase';
 import pageService from '../../services/pageService';
-import { Page } from '../../types/Page';
+import { Page, FileInfo } from '../../types/Page';
 
-// Mock the pageService
-jest.mock('../../services/pageService');
+// Mock Firebase modules
+jest.mock('firebase/firestore');
+jest.mock('firebase/storage');
+jest.mock('../../services/firebase', () => ({
+  db: {},
+  storage: {}
+}));
 
-describe('pageService', () => {
+describe('Page Service', () => {
   const mockPage: Page = {
-    id: '1',
+    id: 'test-page-id',
     title: 'Test Page',
-    content: '# Test Content\n\nThis is a test page.',
+    content: '# Test Content',
     slug: 'test-page',
     isPublished: true,
     show: true,
-    createdAt: '2024-03-23T12:00:00Z',
-    updatedAt: '2024-03-23T12:00:00Z',
-    files: []
+    files: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  const mockFile: FileInfo = {
+    id: 'test-file-id',
+    filename: 'test.pdf',
+    originalName: 'test.pdf',
+    mimetype: 'application/pdf',
+    size: 1024,
+    url: 'https://example.com/test.pdf'
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('getPageBySlug', () => {
-    it('returns page when found', async () => {
-      (pageService.getPageBySlug as jest.Mock).mockResolvedValue(mockPage);
-
-      const result = await pageService.getPageBySlug('test-page');
-      expect(result).toEqual(mockPage);
-      expect(pageService.getPageBySlug).toHaveBeenCalledWith('test-page');
-    });
-
-    it('returns null when page not found', async () => {
-      (pageService.getPageBySlug as jest.Mock).mockResolvedValue(null);
-
-      const result = await pageService.getPageBySlug('non-existent');
-      expect(result).toBeNull();
-    });
-
-    it('handles errors gracefully', async () => {
-      const error = new Error('Failed to fetch page');
-      (pageService.getPageBySlug as jest.Mock).mockRejectedValue(error);
-
-      await expect(pageService.getPageBySlug('test-page')).rejects.toThrow(error);
-    });
-  });
-
-  describe('createPage', () => {
-    const newPage: Omit<Page, 'id' | 'createdAt' | 'updatedAt'> = {
-      title: 'New Page',
-      content: '# New Content',
-      slug: 'new-page',
-      isPublished: true,
-      show: true,
-      files: []
+  it('should get page by ID', async () => {
+    const mockPageDoc = {
+      exists: () => true,
+      data: () => mockPage
     };
 
-    it('creates a new page successfully', async () => {
-      const createdPage = { ...newPage, id: '2', createdAt: '2024-03-23T12:00:00Z', updatedAt: '2024-03-23T12:00:00Z' };
-      (pageService.createPage as jest.Mock).mockResolvedValue(createdPage);
+    (doc as jest.Mock).mockReturnValue({});
+    (getDoc as jest.Mock).mockResolvedValue(mockPageDoc);
 
-      const result = await pageService.createPage(newPage);
-      expect(result).toEqual(createdPage);
-      expect(pageService.createPage).toHaveBeenCalledWith(newPage);
-    });
+    const result = await pageService.getPageById(mockPage.id);
 
-    it('handles creation errors', async () => {
-      const error = new Error('Failed to create page');
-      (pageService.createPage as jest.Mock).mockRejectedValue(error);
-
-      await expect(pageService.createPage(newPage)).rejects.toThrow(error);
-    });
+    expect(doc).toHaveBeenCalledWith(db, 'pages', mockPage.id);
+    expect(getDoc).toHaveBeenCalled();
+    expect(result).toEqual(mockPage);
   });
 
-  describe('updatePage', () => {
+  it('should get all pages', async () => {
+    const mockQuerySnapshot = {
+      docs: [
+        { data: () => mockPage },
+        { data: () => ({ ...mockPage, id: 'test-page-2' }) }
+      ]
+    };
+
+    (collection as jest.Mock).mockReturnValue({});
+    (getDocs as jest.Mock).mockResolvedValue(mockQuerySnapshot);
+
+    const result = await pageService.getAllPages();
+
+    expect(collection).toHaveBeenCalledWith(db, 'pages');
+    expect(getDocs).toHaveBeenCalled();
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual(mockPage);
+  });
+
+  it('should get visible pages', async () => {
+    const mockQuerySnapshot = {
+      docs: [
+        { data: () => mockPage }
+      ]
+    };
+
+    (collection as jest.Mock).mockReturnValue({});
+    (query as jest.Mock).mockReturnValue({});
+    (where as jest.Mock).mockReturnValue({});
+    (getDocs as jest.Mock).mockResolvedValue(mockQuerySnapshot);
+
+    const result = await pageService.getVisiblePages();
+
+    expect(collection).toHaveBeenCalledWith(db, 'pages');
+    expect(query).toHaveBeenCalled();
+    expect(where).toHaveBeenCalledWith('show', '==', true);
+    expect(getDocs).toHaveBeenCalled();
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(mockPage);
+  });
+
+  it('should create new page', async () => {
+    const { id, createdAt, updatedAt, ...pageData } = mockPage;
+    
+    (doc as jest.Mock).mockReturnValue({});
+    (setDoc as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await pageService.createPage(pageData);
+
+    expect(doc).toHaveBeenCalledWith(db, 'pages', expect.any(String));
+    expect(setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      title: mockPage.title,
+      content: mockPage.content,
+      slug: mockPage.slug,
+      isPublished: mockPage.isPublished,
+      show: mockPage.show
+    }));
+    expect(result).toEqual(expect.objectContaining(pageData));
+  });
+
+  it('should update page', async () => {
     const updates = {
       title: 'Updated Title',
-      content: '# Updated Content'
+      content: 'Updated Content'
     };
 
-    it('updates page successfully', async () => {
-      const updatedPage = { ...mockPage, ...updates, updatedAt: '2024-03-23T13:00:00Z' };
-      (pageService.updatePage as jest.Mock).mockResolvedValue(updatedPage);
+    const mockUpdatedPage = { ...mockPage, ...updates };
+    const mockPageDoc = {
+      exists: () => true,
+      data: () => mockUpdatedPage
+    };
 
-      const result = await pageService.updatePage('1', updates);
-      expect(result).toEqual(updatedPage);
-      expect(pageService.updatePage).toHaveBeenCalledWith('1', updates);
-    });
+    (doc as jest.Mock).mockReturnValue({});
+    (updateDoc as jest.Mock).mockResolvedValue(undefined);
+    (getDoc as jest.Mock).mockResolvedValue(mockPageDoc);
 
-    it('handles update errors', async () => {
-      const error = new Error('Failed to update page');
-      (pageService.updatePage as jest.Mock).mockRejectedValue(error);
+    const result = await pageService.updatePage(mockPage.id, updates);
 
-      await expect(pageService.updatePage('1', updates)).rejects.toThrow(error);
-    });
+    expect(doc).toHaveBeenCalledWith(db, 'pages', mockPage.id);
+    expect(updateDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining(updates));
+    expect(result).toEqual(mockUpdatedPage);
   });
 
-  describe('deletePage', () => {
-    it('deletes page successfully', async () => {
-      (pageService.deletePage as jest.Mock).mockResolvedValue(true);
+  it('should delete page', async () => {
+    (doc as jest.Mock).mockReturnValue({});
+    (deleteDoc as jest.Mock).mockResolvedValue(undefined);
 
-      const result = await pageService.deletePage('1');
-      expect(result).toBe(true);
-      expect(pageService.deletePage).toHaveBeenCalledWith('1');
-    });
+    const result = await pageService.deletePage(mockPage.id);
 
-    it('handles deletion errors', async () => {
-      const error = new Error('Failed to delete page');
-      (pageService.deletePage as jest.Mock).mockRejectedValue(error);
-
-      await expect(pageService.deletePage('1')).rejects.toThrow(error);
-    });
+    expect(doc).toHaveBeenCalledWith(db, 'pages', mockPage.id);
+    expect(deleteDoc).toHaveBeenCalled();
+    expect(result).toBe(true);
   });
 
-  describe('getAllPages', () => {
-    const mockPages = [mockPage, { ...mockPage, id: '2', title: 'Second Page' }];
+  it('should upload file', async () => {
+    const mockFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
+    const mockUploadResult = { ref: {} };
+    const mockDownloadURL = 'https://example.com/test.pdf';
 
-    it('returns all pages', async () => {
-      (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
+    (ref as jest.Mock).mockReturnValue({});
+    (uploadBytes as jest.Mock).mockResolvedValue(mockUploadResult);
+    (getDownloadURL as jest.Mock).mockResolvedValue(mockDownloadURL);
+    (doc as jest.Mock).mockReturnValue({});
+    (updateDoc as jest.Mock).mockResolvedValue(undefined);
 
-      const result = await pageService.getAllPages();
-      expect(result).toEqual(mockPages);
-      expect(pageService.getAllPages).toHaveBeenCalled();
-    });
+    const result = await pageService.uploadFile(mockPage.id, mockFile);
 
-    it('handles fetch errors', async () => {
-      const error = new Error('Failed to fetch pages');
-      (pageService.getAllPages as jest.Mock).mockRejectedValue(error);
-
-      await expect(pageService.getAllPages()).rejects.toThrow(error);
-    });
+    expect(ref).toHaveBeenCalledWith(storage, expect.stringContaining('pages'));
+    expect(uploadBytes).toHaveBeenCalledWith(expect.anything(), mockFile);
+    expect(getDownloadURL).toHaveBeenCalled();
+    expect(doc).toHaveBeenCalledWith(db, 'pages', mockPage.id);
+    expect(updateDoc).toHaveBeenCalled();
+    expect(result).toBeTruthy();
   });
 
-  describe('uploadFile', () => {
-    const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
+  it('should handle errors gracefully', async () => {
+    const error = new Error('Database error');
+    (getDoc as jest.Mock).mockRejectedValue(error);
 
-    it('uploads file successfully', async () => {
-      const mockFileInfo = {
-        id: '1',
-        filename: 'test.txt',
-        originalName: 'test.txt',
-        mimetype: 'text/plain',
-        size: 1024
-      };
-      (pageService.uploadFile as jest.Mock).mockResolvedValue(mockFileInfo);
-
-      const result = await pageService.uploadFile('1', mockFile);
-      expect(result).toEqual(mockFileInfo);
-      expect(pageService.uploadFile).toHaveBeenCalledWith('1', mockFile);
-    });
-
-    it('handles upload errors', async () => {
-      const error = new Error('Failed to upload file');
-      (pageService.uploadFile as jest.Mock).mockRejectedValue(error);
-
-      await expect(pageService.uploadFile('1', mockFile)).rejects.toThrow(error);
-    });
+    const result = await pageService.getPageById('non-existent-id');
+    expect(result).toBeNull();
   });
 }); 

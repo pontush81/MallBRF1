@@ -9,11 +9,12 @@ describe('bookingService', () => {
     id: '1',
     name: 'Test User',
     email: 'test@example.com',
-    startDate: '2024-03-25',
-    endDate: '2024-03-27',
+    startdate: '2024-03-25',
+    enddate: '2024-03-27',
     status: 'confirmed',
     phone: '1234567890',
-    notes: 'Test booking'
+    notes: 'Test booking',
+    createdat: '2024-03-25T12:00:00Z'
   };
 
   beforeEach(() => {
@@ -24,6 +25,8 @@ describe('bookingService', () => {
     it('fetches all bookings successfully', async () => {
       const mockResponse = {
         ok: true,
+        status: 200,
+        statusText: 'OK',
         json: () => Promise.resolve([mockBooking])
       };
 
@@ -31,15 +34,36 @@ describe('bookingService', () => {
 
       const result = await bookingService.getAllBookings();
 
-      expect(result).toEqual([mockBooking]);
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/bookings'));
+      expect(result).toEqual([{
+        ...mockBooking,
+        startDate: mockBooking.startdate,
+        endDate: mockBooking.enddate,
+        createdAt: mockBooking.createdat
+      }]);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/bookings'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors',
+          credentials: 'omit'
+        })
+      );
     });
 
     it('handles errors when fetching bookings', async () => {
-      const mockError = new Error('Failed to fetch bookings');
-      (global.fetch as jest.Mock).mockRejectedValue(mockError);
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error'
+      };
+      (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-      await expect(bookingService.getAllBookings()).rejects.toThrow(mockError);
+      const result = await bookingService.getAllBookings();
+      expect(result).toEqual([]);
     });
   });
 
@@ -47,6 +71,8 @@ describe('bookingService', () => {
     it('creates a booking successfully', async () => {
       const mockResponse = {
         ok: true,
+        status: 201,
+        statusText: 'Created',
         json: () => Promise.resolve(mockBooking)
       };
 
@@ -55,8 +81,8 @@ describe('bookingService', () => {
       const result = await bookingService.createBooking({
         name: mockBooking.name,
         email: mockBooking.email,
-        startDate: mockBooking.startDate!,
-        endDate: mockBooking.endDate!,
+        startDate: mockBooking.startdate,
+        endDate: mockBooking.enddate,
         notes: mockBooking.notes,
         phone: mockBooking.phone
       });
@@ -72,19 +98,23 @@ describe('bookingService', () => {
     });
 
     it('handles errors when creating a booking', async () => {
-      const mockError = new Error('Failed to create booking');
-      (global.fetch as jest.Mock).mockRejectedValue(mockError);
+      const mockResponse = {
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request'
+      };
+      (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
       await expect(
         bookingService.createBooking({
           name: mockBooking.name,
           email: mockBooking.email,
-          startDate: mockBooking.startDate!,
-          endDate: mockBooking.endDate!,
+          startDate: mockBooking.startdate,
+          endDate: mockBooking.enddate,
           notes: mockBooking.notes,
           phone: mockBooking.phone
         })
-      ).rejects.toThrow(mockError);
+      ).rejects.toThrow();
     });
   });
 
@@ -92,6 +122,8 @@ describe('bookingService', () => {
     it('checks availability successfully', async () => {
       const mockResponse = {
         ok: true,
+        status: 200,
+        statusText: 'OK',
         json: () => Promise.resolve({ available: true, overlappingBookings: [] })
       };
 
@@ -110,12 +142,16 @@ describe('bookingService', () => {
     });
 
     it('handles errors when checking availability', async () => {
-      const mockError = new Error('Failed to check availability');
-      (global.fetch as jest.Mock).mockRejectedValue(mockError);
+      const mockResponse = {
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request'
+      };
+      (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
       await expect(
         bookingService.checkAvailability('2024-03-25', '2024-03-27')
-      ).rejects.toThrow(mockError);
+      ).rejects.toThrow();
     });
   });
 

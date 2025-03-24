@@ -21,6 +21,73 @@ jest.mock('firebase/storage', () => ({
   getStorage: jest.fn()
 }));
 
+describe('Firebase Configuration', () => {
+  beforeEach(() => {
+    // Clear all environment variables before each test
+    process.env = {};
+    jest.resetModules();
+  });
+
+  it('should initialize Firebase with correct config', async () => {
+    // Set up environment variables
+    process.env.REACT_APP_FIREBASE_API_KEY = 'test-api-key';
+    process.env.REACT_APP_FIREBASE_AUTH_DOMAIN = 'test-auth-domain';
+    process.env.REACT_APP_FIREBASE_PROJECT_ID = 'test-project-id';
+    process.env.REACT_APP_FIREBASE_STORAGE_BUCKET = 'test-storage-bucket';
+    process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID = 'test-sender-id';
+    process.env.REACT_APP_FIREBASE_APP_ID = 'test-app-id';
+
+    // Import firebase configuration
+    const { firebaseConfig } = require('../../services/firebase');
+
+    // Verify the configuration
+    expect(firebaseConfig).toEqual({
+      apiKey: 'test-api-key',
+      authDomain: 'test-auth-domain',
+      projectId: 'test-project-id',
+      storageBucket: 'test-storage-bucket',
+      messagingSenderId: 'test-sender-id',
+      appId: 'test-app-id'
+    });
+
+    // Verify Firebase initialization
+    expect(initializeApp).toHaveBeenCalledWith(firebaseConfig);
+  });
+
+  it('should throw error if API key is missing', () => {
+    // Set up environment variables without API key
+    process.env.REACT_APP_FIREBASE_AUTH_DOMAIN = 'test-auth-domain';
+    process.env.REACT_APP_FIREBASE_PROJECT_ID = 'test-project-id';
+
+    expect(() => {
+      require('../../services/firebase');
+    }).toThrow('Firebase configuration error: API key is missing');
+  });
+
+  it('should initialize Firebase services', async () => {
+    // Set up environment variables
+    process.env.REACT_APP_FIREBASE_API_KEY = 'test-api-key';
+    process.env.REACT_APP_FIREBASE_AUTH_DOMAIN = 'test-auth-domain';
+    process.env.REACT_APP_FIREBASE_PROJECT_ID = 'test-project-id';
+    process.env.REACT_APP_FIREBASE_STORAGE_BUCKET = 'test-storage-bucket';
+    process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID = 'test-sender-id';
+    process.env.REACT_APP_FIREBASE_APP_ID = 'test-app-id';
+
+    // Import firebase services
+    const { auth, db, storage } = require('../../services/firebase');
+
+    // Verify services are initialized
+    expect(getAuth).toHaveBeenCalled();
+    expect(getFirestore).toHaveBeenCalled();
+    expect(getStorage).toHaveBeenCalled();
+
+    // Verify service instances are exported
+    expect(auth).toBeDefined();
+    expect(db).toBeDefined();
+    expect(storage).toBeDefined();
+  });
+});
+
 describe('Firebase Service', () => {
   const mockApp = { name: 'mock-app' };
   const mockAuth = { signInWithEmailAndPassword: jest.fn() };

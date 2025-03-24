@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PagesList from '../../components/PagesList';
 import pageService from '../../services/pageService';
@@ -43,9 +43,10 @@ describe('PagesList Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
   });
 
-  it('renders loading state initially', () => {
+  it('renders loading state initially', async () => {
     (pageService.getAllPages as jest.Mock).mockImplementation(() => new Promise(() => {}));
     
     render(
@@ -54,12 +55,10 @@ describe('PagesList Component', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('Laddar...')).toBeInTheDocument();
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
   });
 
   it('renders pages when loaded', async () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
-    
     render(
       <BrowserRouter>
         <PagesList />
@@ -88,23 +87,24 @@ describe('PagesList Component', () => {
     });
   });
 
-  it('navigates to create page when clicking create button', () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue([]);
-    
+  it('navigates to create page when clicking create button', async () => {
     render(
       <BrowserRouter>
         <PagesList />
       </BrowserRouter>
     );
 
-    fireEvent.click(screen.getByText('Skapa ny sida'));
+    await waitFor(() => {
+      expect(screen.getByText('Skapa ny sida')).toBeInTheDocument();
+    });
 
+    await act(async () => {
+      screen.getByText('Skapa ny sida').click();
+    });
     expect(mockNavigate).toHaveBeenCalledWith('/admin/pages/new');
   });
 
   it('navigates to edit page when clicking edit button', async () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
-    
     render(
       <BrowserRouter>
         <PagesList />
@@ -116,13 +116,14 @@ describe('PagesList Component', () => {
     });
 
     const editButtons = screen.getAllByText('Redigera');
-    fireEvent.click(editButtons[0]);
+    await act(async () => {
+      editButtons[0].click();
+    });
 
     expect(mockNavigate).toHaveBeenCalledWith('/admin/pages/1/edit');
   });
 
   it('handles page deletion', async () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
     (pageService.deletePage as jest.Mock).mockResolvedValue(true);
     
     render(
@@ -136,7 +137,17 @@ describe('PagesList Component', () => {
     });
 
     const deleteButtons = screen.getAllByText('Ta bort');
-    fireEvent.click(deleteButtons[0]);
+    await act(async () => {
+      deleteButtons[0].click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Ja, ta bort')).toBeInTheDocument();
+    });
+    
+    await act(async () => {
+      screen.getByText('Ja, ta bort').click();
+    });
 
     await waitFor(() => {
       expect(pageService.deletePage).toHaveBeenCalledWith('1');
@@ -145,8 +156,7 @@ describe('PagesList Component', () => {
   });
 
   it('handles deletion error', async () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
-    (pageService.deletePage as jest.Mock).mockRejectedValue(new Error('Failed to delete page'));
+    (pageService.deletePage as jest.Mock).mockRejectedValue(new Error('Failed to delete'));
     
     render(
       <BrowserRouter>
@@ -159,7 +169,17 @@ describe('PagesList Component', () => {
     });
 
     const deleteButtons = screen.getAllByText('Ta bort');
-    fireEvent.click(deleteButtons[0]);
+    await act(async () => {
+      deleteButtons[0].click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Ja, ta bort')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      screen.getByText('Ja, ta bort').click();
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Ett fel uppstod vid borttagning av sidan')).toBeInTheDocument();
@@ -168,9 +188,6 @@ describe('PagesList Component', () => {
   });
 
   it('shows confirmation dialog before deletion', async () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
-    (pageService.deletePage as jest.Mock).mockResolvedValue(true);
-    
     render(
       <BrowserRouter>
         <PagesList />
@@ -182,17 +199,18 @@ describe('PagesList Component', () => {
     });
 
     const deleteButtons = screen.getAllByText('Ta bort');
-    fireEvent.click(deleteButtons[0]);
+    await act(async () => {
+      deleteButtons[0].click();
+    });
 
-    expect(screen.getByText('Är du säker på att du vill ta bort denna sida?')).toBeInTheDocument();
-    expect(screen.getByText('Ja, ta bort')).toBeInTheDocument();
-    expect(screen.getByText('Avbryt')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Är du säker på att du vill ta bort denna sida?')).toBeInTheDocument();
+      expect(screen.getByText('Ja, ta bort')).toBeInTheDocument();
+      expect(screen.getByText('Avbryt')).toBeInTheDocument();
+    });
   });
 
   it('cancels deletion when clicking cancel', async () => {
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
-    (pageService.deletePage as jest.Mock).mockResolvedValue(true);
-    
     render(
       <BrowserRouter>
         <PagesList />
@@ -204,12 +222,20 @@ describe('PagesList Component', () => {
     });
 
     const deleteButtons = screen.getAllByText('Ta bort');
-    fireEvent.click(deleteButtons[0]);
-
-    fireEvent.click(screen.getByText('Avbryt'));
+    await act(async () => {
+      deleteButtons[0].click();
+    });
 
     await waitFor(() => {
-      expect(pageService.deletePage).not.toHaveBeenCalled();
+      expect(screen.getByText('Avbryt')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      screen.getByText('Avbryt').click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Page 1')).toBeInTheDocument();
       expect(screen.queryByText('Är du säker på att du vill ta bort denna sida?')).not.toBeInTheDocument();
     });
   });

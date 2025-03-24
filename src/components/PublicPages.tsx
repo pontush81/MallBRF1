@@ -105,7 +105,7 @@ const PublicPages: React.FC = () => {
   };
 
   if (loading) {
-    return <div>Laddar...</div>;
+    return <div data-testid="loading">Laddar...</div>;
   }
 
   if (error) {
@@ -123,7 +123,7 @@ const PublicPages: React.FC = () => {
           <Typography variant="h4" gutterBottom>
             {page.title}
           </Typography>
-          <StyledMarkdown>
+          <StyledMarkdown data-testid="markdown">
             <ReactMarkdown>{page.content}</ReactMarkdown>
           </StyledMarkdown>
           

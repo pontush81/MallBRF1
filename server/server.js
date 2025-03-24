@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === 'production') {
   console.log('Running in production mode - SSL configured for database connections');
 } else {
   console.log('Running in development mode');
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
 // Log environment configuration
@@ -195,10 +195,10 @@ const uploadsDir = path.join(__dirname, 'uploads');
 const backupDir = path.join(__dirname, 'backups');
 
 if (process.env.NODE_ENV !== 'production') {
-    // Only attempt to create directories in development environment
-    if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir);
-    }
+  // Only attempt to create directories in development environment
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+  }
     if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir);
         console.log('Created backup directory:', backupDir);
@@ -306,7 +306,7 @@ app.get('/api/backups', async (req, res) => {
         if (result.success) {
             console.log('Found backups:', result.files ? result.files.length : 0);
             res.json({ success: true, files: result.files || [] });
-        } else {
+  } else {
             console.error('Error listing backups:', result.error);
             res.status(500).json({ success: false, error: result.error });
         }
@@ -338,7 +338,7 @@ app.post('/api/backup', async (req, res) => {
             }
             
             return res.json({ success: true, fileName: result.fileName });
-        } else {
+      } else {
             console.error('Error creating backup:', result.error);
             res.status(500).json({ success: false, error: result.error });
         }
@@ -611,13 +611,13 @@ const initDb = async () => {
         const { error: insertError } = await supabase
           .from('users')
           .insert([
-            {
-              id: '1',
-              email: 'admin@example.com',
-              name: 'Admin Användare',
+        {
+          id: '1',
+          email: 'admin@example.com',
+          name: 'Admin Användare',
               password: 'admin123', // Should be hashed in practice
-              role: 'admin',
-              isActive: true,
+          role: 'admin',
+          isActive: true,
               createdAt: new Date().toISOString()
             }
           ]);
@@ -660,7 +660,7 @@ async function ensureStagingSchema() {
         
         const { error: copyError } = await supabase.rpc('copy_tables_to_staging');
         if (copyError) throw copyError;
-
+        
         console.log('Staging schema created and tables copied successfully!');
       } else {
         console.log('Staging schema already exists');

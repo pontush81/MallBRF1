@@ -114,7 +114,7 @@ const PageEditor: React.FC = () => {
   };
 
   if (loading) {
-    return <div>Laddar...</div>;
+    return <div data-testid="loading">Laddar...</div>;
   }
 
   if (error) {
