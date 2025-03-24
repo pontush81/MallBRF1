@@ -239,10 +239,12 @@ const pageService = {
   },
 
   // Ladda upp en fil till en sida
-  uploadFile: async (pageId: string, file: File): Promise<any> => {
+  uploadFile: async (pageId: string, file: File) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
+      console.log('Uploading file:', { filename: file.name, size: file.size, type: file.type });
       
       const response = await fetch(`${API_BASE_URL}/pages/${pageId}/upload`, {
         method: 'POST',
@@ -250,10 +252,33 @@ const pageService = {
       });
 
       if (!response.ok) {
-        throw new Error('Kunde inte ladda upp filen');
+        const errorData = await response.json().catch(() => ({ error: 'Kunde inte ladda upp filen' }));
+        throw new Error(errorData.error || 'Kunde inte ladda upp filen');
       }
 
-      return await response.json();
+      // Försök avkoda JSON-svaret
+      let data;
+      try {
+        data = await response.json();
+        console.log('Raw file upload response:', data);
+      } catch (e) {
+        console.error('Failed to parse response JSON:', e);
+        throw new Error('Kunde inte tolka svaret från servern');
+      }
+
+      // Skapa ett säkert svarsobjekt med fallback-värden
+      return {
+        success: true,
+        file: {
+          id: data?.file?.id || String(Date.now()),
+          filename: data?.file?.filename || file.name,
+          originalName: data?.file?.originalName || file.name,
+          mimetype: data?.file?.mimetype || file.type,
+          size: data?.file?.size || file.size,
+          url: (data?.file?.url || '').toString(), // Säkerställ att URL är en sträng
+          uploadedAt: data?.file?.uploadedAt || new Date().toISOString()
+        }
+      };
     } catch (error) {
       console.error('Fel vid uppladdning av fil:', error);
       throw error;
