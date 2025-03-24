@@ -75,6 +75,8 @@ const { createBackup, restoreFromBackup, listBackups } = require('./utils/backup
 // Importera routes
 const pagesModule = require('./routes/pages');
 const pagesRouter = pagesModule.router;
+const bookingsModule = require('./routes/bookings');
+const bookingsRouter = bookingsModule.router;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -189,6 +191,7 @@ console.log('Anon Key length:', process.env.SUPABASE_ANON_KEY?.length);
 
 // Routes
 app.use('/api/pages', pagesRouter);
+app.use('/api/bookings', bookingsRouter);
 
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
