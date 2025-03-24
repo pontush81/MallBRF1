@@ -286,22 +286,31 @@ const pageService = {
   },
 
   // Radera en fil från en sida
-  deleteFile: async (pageId: string, fileIdOrIndex: string): Promise<boolean> => {
+  deleteFile: async (pageId: string, fileId: string): Promise<boolean> => {
     try {
-      const endpoint = `${API_BASE_URL}/pages/${pageId}/files/${fileIdOrIndex}`;
-      
-      const response = await fetch(endpoint, {
+      console.log('Attempting to delete file:', { pageId, fileId });
+      const response = await fetch(`${API_BASE_URL}/pages/${pageId}/files/${fileId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response from server:', errorData);
+        throw new Error(errorData.error || 'Kunde inte radera filen');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
         throw new Error('Kunde inte radera filen');
       }
 
       return true;
     } catch (error) {
       console.error('Fel vid radering av fil:', error);
-      return false;
+      throw error;
     }
   },
 

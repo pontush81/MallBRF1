@@ -286,26 +286,24 @@ const PageEditor: React.FC = () => {
 
   // Hantera radering av fil
   const handleDeleteFile = async (fileId: string) => {
-    if (!id) return;
-    
+    if (!id) {
+      console.error('No page ID available');
+      return;
+    }
+
     try {
       setUploadLoading(true);
+      console.log('Attempting to delete file:', { pageId: id, fileId });
       
-      const success = await pageService.deleteFile(id, fileId);
+      await pageService.deleteFile(id, fileId);
       
-      if (success) {
-        setFiles(prevFiles => prevFiles.filter(file => 
-          // Check both id and filename to handle both storage methods
-          (file.id === fileId || file.filename === fileId)
-        ));
-        setSnackbarMessage('Filen har raderats');
-        setSnackbarOpen(true);
-      } else {
-        throw new Error('Kunde inte radera filen');
-      }
-    } catch (err) {
-      setError('Ett fel uppstod vid radering av filen');
-      console.error(err);
+      // Update local state
+      setFiles(prevFiles => prevFiles.filter(f => f.id !== fileId));
+      setSnackbarMessage('Filen har raderats');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      setError(error instanceof Error ? error.message : 'Kunde inte radera filen. Försök igen senare.');
     } finally {
       setUploadLoading(false);
     }
