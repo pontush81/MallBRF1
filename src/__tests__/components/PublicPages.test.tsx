@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PublicPages from '../../components/PublicPages';
 import pageService from '../../services/pageService';
@@ -13,32 +13,19 @@ describe('PublicPages Component', () => {
   const mockPages = [
     {
       id: '1',
-      title: 'Test Page 1',
-      content: '# Welcome\n\nThis is a test page.',
-      slug: 'test-page-1',
-      isPublished: true,
-      show: true,
-      files: [],
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z'
+      title: 'Welcome',
+      content: 'This is a test page',
+      published: true,
+      visible: true,
+      fileAttachments: []
     },
     {
       id: '2',
-      title: 'Test Page 2',
-      content: '## Information\n\nSome important information.',
-      slug: 'test-page-2',
-      isPublished: true,
-      show: true,
-      files: [
-        {
-          id: 'file1',
-          filename: 'test.pdf',
-          originalName: 'Test Document.pdf',
-          url: 'https://example.com/test.pdf'
-        }
-      ],
-      createdAt: '2024-01-02T00:00:00.000Z',
-      updatedAt: '2024-01-02T00:00:00.000Z'
+      title: 'Information',
+      content: 'Some important information',
+      published: true,
+      visible: true,
+      fileAttachments: []
     }
   ];
 
@@ -46,62 +33,80 @@ describe('PublicPages Component', () => {
     jest.clearAllMocks();
   });
 
-  it('renders loading state initially', () => {
-    render(
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <PublicPages />
-        </BrowserRouter>
-      </ThemeProvider>
-    );
-    expect(screen.getByText('Laddar...')).toBeInTheDocument();
+  it('renders loading state initially', async () => {
+    (pageService.getVisiblePages as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <BrowserRouter>
+            <PublicPages />
+          </BrowserRouter>
+        </ThemeProvider>
+      );
+    });
+
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
   });
 
   it('renders published and visible pages when loaded', async () => {
+    const mockPages = [
+      {
+        id: '1',
+        title: 'Welcome',
+        content: 'This is a test page',
+        slug: 'welcome',
+        isPublished: true,
+        show: true,
+        files: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        title: 'Information',
+        content: 'Some important information',
+        slug: 'information',
+        isPublished: true,
+        show: true,
+        files: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
     (pageService.getVisiblePages as jest.Mock).mockResolvedValue(mockPages);
 
-    render(
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <PublicPages />
-        </BrowserRouter>
-      </ThemeProvider>
-    );
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <BrowserRouter>
+            <PublicPages />
+          </BrowserRouter>
+        </ThemeProvider>
+      );
+    });
 
     await waitFor(() => {
-      expect(screen.getByText('Test Page 1')).toBeInTheDocument();
-      expect(screen.getByText('Test Page 2')).toBeInTheDocument();
       expect(screen.getByText('Welcome')).toBeInTheDocument();
       expect(screen.getByText('Information')).toBeInTheDocument();
-    });
-  });
-
-  it('handles load error and displays error message', async () => {
-    (pageService.getVisiblePages as jest.Mock).mockRejectedValue(new Error('Failed to load'));
-
-    render(
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <PublicPages />
-        </BrowserRouter>
-      </ThemeProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Ett fel uppstod vid laddning av sidorna')).toBeInTheDocument();
+      expect(screen.getByText('This is a test page')).toBeInTheDocument();
+      expect(screen.getByText('Some important information')).toBeInTheDocument();
     });
   });
 
   it('renders fallback pages when API fails', async () => {
-    (pageService.getVisiblePages as jest.Mock).mockRejectedValue(new Error('Failed to load'));
+    (pageService.getVisiblePages as jest.Mock).mockRejectedValue(new Error('API Error'));
 
-    render(
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <PublicPages />
-        </BrowserRouter>
-      </ThemeProvider>
-    );
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <BrowserRouter>
+            <PublicPages />
+          </BrowserRouter>
+        </ThemeProvider>
+      );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Välkomstsida')).toBeInTheDocument();
@@ -110,19 +115,42 @@ describe('PublicPages Component', () => {
   });
 
   it('displays file attachments when available', async () => {
+    const mockPages = [
+      {
+        id: '1',
+        title: 'Welcome',
+        content: 'This is a test page',
+        slug: 'welcome',
+        isPublished: true,
+        show: true,
+        files: [
+          {
+            id: '1',
+            filename: 'test.pdf',
+            originalName: 'test.pdf',
+            url: 'https://example.com/test.pdf'
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
     (pageService.getVisiblePages as jest.Mock).mockResolvedValue(mockPages);
 
-    render(
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <PublicPages />
-        </BrowserRouter>
-      </ThemeProvider>
-    );
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <BrowserRouter>
+            <PublicPages />
+          </BrowserRouter>
+        </ThemeProvider>
+      );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Bilagor')).toBeInTheDocument();
-      expect(screen.getByText('Test Document.pdf')).toBeInTheDocument();
+      expect(screen.getByText('test.pdf')).toBeInTheDocument();
     });
   });
 

@@ -1,7 +1,7 @@
 // API base URL configuration
 export const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? '/api'  // Production URL - use relative URL to avoid CORS issues
-  : 'http://localhost:3001/api';  // Development URL
+  : 'http://localhost:3002/api';  // Development URL
 
 // Fallback API URL (used when the regular API fails)
 export const FALLBACK_API_ENABLED = true;

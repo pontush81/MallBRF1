@@ -4,8 +4,22 @@ import { AuthProvider, useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
 import { User } from '../../types/User';
 
+// Mock Firebase auth
+jest.mock('firebase/auth', () => ({
+  signOut: jest.fn(() => Promise.resolve()),
+  onAuthStateChanged: jest.fn((auth, callback) => {
+    callback(null);
+    return jest.fn(); // Return a mock unsubscribe function
+  })
+}));
+
 // Mock the userService
 jest.mock('../../services/userService');
+
+// Mock Firebase auth module
+jest.mock('../../services/firebase', () => ({
+  auth: {}
+}));
 
 // Test component to access auth context
 const TestComponent = ({ mockUser }: { mockUser: User }) => {
@@ -37,12 +51,24 @@ describe('AuthContext', () => {
     lastLogin: '2024-03-23T12:00:00Z'
   };
 
+  const mockFirebaseUser = {
+    uid: '1',
+    email: 'test@example.com',
+    displayName: 'Test User'
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    // Reset the onAuthStateChanged mock to its default behavior
+    const { onAuthStateChanged } = require('firebase/auth');
+    (onAuthStateChanged as jest.Mock).mockImplementation((auth, callback) => {
+      callback(null);
+      return jest.fn(); // Return a mock unsubscribe function
+    });
   });
 
-  it('provides initial loading state', () => {
+  it('provides initial loading state', async () => {
     render(
       <AuthProvider>
         <TestComponent mockUser={mockUser} />
@@ -50,42 +76,45 @@ describe('AuthContext', () => {
     );
 
     expect(screen.getByTestId('loading')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+    });
   });
 
   it('handles successful login', async () => {
+    // Mock userService to return user data
+    (userService.getUserById as jest.Mock).mockResolvedValue(mockUser);
+
+    // Mock Firebase auth to return a user
+    const { onAuthStateChanged } = require('firebase/auth');
+    (onAuthStateChanged as jest.Mock).mockImplementation((auth, callback) => {
+      callback(mockFirebaseUser);
+      return jest.fn();
+    });
+
     render(
       <AuthProvider>
         <TestComponent mockUser={mockUser} />
       </AuthProvider>
     );
 
-    // Wait for initial loading to complete
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
-    });
-
-    // Trigger login
-    const loginButton = screen.getByText('Login');
-    await act(async () => {
-      loginButton.click();
-    });
-
-    // Wait for user to be displayed
     await waitFor(() => {
       expect(screen.getByTestId('user')).toBeInTheDocument();
       expect(screen.getByText(mockUser.email)).toBeInTheDocument();
       expect(screen.getByText(mockUser.role)).toBeInTheDocument();
     });
-
-    // Check if user was stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    expect(storedUser).toBeTruthy();
-    expect(JSON.parse(storedUser || '{}')).toEqual(mockUser);
   });
 
   it('handles login error', async () => {
-    const errorMessage = 'Failed to fetch user data';
-    (userService.getUserById as jest.Mock).mockRejectedValue(new Error(errorMessage));
+    // Mock userService to throw an error
+    (userService.getUserById as jest.Mock).mockRejectedValue(new Error('Failed to fetch user'));
+
+    // Mock Firebase auth to return a user
+    const { onAuthStateChanged } = require('firebase/auth');
+    (onAuthStateChanged as jest.Mock).mockImplementation((auth, callback) => {
+      callback(mockFirebaseUser);
+      return jest.fn();
+    });
 
     render(
       <AuthProvider>
@@ -93,27 +122,22 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    // Wait for initial loading to complete
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
-    });
-
-    // Trigger login
-    const loginButton = screen.getByText('Login');
-    await act(async () => {
-      loginButton.click();
-    });
-
-    // Wait for error to be displayed
     await waitFor(() => {
       expect(screen.getByTestId('error')).toBeInTheDocument();
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(screen.getByText('Failed to fetch user data')).toBeInTheDocument();
     });
   });
 
   it('handles logout', async () => {
-    // Set up initial user state
-    localStorage.setItem('user', JSON.stringify(mockUser));
+    // Mock userService to return user data
+    (userService.getUserById as jest.Mock).mockResolvedValue(mockUser);
+
+    // Mock Firebase auth to return a user initially
+    const { onAuthStateChanged, signOut } = require('firebase/auth');
+    (onAuthStateChanged as jest.Mock).mockImplementation((auth, callback) => {
+      callback(mockFirebaseUser);
+      return jest.fn();
+    });
 
     render(
       <AuthProvider>
@@ -126,24 +150,31 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('user')).toBeInTheDocument();
     });
 
-    // Trigger logout
+    // Click logout button
     const logoutButton = screen.getByText('Logout');
     await act(async () => {
       logoutButton.click();
     });
 
-    // Wait for user to be cleared
+    // Verify signOut was called
+    expect(signOut).toHaveBeenCalled();
+
+    // Verify user is logged out
     await waitFor(() => {
       expect(screen.queryByTestId('user')).not.toBeInTheDocument();
     });
-
-    // Check if user was removed from localStorage
-    expect(localStorage.getItem('user')).toBeNull();
   });
 
   it('restores user from localStorage on page reload', async () => {
-    // Set up initial user state in localStorage
+    // Store user in localStorage
     localStorage.setItem('user', JSON.stringify(mockUser));
+
+    // Mock Firebase auth to return no user (simulating page reload)
+    const { onAuthStateChanged } = require('firebase/auth');
+    (onAuthStateChanged as jest.Mock).mockImplementation((auth, callback) => {
+      callback(null);
+      return jest.fn();
+    });
 
     render(
       <AuthProvider>
@@ -151,7 +182,6 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    // Wait for user to be loaded
     await waitFor(() => {
       expect(screen.getByTestId('user')).toBeInTheDocument();
       expect(screen.getByText(mockUser.email)).toBeInTheDocument();

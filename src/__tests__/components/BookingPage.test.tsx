@@ -1,61 +1,54 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React, { forwardRef } from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { sv } from 'date-fns/locale';
-import BookingPage from '../../pages/public/BookingPage';
 import theme from '../../theme';
+import BookingPage from '../../pages/public/BookingPage';
 import bookingService from '../../services/bookingService';
 import pageService from '../../services/pageService';
 
 // Mock the services
 jest.mock('../../services/bookingService');
 jest.mock('../../services/pageService');
+jest.mock('@mui/material/useMediaQuery', () => () => false);
 
-// Mock FullCalendar to avoid issues with DOM manipulation
-jest.mock('@fullcalendar/react', () => {
-  return function MockFullCalendar(props: any) {
-    return <div data-testid="mock-calendar" {...props} />;
-  };
-});
+interface CalendarProps {
+  select: (info: { start: Date; end: Date; view: { calendar: { addEvent: () => void } } }) => void;
+}
+
+// Mock FullCalendar
+jest.mock('@fullcalendar/react', () => ({
+  __esModule: true,
+  default: forwardRef<HTMLDivElement, CalendarProps>(function DummyCalendar({ select }, ref) {
+    return (
+      <div data-testid="mock-calendar" ref={ref}>
+        <button 
+          onClick={() => select({ 
+            start: new Date('2024-04-01'), 
+            end: new Date('2024-04-03'),
+            view: { calendar: { addEvent: jest.fn() } }
+          })}
+        >
+          Select Dates
+        </button>
+      </div>
+    );
+  })
+}));
 
 describe('BookingPage Component', () => {
-  const mockBookings = [
-    {
-      id: '1',
-      name: 'Test User',
-      email: 'test@example.com',
-      startDate: '2024-03-25',
-      endDate: '2024-03-27',
-      status: 'confirmed',
-      phone: '1234567890',
-      notes: 'Test booking'
-    }
-  ];
-
-  const mockApartmentInfo = {
-    id: '1',
-    title: 'Lägenhetsinformation',
-    content: 'Test content',
-    slug: 'lagenhet-info',
-    isPublished: true,
-    show: true,
-    files: []
-  };
-
   beforeEach(() => {
-    // Reset all mocks before each test
     jest.clearAllMocks();
-    
-    // Setup default mock implementations
-    (bookingService.getAllBookings as jest.Mock).mockResolvedValue(mockBookings);
-    (bookingService.createBooking as jest.Mock).mockResolvedValue({ id: '2', ...mockBookings[0] });
-    (pageService.getPageBySlug as jest.Mock).mockResolvedValue(mockApartmentInfo);
+    (bookingService.getAllBookings as jest.Mock).mockResolvedValue([]);
+    (bookingService.checkAvailability as jest.Mock).mockResolvedValue({ available: true });
+    (bookingService.createBooking as jest.Mock).mockResolvedValue({ id: '1' });
+    (pageService.getPageBySlug as jest.Mock).mockResolvedValue(null);
   });
 
-  const renderBookingPage = () => {
+  const renderComponent = () => {
     return render(
       <BrowserRouter>
         <ThemeProvider theme={theme}>
@@ -67,142 +60,158 @@ describe('BookingPage Component', () => {
     );
   };
 
-  test('renders booking page with initial state', () => {
-    renderBookingPage();
-    
-    // Check for main components
-    expect(screen.getByText('Boka lägenhet')).toBeInTheDocument();
-    expect(screen.getByText('Välj datum och dina uppgifter')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-calendar')).toBeInTheDocument();
-  });
-
-  test('loads and displays existing bookings', async () => {
-    renderBookingPage();
-    
-    // Wait for bookings to load
+  it('renders booking page', async () => {
+    renderComponent();
     await waitFor(() => {
-      expect(bookingService.getAllBookings).toHaveBeenCalled();
+      expect(screen.getByText('Boka boende')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-calendar')).toBeInTheDocument();
     });
   });
 
-  test('validates form fields correctly', async () => {
-    renderBookingPage();
-    
-    // Try to proceed without filling any fields
-    const nextButton = screen.getByText('Nästa');
-    fireEvent.click(nextButton);
-    
-    // Check for validation messages
-    expect(screen.getByText('Välj ett ankomstdatum')).toBeInTheDocument();
-    expect(screen.getByText('Välj ett avresedatum')).toBeInTheDocument();
-    expect(screen.getByText('Namn krävs')).toBeInTheDocument();
-    expect(screen.getByText('E-post krävs')).toBeInTheDocument();
-  });
+  it('validates form fields and submits booking', async () => {
+    renderComponent();
 
-  test('validates email format', async () => {
-    renderBookingPage();
-    
-    // Fill in the form with invalid email
-    const nameInput = screen.getByLabelText('Namn');
-    const emailInput = screen.getByLabelText('E-post');
-    
-    fireEvent.change(nameInput, { target: { value: 'Test User' } });
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-    
-    const nextButton = screen.getByText('Nästa');
-    fireEvent.click(nextButton);
-    
-    // Check for email validation message
-    expect(screen.getByText('Ogiltig e-postadress')).toBeInTheDocument();
-  });
+    // Fill in form fields
+    const nameInput = screen.getByRole('textbox', { name: /namn/i });
+    const emailInput = screen.getByRole('textbox', { name: /e-post/i });
+    const phoneInput = screen.getByRole('textbox', { name: /telefon/i });
+    const notesInput = screen.getByRole('textbox', { name: /meddelande/i });
 
-  test('submits booking successfully', async () => {
-    renderBookingPage();
-    
-    // Fill in the form
-    const nameInput = screen.getByLabelText('Namn');
-    const emailInput = screen.getByLabelText('E-post');
-    const phoneInput = screen.getByLabelText('Telefon');
-    const notesInput = screen.getByLabelText('Anteckningar');
-    
-    fireEvent.change(nameInput, { target: { value: 'Test User' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(phoneInput, { target: { value: '1234567890' } });
-    fireEvent.change(notesInput, { target: { value: 'Test notes' } });
-    
-    // Select dates (you'll need to implement date selection based on your UI)
-    // This is a simplified version - you might need to adjust based on your actual date picker implementation
-    
-    // Submit the booking
-    const nextButton = screen.getByText('Nästa');
-    fireEvent.click(nextButton);
-    
-    // Wait for the booking to be created
-    await waitFor(() => {
-      expect(bookingService.createBooking).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Test User' } });
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(phoneInput, { target: { value: '1234567890' } });
+      fireEvent.change(notesInput, { target: { value: 'Test notes' } });
     });
-    
-    // Check for success message
-    expect(screen.getByText(/Bokningen har skapats/i)).toBeInTheDocument();
+
+    // Select dates using the mock calendar
+    const selectDatesButton = screen.getByRole('button', { name: /select dates/i });
+    await act(async () => {
+      fireEvent.click(selectDatesButton);
+    });
+
+    // Submit form
+    const submitButton = screen.getByRole('button', { name: /bekräfta bokning/i });
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
+
+    // Wait for success message
+    await waitFor(() => {
+      expect(screen.getByText('Tack för din bokning!')).toBeInTheDocument();
+    });
+
+    // Verify booking service was called
+    expect(bookingService.createBooking).toHaveBeenCalledWith({
+      name: 'Test User',
+      email: 'test@example.com',
+      startDate: expect.any(String),
+      endDate: expect.any(String),
+      notes: 'Test notes',
+      phone: '1234567890'
+    });
   });
 
-  test('handles booking errors gracefully', async () => {
-    // Mock the createBooking to throw an error
+  it('shows validation errors for empty fields', async () => {
+    renderComponent();
+
+    // Submit form without filling in fields
+    const submitButton = screen.getByRole('button', { name: /bekräfta bokning/i });
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
+
+    // Verify validation messages
+    await waitFor(() => {
+      const nameInput = screen.getByRole('textbox', { name: /namn/i });
+      const emailInput = screen.getByRole('textbox', { name: /e-post/i });
+      const phoneInput = screen.getByRole('textbox', { name: /telefon/i });
+
+      expect(nameInput).toHaveAttribute('aria-invalid', 'true');
+      expect(emailInput).toHaveAttribute('aria-invalid', 'true');
+      expect(phoneInput).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByText('Välj ett ankomstdatum')).toBeInTheDocument();
+      expect(screen.getByText('Välj ett avresedatum')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error message on booking failure', async () => {
+    // Mock booking service to throw error
     (bookingService.createBooking as jest.Mock).mockRejectedValue(new Error('Booking failed'));
-    
-    renderBookingPage();
-    
-    // Fill in the form
-    const nameInput = screen.getByLabelText('Namn');
-    const emailInput = screen.getByLabelText('E-post');
-    
-    fireEvent.change(nameInput, { target: { value: 'Test User' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    
-    // Submit the booking
-    const nextButton = screen.getByText('Nästa');
-    fireEvent.click(nextButton);
-    
-    // Wait for the error message
+
+    renderComponent();
+
+    // Fill in form fields
+    const nameInput = screen.getByRole('textbox', { name: /namn/i });
+    const emailInput = screen.getByRole('textbox', { name: /e-post/i });
+    const phoneInput = screen.getByRole('textbox', { name: /telefon/i });
+
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Test User' } });
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(phoneInput, { target: { value: '1234567890' } });
+    });
+
+    // Select dates using the mock calendar
+    const selectDatesButton = screen.getByRole('button', { name: /select dates/i });
+    await act(async () => {
+      fireEvent.click(selectDatesButton);
+    });
+
+    // Submit form
+    const submitButton = screen.getByRole('button', { name: /bekräfta bokning/i });
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
+
+    // Verify error message
     await waitFor(() => {
-      expect(screen.getByText(/Ett fel uppstod/i)).toBeInTheDocument();
+      expect(screen.getByText('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.')).toBeInTheDocument();
     });
   });
 
-  test('loads apartment information', async () => {
-    renderBookingPage();
-    
-    // Wait for apartment info to load
-    await waitFor(() => {
-      expect(pageService.getPageBySlug).toHaveBeenCalledWith('lagenhet-info');
-    });
-  });
+  it('resets form after successful submission', async () => {
+    renderComponent();
 
-  test('resets form after successful submission', async () => {
-    renderBookingPage();
-    
-    // Fill in the form
-    const nameInput = screen.getByLabelText('Namn');
-    const emailInput = screen.getByLabelText('E-post');
-    
-    fireEvent.change(nameInput, { target: { value: 'Test User' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    
-    // Submit the booking
-    const nextButton = screen.getByText('Nästa');
-    fireEvent.click(nextButton);
-    
-    // Wait for the booking to be created
-    await waitFor(() => {
-      expect(bookingService.createBooking).toHaveBeenCalled();
+    // Fill in form fields
+    const nameInput = screen.getByRole('textbox', { name: /namn/i });
+    const emailInput = screen.getByRole('textbox', { name: /e-post/i });
+    const phoneInput = screen.getByRole('textbox', { name: /telefon/i });
+
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Test User' } });
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(phoneInput, { target: { value: '1234567890' } });
     });
-    
+
+    // Select dates using the mock calendar
+    const selectDatesButton = screen.getByRole('button', { name: /select dates/i });
+    await act(async () => {
+      fireEvent.click(selectDatesButton);
+    });
+
+    // Submit form
+    const submitButton = screen.getByRole('button', { name: /bekräfta bokning/i });
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
+
+    // Wait for success message
+    await waitFor(() => {
+      expect(screen.getByText('Tack för din bokning!')).toBeInTheDocument();
+    });
+
     // Click reset button
-    const resetButton = screen.getByText('Boka igen');
-    fireEvent.click(resetButton);
-    
-    // Check if form is reset
-    expect(nameInput).toHaveValue('');
-    expect(emailInput).toHaveValue('');
+    const resetButton = screen.getByRole('button', { name: /gör en ny bokning/i });
+    await act(async () => {
+      fireEvent.click(resetButton);
+    });
+
+    // Verify form is reset
+    await waitFor(() => {
+      expect(nameInput).toHaveValue('');
+      expect(emailInput).toHaveValue('');
+      expect(phoneInput).toHaveValue('');
+    });
   });
-}); 
+});

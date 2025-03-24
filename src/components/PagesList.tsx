@@ -59,7 +59,7 @@ const PagesList: React.FC = () => {
   };
 
   if (loading) {
-    return <div>Laddar...</div>;
+    return <div data-testid="loading">Laddar...</div>;
   }
 
   if (error) {
@@ -83,17 +83,23 @@ const PagesList: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {pages.map(page => (
-            <tr key={page.id}>
-              <td>{page.title}</td>
-              <td>{page.isPublished ? 'Publicerad' : 'Ej publicerad'}</td>
-              <td>{new Date(page.updatedAt || '').toLocaleDateString()}</td>
-              <td>
-                <button onClick={() => handleEditPage(page.id)}>Redigera</button>
-                <button onClick={() => handleDeleteClick(page.id)}>Ta bort</button>
-              </td>
+          {pages && pages.length > 0 ? (
+            pages.map(page => (
+              <tr key={page.id}>
+                <td>{page.title}</td>
+                <td>{page.isPublished ? 'Publicerad' : 'Ej publicerad'}</td>
+                <td>{new Date(page.updatedAt || '').toLocaleDateString()}</td>
+                <td>
+                  <button onClick={() => handleEditPage(page.id)}>Redigera</button>
+                  <button onClick={() => handleDeleteClick(page.id)}>Ta bort</button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={4}>Inga sidor hittades</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
 
