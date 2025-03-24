@@ -392,7 +392,7 @@ const PageEditor: React.FC = () => {
                   {file.mimetype.startsWith('image/') ? (
                     <CardMedia
                       component="img"
-                      height="140"
+                      height="180"
                       image={file.url}
                       alt={file.originalName}
                       sx={{ objectFit: 'cover' }}
