@@ -434,12 +434,12 @@ const PublicPages: React.FC = (): JSX.Element => {
                                   component="img"
                                   height="180"
                                   image={getFileUrl(file)}
-                                  alt={file.originalName || file.originalname}
+                                  alt={file.originalName}
                                   sx={{ objectFit: 'cover' }}
                                 />
                                 <CardContent sx={{ py: 1 }}>
-                                  <Typography variant="body2" noWrap title={file.originalName || file.originalname}>
-                                    {file.originalName || file.originalname}
+                                  <Typography variant="body2" noWrap title={file.originalName}>
+                                    {file.originalName}
                                   </Typography>
                                 </CardContent>
                                 <CardActions>
@@ -502,7 +502,7 @@ const PublicPages: React.FC = (): JSX.Element => {
                                   size="small"
                                   component="a" 
                                   href={getFileUrl(file)}
-                                  download={file.originalName || file.originalname}
+                                  download={file.originalName}
                                   startIcon={<FileDownloadIcon />}
                                 >
                                   Ladda ner
