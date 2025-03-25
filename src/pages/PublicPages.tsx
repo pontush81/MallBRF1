@@ -60,7 +60,9 @@ const PublicPages: React.FC = (): JSX.Element => {
         setLoading(true);
         // Använd getVisiblePages för att endast hämta publicerade sidor markerade för visning
         const visiblePages = await pageService.getVisiblePages();
-        setPages(visiblePages);
+        // Sortera sidorna i bokstavsordning baserat på titeln
+        const sortedPages = [...visiblePages].sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+        setPages(sortedPages);
       } catch (err) {
         console.error('Kunde inte hämta sidor:', err);
         setError('Kunde inte ladda sidorna. Försök igen senare.');
@@ -287,9 +289,6 @@ const PublicPages: React.FC = (): JSX.Element => {
     return (
       <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Sidor
-          </Typography>
           <Divider sx={{ mb: 4 }} />
           
           {[1, 2].map((item) => (
@@ -319,9 +318,6 @@ const PublicPages: React.FC = (): JSX.Element => {
     return (
       <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Sidor
-          </Typography>
           <Alert severity="info">
             Det finns inga sidor att visa för tillfället.
           </Alert>
@@ -362,16 +358,9 @@ const PublicPages: React.FC = (): JSX.Element => {
       <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
           <Box ref={headerRef}>
-            <Typography variant="h3" component="h1" gutterBottom color="primary">
-              Sidor
-            </Typography>
-            
-            {/* Standard navigationsmeny */}
             <Box sx={{ mb: 4 }}>
               {isMobile ? <MobileMenu /> : <NavigationTabs />}
             </Box>
-            
-            <Divider sx={{ mb: 4 }} />
           </Box>
           
           {/* Sidornas innehåll */}
