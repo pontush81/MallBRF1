@@ -51,7 +51,7 @@ const pageService = {
   getVisiblePages: async (): Promise<Page[]> => {
     try {
       // Add credentials and mode to fetch request
-      const response = await fetch(`${API_BASE_URL}/pages/visible`, {
+      await fetch(`${API_BASE_URL}/pages/visible`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -171,7 +171,7 @@ const pageService = {
   // Hämta en specifik sida med slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
+      await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
