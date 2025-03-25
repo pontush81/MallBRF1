@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, addDays, isAfter, differenceInDays, isSameDay } from 'date-fns';
@@ -38,18 +38,27 @@ import pageService from '../../services/pageService';
 // Förenklade steg i bokningsprocessen
 const steps = ['Välj datum och dina uppgifter', 'Klar'];
 
-// Ny komponent för att rendera anpassade dagsceller
-const CustomPickersDay = (props: any) => {
-  const { day, selectedDays, bookedDates, ...other } = props;
-  
-  const isBooked = bookedDates.some((booking: any) => {
-    const startDate = new Date(booking.startDate);
-    const endDate = new Date(booking.endDate);
-    return day >= startDate && day <= endDate;
-  });
+// Custom day component för kalendern
+const CustomPickersDay = ({
+  selectedDays = [],
+  bookedDates = [],
+  ...other
+}: PickersDayProps<Date> & {
+  selectedDays?: Date[];
+  bookedDates?: Booking[];
+}) => {
+  const isSelected = selectedDays.some(
+    (date) => date && other.day && date.getDate() === other.day.getDate() &&
+    date.getMonth() === other.day.getMonth() &&
+    date.getFullYear() === other.day.getFullYear()
+  );
 
-  const isSelected = selectedDays.some((selectedDay: Date) => 
-    isSameDay(day, selectedDay)
+  const isBooked = bookedDates.some(
+    (booking) => {
+      const bookingStart = new Date(booking.startDate);
+      const bookingEnd = new Date(booking.endDate);
+      return other.day >= bookingStart && other.day <= bookingEnd;
+    }
   );
 
   return (
@@ -57,20 +66,21 @@ const CustomPickersDay = (props: any) => {
       title={isBooked ? "Upptaget" : "Tillgängligt"} 
       arrow
     >
-      <PickersDay 
-        {...other} 
-        day={day}
+      <PickersDay
+        {...other}
         selected={isSelected}
         sx={{
           ...(isBooked && {
-            backgroundColor: '#ffcccc',
+            backgroundColor: 'rgba(255, 0, 0, 0.1)',
             '&:hover': {
-              backgroundColor: '#ffb3b3',
+              backgroundColor: 'rgba(255, 0, 0, 0.2)',
             },
-          }),
-          ...(isSelected && {
-            backgroundColor: '#2196f3 !important',
-            color: 'white !important',
+            '&.Mui-selected': {
+              backgroundColor: 'rgba(255, 0, 0, 0.3)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 0, 0, 0.4)',
+              },
+            },
           }),
         }}
       />
@@ -241,47 +251,6 @@ const BookingPage: React.FC = () => {
     fetchApartmentInfo();
   }, []);
 
-  // Funktion för att kontrollera om ett datum är upptaget
-  const isDateBooked = (date: Date) => {
-    if (!existingBookings.length || !date) return false;
-    
-    console.log('Checking availability for date:', format(date, 'yyyy-MM-dd'));
-    
-    return existingBookings.some(booking => {
-      // Ignorera avbokade bokningar
-      if (booking.status === 'cancelled') return false;
-      
-      try {
-        if (!booking.startDate || !booking.endDate) return false;
-        
-        const bookingStart = new Date(booking.startDate);
-        const bookingEnd = new Date(booking.endDate);
-        
-        // Kontrollera att datumen är giltiga
-        if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) {
-          console.warn('Ogiltiga datum i bokning vid kontroll:', booking.id, booking.startDate, booking.endDate);
-          return false;
-        }
-        
-        // Justera datum för att jämföra enbart datum (inte tid)
-        const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const startDate = new Date(bookingStart.getFullYear(), bookingStart.getMonth(), bookingStart.getDate());
-        const endDate = new Date(bookingEnd.getFullYear(), bookingEnd.getMonth(), bookingEnd.getDate());
-        
-        // Kontrollera om datum är inom intervallet (inklusive start- och slutdatum)
-        const result = dateToCheck >= startDate && dateToCheck <= endDate;
-        
-        if (result) {
-          console.log('Date is booked:', format(date, 'yyyy-MM-dd'), 'by booking:', booking.id);
-        }
-        return result;
-      } catch (error) {
-        console.error('Error checking date availability:', error, booking);
-        return false;
-      }
-    });
-  };
-  
   // Validering för e-post
   const validateEmail = (email: string) => {
     return /\S+@\S+\.\S+/.test(email);
