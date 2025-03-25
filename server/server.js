@@ -92,10 +92,10 @@ const corsOptions = {
   maxAge: 86400 // 24 hours
 };
 
-// Apply CORS configuration before any other middleware
+// Middleware configuration
 app.use(cors(corsOptions));
 
-// Add request logging middleware at the top, after CORS
+// Request logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   console.log('Headers:', req.headers);
@@ -108,161 +108,66 @@ app.options('*', (req, res) => {
   res.status(204).header({
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,Origin,Accept,X-Requested-With',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass',
     'Access-Control-Max-Age': '86400'
   }).send();
 });
 
-// Authentication middleware
-const authenticateRequest = (req, res, next) => {
-  // Check for Vercel protection bypass header
-  if (req.headers['x-vercel-protection-bypass'] === 'true') {
-    return next();
-  }
-
-  // Check for Authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No authorization header' });
-  }
-
-  // Extract token from Authorization header
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  // Verify token against environment variable
-  if (token !== process.env.API_SECRET) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-
-  next();
-};
-
-// Define public routes that don't require authentication
-const publicRoutes = [
-  '/',
-  '/api/pages/visible',
-  '/api/pages/published',
-  '/api/pages/slug',
-  '/health',
-  '/manifest.json'
-];
-
-// Add middleware to handle public routes
-app.use((req, res, next) => {
-  const isPublicRoute = publicRoutes.some(route => req.path.startsWith(route));
-  console.log(`[${new Date().toISOString()}] Accessing ${req.path} - Public route: ${isPublicRoute}`);
-  
-  if (isPublicRoute) {
-    return next();
-  }
-  authenticateRequest(req, res, next);
-});
-
-// Configure file upload
+// Body parsers and file upload middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload({
   createParentPath: true,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB max file size
-  },
+  limits: { fileSize: 10 * 1024 * 1024 },
   abortOnLimit: true,
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
 
-// Body parser middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Health check endpoint (no auth required)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
-// Verify environment variables
-const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  process.exit(1);
-}
-
-console.log('Environment variables verified successfully');
-console.log('Supabase URL:', process.env.SUPABASE_URL);
-console.log('Service Role Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
-console.log('Anon Key length:', process.env.SUPABASE_ANON_KEY?.length);
-
-// Add test endpoint before any other routes
+// Test endpoint (no auth required)
 app.get('/api/test', (req, res) => {
   console.log('Test endpoint hit');
   res.json({ message: 'API is running' });
 });
 
-// Routes
+// Handle manifest.json with proper CORS headers (no auth required)
+app.get('/manifest.json', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Content-Type', 'application/json');
+  res.json({
+    "short_name": "MallBRF",
+    "name": "MallBRF",
+    "icons": [
+      {
+        "src": "favicon.ico",
+        "sizes": "64x64 32x32 24x24 16x16",
+        "type": "image/x-icon"
+      }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+  });
+});
+
+// API Routes - must come first
 app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
 
-// Säkerställ att uploads-mappen finns - but only in development
-const uploadsDir = path.join(__dirname, 'uploads');
-const backupDir = path.join(__dirname, 'backups');
-
-if (process.env.NODE_ENV !== 'production') {
-  // Only attempt to create directories in development environment
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-  }
-    if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir);
-        console.log('Created backup directory:', backupDir);
-    }
-} else {
-    console.log('Running in production mode - skipping directory creation (using read-only filesystem)');
-}
-
-// Update the schema handling
-const DB_SCHEMA = 'public'; // Always use public schema for now
-console.log(`Using database schema: ${DB_SCHEMA}`);
-
-// Helper function to add schema to table names
-function withSchema(tableName) {
-  return tableName; // Don't add schema prefix for now
-}
-
-console.log('Database connection configured with:');
-console.log('- SSL mode: SSL enabled with rejectUnauthorized: false (required for Vercel)');
-console.log('- Node Env:', process.env.NODE_ENV || 'not set');
-console.log('- Schema:', DB_SCHEMA);
-
-// Test database connection
-async function testDatabaseConnection() {
-  try {
-    const isConnected = await testSupabaseConnection();
-    if (!isConnected) {
-      console.error('Database connection failed');
-      return false;
-    }
-    console.log('Database connected successfully');
-    return true;
-  } catch (error) {
-    console.error('Database connection error:', error);
-    return false;
-  }
-}
-
-// Serve static files from the build directory
-app.use(express.static(path.join(__dirname, '../build')));
-
-// API Routes
-app.use('/api/pages', pagesRouter);
-app.use('/api/bookings', bookingsRouter);
-
-// Direct endpoint for visible pages
+// Direct endpoint for visible pages (no auth required)
 app.get('/api/pages/visible', async (req, res) => {
   console.log('Direct endpoint - Fetching visible pages...');
   console.log('Request headers:', req.headers);
   
-  // Add explicit CORS headers for this specific route
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
   res.header('Access-Control-Max-Age', '86400');
   
   try {
@@ -283,7 +188,6 @@ app.get('/api/pages/visible', async (req, res) => {
       return res.json([]);
     }
 
-    // Format response
     const formattedPages = data.map(page => ({
       id: page.id,
       title: page.title,
@@ -307,65 +211,26 @@ app.get('/api/pages/visible', async (req, res) => {
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
-// Handle manifest.json specifically with proper CORS headers
-app.get('/manifest.json', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Content-Type', 'application/json');
-  
-  res.json({
-    "short_name": "MallBRF",
-    "name": "MallBRF",
-    "icons": [
-      {
-        "src": "favicon.ico",
-        "sizes": "64x64 32x32 24x24 16x16",
-        "type": "image/x-icon"
-      }
-    ],
-    "start_url": ".",
-    "display": "standalone",
-    "theme_color": "#000000",
-    "background_color": "#ffffff"
-  });
-});
+// Serve static files AFTER API routes but BEFORE catch-all
+app.use(express.static(path.join(__dirname, '../build')));
 
-// Catch-all route for debugging
+// Catch-all route - must be last
 app.use('*', (req, res) => {
-  console.log('404 - Route not found:', req.originalUrl);
+  console.log('Handling request for:', req.originalUrl);
   if (req.originalUrl.startsWith('/api/')) {
+    console.log('API route not found:', req.originalUrl);
     res.status(404).json({ error: 'API route not found', path: req.originalUrl });
   } else {
+    console.log('Serving index.html for:', req.originalUrl);
     res.sendFile(path.join(__dirname, '../build/index.html'));
   }
 });
-
-async function startServer() {
-  try {
-    const isConnected = await testDatabaseConnection();
-    if (!isConnected) {
-      console.error('Could not connect to database. Please check your credentials and connection settings.');
-      process.exit(1);
-    }
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Error starting server:', error);
-    process.exit(1);
-  }
-}
 
 // Start the server
 startServer();
