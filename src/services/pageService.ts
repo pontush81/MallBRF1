@@ -50,56 +50,22 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      // Add credentials and mode to fetch request
-      await fetch(`${API_BASE_URL}/pages/visible`, {
+      const response = await fetch(`${API_BASE_URL}/pages/visible`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'x-vercel-protection-bypass': 'true'
         },
-        mode: 'no-cors',
-        credentials: 'omit'
+        mode: 'cors',
+        credentials: 'include'
       });
       
-      // When using mode: 'no-cors', we can't check response.ok or parse JSON
-      // So we'll just use the fallback data
-      console.log('Using fallback data with no-cors mode');
-      return [
-        {
-          id: "fallback-1",
-          title: "Välkomstsida",
-          content: "# Välkommen\n\nDetta är vår välkomstsida.",
-          slug: "valkomstsida",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: "fallback-2",
-          title: "Information",
-          content: "# Information\n\nViktig information om föreningen.",
-          slug: "information",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: "fallback-3",
-          title: "Bokning",
-          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
-          slug: "bokning",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
+      if (!response.ok) {
+        throw new Error('Kunde inte hämta synliga sidor');
+      }
+      
+      return await response.json();
     } catch (error) {
       console.error('Fel vid hämtning av synliga sidor:', error);
       
@@ -171,20 +137,27 @@ const pageService = {
   // Hämta en specifik sida med slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
-      await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
+      const response = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'x-vercel-protection-bypass': 'true'
         },
-        mode: 'no-cors',
-        credentials: 'omit'
+        mode: 'cors',
+        credentials: 'include'
       });
       
-      // When using mode: 'no-cors', we can't check response.ok or parse JSON
-      // So we'll provide fallback data based on the requested slug
-      console.log('Using fallback data with no-cors mode for slug:', slug);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error('Kunde inte hämta sidan');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Fel vid hämtning av sida med slug:', error);
       
       // Fallback pages data
       const fallbackPages = {
@@ -224,9 +197,6 @@ const pageService = {
       };
       
       return fallbackPages[slug] || null;
-    } catch (error) {
-      console.error('Fel vid hämtning av sida med slug:', error);
-      return null;
     }
   },
 
