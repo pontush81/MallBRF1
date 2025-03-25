@@ -83,12 +83,24 @@ const PORT = process.env.PORT || 3002;
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
-    'https://mall-brf-1.vercel.app'
-  ],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
+      'https://mall-brf-1.vercel.app',
+      'https://mallbrf.vercel.app'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
   credentials: true,
@@ -110,12 +122,15 @@ app.use((req, res, next) => {
 app.options('*', (req, res) => {
   console.log('Handling OPTIONS request for:', req.path);
   console.log('Origin:', req.headers.origin);
-  res.status(204).header({
-    'Access-Control-Allow-Origin': req.headers.origin || '*',
-    'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass',
-    'Access-Control-Max-Age': '86400'
-  }).send();
+  
+  // Set CORS headers
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  res.status(204).send();
 });
 
 // Body parsers and file upload middleware
@@ -158,8 +173,16 @@ app.get('/api/test', (req, res) => {
 
 // Handle manifest.json with proper CORS headers (no auth required)
 app.get('/manifest.json', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  console.log('Serving manifest.json');
+  console.log('Origin:', req.headers.origin);
+  
+  // Set CORS headers
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Origin,Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Content-Type', 'application/json');
+  
   res.json({
     "short_name": "MallBRF",
     "name": "MallBRF",
