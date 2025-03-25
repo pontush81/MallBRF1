@@ -311,6 +311,8 @@ const pageService = {
   // Radera en sida
   deletePage: async (id: string): Promise<boolean> => {
     try {
+      console.log('Attempting to delete page:', { id });
+      
       const response = await fetch(`${API_BASE_URL}/pages/${id}`, {
         method: 'DELETE',
         headers: {
@@ -323,13 +325,31 @@ const pageService = {
       });
 
       if (!response.ok) {
-        throw new Error('Kunde inte radera sidan');
+        const errorData = await response.json().catch(() => ({ error: 'Okänt fel' }));
+        console.error('Server error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          details: errorData.details,
+          url: `${API_BASE_URL}/pages/${id}`
+        });
+        
+        if (response.status === 404) {
+          throw new Error('Sidan kunde inte hittas. Den kan ha raderats av en annan användare.');
+        }
+        throw new Error(errorData.details || errorData.error || 'Kunde inte radera sidan');
       }
 
+      console.log('Page deleted successfully:', { id });
       return true;
     } catch (error) {
-      console.error('Fel vid radering av sida:', error);
-      return false;
+      console.error('Fel vid radering av sida:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        url: `${API_BASE_URL}/pages/${id}`
+      });
+      throw error;
     }
   },
 
