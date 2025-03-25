@@ -652,7 +652,6 @@ const BookingPage: React.FC = () => {
               </Typography>
               
               <Typography variant="body1" paragraph>
-                Din bokning har registrerats och vi har skickat en bekräftelse till din e-post.
                 {bookingId && (
                   <Box component="span" sx={{ display: 'block', mt: 1 }}>
                     Bokningsnummer: <strong>{bookingId}</strong>
