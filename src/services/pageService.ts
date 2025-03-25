@@ -56,6 +56,7 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
         credentials: 'omit'
@@ -132,6 +133,7 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
         credentials: 'omit'
