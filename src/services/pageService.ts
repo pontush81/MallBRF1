@@ -71,8 +71,8 @@ const pageService = {
     } catch (error) {
       console.error('Fel vid hämtning av synliga sidor:', error);
       
-      // Fallback to hardcoded data if the API fails
-      console.log('Returning fallback data due to API error');
+      // Use fallback data if the API fails
+      console.log('Using fallback data due to API error');
       return [
         {
           id: "fallback-1",

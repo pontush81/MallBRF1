@@ -1,6 +1,6 @@
 // API base URL configuration
 export const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? process.env.REACT_APP_API_URL || '/api'  // Production URL - use configured URL or fallback to relative URL
+  ? 'https://mallbrf.vercel.app/api'  // Full production URL including /api path
   : 'http://localhost:3002/api';  // Development URL
 
 // Fallback API URL (used when the regular API fails)
