@@ -83,34 +83,7 @@ const PORT = process.env.PORT || 3002;
 
 // CORS configuration
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
-      'https://mall-brf-1.vercel.app',
-      'https://mallbrf.vercel.app'
-    ];
-    
-    console.log('\n=== CORS Request ===');
-    console.log('Request Origin:', origin);
-    console.log('Allowed Origins:', allowedOrigins);
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('⚠️ No origin provided - allowing request');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('✅ Origin allowed:', origin);
-      callback(null, true);
-    } else {
-      console.log('❌ Origin rejected:', origin);
-      console.log('Expected one of:', allowedOrigins);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*', // Allow all origins temporarily for debugging
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
   credentials: true,
@@ -122,6 +95,23 @@ const corsOptions = {
 // Middleware configuration
 app.use(cors(corsOptions));
 
+// Add CORS headers to all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request for:', req.path);
+    return res.status(204).send();
+  }
+  
+  next();
+});
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log('\n=== Incoming Request ===');
@@ -130,48 +120,8 @@ app.use((req, res, next) => {
   console.log('Path:', req.path);
   console.log('Origin:', req.headers.origin);
   console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('Environment:', process.env.NODE_ENV);
-  
-  // Set CORS headers for all responses
-  const origin = req.headers.origin;
-  if (origin) {
-    console.log('Setting CORS headers for origin:', origin);
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-  }
-  
-  // Log response headers after they're set
-  res.on('finish', () => {
-    console.log('\n=== Response Headers ===');
-    console.log(JSON.stringify(res.getHeaders(), null, 2));
-  });
   
   next();
-});
-
-// Handle OPTIONS requests explicitly
-app.options('*', (req, res) => {
-  console.log('\n=== OPTIONS Request ===');
-  console.log('Path:', req.path);
-  console.log('Origin:', req.headers.origin);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  
-  // Set CORS headers
-  const origin = req.headers.origin;
-  if (origin) {
-    console.log('Setting CORS headers for OPTIONS request from origin:', origin);
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-  }
-  
-  console.log('Response headers:', JSON.stringify(res.getHeaders(), null, 2));
-  res.status(204).send();
 });
 
 // Body parsers and file upload middleware
@@ -299,10 +249,19 @@ app.get('/api/pages/visible', async (req, res) => {
   }
 });
 
-// Error handling middleware
+// Error handling middleware - must be after all routes
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ error: 'Internal server error', details: err.message });
+  
+  // Add CORS headers even for error responses
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+  
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 // Serve static files AFTER API routes but BEFORE catch-all
@@ -526,31 +485,50 @@ app.get('/api/pages', async (req, res) => {
   console.log('Origin:', req.headers.origin);
   
   // Set CORS headers
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
   try {
-    const result = await db.query(`SELECT * FROM ${withSchema('pages')}`);
-    const pages = result.rows;
-    
+    console.log('Fetching pages from Supabase...');
+    const { data: pages, error } = await supabase
+      .from('pages')
+      .select('*')
+      .order('createdat', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!pages || pages.length === 0) {
+      console.log('No pages found');
+      return res.json([]);
+    }
+
     // Konvertera till rätt format för frontend
     const formattedPages = pages.map(page => ({
-      ...page,
+      id: page.id,
+      title: page.title,
+      content: page.content,
+      slug: page.slug,
       isPublished: Boolean(page.ispublished),
       show: Boolean(page.show),
-      files: page.files ? JSON.parse(page.files) : []
+      files: page.files ? JSON.parse(page.files) : [],
+      createdAt: page.createdat,
+      updatedAt: page.updatedat
     }));
-    
+
+    console.log(`Found ${formattedPages.length} pages`);
     res.json(formattedPages);
   } catch (err) {
-    console.error('Kunde inte hämta sidor:', err);
-    res.status(500).json({ error: 'Kunde inte hämta sidor' });
+    console.error('Error fetching pages:', err);
+    res.status(500).json({ 
+      error: 'Could not fetch pages', 
+      details: err.message 
+    });
   }
 });
 
