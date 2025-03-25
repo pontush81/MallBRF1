@@ -83,44 +83,52 @@ const PORT = process.env.PORT || 3002;
 
 // CORS configuration
 const corsOptions = {
-  origin: '*', // Allow all origins temporarily for debugging
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
+      'https://mall-brf-1.vercel.app',
+      'https://mallbrf.vercel.app'
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
-  credentials: true,
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  maxAge: 86400
 };
 
-// Middleware configuration
+// Apply CORS middleware first
 app.use(cors(corsOptions));
 
-// Add CORS headers to all responses
+// Add headers middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request for:', req.path);
-    return res.status(204).send();
+    return res.status(204).end();
   }
-  
   next();
 });
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log('\n=== Incoming Request ===');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Method:', req.method);
-  console.log('Path:', req.path);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
   console.log('Origin:', req.headers.origin);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  
   next();
 });
 
@@ -483,13 +491,6 @@ app.get('/api/debug-db', async (req, res) => {
 app.get('/api/pages', async (req, res) => {
   console.log('Fetching all pages...');
   console.log('Origin:', req.headers.origin);
-  
-  // Set CORS headers
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
   
   try {
     console.log('Fetching pages from Supabase...');
