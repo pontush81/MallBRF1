@@ -11,9 +11,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       if (!response.ok) {
         throw new Error('Kunde inte hämta sidor');
@@ -33,9 +34,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       if (!response.ok) {
         throw new Error('Kunde inte hämta publicerade sidor');
@@ -117,9 +119,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       if (!response.ok) {
         if (response.status === 404) {
@@ -208,10 +211,11 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify(pageData),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -235,10 +239,11 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify(pageData),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -273,9 +278,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -299,7 +305,11 @@ const pageService = {
       
       const response = await fetch(`${API_BASE_URL}/pages/${pageId}/upload`, {
         method: 'POST',
+        headers: {
+          'x-vercel-protection-bypass': 'true'
+        },
         body: formData,
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -344,7 +354,9 @@ const pageService = {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -395,8 +407,10 @@ const pageService = {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'x-vercel-protection-bypass': 'true'
           },
           body: JSON.stringify(page),
+          credentials: 'include'
         });
       }
       
