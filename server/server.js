@@ -250,35 +250,73 @@ async function testDatabaseConnection() {
 // Serve static files from the build directory
 app.use(express.static(path.join(__dirname, '../build')));
 
-// Handle root route - serve the frontend application
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
-});
+// API Routes
+app.use('/api/pages', pagesRouter);
+app.use('/api/bookings', bookingsRouter);
 
-// Handle all other routes - serve the frontend application
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
-});
-
-async function startServer() {
+// Direct endpoint for visible pages
+app.get('/api/pages/visible', async (req, res) => {
+  console.log('Direct endpoint - Fetching visible pages...');
+  console.log('Request headers:', req.headers);
+  
+  // Add explicit CORS headers for this specific route
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
+  res.header('Access-Control-Max-Age', '86400');
+  
   try {
-    const isConnected = await testDatabaseConnection();
-    if (!isConnected) {
-      console.error('Could not connect to database. Please check your credentials and connection settings.');
-      process.exit(1);
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('ispublished', true)
+      .eq('show', true)
+      .order('createdat', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
     }
 
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Error starting server:', error);
-    process.exit(1);
-  }
-}
+    if (!data || data.length === 0) {
+      console.log('No visible pages found');
+      return res.json([]);
+    }
 
-// Start the server
-startServer();
+    // Format response
+    const formattedPages = data.map(page => ({
+      id: page.id,
+      title: page.title,
+      content: page.content,
+      slug: page.slug,
+      isPublished: Boolean(page.ispublished),
+      show: Boolean(page.show),
+      files: page.files ? JSON.parse(page.files) : [],
+      createdAt: page.createdat,
+      updatedAt: page.updatedat
+    }));
+
+    console.log(`Found ${formattedPages.length} visible pages`);
+    res.json(formattedPages);
+  } catch (error) {
+    console.error('Error fetching visible pages:', error);
+    res.status(500).json({ 
+      error: 'Could not fetch visible pages', 
+      details: error.message 
+    });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error', details: err.message });
+});
 
 // Handle manifest.json specifically with proper CORS headers
 app.get('/manifest.json', (req, res) => {
@@ -302,11 +340,38 @@ app.get('/manifest.json', (req, res) => {
   });
 });
 
+// Catch-all route for debugging
+app.use('*', (req, res) => {
+  console.log('404 - Route not found:', req.originalUrl);
+  if (req.originalUrl.startsWith('/api/')) {
+    res.status(404).json({ error: 'API route not found', path: req.originalUrl });
+  } else {
+    res.sendFile(path.join(__dirname, '../build/index.html'));
+  }
+});
+
+async function startServer() {
+  try {
+    const isConnected = await testDatabaseConnection();
+    if (!isConnected) {
+      console.error('Could not connect to database. Please check your credentials and connection settings.');
+      process.exit(1);
+    }
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
+
 // Add file upload middleware
 pagesModule.setupFileUpload(app);
-
-// Mount routes with proper error handling
-app.use('/api/pages', pagesRouter);
 
 // Backup endpoints
 app.get('/api/backups', async (req, res) => {
@@ -386,302 +451,6 @@ app.post('/api/backups/:fileName/restore', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
-// Direct endpoint for visible pages
-app.get('/api/pages/visible', async (req, res) => {
-  console.log('Direct endpoint - Fetching visible pages...');
-  console.log('Request headers:', req.headers);
-  
-  // Add explicit CORS headers for this specific route
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
-  res.header('Access-Control-Max-Age', '86400');
-  
-  try {
-    const result = await db.query(`
-      SELECT * FROM ${withSchema('pages')} 
-      WHERE ispublished = true AND show = true
-      ORDER BY createdat DESC
-    `);
-    
-    if (result.rows.length === 0) {
-      console.log('No visible pages found');
-      return res.json([]);
-    }
-    
-    // Format response
-    const formattedPages = result.rows.map(page => ({
-      id: page.id,
-      title: page.title,
-      content: page.content,
-      slug: page.slug,
-      isPublished: Boolean(page.ispublished),
-      show: Boolean(page.show),
-      files: page.files ? JSON.parse(page.files) : [],
-      createdAt: page.createdat,
-      updatedAt: page.updatedat
-    }));
-    
-    console.log(`Found ${formattedPages.length} visible pages`);
-    res.json(formattedPages);
-  } catch (error) {
-    console.error('Error fetching visible pages:', error);
-    res.status(500).json({ 
-      error: 'Could not fetch visible pages', 
-      details: error.message 
-    });
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: 'Internal server error', details: err.message });
-});
-
-// Catch-all route for debugging
-app.use('*', (req, res) => {
-  console.log('404 - Route not found:', req.originalUrl);
-  res.status(404).json({ error: 'Route not found', path: req.originalUrl });
-});
-
-// Konfigurera Multer för filuppladdning - use memory storage in production
-let storage;
-if (process.env.NODE_ENV === 'production') {
-  // In production (Vercel), use memory storage
-  console.log('Using memory storage for file uploads in production');
-  storage = multer.memoryStorage();
-} else {
-  // In development, use disk storage
-  storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, uploadsDir);
-    },
-    filename: function (req, file, cb) {
-      // Skapa ett unikt filnamn med originalfilens filändelse
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const ext = path.extname(file.originalname);
-      cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-    }
-  });
-}
-
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB gräns
-  fileFilter: function (req, file, cb) {
-    // Godkänn endast vissa filtyper
-    const filetypes = /jpeg|jpg|png|gif|pdf/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Endast bilder (jpeg, jpg, png, gif) och PDF-filer är tillåtna'));
-  }
-});
-
-// Utility function to upload file to Supabase Storage
-async function uploadToSupabaseStorage(file) {
-  try {
-    // Check if we have valid Supabase credentials before attempting upload
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-      console.warn('Supabase credentials missing, using fallback storage method');
-      // Return a fallback file info object with a temporary URL
-      return {
-        originalname: file.originalname,
-        filename: `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`,
-        mimetype: file.mimetype,
-        size: file.size,
-        url: `/api/files/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}` // A URL that would be handled by our API
-      };
-    }
-    
-    // Create filename with timestamp for uniqueness
-    const fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
-    
-    // Upload to Supabase Storage
-    const { data, error } = await supabase
-      .storage
-      .from('page-files')  // your bucket name
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        cacheControl: '3600'
-      });
-      
-    if (error) {
-      console.error('Supabase Storage upload error:', error);
-      // Fallback to temporary URL when Supabase upload fails
-      return {
-        originalname: file.originalname,
-        filename: fileName,
-        mimetype: file.mimetype,
-        size: file.size,
-        url: `/api/files/${fileName}` // A URL that would be handled by our API
-      };
-    }
-    
-    // Get public URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('page-files')
-      .getPublicUrl(fileName);
-      
-    return {
-      originalname: file.originalname,
-      filename: fileName,
-      mimetype: file.mimetype,
-      size: file.size,
-      url: publicUrl
-    };
-  } catch (error) {
-    console.error('Error uploading to Supabase:', error);
-    // Fallback on errors
-    return {
-      originalname: file.originalname,
-      filename: `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`,
-      mimetype: file.mimetype,
-      size: file.size,
-      url: `/api/files/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}` // A URL that would be handled by our API
-    };
-  }
-}
-
-// Utility function to delete file from Supabase Storage
-async function deleteFromSupabaseStorage(filename) {
-  try {
-    // Check if we have valid Supabase credentials before attempting delete
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-      console.warn('Supabase credentials missing, skipping storage deletion');
-      return true; // Return success since we don't need to actually delete anything
-    }
-    
-    const { error } = await supabase
-      .storage
-      .from('page-files')
-      .remove([filename]);
-      
-    if (error) {
-      console.error('Supabase Storage delete error:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error deleting from Supabase:', error);
-    return false;
-  }
-}
-
-// Initiera databastabeller
-const initDb = async () => {
-  try {
-    // Create tables using Supabase's API
-    try {
-      const { error: pagesError } = await supabase.rpc('create_pages_table', { schema: DB_SCHEMA });
-      if (pagesError) {
-        console.warn('Warning creating pages table:', pagesError.message);
-      }
-    } catch (err) {
-      console.warn('Warning creating pages table:', err.message);
-    }
-
-    try {
-      const { error: bookingsError } = await supabase.rpc('create_bookings_table', { schema: DB_SCHEMA });
-      if (bookingsError) {
-        console.warn('Warning creating bookings table:', bookingsError.message);
-      }
-    } catch (err) {
-      console.warn('Warning creating bookings table:', err.message);
-    }
-
-    try {
-      const { error: usersError } = await supabase.rpc('create_users_table', { schema: DB_SCHEMA });
-      if (usersError) {
-        console.warn('Warning creating users table:', usersError.message);
-      }
-    } catch (err) {
-      console.warn('Warning creating users table:', err.message);
-    }
-
-    // Check if there are any users
-    try {
-      const { data: users, error: countError } = await supabase
-        .from('users')
-        .select('count');
-      
-      if (countError) {
-        console.warn('Warning checking users:', countError.message);
-      } else if (!users || users.length === 0) {
-        // Add demo users using Supabase's API
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([
-        {
-          id: '1',
-          email: 'admin@example.com',
-          name: 'Admin Användare',
-              password: 'admin123', // Should be hashed in practice
-          role: 'admin',
-          isActive: true,
-              createdAt: new Date().toISOString()
-            }
-          ]);
-        
-        if (insertError) {
-          console.warn('Warning inserting demo user:', insertError.message);
-        }
-      }
-    } catch (err) {
-      console.warn('Warning managing users:', err.message);
-    }
-
-    console.log('Database initialization completed with warnings');
-  } catch (error) {
-    console.error('Error initializing database:', error.message);
-    // Don't throw the error, just log it and continue
-  }
-};
-
-// Initiera databasen vid start
-initDb();
-
-// Function to ensure staging schema exists
-async function ensureStagingSchema() {
-  if (DB_SCHEMA === 'staging') {
-    try {
-      // Check if staging schema exists using Supabase's API
-      const { data: schemas, error: schemaError } = await supabase.rpc('check_schema_exists', { schema_name: 'staging' });
-      if (schemaError) throw schemaError;
-
-      if (!schemas || schemas.length === 0) {
-        console.log('Creating staging schema...');
-        
-        // Create staging schema using Supabase's API
-        const { error: createError } = await supabase.rpc('create_staging_schema');
-        if (createError) throw createError;
-
-        // Copy table structures from public schema
-        console.log('Copying table structures from public schema...');
-        
-        const { error: copyError } = await supabase.rpc('copy_tables_to_staging');
-        if (copyError) throw copyError;
-        
-        console.log('Staging schema created and tables copied successfully!');
-      } else {
-        console.log('Staging schema already exists');
-      }
-    } catch (error) {
-      console.error('Error ensuring staging schema:', error.message);
-      throw error;
-    }
-  }
-}
-
-// Kör säkerställningen av staging-schemat efter databas-init
-ensureStagingSchema();
 
 // API-endpoints
 
@@ -1501,9 +1270,4 @@ app.get('/api/files/:filename', (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(`Placeholder content for file: ${filename}`);
   }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
 });
