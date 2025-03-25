@@ -93,18 +93,26 @@ const corsOptions = {
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('Request with no origin - allowing');
+      return callback(null, true);
+    }
     
+    console.log('Checking origin:', origin);
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('Origin allowed:', origin);
       callback(null, true);
     } else {
+      console.log('Origin not allowed:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
   credentials: true,
-  maxAge: 86400
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 // Middleware configuration
@@ -115,6 +123,7 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   console.log('Headers:', req.headers);
   console.log('Origin:', req.headers.origin);
+  console.log('Environment:', process.env.NODE_ENV);
   next();
 });
 
@@ -124,7 +133,10 @@ app.options('*', (req, res) => {
   console.log('Origin:', req.headers.origin);
   
   // Set CORS headers
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -177,7 +189,10 @@ app.get('/manifest.json', (req, res) => {
   console.log('Origin:', req.headers.origin);
   
   // Set CORS headers
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Origin,Accept');
   res.header('Access-Control-Allow-Credentials', 'true');
