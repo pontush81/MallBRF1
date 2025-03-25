@@ -75,6 +75,8 @@ const { createBackup, restoreFromBackup, listBackups } = require('./utils/backup
 // Importera routes
 const pagesModule = require('./routes/pages');
 const pagesRouter = pagesModule.router;
+const bookingsModule = require('./routes/bookings');
+const bookingsRouter = bookingsModule.router;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -92,6 +94,13 @@ const corsOptions = {
 
 // Apply CORS configuration before any other middleware
 app.use(cors(corsOptions));
+
+// Add request logging middleware at the top, after CORS
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 // Handle OPTIONS requests explicitly
 app.options('*', (req, res) => {
@@ -167,12 +176,6 @@ app.use(fileUpload({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
-
 // Verify environment variables
 const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -187,8 +190,15 @@ console.log('Supabase URL:', process.env.SUPABASE_URL);
 console.log('Service Role Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
 console.log('Anon Key length:', process.env.SUPABASE_ANON_KEY?.length);
 
+// Add test endpoint before any other routes
+app.get('/api/test', (req, res) => {
+  console.log('Test endpoint hit');
+  res.json({ message: 'API is running' });
+});
+
 // Routes
 app.use('/api/pages', pagesRouter);
+app.use('/api/bookings', bookingsRouter);
 
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -426,16 +436,14 @@ app.get('/api/pages/visible', async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
-// Catch-all route handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
+// Catch-all route for debugging
+app.use('*', (req, res) => {
+  console.log('404 - Route not found:', req.originalUrl);
+  res.status(404).json({ error: 'Route not found', path: req.originalUrl });
 });
 
 // Konfigurera Multer för filuppladdning - use memory storage in production
