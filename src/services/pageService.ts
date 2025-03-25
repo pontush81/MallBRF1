@@ -6,21 +6,42 @@ const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
+      console.log('Fetching all pages from:', `${API_BASE_URL}/pages`);
       const response = await fetch(`${API_BASE_URL}/pages`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('Kunde inte hämta sidor');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          error: errorData
+        });
+        throw new Error(`Kunde inte hämta sidor: ${response.status} ${response.statusText}`);
       }
-      return await response.json();
+
+      const pages = await response.json();
+      console.log(`Successfully fetched ${pages.length} pages`);
+      return pages;
     } catch (error) {
-      console.error('Fel vid hämtning av sidor:', error);
+      console.error('Error fetching pages:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        url: `${API_BASE_URL}/pages`
+      });
       return [];
     }
   },
@@ -33,9 +54,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       if (!response.ok) {
         throw new Error('Kunde inte hämta publicerade sidor');
@@ -50,28 +72,45 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      // Add credentials and mode to fetch request
+      console.log('Fetching visible pages from:', `${API_BASE_URL}/pages/visible`);
       const response = await fetch(`${API_BASE_URL}/pages/visible`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        console.warn(`API request failed with status ${response.status}`);
-        throw new Error(`Request failed with status ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          error: errorData
+        });
+        throw new Error(`Kunde inte hämta synliga sidor: ${response.status} ${response.statusText}`);
       }
       
-      return await response.json();
+      const pages = await response.json();
+      console.log(`Successfully fetched ${pages.length} visible pages`);
+      return pages;
     } catch (error) {
-      console.error('Fel vid hämtning av synliga sidor:', error);
+      console.error('Error fetching visible pages:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        url: `${API_BASE_URL}/pages/visible`
+      });
       
-      // Fallback to hardcoded data if the API fails
-      console.log('Returning fallback data due to API error');
+      // Use fallback data if the API fails
+      console.log('Using fallback data due to API error');
       return [
         {
           id: "fallback-1",
@@ -94,6 +133,17 @@ const pageService = {
           files: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
+        },
+        {
+          id: "fallback-3",
+          title: "Bokning",
+          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
+          slug: "bokning",
+          isPublished: true,
+          show: true,
+          files: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         }
       ];
     }
@@ -107,9 +157,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       if (!response.ok) {
         if (response.status === 404) {
@@ -132,20 +183,61 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
+      
       if (!response.ok) {
         if (response.status === 404) {
           return null;
         }
         throw new Error('Kunde inte hämta sidan');
       }
+      
       return await response.json();
     } catch (error) {
       console.error('Fel vid hämtning av sida med slug:', error);
-      return null;
+      
+      // Fallback pages data
+      const fallbackPages = {
+        "valkomstsida": {
+          id: "fallback-1",
+          title: "Välkomstsida",
+          content: "# Välkommen\n\nDetta är vår välkomstsida.",
+          slug: "valkomstsida",
+          isPublished: true,
+          show: true,
+          files: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        "information": {
+          id: "fallback-2",
+          title: "Information",
+          content: "# Information\n\nViktig information om föreningen.",
+          slug: "information",
+          isPublished: true,
+          show: true,
+          files: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        "bokning": {
+          id: "fallback-3",
+          title: "Bokning",
+          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
+          slug: "bokning",
+          isPublished: true,
+          show: true,
+          files: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      };
+      
+      return fallbackPages[slug] || null;
     }
   },
 
@@ -157,10 +249,11 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify(pageData),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -184,10 +277,11 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify(pageData),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -222,9 +316,10 @@ const pageService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -248,7 +343,11 @@ const pageService = {
       
       const response = await fetch(`${API_BASE_URL}/pages/${pageId}/upload`, {
         method: 'POST',
+        headers: {
+          'x-vercel-protection-bypass': 'true'
+        },
         body: formData,
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -293,7 +392,9 @@ const pageService = {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -344,8 +445,10 @@ const pageService = {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'x-vercel-protection-bypass': 'true'
           },
           body: JSON.stringify(page),
+          credentials: 'include'
         });
       }
       

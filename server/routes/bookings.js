@@ -2,6 +2,49 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../utils/supabase');
 
+// Kontrollera tillgänglighet
+router.post('/check-availability', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+    console.log('Kontrollerar tillgänglighet för:', startDate, 'till', endDate);
+
+    // Konvertera datum till databasformat
+    const startDateStr = new Date(startDate).toISOString();
+    const endDateStr = new Date(endDate).toISOString();
+
+    console.log('Söker efter överlappande bokningar:', startDateStr, 'till', endDateStr);
+
+    const { data: existingBookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .or(`and(startdate.lte.${endDateStr},enddate.gte.${startDateStr})`)
+      .neq('status', 'cancelled');
+
+    if (error) {
+      console.error('Fel vid kontroll av tillgänglighet:', error);
+      return res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet' });
+    }
+
+    // Mappa svaret för frontend
+    const mappedBookings = existingBookings.map(booking => ({
+      ...booking,
+      startDate: booking.startdate,
+      endDate: booking.enddate,
+      createdAt: booking.createdat
+    }));
+
+    console.log('Hittade bokningar:', mappedBookings.length);
+
+    res.json({
+      available: !mappedBookings || mappedBookings.length === 0,
+      overlappingBookings: mappedBookings || []
+    });
+  } catch (error) {
+    console.error('Serverfel vid kontroll av tillgänglighet:', error);
+    res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet' });
+  }
+});
+
 // Hämta alla bokningar
 router.get('/', async (req, res) => {
   try {
@@ -103,7 +146,8 @@ router.post('/', async (req, res) => {
     const { data: existingBookings, error: availabilityError } = await supabase
       .from('bookings')
       .select('*')
-      .or(`startdate.lte.${dbBookingData.enddate},enddate.gte.${dbBookingData.startdate}`);
+      .or(`and(startdate.lte.${dbBookingData.enddate},enddate.gte.${dbBookingData.startdate})`)
+      .neq('status', 'cancelled');
 
     if (availabilityError) {
       console.error('Fel vid kontroll av tillgänglighet:', availabilityError);
@@ -167,7 +211,8 @@ router.put('/:id', async (req, res) => {
         .from('bookings')
         .select('*')
         .neq('id', id)
-        .or(`startdate.lte.${dbBookingData.enddate || bookingData.endDate},enddate.gte.${dbBookingData.startdate || bookingData.startDate}`);
+        .or(`and(startdate.lte.${dbBookingData.enddate || bookingData.endDate},enddate.gte.${dbBookingData.startdate || bookingData.startDate})`)
+        .neq('status', 'cancelled');
 
       if (availabilityError) {
         console.error('Fel vid kontroll av tillgänglighet:', availabilityError);
@@ -229,45 +274,13 @@ router.delete('/:id', async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    res.status(204).send();
+    res.json({ success: true, message: 'Bokningen har raderats' });
   } catch (error) {
     console.error('Serverfel vid radering av bokning:', error);
     res.status(500).json({ error: 'Kunde inte radera bokningen' });
   }
 });
 
-// Kontrollera tillgänglighet
-router.post('/check-availability', async (req, res) => {
-  try {
-    const { startDate, endDate } = req.body;
-    console.log('Kontrollerar tillgänglighet för:', startDate, 'till', endDate);
-
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .or(`startdate.lte.${endDate},enddate.gte.${startDate}`);
-
-    if (error) {
-      console.error('Fel vid kontroll av tillgänglighet:', error);
-      return res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet' });
-    }
-
-    // Mappa svaret för frontend
-    const mappedData = data.map(booking => ({
-      ...booking,
-      startDate: booking.startdate,
-      endDate: booking.enddate,
-      createdAt: booking.createdat
-    }));
-
-    res.json({
-      available: !mappedData || mappedData.length === 0,
-      overlappingBookings: mappedData || []
-    });
-  } catch (error) {
-    console.error('Serverfel vid kontroll av tillgänglighet:', error);
-    res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet' });
-  }
-});
-
-module.exports = { router }; 
+module.exports = {
+  router
+};
