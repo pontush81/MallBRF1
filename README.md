@@ -204,3 +204,57 @@ REACT_APP_API_URL
 ## Testing
 - Run unit tests: `npm test`
 - Run E2E tests: `npm run cypress:open`
+
+## API och CORS-konfiguration
+
+För att säkerställa att API-anrop fungerar korrekt, kontrollera följande:
+
+### Frontend (Next.js)
+- [ ] Alla API-anrop använder relativa URL:er (`/api/...`) istället för absoluta URL:er
+- [ ] API-anrop inkluderar följande headers:
+  ```javascript
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'x-vercel-protection-bypass': 'true'
+  }
+  ```
+- [ ] Fetch-anrop har rätt konfiguration:
+  ```javascript
+  {
+    mode: 'cors',
+    credentials: 'include'
+  }
+  ```
+
+### Backend (Express)
+- [ ] CORS är korrekt konfigurerat med:
+  ```javascript
+  app.use(cors({
+    origin: function(origin, callback) {
+      const allowedOrigins = [
+        'https://mallbrf.vercel.app',
+        'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
+        'http://localhost:3000'
+      ];
+      callback(null, allowedOrigins.includes(origin));
+    },
+    credentials: true
+  }));
+  ```
+- [ ] API-rutter är definierade i rätt ordning:
+  1. Statiska filer (manifest.json, etc.)
+  2. API-endpoints
+  3. Catch-all route
+
+### Vercel Deployment
+- [ ] Environment variables är korrekt konfigurerade
+- [ ] CORS headers är tillåtna i Vercel's configuration
+- [ ] Verifiera att både frontend och backend är deployade till rätt branch
+
+### Felsökning
+Om problem uppstår:
+1. Kontrollera browser console för felmeddelanden
+2. Verifiera nätverksanrop i browser devtools
+3. Kontrollera Vercel logs för både frontend och backend
+4. Verifiera att alla headers är korrekt satta i både request och response

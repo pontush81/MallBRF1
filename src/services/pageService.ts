@@ -6,6 +6,7 @@ const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
+      console.log('Fetching all pages from:', `${API_BASE_URL}/pages`);
       const response = await fetch(`${API_BASE_URL}/pages`, {
         method: 'GET',
         headers: {
@@ -16,12 +17,31 @@ const pageService = {
         mode: 'cors',
         credentials: 'include'
       });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('Kunde inte hämta sidor');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          error: errorData
+        });
+        throw new Error(`Kunde inte hämta sidor: ${response.status} ${response.statusText}`);
       }
-      return await response.json();
+
+      const pages = await response.json();
+      console.log(`Successfully fetched ${pages.length} pages`);
+      return pages;
     } catch (error) {
-      console.error('Fel vid hämtning av sidor:', error);
+      console.error('Error fetching pages:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        url: `${API_BASE_URL}/pages`
+      });
       return [];
     }
   },
@@ -52,6 +72,7 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
+      console.log('Fetching visible pages from:', `${API_BASE_URL}/pages/visible`);
       const response = await fetch(`${API_BASE_URL}/pages/visible`, {
         method: 'GET',
         headers: {
@@ -63,13 +84,30 @@ const pageService = {
         credentials: 'include'
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('Kunde inte hämta synliga sidor');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          error: errorData
+        });
+        throw new Error(`Kunde inte hämta synliga sidor: ${response.status} ${response.statusText}`);
       }
       
-      return await response.json();
+      const pages = await response.json();
+      console.log(`Successfully fetched ${pages.length} visible pages`);
+      return pages;
     } catch (error) {
-      console.error('Fel vid hämtning av synliga sidor:', error);
+      console.error('Error fetching visible pages:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        url: `${API_BASE_URL}/pages/visible`
+      });
       
       // Use fallback data if the API fails
       console.log('Using fallback data due to API error');
