@@ -92,18 +92,22 @@ const corsOptions = {
       'https://mallbrf.vercel.app'
     ];
     
+    console.log('\n=== CORS Request ===');
+    console.log('Request Origin:', origin);
+    console.log('Allowed Origins:', allowedOrigins);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('Request with no origin - allowing');
+      console.log('⚠️ No origin provided - allowing request');
       return callback(null, true);
     }
     
-    console.log('Checking origin:', origin);
     if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('Origin allowed:', origin);
+      console.log('✅ Origin allowed:', origin);
       callback(null, true);
     } else {
-      console.log('Origin not allowed:', origin);
+      console.log('❌ Origin rejected:', origin);
+      console.log('Expected one of:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -120,39 +124,53 @@ app.use(cors(corsOptions));
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
+  console.log('\n=== Incoming Request ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Method:', req.method);
+  console.log('Path:', req.path);
   console.log('Origin:', req.headers.origin);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   console.log('Environment:', process.env.NODE_ENV);
   
   // Set CORS headers for all responses
   const origin = req.headers.origin;
   if (origin) {
+    console.log('Setting CORS headers for origin:', origin);
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
   }
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
+  
+  // Log response headers after they're set
+  res.on('finish', () => {
+    console.log('\n=== Response Headers ===');
+    console.log(JSON.stringify(res.getHeaders(), null, 2));
+  });
   
   next();
 });
 
 // Handle OPTIONS requests explicitly
 app.options('*', (req, res) => {
-  console.log('Handling OPTIONS request for:', req.path);
+  console.log('\n=== OPTIONS Request ===');
+  console.log('Path:', req.path);
   console.log('Origin:', req.headers.origin);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   
   // Set CORS headers
   const origin = req.headers.origin;
   if (origin) {
+    console.log('Setting CORS headers for OPTIONS request from origin:', origin);
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
   }
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
   
+  console.log('Response headers:', JSON.stringify(res.getHeaders(), null, 2));
   res.status(204).send();
 });
 
