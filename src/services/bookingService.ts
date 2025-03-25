@@ -43,47 +43,18 @@ const bookingService = {
           'Content-Type': 'application/json',
           'x-vercel-protection-bypass': 'true'
         },
-        mode: 'no-cors',
-        credentials: 'omit'
+        mode: 'cors',
+        credentials: 'include'
       });
       console.log('Bokningsrespons status:', response.status);
 
-      // When using no-cors mode, we can't access response details
-      // Use fallback data
-      console.log('Using fallback booking data with no-cors mode');
-      
-      // Fallback booking data
-      const currentDate = new Date();
-      const nextWeek = new Date();
-      nextWeek.setDate(currentDate.getDate() + 7);
-      
-      const nextMonth = new Date();
-      nextMonth.setDate(currentDate.getDate() + 30);
-      
-      return [
-        {
-          id: '1',
-          name: 'Test Booking 1',
-          email: 'test@example.com',
-          phone: '0701234567',
-          status: 'confirmed',
-          startDate: currentDate.toISOString(),
-          endDate: nextWeek.toISOString(),
-          notes: 'Exempelbokning 1',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          name: 'Test Booking 2',
-          email: 'test2@example.com',
-          phone: '0709876543',
-          status: 'confirmed',
-          startDate: nextWeek.toISOString(),
-          endDate: nextMonth.toISOString(),
-          notes: 'Exempelbokning 2',
-          createdAt: new Date().toISOString()
-        }
-      ];
+      if (!response.ok) {
+        throw new Error(`Kunde inte hämta bokningar: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Hämtade bokningar:', data);
+      return data;
     } catch (error) {
       console.error('Fel vid hämtning av bokningar:', error);
       return [];
@@ -99,9 +70,10 @@ const bookingService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       console.log('Bokningsrespons status:', response.status);
       
@@ -131,10 +103,11 @@ const bookingService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify({ startDate, endDate }),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       console.log('Tillgänglighetsrespons status:', response.status);
 
@@ -160,10 +133,11 @@ const bookingService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify(bookingData),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       console.log('Skapa bokning respons status:', response.status);
 
@@ -195,10 +169,11 @@ const bookingService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         body: JSON.stringify(bookingData),
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       console.log('Uppdatera bokning respons status:', response.status);
 
@@ -235,9 +210,10 @@ const bookingService = {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       console.log('Radera bokning respons status:', response.status);
 
@@ -245,7 +221,8 @@ const bookingService = {
         throw new Error(`Kunde inte radera bokningen: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Bokning raderad framgångsrikt');
+      const data = await response.json();
+      console.log('Raderingsresultat:', data);
       return true;
     } catch (error) {
       console.error('Fel vid radering av bokning:', error);
