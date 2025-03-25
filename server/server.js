@@ -124,6 +124,17 @@ app.use((req, res, next) => {
   console.log('Headers:', req.headers);
   console.log('Origin:', req.headers.origin);
   console.log('Environment:', process.env.NODE_ENV);
+  
+  // Set CORS headers for all responses
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
   next();
 });
 
@@ -493,10 +504,17 @@ app.get('/api/debug-db', async (req, res) => {
 
 // Hämta alla sidor
 app.get('/api/pages', async (req, res) => {
-  // Add explicit CORS headers for this specific route
-  res.header('Access-Control-Allow-Origin', '*');
+  console.log('Fetching all pages...');
+  console.log('Origin:', req.headers.origin);
+  
+  // Set CORS headers
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass');
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
   try {
@@ -506,7 +524,7 @@ app.get('/api/pages', async (req, res) => {
     // Konvertera till rätt format för frontend
     const formattedPages = pages.map(page => ({
       ...page,
-      isPublished: Boolean(page.ispublished), // PostgreSQL returnerar lowercase-kolumnnamn
+      isPublished: Boolean(page.ispublished),
       show: Boolean(page.show),
       files: page.files ? JSON.parse(page.files) : []
     }));
