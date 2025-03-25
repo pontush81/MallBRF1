@@ -81,15 +81,18 @@ const bookingsRouter = bookingsModule.router;
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// CORS configuration - must be first!
+// CORS configuration
 const corsOptions = {
-  origin: '*',
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
+    'https://mall-brf-1.vercel.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
-  credentials: false, // Don't send credentials
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  maxAge: 86400 // 24 hours
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
+  credentials: true,
+  maxAge: 86400
 };
 
 // Middleware configuration
@@ -99,14 +102,16 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   console.log('Headers:', req.headers);
+  console.log('Origin:', req.headers.origin);
   next();
 });
 
 // Handle OPTIONS requests explicitly
 app.options('*', (req, res) => {
   console.log('Handling OPTIONS request for:', req.path);
+  console.log('Origin:', req.headers.origin);
   res.status(204).header({
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': req.headers.origin || '*',
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,Origin,Accept,X-Requested-With,x-vercel-protection-bypass',
     'Access-Control-Max-Age': '86400'
@@ -123,6 +128,22 @@ app.use(fileUpload({
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadsDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Health check endpoint (no auth required)
 app.get('/health', (req, res) => {
@@ -233,6 +254,17 @@ app.use('*', (req, res) => {
 });
 
 // Start the server
+const startServer = () => {
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('API Base URL:', process.env.API_BASE_URL);
+    console.log('Supabase URL:', process.env.SUPABASE_URL);
+    console.log('CORS Origin:', process.env.CORS_ORIGIN);
+  });
+};
+
 startServer();
 
 // Add file upload middleware
