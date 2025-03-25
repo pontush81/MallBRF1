@@ -20,17 +20,10 @@ import {
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, addDays, isAfter, differenceInDays, isSameDay } from 'date-fns';
+import { format, isAfter, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Person, Email, Check } from '@mui/icons-material';
-// FullCalendar-komponenter
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import svLocale from '@fullcalendar/core/locales/sv';
-
 import bookingService from '../../services/bookingService';
 import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
