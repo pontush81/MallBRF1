@@ -15,7 +15,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
 
       console.log('Response status:', response.status);
@@ -57,7 +57,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
       if (!response.ok) {
         throw new Error('Kunde inte hämta publicerade sidor');
@@ -81,7 +81,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
       
       console.log('Response status:', response.status);
@@ -163,7 +163,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
       if (!response.ok) {
         if (response.status === 404) {
@@ -189,7 +189,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
       
       if (!response.ok) {
@@ -256,7 +256,7 @@ const pageService = {
         },
         body: JSON.stringify(pageData),
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -284,7 +284,7 @@ const pageService = {
         },
         body: JSON.stringify(pageData),
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -324,7 +324,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -370,7 +370,7 @@ const pageService = {
           'x-vercel-protection-bypass': 'true'
         },
         body: formData,
-        credentials: 'include'
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -417,7 +417,7 @@ const pageService = {
           'Content-Type': 'application/json',
           'x-vercel-protection-bypass': 'true'
         },
-        credentials: 'include'
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -471,7 +471,7 @@ const pageService = {
             'x-vercel-protection-bypass': 'true'
           },
           body: JSON.stringify(page),
-          credentials: 'include'
+          credentials: 'omit'
         });
       }
       
