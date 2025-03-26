@@ -258,3 +258,12 @@ Om problem uppstår:
 2. Verifiera nätverksanrop i browser devtools
 3. Kontrollera Vercel logs för både frontend och backend
 4. Verifiera att alla headers är korrekt satta i både request och response
+
+### CORS-konfiguration
+- API:et har uppdaterats för att tillåta följande domäner:
+  - https://www.gulmaran.com
+  - https://stage.gulmaran.com
+  - https://www.stage.gulmaran.com
+  - https://mall-brf-1.vercel.app
+  - https://mallbrf.vercel.app
+  - Lokala utvecklingsmiljöer
