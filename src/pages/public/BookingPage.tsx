@@ -95,7 +95,6 @@ const BookingPage: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [bookingId, setBookingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // State för befintliga bokningar
@@ -328,13 +327,12 @@ const BookingPage: React.FC = () => {
       });
       
       if (booking) {
-        setBookingId(booking.id);
+        setSuccessMessage('Din bokning har bekräftats!');
+        setActiveStep(1); // Gå till bekräftelsesteg
+        
+        // Ladda om bokningarna så att kalendern uppdateras
+        await fetchBookings();
       }
-      setSuccessMessage('Din bokning har bekräftats!');
-      setActiveStep(1); // Gå till bekräftelsesteg
-      
-      // Ladda om bokningarna så att kalendern uppdateras
-      await fetchBookings();
     } catch (error) {
       console.error('Error submitting booking:', error);
       setErrorMessage('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
@@ -353,7 +351,6 @@ const BookingPage: React.FC = () => {
     setPhone('');
     setNotes('');
     setSuccessMessage('');
-    setBookingId(null);
     setValidationErrors({});
     setErrorMessage('');
   };
