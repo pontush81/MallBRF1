@@ -8,46 +8,22 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Typography,
-    Box,
-    Alert,
-    CircularProgress,
-    FormGroup,
-    FormControlLabel,
-    Checkbox,
-    Card,
-    CardContent,
-    TextField,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogContentText,
-    DialogActions,
-    List,
-    ListItem,
-    ListItemText,
-    IconButton,
-    Input,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    FormHelperText
+    DialogActions
 } from '@mui/material';
-import { Delete as DeleteIcon, Download as DownloadIcon } from '@mui/icons-material';
-import { format } from 'date-fns';
 import { API_BASE_URL } from '../config';
-import { sv } from 'date-fns/locale';
 
 interface Backup {
     id: string;
     name: string;
     createdAt: string;
-    size: number;
+    tables: string[];
 }
 
 const TABLES_TO_BACKUP = [
-    { id: 'pages', label: 'Sidor' },
     { id: 'bookings', label: 'Bokningar' }
 ];
 
@@ -59,9 +35,7 @@ const BackupManager: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [backupName, setBackupName] = useState('');
     const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
-    const [backupToRestore, setBackupToRestore] = useState<string | null>(null);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [backupToDelete, setBackupToDelete] = useState<Backup | null>(null);
+    const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null);
 
     useEffect(() => {
         fetchBackups();
@@ -125,21 +99,21 @@ const BackupManager: React.FC = () => {
     };
 
     const handleRestoreClick = (fileName: string) => {
-        setBackupToRestore(fileName);
+        setSelectedBackup(backups.find(b => b.name === fileName) || null);
         setRestoreDialogOpen(true);
     };
 
     const handleRestoreCancel = () => {
-        setBackupToRestore(null);
+        setSelectedBackup(null);
         setRestoreDialogOpen(false);
     };
 
     const handleRestoreConfirm = async () => {
-        if (!backupToRestore) return;
+        if (!selectedBackup) return;
         
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/backups/${backupToRestore}/restore`, {
+            const response = await fetch(`${API_BASE_URL}/backups/${selectedBackup.name}/restore`, {
                 method: 'POST',
             });
 
@@ -156,7 +130,7 @@ const BackupManager: React.FC = () => {
         } finally {
             setLoading(false);
             setRestoreDialogOpen(false);
-            setBackupToRestore(null);
+            setSelectedBackup(null);
         }
     };
 
@@ -287,7 +261,7 @@ const BackupManager: React.FC = () => {
                 <DialogContent>
                     <DialogContentText>
                         Är du säker på att du vill återställa från backup-filen{' '}
-                        <strong>{backupToRestore}</strong>?
+                        <strong>{selectedBackup?.name}</strong>?
                         <br /><br />
                         Detta kommer att skriva över nuvarande data.
                     </DialogContentText>
