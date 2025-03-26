@@ -8,7 +8,7 @@ export interface Booking {
   enddate?: string;    // ISO-format datum (från databas)
   createdAt?: string;
   createdat?: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'confirmed';
   notes?: string;
   phone?: string;
 } 

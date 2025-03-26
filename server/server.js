@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === 'production') {
   console.log('Running in production mode - SSL configured for database connections');
 } else {
   console.log('Running in development mode');
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
 // Log environment configuration
@@ -94,7 +94,7 @@ const corsOptions = {
     
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
-    } else {
+} else {
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -145,14 +145,14 @@ app.use(fileUpload({
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+    destination: function (req, file, cb) {
     const uploadsDir = path.join(__dirname, '../uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
+      cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
   }
 });
@@ -202,6 +202,94 @@ app.get('/manifest.json', (req, res) => {
 app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Backup routes
+app.get('/api/backups', async (req, res) => {
+    try {
+        console.log('Fetching backup list...');
+        const result = await listBackups();
+        console.log('Backup list result:', result);
+        
+        if (!result.success) {
+            console.error('Failed to list backups:', result.error);
+            return res.status(500).json({ 
+                success: false, 
+                error: result.error,
+                details: result.details
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            files: result.files || []
+        });
+    } catch (error) {
+        console.error('Error in backups list route:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ett fel uppstod vid hämtning av backup-lista',
+            details: error.message
+        });
+    }
+});
+
+app.post('/api/backup', async (req, res) => {
+    try {
+        console.log('Received backup request:', req.body);
+        const { tables, name } = req.body;
+        
+        if (!tables || !Array.isArray(tables) || tables.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Inga tabeller valda för backup'
+            });
+        }
+
+        if (!name || typeof name !== 'string' || name.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Ogiltigt backup-namn'
+            });
+        }
+
+        const result = await createBackup(tables, name);
+        console.log('Backup result:', result);
+
+        if (!result.success) {
+            return res.status(500).json({
+                success: false,
+                error: result.error
+            });
+        }
+
+        return res.json({
+            success: true,
+            fileName: result.fileName
+        });
+    } catch (error) {
+        console.error('Error in backup route:', error);
+        return res.status(500).json({
+            success: false,
+            error: `Ett oväntat fel uppstod: ${error.message}`
+        });
+    }
+});
+
+app.post('/api/backups/:fileName/restore', async (req, res) => {
+  try {
+    const { fileName } = req.params;
+    const result = await restoreFromBackup(fileName);
+    res.json(result);
+        } catch (error) {
+    console.error('Error restoring backup:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
 const backupDir = path.join(__dirname, 'backups');
@@ -215,7 +303,7 @@ if (process.env.NODE_ENV !== 'production') {
     fs.mkdirSync(backupDir);
     console.log('Created backup directory:', backupDir);
   }
-} else {
+      } else {
   console.log('Running in production mode - skipping directory creation (using read-only filesystem)');
 }
 

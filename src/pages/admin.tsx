@@ -25,10 +25,10 @@ const AdminPage: React.FC = () => {
 
                 <Paper sx={{ mb: 4 }}>
                     <Tabs value={activeTab} onChange={handleTabChange}>
-                        <Tab label="Sidor" />
+                        <Tab label="Dashboard" />
                         <Tab label="Bokningar" />
                         <Tab label="Användare" />
-                        <Tab label="Backup" />
+                        <Tab label="Inställningar" />
                     </Tabs>
                 </Paper>
 
