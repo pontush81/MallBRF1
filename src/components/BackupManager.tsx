@@ -40,6 +40,7 @@ import { API_BASE_URL } from '../config';
 import { sv } from 'date-fns/locale';
 
 interface Backup {
+    id: string;
     name: string;
     createdAt: string;
     size: number;
@@ -52,13 +53,15 @@ const TABLES_TO_BACKUP = [
 
 const BackupManager: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [selectedTables, setSelectedTables] = useState<string[]>([]);
     const [backups, setBackups] = useState<Backup[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [backupName, setBackupName] = useState<string>('');
+    const [loading, setLoading] = useState(false);
+    const [backupName, setBackupName] = useState('');
     const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
     const [backupToRestore, setBackupToRestore] = useState<string | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [backupToDelete, setBackupToDelete] = useState<Backup | null>(null);
 
     useEffect(() => {
         fetchBackups();
@@ -93,7 +96,7 @@ const BackupManager: React.FC = () => {
         }
 
         try {
-            setIsLoading(true);
+            setLoading(true);
             setError(null);
             const response = await fetch(`${API_BASE_URL}/backup`, {
                 method: 'POST',
@@ -101,7 +104,7 @@ const BackupManager: React.FC = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    tables: selectedTables,
+                    tables: ['pages', 'bookings'],
                     name: backupName.trim()
                 }),
             });
@@ -111,14 +114,13 @@ const BackupManager: React.FC = () => {
                 throw new Error(errorData.error || 'Kunde inte skapa backup');
             }
 
-            const result = await response.json();
-            setSuccess('Backup skapad framgångsrikt!');
+            setSuccessMessage('Backup skapad framgångsrikt!');
             setBackupName('');
             fetchBackups();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ett fel uppstod vid skapande av backup');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
@@ -136,7 +138,7 @@ const BackupManager: React.FC = () => {
         if (!backupToRestore) return;
         
         try {
-            setIsLoading(true);
+            setLoading(true);
             const response = await fetch(`${API_BASE_URL}/backups/${backupToRestore}/restore`, {
                 method: 'POST',
             });
@@ -146,13 +148,13 @@ const BackupManager: React.FC = () => {
             }
 
             setError(null);
-            setSuccess('Backup återställd framgångsrikt');
+            setSuccessMessage('Backup återställd framgångsrikt');
             fetchBackups();
         } catch (err) {
             console.error('Error restoring backup:', err);
             setError('Ett fel uppstod vid återställning av backup');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
             setRestoreDialogOpen(false);
             setBackupToRestore(null);
         }
@@ -197,14 +199,14 @@ const BackupManager: React.FC = () => {
 
                     <button
                         onClick={handleCreateBackup}
-                        disabled={isLoading || selectedTables.length === 0 || !backupName.trim()}
+                        disabled={loading || selectedTables.length === 0 || !backupName.trim()}
                         className={`w-full px-4 py-2 rounded-md text-white font-medium ${
-                            isLoading || selectedTables.length === 0 || !backupName.trim()
+                            loading || selectedTables.length === 0 || !backupName.trim()
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-blue-600 hover:bg-blue-700'
                         }`}
                     >
-                        {isLoading ? 'Skapar backup...' : 'Skapa backup'}
+                        {loading ? 'Skapar backup...' : 'Skapa backup'}
                     </button>
                 </div>
             </div>
@@ -216,9 +218,9 @@ const BackupManager: React.FC = () => {
                         {error}
                     </div>
                 )}
-                {success && (
+                {successMessage && (
                     <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
-                        {success}
+                        {successMessage}
                     </div>
                 )}
                 {backups.length === 0 ? (
@@ -238,7 +240,7 @@ const BackupManager: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={() => handleRestoreClick(backup.name)}
-                                    disabled={isLoading}
+                                    disabled={loading}
                                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400"
                                 >
                                     Återställ
@@ -266,7 +268,7 @@ const BackupManager: React.FC = () => {
                                         variant="outlined"
                                         color="primary"
                                         onClick={() => handleRestoreClick(backup.name)}
-                                        disabled={isLoading}
+                                        disabled={loading}
                                     >
                                         Återställ
                                     </Button>
