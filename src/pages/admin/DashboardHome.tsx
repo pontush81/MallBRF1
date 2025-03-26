@@ -50,8 +50,7 @@ const DashboardHome: React.FC = () => {
         
         // Hämta bokningsstatistik
         const allBookings = await bookingService.getAllBookings();
-        const pendingBookings = allBookings.filter(booking => booking.status === 'pending');
-        const confirmedBookings = allBookings.filter(booking => booking.status === 'confirmed');
+        const bookingsCount = allBookings.length;
         
         // Sortera sidorna efter senast uppdaterad
         const recentPages = [...allPages]
@@ -71,9 +70,9 @@ const DashboardHome: React.FC = () => {
           totalPages: allPages.length,
           publishedPages: publishedPages.length,
           draftPages: draftPages.length,
-          totalBookings: allBookings.length,
-          pendingBookings: pendingBookings.length,
-          confirmedBookings: confirmedBookings.length,
+          totalBookings: bookingsCount,
+          pendingBookings: 0,
+          confirmedBookings: bookingsCount,
           totalUsers: 12, // Mock-data
           recentPages
         });

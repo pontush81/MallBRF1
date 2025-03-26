@@ -137,13 +137,6 @@ const BookingPage: React.FC = () => {
       
       // Konvertera bokningar till FullCalendar-format
       const events = normalizedBookings
-        .filter(booking => {
-          if (booking.status === 'cancelled') {
-            console.log('Filtrerar bort avbokad bokning:', booking.id);
-            return false;
-          }
-          return true;
-        })
         .map(booking => {
           // Logga varje bokning som konverteras
           console.log('Konverterar bokning till händelse:', booking.id, booking.startDate, booking.endDate);
@@ -416,7 +409,7 @@ const BookingPage: React.FC = () => {
                   <CustomPickersDay 
                     {...props} 
                     selectedDays={[startDate, endDate].filter(Boolean)}
-                    bookedDates={existingBookings.filter(b => b.status !== 'cancelled')}
+                    bookedDates={existingBookings}
                   />
                 ),
               }}
@@ -652,11 +645,7 @@ const BookingPage: React.FC = () => {
               </Typography>
               
               <Typography variant="body1" paragraph>
-                {bookingId && (
-                  <Box component="span" sx={{ display: 'block', mt: 1 }}>
-                    Bokningsnummer: <strong>{bookingId}</strong>
-                  </Box>
-                )}
+                Vi har tagit emot din bokning och kommer att bekräfta den så snart som möjligt.
               </Typography>
               
               <Button
