@@ -78,6 +78,8 @@ router.get('/visible', async (req, res) => {
   try {
     console.log('Fetching visible pages...');
     console.log('Request headers:', req.headers);
+    console.log('Supabase URL:', process.env.SUPABASE_URL);
+    console.log('Service Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
     const { data, error } = await supabase
       .from('pages')
@@ -88,6 +90,12 @@ router.get('/visible', async (req, res) => {
 
     if (error) {
       console.error('Supabase error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       throw error;
     }
 
