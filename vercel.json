@@ -19,11 +19,27 @@
       "dest": "server/server.js"
     },
     {
-      "handle": "filesystem"
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "/robots.txt"
     },
     {
       "src": "/(.*)",
-      "dest": "build/index.html"
+      "dest": "/index.html",
+      "headers": {
+        "Cache-Control": "s-maxage=1, stale-while-revalidate"
+      }
     }
   ],
   "env": {
