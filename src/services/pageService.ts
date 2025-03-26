@@ -100,7 +100,9 @@ const pageService = {
       
       const pages = await response.json();
       console.log(`Successfully fetched ${pages.length} visible pages`);
-      return pages;
+      // Sortera sidorna i alfabetisk ordning baserat på titeln
+      const sortedPages = [...pages].sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+      return sortedPages;
     } catch (error) {
       console.error('Error fetching visible pages:', {
         error,
@@ -111,12 +113,12 @@ const pageService = {
       
       // Use fallback data if the API fails
       console.log('Using fallback data due to API error');
-      return [
+      const fallbackPages = [
         {
           id: "fallback-1",
-          title: "Välkomstsida",
-          content: "# Välkommen\n\nDetta är vår välkomstsida.",
-          slug: "valkomstsida",
+          title: "Bokning",
+          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
+          slug: "bokning",
           isPublished: true,
           show: true,
           files: [],
@@ -136,9 +138,9 @@ const pageService = {
         },
         {
           id: "fallback-3",
-          title: "Bokning",
-          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
-          slug: "bokning",
+          title: "Välkomstsida",
+          content: "# Välkommen\n\nDetta är vår välkomstsida.",
+          slug: "valkomstsida",
           isPublished: true,
           show: true,
           files: [],
@@ -146,6 +148,7 @@ const pageService = {
           updatedAt: new Date().toISOString()
         }
       ];
+      return fallbackPages.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
     }
   },
 
