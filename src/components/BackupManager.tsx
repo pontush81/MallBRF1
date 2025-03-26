@@ -104,7 +104,7 @@ const BackupManager: React.FC = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    tables: ['pages', 'bookings'],
+                    tables: ['bookings'],
                     name: backupName.trim()
                 }),
             });

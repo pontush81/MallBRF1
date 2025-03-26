@@ -25,7 +25,9 @@ import {
   Article as ArticleIcon,
   EventAvailable as EventIcon,
   Dashboard as DashboardIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import { useAuth } from '../context/AuthContext';
@@ -66,7 +68,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   
   const navItems = [
-    { label: 'Sidor', path: '/pages', icon: <ArticleIcon /> },
     { label: 'Boka', path: '/booking', icon: <EventIcon /> }
   ];
   

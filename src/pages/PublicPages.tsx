@@ -362,11 +362,6 @@ const PublicPages: React.FC = (): JSX.Element => {
       <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
           <Box ref={headerRef}>
-            <Typography variant="h3" component="h1" gutterBottom color="primary">
-              Sidor
-            </Typography>
-            
-            {/* Standard navigationsmeny */}
             <Box sx={{ mb: 4 }}>
               {isMobile ? <MobileMenu /> : <NavigationTabs />}
             </Box>
