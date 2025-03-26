@@ -22,10 +22,22 @@ import {
     DialogTitle,
     DialogContent,
     DialogContentText,
-    DialogActions
+    DialogActions,
+    List,
+    ListItem,
+    ListItemText,
+    IconButton,
+    Input,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    FormHelperText
 } from '@mui/material';
+import { Delete as DeleteIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { API_BASE_URL } from '../config';
+import { sv } from 'date-fns/locale';
 
 interface Backup {
     name: string;
@@ -75,30 +87,23 @@ const BackupManager: React.FC = () => {
     };
 
     const handleCreateBackup = async () => {
-        if (selectedTables.length === 0) {
-            setError('Välj minst en tabell att backa upp');
-            return;
-        }
-
         if (!backupName.trim()) {
-            setError('Ange ett namn för backupen');
+            setError('Vänligen ange ett namn för backupen');
             return;
         }
-
-        setIsLoading(true);
-        setError(null);
-        setSuccess(null);
 
         try {
+            setIsLoading(true);
+            setError(null);
             const response = await fetch(`${API_BASE_URL}/backup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     tables: selectedTables,
                     name: backupName.trim()
-                })
+                }),
             });
 
             if (!response.ok) {
@@ -106,12 +111,11 @@ const BackupManager: React.FC = () => {
                 throw new Error(errorData.error || 'Kunde inte skapa backup');
             }
 
-            const data = await response.json();
-            setSuccess('Backup skapad framgångsrikt');
-            setBackupName(''); // Återställ fältet
-            fetchBackups(); // Uppdatera listan
+            const result = await response.json();
+            setSuccess('Backup skapad framgångsrikt!');
+            setBackupName('');
+            fetchBackups();
         } catch (err) {
-            console.error('Error creating backup:', err);
             setError(err instanceof Error ? err.message : 'Ett fel uppstod vid skapande av backup');
         } finally {
             setIsLoading(false);

@@ -1,29 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Typography, 
-  Box, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TableRow,
   Button,
-  IconButton,
-  Chip,
   Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
   DialogTitle,
-  Alert,
-  Snackbar,
-  CircularProgress,
+  DialogContent,
+  DialogActions,
   TextField,
+  Grid,
+  Select,
+  FormControl,
+  InputLabel,
   MenuItem,
-  Grid
+  FormHelperText,
 } from '@mui/material';
+import { Booking } from '../../types/Booking';
+import { API_URL } from '../../config';
+import { format } from 'date-fns';
+import { sv } from 'date-fns/locale';
+
 import { 
   Edit as EditIcon, 
   Delete as DeleteIcon, 
@@ -31,10 +34,6 @@ import {
   Close as CloseIcon,
   Email as EmailIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
-
-import { Booking } from '../../types/Booking';
 import bookingService from '../../services/bookingService';
 
 const BookingsList: React.FC = () => {
