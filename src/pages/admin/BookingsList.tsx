@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Typography,
   Paper,
   Table,
@@ -16,11 +15,6 @@ import {
   DialogActions,
   TextField,
   Grid,
-  Select,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  FormHelperText,
   Box,
   CircularProgress,
   Alert,
@@ -29,12 +23,10 @@ import {
   Snackbar,
 } from '@mui/material';
 import { 
-  Edit as EditIcon, 
   Delete as DeleteIcon,
   Email as EmailIcon
 } from '@mui/icons-material';
 import { Booking } from '../../types/Booking';
-import { API_BASE_URL } from '../../config';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
