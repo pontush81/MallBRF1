@@ -141,6 +141,41 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware för att verifiera x-vercel-protection-bypass header
+app.use((req, res, next) => {
+  // Undantag för vissa endpoints där autentisering inte behövs
+  const bypassPaths = [
+    '/health', 
+    '/api/health', 
+    '/api/test', 
+    '/manifest.json',
+    '/api/pages/visible',
+    '/api/pages/published',
+    '/api/pages/slug/'
+  ];
+  
+  // Tillåt OPTIONS-anrop för preflight requests
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  // Tillåt hälsokontroller och liknande utan autentisering
+  if (bypassPaths.some(path => req.path === path || req.path.startsWith(path))) {
+    return next();
+  }
+  
+  // För API-anrop, verifiera x-vercel-protection-bypass
+  if (req.path.startsWith('/api/')) {
+    const bypass = req.headers['x-vercel-protection-bypass'];
+    if (!bypass || bypass !== 'true') {
+      console.warn(`Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+  }
+  
+  next();
+});
+
 // Body parsers and file upload middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
