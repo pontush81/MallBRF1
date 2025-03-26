@@ -89,12 +89,15 @@ const corsOptions = {
       'http://localhost:3001',
       'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
       'https://mall-brf-1.vercel.app',
-      'https://mallbrf.vercel.app'
+      'https://mallbrf.vercel.app',
+      'https://www.gulmaran.com',
+      'https://stage.gulmaran.com',
+      'https://www.stage.gulmaran.com'
     ];
     
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
-} else {
+    } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
