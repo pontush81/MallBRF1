@@ -243,7 +243,16 @@ const UsersList: React.FC = () => {
   // Formatera datum
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
-    return format(new Date(dateString), 'PPP', { locale: sv });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '-';
+      }
+      return format(date, 'PPP', { locale: sv });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '-';
+    }
   };
 
   if (loading && users.length === 0) {

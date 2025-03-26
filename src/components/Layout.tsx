@@ -1,34 +1,32 @@
 import React, { ReactNode, useState } from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Container, 
-  Box, 
-  Button, 
-  IconButton, 
-  Menu, 
-  MenuItem, 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemIcon, 
-  ListItemText, 
-  Divider,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { 
+import { useAuth } from '../context/AuthContext';
+import {
+  AppBar,
+  Box,
+  Button,
+  Container,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+  Menu,
+  MenuItem,
+  Divider
+} from '@mui/material';
+import {
   Menu as MenuIcon,
-  Person as PersonIcon,
-  Article as ArticleIcon,
-  EventAvailable as EventIcon,
+  Event as EventIcon,
   Dashboard as DashboardIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
-import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -66,7 +64,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   
   const navItems = [
-    { label: 'Sidor', path: '/pages', icon: <ArticleIcon /> },
     { label: 'Boka', path: '/booking', icon: <EventIcon /> }
   ];
   
@@ -74,7 +71,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isAdmin) {
       navItems.push({ label: 'Admin', path: '/admin', icon: <DashboardIcon /> });
     }
-    navItems.push({ label: 'Profil', path: '/profile', icon: <PersonIcon /> });
+    navItems.push({ label: 'Profil', path: '/profile', icon: <AccountCircle /> });
   }
   
   const drawer = (

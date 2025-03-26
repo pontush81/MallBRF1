@@ -199,12 +199,10 @@ const PublicPages: React.FC = (): JSX.Element => {
       scrollButtons="auto"
       allowScrollButtonsMobile
       sx={{ 
-        borderBottom: compact ? 0 : 1, 
-        borderColor: 'divider',
-        '& .MuiTabs-flexContainer': {
-          borderBottom: 'none'
-        },
         minHeight: compact ? '48px' : '56px',
+        '& .MuiTabs-indicator': {
+          display: compact ? 'none' : 'block'
+        }
       }}
     >
       {pages.map((page, index) => (
