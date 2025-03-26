@@ -1,8 +1,5 @@
 // API base URL configuration
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://mallbrf.vercel.app/api' 
-    : 'http://localhost:3002/api');
+export const API_BASE_URL = '/api'; // Använd relativ URL istället för extern domän
 
 // Fallback API URL (used when the regular API fails)
 export const FALLBACK_API_ENABLED = true;
