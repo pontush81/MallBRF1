@@ -189,38 +189,38 @@ const PublicPages: React.FC = (): JSX.Element => {
   };
 
   // Komponent för navigationsflikar
-  const NavigationTabs = ({ compact = false }: { compact?: boolean }) => (
-    <Tabs 
-      value={selectedPageIndex}
-      onChange={(_, newValue) => setSelectedPageIndex(newValue)}
-      variant="scrollable"
-      scrollButtons="auto"
-      allowScrollButtonsMobile
-      sx={{ 
-        borderBottom: compact ? 0 : 1, 
-        borderColor: 'divider',
-        '& .MuiTabs-flexContainer': {
-          borderBottom: 'none'
-        },
-        minHeight: compact ? '48px' : '56px',
-      }}
-    >
-      {pages.map((page, index) => (
-        <Tab 
-          key={page.id}
-          label={page.title}
-          onClick={() => scrollToPage(page.id, index)}
-          sx={{ 
-            textTransform: 'none', 
-            fontWeight: selectedPageIndex === index ? 'bold' : 'normal',
-            fontSize: compact ? '0.875rem' : '1rem',
-            minHeight: compact ? '48px' : '56px',
-            py: compact ? 1 : 2
-          }}
-        />
-      ))}
-    </Tabs>
-  );
+  const NavigationTabs = ({ compact = false }: { compact?: boolean }) => {
+    return (
+      <Tabs 
+        value={selectedPageIndex}
+        onChange={(_, newValue) => setSelectedPageIndex(newValue)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ 
+          minHeight: compact ? '48px' : '56px',
+          '& .MuiTabs-indicator': {
+            display: compact ? 'none' : 'block'
+          }
+        }}
+      >
+        {pages.map((page, index) => (
+          <Tab 
+            key={page.id}
+            label={page.title}
+            onClick={() => scrollToPage(page.id, index)}
+            sx={{ 
+              textTransform: 'none', 
+              fontWeight: selectedPageIndex === index ? 'bold' : 'normal',
+              fontSize: compact ? '0.875rem' : '1rem',
+              minHeight: compact ? '48px' : '56px',
+              py: compact ? 1 : 2
+            }}
+          />
+        ))}
+      </Tabs>
+    );
+  };
 
   // Mobilmeny-komponent
   const MobileMenu = ({ compact = false }: { compact?: boolean }) => (
