@@ -21,19 +21,22 @@ import {
   InputLabel,
   MenuItem,
   FormHelperText,
+  Box,
+  CircularProgress,
+  Alert,
+  IconButton,
+  DialogContentText,
+  Snackbar,
 } from '@mui/material';
-import { Booking } from '../../types/Booking';
-import { API_URL } from '../../config';
-import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
-
 import { 
   Edit as EditIcon, 
-  Delete as DeleteIcon, 
-  Check as CheckIcon,
-  Close as CloseIcon,
+  Delete as DeleteIcon,
   Email as EmailIcon
 } from '@mui/icons-material';
+import { Booking } from '../../types/Booking';
+import { API_BASE_URL } from '../../config';
+import { format } from 'date-fns';
+import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 
 const BookingsList: React.FC = () => {
