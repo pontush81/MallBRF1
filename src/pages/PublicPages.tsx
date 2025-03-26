@@ -60,9 +60,7 @@ const PublicPages: React.FC = (): JSX.Element => {
         setLoading(true);
         // Använd getVisiblePages för att endast hämta publicerade sidor markerade för visning
         const visiblePages = await pageService.getVisiblePages();
-        // Sortera sidorna i bokstavsordning baserat på titeln
-        const sortedPages = [...visiblePages].sort((a, b) => a.title.localeCompare(b.title, 'sv'));
-        setPages(sortedPages);
+        setPages(visiblePages);
       } catch (err) {
         console.error('Kunde inte hämta sidor:', err);
         setError('Kunde inte ladda sidorna. Försök igen senare.');
