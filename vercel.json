@@ -16,7 +16,13 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/server.js"
+      "dest": "server/server.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass",
+        "Access-Control-Allow-Credentials": "true"
+      }
     },
     {
       "src": "/static/(.*)",
