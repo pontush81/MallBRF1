@@ -1,0 +1,20 @@
+
+ name                                       value               environments                        created    
+ CORS_ORIGIN                                Encrypted           Development, Preview, Production    2d ago     
+ JWT_SECRET                                 Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_API_URL                          Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_MEASUREMENT_ID          Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_APP_ID                  Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_MESSAGING_SENDER_ID     Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_STORAGE_BUCKET          Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_PROJECT_ID              Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_AUTH_DOMAIN             Encrypted           Development, Preview, Production    2d ago     
+ REACT_APP_FIREBASE_API_KEY                 Encrypted           Development, Preview, Production    2d ago     
+ react_app_api_url                          Encrypted           Production                          3d ago     
+ NODE_ENV                                   Encrypted           Production                          3d ago     
+ POSTGRES_URL                               Encrypted           Production                          3d ago     
+ API_SECRET                                 Encrypted           Production                          3d ago     
+ SUPABASE_ANON_KEY                          Encrypted           Development, Preview, Production    4d ago     
+ SUPABASE_SERVICE_ROLE_KEY                  Encrypted           Production, Preview, Development    4d ago     
+ SUPABASE_URL                               Encrypted           Development, Preview, Production    4d ago     
+

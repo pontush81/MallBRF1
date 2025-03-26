@@ -1,0 +1,31 @@
+
+ name                                       value               environments                        created    
+ react_app_api_url                          Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_MEASUREMENT_ID          Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_APP_ID                  Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_MESSAGING_SENDER_ID     Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_STORAGE_BUCKET          Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_PROJECT_ID              Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_AUTH_DOMAIN             Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_FIREBASE_API_KEY                 Encrypted           Development, Preview, Production    3d ago     
+ REACT_APP_API_URL                          Encrypted           Production, Preview, Development    3d ago     
+ JWT_SECRET                                 Encrypted           Development, Preview, Production    3d ago     
+ API_SECRET                                 Encrypted           Development, Preview, Production    3d ago     
+ PORT                                       Encrypted           Development, Preview, Production    3d ago     
+ NODE_TLS_REJECT_UNAUTHORIZED               Encrypted           Development, Preview, Production    4d ago     
+ NODE_ENV                                   Encrypted           Production, Preview, Development    6d ago     
+ SUPABASE_KEY                               Encrypted           Development, Preview, Production    7d ago     
+ POSTGRES_URL                               Encrypted           Production, Preview, Development    7d ago     
+ POSTGRES_PRISMA_URL                        Encrypted           Production, Preview, Development    7d ago     
+ SUPABASE_URL                               Encrypted           Production, Preview, Development    7d ago     
+ NEXT_PUBLIC_SUPABASE_URL                   Encrypted           Production, Preview, Development    7d ago     
+ POSTGRES_URL_NON_POOLING                   Encrypted           Production, Preview, Development    7d ago     
+ SUPABASE_JWT_SECRET                        Encrypted           Production, Preview, Development    7d ago     
+ POSTGRES_USER                              Encrypted           Production, Preview, Development    7d ago     
+ NEXT_PUBLIC_SUPABASE_ANON_KEY              Encrypted           Production, Preview, Development    7d ago     
+ POSTGRES_PASSWORD                          Encrypted           Production, Preview, Development    7d ago     
+ POSTGRES_DATABASE                          Encrypted           Production, Preview, Development    7d ago     
+ SUPABASE_SERVICE_ROLE_KEY                  Encrypted           Production, Preview, Development    7d ago     
+ POSTGRES_HOST                              Encrypted           Production, Preview, Development    7d ago     
+ SUPABASE_ANON_KEY                          Encrypted           Production, Preview, Development    7d ago     
+
