@@ -112,6 +112,9 @@ const corsOptions = {
 // Apply CORS middleware first
 app.use(cors(corsOptions));
 
+// Serve static files from the build directory (måste vara före autentisering)
+app.use(express.static(path.join(__dirname, '../build')));
+
 // Handle manifest.json with proper CORS headers (no auth required)
 app.get('/manifest.json', (req, res) => {
   const manifest = {
@@ -171,7 +174,10 @@ app.use((req, res, next) => {
     req.path.endsWith('.ico') ||
     req.path.endsWith('.svg') ||
     req.path.endsWith('.json') ||
-    req.path === '/'
+    req.path === '/' ||
+    req.path === '/index.html' ||
+    req.path === '/static/' ||
+    req.path.startsWith('/static/')
   )) {
     return next();
   }
@@ -283,12 +289,20 @@ async function testDatabaseConnection() {
   }
 }
 
-// Serve static files from the build directory
-app.use(express.static(path.join(__dirname, '../build')));
-
 // Handle root route - serve the frontend application
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../build/index.html'));
+});
+
+// Handle 404 errors for static files
+app.use((req, res, next) => {
+  if (req.path.includes('.')) { // Om det är en statisk fil
+    console.log(`404 for static file: ${req.path}`);
+    res.status(404).send('Not found');
+  } else {
+    // För alla andra routes, skicka index.html
+    res.sendFile(path.join(__dirname, '../build/index.html'));
+  }
 });
 
 // Start the server
