@@ -6,7 +6,6 @@ import theme from './theme';
 
 // Pages
 import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
 import Dashboard from './pages/admin/Dashboard';
 import Profile from './pages/user/Profile';
 import PageView from './pages/public/PageView';
@@ -42,7 +41,6 @@ function AppRoutes() {
         {/* Public routes */}
         <Route path="/" element={<Navigate to="/pages" replace />} />
         <Route path="/login" element={<Layout><Login /></Layout>} />
-        <Route path="/register" element={<Layout><Register /></Layout>} />
         <Route path="/page/:id" element={<Layout><PageView /></Layout>} />
         <Route path="/pages" element={<Layout><PublicPages /></Layout>} />
         <Route path="/booking" element={<Layout><BookingPage /></Layout>} />

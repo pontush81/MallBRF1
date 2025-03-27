@@ -201,13 +201,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   Logga in
                 </Button>
-                <Button 
-                  color="inherit" 
-                  component={RouterLink} 
-                  to="/register"
-                >
-                  Registrera
-                </Button>
               </>
             )}
           </Box>
