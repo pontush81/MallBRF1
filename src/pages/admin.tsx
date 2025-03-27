@@ -7,7 +7,6 @@ import {
     Typography,
     Paper
 } from '@mui/material';
-import BackupManager from '../components/BackupManager';
 
 const AdminPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
@@ -28,7 +27,6 @@ const AdminPage: React.FC = () => {
                         <Tab label="Dashboard" />
                         <Tab label="Bokningar" />
                         <Tab label="Användare" />
-                        <Tab label="Inställningar" />
                     </Tabs>
                 </Paper>
 
@@ -41,9 +39,6 @@ const AdminPage: React.FC = () => {
                     )}
                     {activeTab === 2 && (
                         <Typography>Användarhantering kommer här</Typography>
-                    )}
-                    {activeTab === 3 && (
-                        <BackupManager />
                     )}
                 </Box>
             </Box>

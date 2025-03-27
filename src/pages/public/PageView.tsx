@@ -16,6 +16,7 @@ import {
   CardMedia,
   CardContent,
   CardActions,
+  Link,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -249,7 +250,7 @@ const PageView: React.FC = () => {
           >
             Tillbaka
           </Button>
-          <Alert severity="info" sx={{ mb: 3 }}>
+          <Alert severity="warning" sx={{ mb: 3 }}>
             Sidan kunde inte hittas
           </Alert>
           <Button 
@@ -263,19 +264,36 @@ const PageView: React.FC = () => {
     );
   }
 
+  // Visa bokningsknapp för sidor med slug 'gastlagenhet'
+  const showBookingButton = page.slug === 'gastlagenhet';
+
+  // Hantera kategoriserade filer
   const { images, documents } = categorizeFiles(page.files);
   const hasAttachments = (images.length > 0 || documents.length > 0);
 
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={handleGoBack} sx={{ mr: 2 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h4" component="h1">
-            {page.title}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton onClick={handleGoBack} sx={{ mr: 2 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h4" component="h1">
+              {page.title}
+            </Typography>
+          </Box>
+          
+          {showBookingButton && (
+            <Button 
+              variant="contained" 
+              color="primary"
+              startIcon={<CalendarTodayIcon />}
+              onClick={() => navigate('/booking')}
+            >
+              Boka gästlägenhet
+            </Button>
+          )}
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -292,9 +310,9 @@ const PageView: React.FC = () => {
             />
           )}
         </Box>
-
+        
         <Divider sx={{ mb: 4 }} />
-
+        
         <Paper sx={{ 
           p: { xs: 2, md: 4 }, 
           borderRadius: 2,
@@ -316,91 +334,79 @@ const PageView: React.FC = () => {
               {page.content}
             </ReactMarkdown>
           </Box>
-          
+
+          {showBookingButton && (
+            <Box sx={{ mt: 4, mb: 2, display: 'flex', justifyContent: 'center' }}>
+              <Button 
+                variant="contained" 
+                color="primary"
+                size="large"
+                startIcon={<CalendarTodayIcon />}
+                onClick={() => navigate('/booking')}
+              >
+                Boka gästlägenhet nu
+              </Button>
+            </Box>
+          )}
+
           {hasAttachments && (
             <Box sx={{ mt: 4 }}>
               <Divider sx={{ mb: 3 }} />
               
+              {/* Rest of attachment code remains the same */}
               {images.length > 0 && (
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h5" gutterBottom>
+                <>
+                  <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
                     Bilder
                   </Typography>
                   <Grid container spacing={2}>
-                    {images.map((file) => (
-                      <Grid item xs={12} sm={6} md={4} key={file.id}>
+                    {images.map((file: FileInfo, index: number) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
                         <Card>
                           <CardMedia
                             component="img"
-                            height="180"
+                            height="200"
                             image={file.url}
-                            alt={file.originalName}
+                            alt={file.name}
                             sx={{ objectFit: 'cover' }}
                           />
-                          <CardContent sx={{ py: 1 }}>
-                            <Typography variant="body2" noWrap title={file.originalName}>
-                              {file.originalName}
+                          <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+                            <Typography variant="body2" noWrap>
+                              {file.name}
                             </Typography>
                           </CardContent>
                           <CardActions>
-                            <Button 
-                              size="small" 
-                              component="a"
-                              href={file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              startIcon={<ImageIcon />}
-                            >
-                              Öppna
+                            <Button size="small" href={file.url} target="_blank">
+                              Visa i full storlek
                             </Button>
                           </CardActions>
                         </Card>
                       </Grid>
                     ))}
                   </Grid>
-                </Box>
+                </>
               )}
-              
+
               {documents.length > 0 && (
-                <Box>
-                  <Typography variant="h5" gutterBottom>
+                <>
+                  <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
                     Dokument
                   </Typography>
-                  <Paper variant="outlined" sx={{ p: 0 }}>
-                    {documents.map((file, index) => (
-                      <React.Fragment key={file.id}>
-                        {index > 0 && <Divider />}
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          p: 2,
-                          '&:hover': { bgcolor: 'action.hover' }
-                        }}>
-                          <Box sx={{ pr: 2 }}>
-                            {getFileIcon(file.mimetype)}
-                          </Box>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="body1">
-                              {file.originalName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {(file.size / 1024).toFixed(1)} KB • {file.mimetype}
-                            </Typography>
-                          </Box>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            href={file.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Ladda ner
-                          </Button>
-                        </Box>
-                      </React.Fragment>
+                  <Paper sx={{ p: 2 }}>
+                    {documents.map((file: FileInfo, index: number) => (
+                      <Button
+                        key={index}
+                        variant="outlined"
+                        startIcon={getFileIcon(file.mimetype || '')}
+                        href={file.url}
+                        target="_blank"
+                        sx={{ m: 0.5 }}
+                      >
+                        {file.name}
+                      </Button>
                     ))}
                   </Paper>
-                </Box>
+                </>
               )}
             </Box>
           )}

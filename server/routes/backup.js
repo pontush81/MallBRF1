@@ -5,38 +5,80 @@ const nodemailer = require('nodemailer');
 const { format } = require('date-fns');
 const { sv } = require('date-fns/locale');
 
+// Detaljerad loggning av miljövariabler (utan att visa känslig data)
 console.log('Backup route configuration:');
-console.log('EMAIL_USER:', process.env.EMAIL_USER);
-console.log('BACKUP_EMAIL:', process.env.BACKUP_EMAIL);
-console.log('EMAIL_PASSWORD length:', process.env.EMAIL_PASSWORD ? process.env.EMAIL_PASSWORD.length : 0);
+console.log('EMAIL_USER exists:', !!process.env.EMAIL_USER);
+console.log('BACKUP_EMAIL exists:', !!process.env.BACKUP_EMAIL);
+console.log('EMAIL_APP_PASSWORD exists:', !!process.env.EMAIL_APP_PASSWORD);
 
-// Konfigurera e-posttransporter
-const transporter = nodemailer.createTransport({
+if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD || !process.env.BACKUP_EMAIL) {
+  console.error('Saknade miljövariabler för e-postkonfiguration!');
+}
+
+// Konfigurera e-posttransporter med mer robusta inställningar
+const transportConfig = {
   host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,  // Använd SSL
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD
   },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+  debug: true,
+  logger: true,
+  maxConnections: 1,
+  maxMessages: 1
+};
 
-// Testa e-postkonfigurationen
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('E-postkonfigurationsfel:', error);
-  } else {
-    console.log('E-postkonfiguration är korrekt');
+// Skapa transporter
+let transporter;
+try {
+  transporter = nodemailer.createTransport(transportConfig);
+  console.log('SMTP Transporter skapad med följande konfiguration:', {
+    ...transportConfig,
+    auth: {
+      user: transportConfig.auth.user,
+      pass: '***'
+    }
+  });
+} catch (error) {
+  console.error('Fel vid skapande av SMTP transporter:', error);
+}
+
+// Verifiera SMTP-konfigurationen
+async function verifyTransporter() {
+  if (!transporter) {
+    console.error('Ingen SMTP transporter tillgänglig');
+    return false;
   }
-});
+
+  try {
+    const verified = await transporter.verify();
+    console.log('SMTP-verifiering lyckades:', verified);
+    return true;
+  } catch (error) {
+    console.error('SMTP-verifieringsfel:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      responseCode: error.responseCode,
+      response: error.response
+    });
+    return false;
+  }
+}
 
 // Hämta alla bokningar och skicka som backup
 router.post('/send-backup', async (req, res) => {
   try {
     console.log('Startar backup-processen...');
+
+    // Verifiera SMTP-konfiguration först
+    const isSmtpVerified = await verifyTransporter();
+    if (!isSmtpVerified) {
+      throw new Error('SMTP-konfigurationen kunde inte verifieras');
+    }
     
     // Hämta alla bokningar från Supabase
     console.log('Hämtar bokningar från Supabase...');
@@ -70,10 +112,18 @@ Skapad: ${format(new Date(booking.createdat), 'PPP', { locale: sv })}
 ----------------------------------------`;
     }).join('\n');
 
+    // Validera e-postadresser
+    if (!process.env.EMAIL_USER || !process.env.BACKUP_EMAIL) {
+      throw new Error('E-postadresser saknas i miljövariablerna');
+    }
+
     // Skapa e-postmeddelandet
     console.log('Skapar e-postmeddelande...');
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: {
+        name: 'Gulmåran BRF Backup',
+        address: process.env.EMAIL_USER
+      },
       to: process.env.BACKUP_EMAIL,
       subject: `Bokningsbackup - ${format(new Date(), 'PPP', { locale: sv })}`,
       text: `Här är en backup av alla bokningar:\n\n${formattedBookings}`,
@@ -86,22 +136,44 @@ Skapad: ${format(new Date(booking.createdat), 'PPP', { locale: sv })}
     };
 
     console.log('Skickar e-post...');
-    console.log('Från:', mailOptions.from);
+    console.log('Från:', mailOptions.from.address);
     console.log('Till:', mailOptions.to);
 
-    // Skicka e-postmeddelandet
-    await transporter.sendMail(mailOptions);
-    console.log('E-post skickad framgångsrikt!');
+    // Skicka e-postmeddelandet med timeout
+    const emailResult = await Promise.race([
+      transporter.sendMail(mailOptions),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('E-post timeout efter 30 sekunder')), 30000)
+      )
+    ]);
+
+    console.log('E-post skickad framgångsrikt!', emailResult.messageId);
 
     res.json({ 
       success: true, 
       message: 'Backup skickad via e-post',
-      bookingCount: bookings.length
+      bookingCount: bookings.length,
+      messageId: emailResult.messageId
     });
   } catch (error) {
-    console.error('Fel vid backup:', error);
-    res.status(500).json({ error: 'Kunde inte skicka backup', details: error.message });
+    console.error('Fel vid backup:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      error: 'Kunde inte skicka backup', 
+      details: error.message,
+      code: error.code
+    });
   }
+});
+
+// Initiera SMTP-verifiering vid uppstart
+verifyTransporter().then(isVerified => {
+  console.log('Initial SMTP-verifiering:', isVerified ? 'Lyckades' : 'Misslyckades');
 });
 
 module.exports = {
