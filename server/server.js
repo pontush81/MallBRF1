@@ -177,7 +177,10 @@ app.use((req, res, next) => {
     req.path === '/' ||
     req.path === '/index.html' ||
     req.path === '/static/' ||
-    req.path.startsWith('/static/')
+    req.path.startsWith('/static/') ||
+    req.path === '/manifest.json' ||
+    req.path === '/favicon.ico' ||
+    req.path === '/robots.txt'
   )) {
     return next();
   }
@@ -296,9 +299,15 @@ app.get('/', (req, res) => {
 
 // Handle 404 errors for static files
 app.use((req, res, next) => {
-  if (req.path.includes('.')) { // Om det är en statisk fil
-    console.log(`404 for static file: ${req.path}`);
-    res.status(404).send('Not found');
+  // Om det är en statisk fil, försök hitta den i build-mappen
+  if (req.path.includes('.')) {
+    const filePath = path.join(__dirname, '../build', req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      console.log(`404 for static file: ${req.path}`);
+      res.status(404).send('Not found');
+    }
   } else {
     // För alla andra routes, skicka index.html
     res.sendFile(path.join(__dirname, '../build/index.html'));
