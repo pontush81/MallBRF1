@@ -163,25 +163,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware för att verifiera x-vercel-protection-bypass header
-app.use((req, res, next) => {
-  // Tillåt alla GET-requests till statiska filer utan autentisering
-  if (req.method === 'GET' && (
-    req.path.endsWith('.js') ||
-    req.path.endsWith('.css') ||
-    req.path.endsWith('.png') ||
-    req.path.endsWith('.jpg') ||
-    req.path.endsWith('.ico') ||
-    req.path.endsWith('.svg') ||
-    req.path.endsWith('.json') ||
-    req.path === '/' ||
-    req.path === '/index.html' ||
-    req.path === '/static/' ||
-    req.path.startsWith('/static/') ||
-    req.path === '/manifest.json' ||
-    req.path === '/favicon.ico' ||
-    req.path === '/robots.txt'
-  )) {
+// Middleware för att verifiera x-vercel-protection-bypass header - endast för API-anrop
+app.use('/api', (req, res, next) => {
+  // Tillåt OPTIONS-anrop för preflight requests
+  if (req.method === 'OPTIONS') {
     return next();
   }
 
