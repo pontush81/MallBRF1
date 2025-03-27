@@ -163,14 +163,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware för att verifiera x-vercel-protection-bypass header - endast för API-anrop
+// Middleware för att verifiera x-vercel-protection-bypass header - endast för vissa API-anrop
 app.use('/api', (req, res, next) => {
   // Tillåt OPTIONS-anrop för preflight requests
   if (req.method === 'OPTIONS') {
     return next();
   }
 
-  // För API-anrop, verifiera x-vercel-protection-bypass
+  // Undanta vissa endpoints från autentisering
+  const publicEndpoints = [
+    '/api/pages/visible',
+    '/api/pages/published',
+    '/api/pages/slug',
+    '/api/manifest.json',
+    '/api/health'
+  ];
+
+  if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
+    return next();
+  }
+
+  // För övriga API-anrop, verifiera x-vercel-protection-bypass
   const bypass = req.headers['x-vercel-protection-bypass'];
   if (!bypass || bypass !== 'true') {
     console.warn(`Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);

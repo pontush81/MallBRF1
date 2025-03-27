@@ -28,6 +28,7 @@
       "src": "/manifest.json",
       "dest": "/manifest.json",
       "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass",
@@ -36,28 +37,44 @@
     },
     {
       "src": "/favicon.ico",
-      "dest": "/favicon.ico"
+      "dest": "/favicon.ico",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     },
     {
       "src": "/robots.txt",
-      "dest": "/robots.txt"
+      "dest": "/robots.txt",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     },
     {
       "src": "/logo192.png",
-      "dest": "/logo192.png"
+      "dest": "/logo192.png",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     },
     {
       "src": "/logo512.png",
-      "dest": "/logo512.png"
+      "dest": "/logo512.png",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     },
     {
       "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "dest": "/static/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "src": "/(.*)",
       "dest": "/index.html",
       "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass",
