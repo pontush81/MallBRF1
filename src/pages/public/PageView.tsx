@@ -367,12 +367,12 @@ const PageView: React.FC = () => {
                             component="img"
                             height="200"
                             image={file.url}
-                            alt={file.name}
+                            alt={file.originalName}
                             sx={{ objectFit: 'cover' }}
                           />
                           <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
-                            <Typography variant="body2" noWrap>
-                              {file.name}
+                            <Typography variant="body2" color="text.secondary">
+                              {file.originalName}
                             </Typography>
                           </CardContent>
                           <CardActions>
@@ -402,7 +402,7 @@ const PageView: React.FC = () => {
                         target="_blank"
                         sx={{ m: 0.5 }}
                       >
-                        {file.name}
+                        {file.originalName}
                       </Button>
                     ))}
                   </Paper>
