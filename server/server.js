@@ -1,10 +1,15 @@
 // server.js
 // Trigger new deployment - 2024-03-21
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 // Lägg till dotenv för miljövariabler
-require('dotenv').config();
+// require('dotenv').config();
 
 // Disable SSL verification in production (required for Vercel)
 if (process.env.NODE_ENV === 'production') {
@@ -61,22 +66,18 @@ if (process.env.NODE_ENV === 'production') {
 
 // Ersätt SQLite med PostgreSQL-klient
 const { Pool } = require('pg');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
 // Import database connection and test function
 const { pool, testConnection } = require('./db');
 // Import Supabase client
 const { supabase, testSupabaseConnection } = require('./utils/supabase');
-
-// Importera backup-funktioner
-const { createBackup, restoreFromBackup, listBackups } = require('./utils/backup');
 
 // Importera routes
 const pagesModule = require('./routes/pages');
 const pagesRouter = pagesModule.router;
 const bookingsModule = require('./routes/bookings');
 const bookingsRouter = bookingsModule.router;
+const backupModule = require('./routes/backup');
+const backupRouter = backupModule.router;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -98,6 +99,7 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`Blocked request from unauthorized origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -110,25 +112,75 @@ const corsOptions = {
 // Apply CORS middleware first
 app.use(cors(corsOptions));
 
-// Add headers middleware
-app.use((req, res, next) => {
+// Handle manifest.json with proper CORS headers (no auth required)
+app.get('/manifest.json', (req, res) => {
+  const manifest = {
+    short_name: "MallBRF",
+    name: "MallBRF Bokningssystem",
+    icons: [
+      {
+        src: "favicon.ico",
+        sizes: "64x64 32x32 24x24 16x16",
+        type: "image/x-icon"
+      },
+      {
+        src: "logo192.png",
+        type: "image/png",
+        sizes: "192x192"
+      },
+      {
+        src: "logo512.png",
+        type: "image/png",
+        sizes: "512x512"
+      }
+    ],
+    start_url: ".",
+    display: "standalone",
+    theme_color: "#000000",
+    background_color: "#ffffff"
+  };
+
+  // Set CORS headers
   const origin = req.headers.origin;
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // Om ingen origin finns, tillåt alla
-    res.setHeader('Access-Control-Allow-Origin', '*');
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  res.json(manifest);
+});
+
+// Add headers middleware (utan CORS-headers)
+app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+  next();
+});
+
+// Middleware för att verifiera x-vercel-protection-bypass header
+app.use((req, res, next) => {
+  // Tillåt alla GET-requests till statiska filer utan autentisering
+  if (req.method === 'GET' && (
+    req.path.endsWith('.js') ||
+    req.path.endsWith('.css') ||
+    req.path.endsWith('.png') ||
+    req.path.endsWith('.jpg') ||
+    req.path.endsWith('.ico') ||
+    req.path.endsWith('.svg') ||
+    req.path.endsWith('.json') ||
+    req.path === '/'
+  )) {
+    return next();
+  }
+
+  // För API-anrop, verifiera x-vercel-protection-bypass
+  const bypass = req.headers['x-vercel-protection-bypass'];
+  if (!bypass || bypass !== 'true') {
+    console.warn(`Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
+    return res.status(401).json({ error: 'Unauthorized' });
   }
   next();
 });
@@ -138,41 +190,6 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   console.log('Headers:', req.headers);
   console.log('Origin:', req.headers.origin);
-  next();
-});
-
-// Middleware för att verifiera x-vercel-protection-bypass header
-app.use((req, res, next) => {
-  // Undantag för vissa endpoints där autentisering inte behövs
-  const bypassPaths = [
-    '/health', 
-    '/api/health', 
-    '/api/test', 
-    '/manifest.json',
-    '/api/pages/visible',
-    '/api/pages/published',
-    '/api/pages/slug/'
-  ];
-  
-  // Tillåt OPTIONS-anrop för preflight requests
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
-  
-  // Tillåt hälsokontroller och liknande utan autentisering
-  if (bypassPaths.some(path => req.path === path || req.path.startsWith(path))) {
-    return next();
-  }
-  
-  // För API-anrop, verifiera x-vercel-protection-bypass
-  if (req.path.startsWith('/api/')) {
-    const bypass = req.headers['x-vercel-protection-bypass'];
-    if (!bypass || bypass !== 'true') {
-      console.warn(`Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
-      return res.status(401).json({ error: 'Unauthorized access' });
-    }
-  }
-  
   next();
 });
 
@@ -189,14 +206,14 @@ app.use(fileUpload({
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-    const uploadsDir = path.join(__dirname, '../uploads');
+  destination: function (req, file, cb) {
+    const uploadsDir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
-      cb(null, uploadsDir);
-    },
-    filename: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
   }
 });
@@ -214,140 +231,25 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
-// Handle manifest.json with proper CORS headers (no auth required)
-app.get('/manifest.json', (req, res) => {
-  console.log('Serving manifest.json');
-  console.log('Origin:', req.headers.origin);
-  
-  // Set CORS headers
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.json({
-    "short_name": "MallBRF",
-    "name": "MallBRF - Bostadsrättsförening",
-    "icons": [
-      {
-        "src": "favicon.ico",
-        "sizes": "64x64 32x32 24x24 16x16",
-        "type": "image/x-icon"
-      }
-    ],
-    "start_url": ".",
-    "display": "standalone",
-    "theme_color": "#000000",
-    "background_color": "#ffffff"
-  });
-});
-
 // Routes
 app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
+app.use('/api/backup', backupRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Backup routes
-app.get('/api/backups', async (req, res) => {
-    try {
-        console.log('Fetching backup list...');
-        const result = await listBackups();
-        console.log('Backup list result:', result);
-        
-        if (!result.success) {
-            console.error('Failed to list backups:', result.error);
-            return res.status(500).json({ 
-                success: false, 
-                error: result.error,
-                details: result.details
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            files: result.files || []
-        });
-    } catch (error) {
-        console.error('Error in backups list route:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ett fel uppstod vid hämtning av backup-lista',
-            details: error.message
-        });
-    }
-});
-
-app.post('/api/backup', async (req, res) => {
-    try {
-        console.log('Received backup request:', req.body);
-        const { tables, name } = req.body;
-        
-        if (!tables || !Array.isArray(tables) || tables.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Inga tabeller valda för backup'
-            });
-        }
-
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Ogiltigt backup-namn'
-            });
-        }
-
-        const result = await createBackup(tables, name);
-        console.log('Backup result:', result);
-
-        if (!result.success) {
-            return res.status(500).json({
-                success: false,
-                error: result.error
-            });
-        }
-
-        return res.json({
-            success: true,
-            fileName: result.fileName
-        });
-    } catch (error) {
-        console.error('Error in backup route:', error);
-        return res.status(500).json({
-            success: false,
-            error: `Ett oväntat fel uppstod: ${error.message}`
-        });
-    }
-});
-
-app.post('/api/backups/:fileName/restore', async (req, res) => {
-  try {
-    const { fileName } = req.params;
-    const result = await restoreFromBackup(fileName);
-    res.json(result);
-        } catch (error) {
-    console.error('Error restoring backup:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Säkerställ att uploads-mappen finns - but only in development
 const uploadsDir = path.join(__dirname, 'uploads');
-const backupDir = path.join(__dirname, 'backups');
 
 if (process.env.NODE_ENV !== 'production') {
   // Only attempt to create directories in development environment
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
   }
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir);
-    console.log('Created backup directory:', backupDir);
-  }
-      } else {
+} else {
   console.log('Running in production mode - skipping directory creation (using read-only filesystem)');
 }
 
