@@ -24,7 +24,8 @@ import {
 } from '@mui/material';
 import { 
   Delete as DeleteIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  Backup as BackupIcon
 } from '@mui/icons-material';
 import { Booking } from '../../types/Booking';
 import { format } from 'date-fns';
@@ -46,6 +47,8 @@ const BookingsList: React.FC = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+
+  const [backupLoading, setBackupLoading] = useState(false);
 
   // Hämta alla bokningar vid komponentmontering
   useEffect(() => {
@@ -140,6 +143,35 @@ const BookingsList: React.FC = () => {
     window.location.href = `mailto:${email}`;
   };
 
+  // Hantera backup
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/backup/send-backup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Kunde inte skicka backup');
+      }
+
+      const data = await response.json();
+      setSnackbarMessage(`Backup skickad! ${data.bookingCount} bokningar exporterades.`);
+      setSnackbarSeverity('success');
+    } catch (error) {
+      console.error('Fel vid backup:', error);
+      setSnackbarMessage('Kunde inte skicka backup');
+      setSnackbarSeverity('error');
+    } finally {
+      setBackupLoading(false);
+      setSnackbarOpen(true);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -152,9 +184,18 @@ const BookingsList: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Bokningar
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h4">Bokningar</Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<BackupIcon />}
+              onClick={handleBackup}
+              disabled={backupLoading}
+            >
+              {backupLoading ? <CircularProgress size={24} /> : 'Säkerhetskopiera bokningar'}
+            </Button>
+          </Box>
         </Grid>
 
         <Grid item xs={12}>
