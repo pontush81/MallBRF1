@@ -160,7 +160,8 @@ Vid problem, kontrollera:
 # MallBRF1
 
 ## Deployment Status
-Last deployment: 2024-03-23
+Last deployment: 2024-03-28
+Updated with CORS proxy solution for seamless API integration across environments.
 
 ## About
 A web application for managing apartment bookings and information.
@@ -171,6 +172,7 @@ A web application for managing apartment bookings and information.
 - Page content management
 - Admin dashboard
 - Public pages for visitors
+- Cross-domain API integration with proxy middleware
 
 ## Environment Setup
 The application requires the following environment variables:
@@ -205,65 +207,24 @@ REACT_APP_API_URL
 - Run unit tests: `npm test`
 - Run E2E tests: `npm run cypress:open`
 
-## API och CORS-konfiguration
+## API och CORS Configuration
 
-För att säkerställa att API-anrop fungerar korrekt, kontrollera följande:
+The application now uses multiple layers to handle CORS issues:
 
-### Frontend (Next.js)
-- [ ] Alla API-anrop använder relativa URL:er (`/api/...`) istället för absoluta URL:er
-- [ ] API-anrop inkluderar följande headers:
-  ```javascript
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'x-vercel-protection-bypass': 'true'
-  }
-  ```
-- [ ] Fetch-anrop har rätt konfiguration:
-  ```javascript
-  {
-    mode: 'cors',
-    credentials: 'include'
-  }
-  ```
+### 1. Proxy Middleware
+- Server-side proxy handles cross-domain requests
+- All frontend API calls go through `/proxy/api` path
+- Eliminates CORS issues by using same-origin requests
 
-### Backend (Express)
-- [ ] CORS är korrekt konfigurerat med:
-  ```javascript
-  app.use(cors({
-    origin: function(origin, callback) {
-      const allowedOrigins = [
-        'https://mallbrf.vercel.app',
-        'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
-        'http://localhost:3000'
-      ];
-      callback(null, allowedOrigins.includes(origin));
-    },
-    credentials: true
-  }));
-  ```
-- [ ] API-rutter är definierade i rätt ordning:
-  1. Statiska filer (manifest.json, etc.)
-  2. API-endpoints
-  3. Catch-all route
+### 2. Vercel Configuration
+- `vercel.json` includes proper headers for API routes
+- Explicit CORS headers applied to all responses
 
-### Vercel Deployment
-- [ ] Environment variables är korrekt konfigurerade
-- [ ] CORS headers är tillåtna i Vercel's configuration
-- [ ] Verifiera att både frontend och backend är deployade till rätt branch
+### 3. Dynamic API URL Configuration
+- Frontend automatically selects correct API URL based on environment
+- Local development: direct API calls
+- Staging/Production: proxy-based API calls
 
-### Felsökning
-Om problem uppstår:
-1. Kontrollera browser console för felmeddelanden
-2. Verifiera nätverksanrop i browser devtools
-3. Kontrollera Vercel logs för både frontend och backend
-4. Verifiera att alla headers är korrekt satta i både request och response
-
-### CORS-konfiguration
-- API:et har uppdaterats för att tillåta följande domäner:
-  - https://www.gulmaran.com
-  - https://stage.gulmaran.com
-  - https://www.stage.gulmaran.com
-  - https://mall-brf-1.vercel.app
-  - https://mallbrf.vercel.app
-  - Lokala utvecklingsmiljöer
+### 4. Fallback Mechanism
+- If API calls fail, predefined fallback data is used
+- Ensures app functionality even when API is unreachable
