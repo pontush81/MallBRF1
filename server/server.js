@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === 'production') {
   console.log('Running in production mode - SSL configured for database connections');
 } else {
   console.log('Running in development mode');
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
 // Log environment configuration
@@ -88,26 +88,68 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3000'
-    : ['https://www.gulmaran.com', 'https://www.stage.gulmaran.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'x-vercel-protection-bypass',
-    'Origin',
-    'Accept',
-    'X-Requested-With'
-  ],
-  exposedHeaders: ['Content-Length', 'Content-Type'],
-  credentials: true,
-  optionsSuccessStatus: 200,
-  maxAge: 86400 // 24 hours
+const getCorsConfig = () => {
+  const env = process.env.NODE_ENV || 'development';
+  console.log('Configuring CORS for environment:', env);
+
+  // Define allowed origins based on environment
+  const allowedOrigins = {
+    development: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3002'
+    ],
+    staging: [
+      'https://www.stage.gulmaran.com',
+      'https://mallbrf.vercel.app'
+    ],
+    production: [
+      'https://www.gulmaran.com',
+      'https://mallbrf.vercel.app'
+    ]
+  };
+
+  // Get origins for current environment
+  const origins = allowedOrigins[env] || allowedOrigins.development;
+  console.log('Allowed origins:', origins);
+
+  return {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        console.log('Request with no origin - allowing');
+        return callback(null, true);
+      }
+      
+      if (origins.includes(origin)) {
+        console.log('Origin allowed:', origin);
+        callback(null, true);
+      } else {
+        console.log('Origin blocked:', origin);
+        callback(new Error(`Not allowed by CORS in ${env} environment`));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-vercel-protection-bypass',
+      'Origin',
+      'Accept',
+      'X-Requested-With'
+    ],
+    exposedHeaders: ['Content-Length', 'Content-Type'],
+    optionsSuccessStatus: 200,
+    maxAge: 86400 // 24 hours
+  };
 };
 
-app.use(cors(corsOptions));
+// Apply CORS middleware with environment-specific configuration
+app.use(cors(getCorsConfig()));
 app.use(express.json());
 
 // Serve static files from the build directory (måste vara före autentisering)

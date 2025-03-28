@@ -1,12 +1,33 @@
 // API base URL configuration
-console.log('Environment variables:', {
-  NODE_ENV: process.env.NODE_ENV,
-  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-});
+const getApiBaseUrl = () => {
+  const env = process.env.NODE_ENV || 'development';
+  const hostname = window.location.hostname;
+  
+  console.log('Environment:', env);
+  console.log('Hostname:', hostname);
 
-export const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3002'
-  : 'https://mallbrf.vercel.app';
+  // Development environment
+  if (env === 'development') {
+    return 'http://localhost:3002';
+  }
+
+  // Staging environment
+  if (hostname === 'www.stage.gulmaran.com') {
+    return 'https://mallbrf.vercel.app';
+  }
+
+  // Production environment
+  if (hostname === 'www.gulmaran.com') {
+    return 'https://mallbrf.vercel.app';
+  }
+
+  // Fallback for unknown environments
+  console.warn('Unknown environment or hostname, using default API URL');
+  return 'https://mallbrf.vercel.app';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+console.log('Using API base URL:', API_BASE_URL);
 
 // Fallback API URL (used when the regular API fails)
 export const FALLBACK_API_ENABLED = true;
