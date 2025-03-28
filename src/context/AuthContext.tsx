@@ -45,20 +45,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Listen to Firebase Auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          // First, get the ID token result to check claims
+      try {
+        if (firebaseUser) {
+          console.log('Firebase user found:', firebaseUser.uid);
+          
+          // Get token details
           const idTokenResult = await firebaseUser.getIdTokenResult(true);
           console.log('Token claims:', idTokenResult.claims);
           
-          // Try to get user data from API
-          const userData = await userService.getUserById(firebaseUser.uid);
-          
-          if (userData) {
-            console.log('User data from API:', userData);
-            setUser(userData);
-          } else {
-            // If API call fails, use Firebase data with claims
+          try {
+            // Try to get user data from API
+            const userData = await userService.getUserById(firebaseUser.uid);
+            if (userData) {
+              console.log('User data from API:', userData);
+              setUser(userData);
+              localStorage.setItem('userData', JSON.stringify(userData));
+            } else {
+              // Use Firebase data if API fails
+              const claimRole = idTokenResult.claims.role;
+              const role = (typeof claimRole === 'string' && 
+                (claimRole === 'admin' || claimRole === 'user')) ? claimRole : 'user';
+              console.log('Using Firebase data with role:', role);
+              
+              const tempUser: User = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                name: firebaseUser.displayName || '',
+                role: role,
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              };
+              
+              setUser(tempUser);
+              localStorage.setItem('userData', JSON.stringify(tempUser));
+            }
+          } catch (apiError) {
+            console.error('Error fetching user data from API:', apiError);
+            
+            // Use Firebase data if API fails
             const claimRole = idTokenResult.claims.role;
             const role = (typeof claimRole === 'string' && 
               (claimRole === 'admin' || claimRole === 'user')) ? claimRole : 'user';
@@ -67,34 +92,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const tempUser: User = {
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
-              role: role,
               name: firebaseUser.displayName || '',
+              role: role,
               isActive: true,
               createdAt: new Date().toISOString(),
               lastLogin: new Date().toISOString()
             };
+            
             setUser(tempUser);
+            localStorage.setItem('userData', JSON.stringify(tempUser));
           }
-        } catch (error) {
-          console.error('Error during auth state change:', error);
-          setError('Failed to fetch user data');
-        }
-      } else {
-        // No Firebase user, try to restore from localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            setUser(JSON.parse(storedUser));
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-            localStorage.removeItem('user');
-            setUser(null);
-          }
+          
+          setLoading(false);
         } else {
+          // User is signed out
           setUser(null);
+          localStorage.removeItem('userData');
+          setLoading(false);
         }
+      } catch (error) {
+        console.error('Auth state change error:', error);
+        setError('An error occurred while checking authentication status');
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Cleanup subscription
@@ -104,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      localStorage.removeItem('user');
+      localStorage.removeItem('userData');
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);
@@ -114,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('userData', JSON.stringify(userData));
   };
 
   return (

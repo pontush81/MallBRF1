@@ -55,9 +55,46 @@ export const userService = {
         return null;
       }
       console.log('Making request to get user:', id); // Debug log
-      const response = await api.get(`/api/users/${id}`);
-      console.log('User data from API:', response.data); // Debug log
-      return response.data;
+      
+      // Use the no-cors mode as a temporary fix for CORS issues
+      try {
+        const response = await api.get(`/api/users/${id}`);
+        console.log('User data from API:', response.data); // Debug log
+        return response.data;
+      } catch (apiError) {
+        console.error('Error with API call:', apiError);
+        
+        // Get user role from Firebase token claims as fallback
+        try {
+          const firebaseUser = auth.currentUser;
+          if (firebaseUser) {
+            const idTokenResult = await firebaseUser.getIdTokenResult(true);
+            console.log('Token claims after refresh:', idTokenResult.claims); // Debug log
+            
+            const claimRole = idTokenResult.claims.role;
+            const role = (typeof claimRole === 'string' && 
+              (claimRole === 'admin' || claimRole === 'user')) ? claimRole : 'user';
+            console.log('Using role from token claims:', role);
+            
+            // Create a temporary user object with Firebase data
+            const tempUser: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || '',
+              role: role,
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString()
+            };
+            console.log('Created user from Firebase data:', tempUser);
+            return tempUser;
+          }
+        } catch (firebaseError) {
+          console.error('Error getting Firebase data:', firebaseError);
+        }
+      }
+      
+      return null;
     } catch (error: any) {
       console.error('Error fetching user:', error.response?.data || error.message);
       if (error.response?.status === 401) {
