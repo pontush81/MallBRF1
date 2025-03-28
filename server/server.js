@@ -516,6 +516,11 @@ app.get('/', (req, res) => {
 
 // Handle 404 errors for static files
 app.use((req, res, next) => {
+  // Skip API routes - let them be handled by their own handlers
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+
   // Om det är en statisk fil, försök hitta den i build-mappen
   if (req.path.includes('.')) {
     const filePath = path.join(__dirname, '../build', req.path);
