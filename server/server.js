@@ -12,6 +12,10 @@ const multer = require('multer');
 const admin = require('./utils/firebase');
 const auth = require('./middleware/auth');
 
+// Lägg till nödvändiga imports för proxy
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const url = require('url');
+
 // Lägg till dotenv för miljövariabler
 // require('dotenv').config();
 
@@ -183,7 +187,13 @@ app.use(cors(getCorsConfig()));
 app.use(express.json());
 
 // Add CORS preflight handler for all routes
-app.options('*', cors({ origin: true, credentials: true }));
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).send();
+});
 
 // Add a global CORS middleware
 app.use((req, res, next) => {
@@ -411,6 +421,37 @@ app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, '../build/index.html'));
   }
 });
+
+// Add proxy middleware to avoid CORS issues
+const apiProxy = createProxyMiddleware({
+  target: 'https://mallbrf.vercel.app',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/proxy/api': '/api'
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // Add headers to the proxied request
+    proxyReq.setHeader('x-vercel-protection-bypass', 'true');
+    
+    // Copy auth header if present
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      proxyReq.setHeader('Authorization', authHeader);
+    }
+    
+    console.log(`Proxying request: ${req.method} ${req.url} -> https://mallbrf.vercel.app${req.url.replace('/proxy', '')}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`Proxy response: ${proxyRes.statusCode} for ${req.url}`);
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy error:', err);
+    res.status(500).json({ error: 'Proxy error', message: err.message });
+  }
+});
+
+// Apply proxy middleware
+app.use('/proxy/api', apiProxy);
 
 // Start the server
 const startServer = () => {

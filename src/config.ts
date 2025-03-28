@@ -6,24 +6,26 @@ const getApiBaseUrl = () => {
   console.log('Environment:', env);
   console.log('Hostname:', hostname);
 
-  // Development environment
-  if (env === 'development') {
+  // Development environment (lokal utveckling)
+  if (env === 'development' && hostname.includes('localhost')) {
     return 'http://localhost:3002';
   }
 
-  // Staging environment
-  if (hostname === 'www.stage.gulmaran.com') {
+  // Staging och production - använd proxy för att undvika CORS-problem
+  // Genom att använda samma origin (current hostname) undviker vi CORS helt
+  if (hostname === 'www.stage.gulmaran.com' || hostname === 'www.gulmaran.com') {
+    // När vi är på samma domän, använd /proxy/api som pekar till vår proxy-middleware
+    return '/proxy';
+  }
+
+  // Om vi kör direkt på Vercel, använd absolut URL
+  if (hostname.includes('vercel.app')) {
     return 'https://mallbrf.vercel.app';
   }
 
-  // Production environment
-  if (hostname === 'www.gulmaran.com') {
-    return 'https://mallbrf.vercel.app';
-  }
-
-  // Fallback for unknown environments
-  console.warn('Unknown environment or hostname, using default API URL');
-  return 'https://mallbrf.vercel.app';
+  // Fallback för okända miljöer
+  console.warn('Unknown environment or hostname, using proxy API URL');
+  return '/proxy';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
