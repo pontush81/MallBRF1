@@ -8,6 +8,10 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+// Import the already initialized firebase admin instance
+const admin = require('./utils/firebase');
+const auth = require('./middleware/auth');
+
 // Lägg till dotenv för miljövariabler
 // require('dotenv').config();
 
@@ -78,39 +82,23 @@ const bookingsModule = require('./routes/bookings');
 const bookingsRouter = bookingsModule.router;
 const backupModule = require('./routes/backup');
 const backupRouter = backupModule.router;
+const usersRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 
 // CORS configuration
 const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
-      'https://mall-brf-1.vercel.app',
-      'https://mallbrf.vercel.app',
-      'https://www.gulmaran.com',
-      'https://stage.gulmaran.com',
-      'https://www.stage.gulmaran.com'
-    ];
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`Blocked request from unauthorized origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
+  origin: process.env.NODE_ENV === 'development' 
+    ? ['http://localhost:3000', 'http://localhost:3002'] 
+    : ['https://www.gulmaran.com', 'https://www.stage.gulmaran.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
-  maxAge: 86400
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass'],
+  credentials: true
 };
 
-// Apply CORS middleware first
 app.use(cors(corsOptions));
+app.use(express.json());
 
 // Serve static files from the build directory (måste vara före autentisering)
 app.use(express.static(path.join(__dirname, '../build')));
@@ -176,17 +164,33 @@ app.use('/api', (req, res, next) => {
     '/api/pages/published',
     '/api/pages/slug',
     '/api/manifest.json',
-    '/api/health'
+    '/api/health',
+    '/api/test'
   ];
 
+  // Skip if it's a public endpoint
   if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
+    return next();
+  }
+
+  // Skip these paths as they're handled by the Firebase auth middleware
+  const firebaseAuthPaths = [
+    '/api/users',
+    '/api/pages', 
+    '/api/bookings',
+    '/api/backup'
+  ];
+  
+  // Skip Vercel protection for paths handled by Firebase auth
+  if (firebaseAuthPaths.some(path => req.path.startsWith(path))) {
+    console.log(`[Vercel Auth] Skipping Vercel protection for Firebase auth path: ${req.path}`);
     return next();
   }
 
   // För övriga API-anrop, verifiera x-vercel-protection-bypass
   const bypass = req.headers['x-vercel-protection-bypass'];
   if (!bypass || bypass !== 'true') {
-    console.warn(`Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
+    console.warn(`[Vercel Auth] Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
     return res.status(401).json({ error: 'Unauthorized' });
   }
   next();
@@ -238,10 +242,11 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
-// Routes
-app.use('/api/pages', pagesRouter);
-app.use('/api/bookings', bookingsRouter);
-app.use('/api/backup', backupRouter);
+// Routes with auth middleware
+app.use('/api/pages', auth, pagesRouter);
+app.use('/api/bookings', auth, bookingsRouter);
+app.use('/api/backup', auth, backupRouter);
+app.use('/api/users', auth, usersRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -255,8 +260,8 @@ if (process.env.NODE_ENV !== 'production') {
   // Only attempt to create directories in development environment
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
-  }
-} else {
+      }
+    } else {
   console.log('Running in production mode - skipping directory creation (using read-only filesystem)');
 }
 
@@ -284,7 +289,7 @@ async function testDatabaseConnection() {
     }
     console.log('Database connected successfully');
     return true;
-  } catch (error) {
+        } catch (error) {
     console.error('Database connection error:', error);
     return false;
   }
@@ -302,11 +307,11 @@ app.use((req, res, next) => {
     const filePath = path.join(__dirname, '../build', req.path);
     if (fs.existsSync(filePath)) {
       res.sendFile(filePath);
-    } else {
+      } else {
       console.log(`404 for static file: ${req.path}`);
       res.status(404).send('Not found');
     }
-  } else {
+    } else {
     // För alla andra routes, skicka index.html
     res.sendFile(path.join(__dirname, '../build/index.html'));
   }
