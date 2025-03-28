@@ -44,7 +44,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "server/server.js" },
+    { "source": "/api/(.*)", "destination": "/server/server.js" },
     { "source": "/static/(.*)", "destination": "/static/$1" },
     { "source": "/favicon.ico", "destination": "/favicon.ico" },
     { "source": "/robots.txt", "destination": "/robots.txt" },
