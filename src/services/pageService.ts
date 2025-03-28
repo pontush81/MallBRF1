@@ -122,275 +122,96 @@ const pageService = {
     }
   },
 
+  // Hjälpfunktion för att bygga API URL
+  buildApiUrl: (endpoint: string): string => {
+    // Om vi använder proxy, ta bort /api prefix från endpoint
+    const apiPath = API_BASE_URL.includes('/proxy') 
+      ? endpoint.replace(/^\/api/, '')
+      : endpoint;
+    
+    return `${API_BASE_URL}${apiPath}`;
+  },
+
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      // URL construction that works with both direct and proxy API modes
-      const apiPath = '/api/pages/visible';
-      const requestUrl = `${API_BASE_URL}${apiPath}`;
-        
-      console.log('========================================');
-      console.log('Fetching visible pages from:', requestUrl);
-      console.log('API_BASE_URL value:', API_BASE_URL);
-      console.log('Window location:', window.location.href);
-      console.log('Window origin:', window.location.origin);
-      console.log('========================================');
-      
-      // Try with fetch API first
-      try {
-        console.log('Making API request with headers:', {
-          'Accept': 'application/json',
+      const requestUrl = pageService.buildApiUrl('/api/pages/visible');
+      console.log('Making API request to:', requestUrl);
+      console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('Using proxy:', API_BASE_URL.includes('/proxy'));
+
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
           'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true',
-          'Origin': window.location.origin
-        });
-
-        const response = await fetch(requestUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-vercel-protection-bypass': 'true',
-            'Origin': window.location.origin
-          },
-          mode: 'cors',
-          credentials: 'include'
-        });
-        
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-        // Log the raw response text for debugging
-        const responseText = await response.text();
-        console.log('Raw response:', responseText);
-
-        if (!response.ok) {
-          console.error('Server error:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries()),
-            responseText
-          });
-          throw new Error(`Kunde inte hämta synliga sidor: ${response.status} ${response.statusText}`);
-        }
-        
-        // Try to parse the response as JSON
-        let pages;
-        try {
-          pages = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('Failed to parse response as JSON:', parseError);
-          throw new Error('Invalid JSON response from server');
-        }
-
-        console.log(`Successfully fetched ${pages.length} visible pages`);
-        // Sortera sidorna i alfabetisk ordning baserat på titeln
-        const sortedPages = [...pages].sort((a, b) => a.title.localeCompare(b.title, 'sv'));
-        return sortedPages;
-      } catch (fetchError) {
-        console.error('Fetch API failed:', fetchError);
-        throw fetchError; // Re-throw to try fallback
-      }
-    } catch (error) {
-      console.error('Error fetching visible pages:', {
-        error,
-        message: error.message,
-        stack: error.stack,
-        url: `${API_BASE_URL}/api/pages/visible`
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
       });
-      
-      // Use fallback data if the API fails
-      console.log('Using fallback data due to API error');
-      const fallbackPages = [
-        {
-          id: "fallback-1",
-          title: "Bokning",
-          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
-          slug: "bokning",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: "fallback-2",
-          title: "Information",
-          content: "# Information\n\nViktig information om föreningen.",
-          slug: "information",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: "fallback-3",
-          title: "Välkomstsida",
-          content: "# Välkommen\n\nDetta är vår välkomstsida.",
-          slug: "valkomstsida",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      return fallbackPages.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching visible pages:', error);
+      return [];
     }
   },
 
   // Hämta en specifik sida med ID
   getPageById: async (id: string): Promise<Page | null> => {
     try {
-      try {
-        const apiPath = `/api/pages/${id}`;
-        const requestUrl = `${API_BASE_URL}${apiPath}`;
-          
-        console.log(`Fetching page with ID ${id} from:`, requestUrl);
-          
-        const response = await fetch(requestUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-vercel-protection-bypass': 'true',
-            'Origin': window.location.origin
-          },
-          mode: 'cors',
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            return null;
-          }
-          throw new Error('Kunde inte hämta sidan');
-        }
-        
-        return await response.json();
-      } catch (fetchError) {
-        console.error('Fetch API failed:', fetchError);
-        throw fetchError; // Re-throw to try fallback
+      const requestUrl = pageService.buildApiUrl(`/api/pages/${id}`);
+      console.log('Making API request to:', requestUrl);
+
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Fel vid hämtning av sida:', error);
-      
-      // If there's a fallback page with this ID, return it
-      const fallbackPages = {
-        "fallback-1": {
-          id: "fallback-1",
-          title: "Välkomstsida",
-          content: "# Välkommen\n\nDetta är vår välkomstsida.",
-          slug: "valkomstsida",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        "fallback-2": {
-          id: "fallback-2",
-          title: "Information",
-          content: "# Information\n\nViktig information om föreningen.",
-          slug: "information",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        "fallback-3": {
-          id: "fallback-3",
-          title: "Bokning",
-          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
-          slug: "bokning",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      };
-      
-      return fallbackPages[id] || null;
+      console.error('Error fetching page by ID:', error);
+      return null;
     }
   },
 
   // Hämta en specifik sida med slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
-      try {
-        const apiPath = `/api/pages/slug/${slug}`;
-        const requestUrl = `${API_BASE_URL}${apiPath}`;
-          
-        console.log(`Fetching page with slug ${slug} from:`, requestUrl);
-          
-        const response = await fetch(requestUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-vercel-protection-bypass': 'true',
-            'Origin': window.location.origin
-          },
-          mode: 'cors',
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            return null;
-          }
-          throw new Error('Kunde inte hämta sidan');
-        }
-        
-        return await response.json();
-      } catch (fetchError) {
-        console.error('Fetch API failed, trying fallback data:', fetchError);
-        throw fetchError; // Re-throw to try fallback
+      const requestUrl = pageService.buildApiUrl(`/api/pages/slug/${slug}`);
+      console.log('Making API request to:', requestUrl);
+
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Fel vid hämtning av sida med slug:', error);
-      
-      // Fallback pages data
-      const fallbackPages = {
-        "valkomstsida": {
-          id: "fallback-1",
-          title: "Välkomstsida",
-          content: "# Välkommen\n\nDetta är vår välkomstsida.",
-          slug: "valkomstsida",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        "information": {
-          id: "fallback-2",
-          title: "Information",
-          content: "# Information\n\nViktig information om föreningen.",
-          slug: "information",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        "bokning": {
-          id: "fallback-3",
-          title: "Bokning",
-          content: "# Bokning\n\nHär kan du boka föreningens lokaler.",
-          slug: "bokning",
-          isPublished: true,
-          show: true,
-          files: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      };
-      
-      return fallbackPages[slug] || null;
+      console.error('Error fetching page by slug:', error);
+      return null;
     }
   },
 
@@ -633,50 +454,39 @@ const pageService = {
   },
 
   // Test debug endpoint
-  testDebugEndpoint: async (): Promise<any> => {
+  testDebugEndpoint: async (): Promise<DebugInfo> => {
     try {
-      const apiPath = '/api/debug';
-      const requestUrl = `${API_BASE_URL}${apiPath}`;
-        
-      console.log('========================================');  
-      console.log('Testing debug endpoint:', requestUrl);
-      console.log('API_BASE_URL value:', API_BASE_URL);
-      console.log('Window location:', window.location.href);
-      console.log('Window origin:', window.location.origin);
-      console.log('========================================');
+      const requestUrl = pageService.buildApiUrl('/api/debug');
+      console.log('Making debug request to:', requestUrl);
+      console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('Using proxy:', API_BASE_URL.includes('/proxy'));
 
       const response = await fetch(requestUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true',
-          'Origin': window.location.origin
+          'Accept': 'application/json',
         },
-        mode: 'cors',
-        credentials: 'include'
+        credentials: 'include',
       });
 
-      console.log('Debug response status:', response.status);
-
-      // Log the raw response text for debugging
-      const responseText = await response.text();
-      console.log('Raw debug response:', responseText);
-
       if (!response.ok) {
-        throw new Error(`Debug endpoint error: ${response.status} ${response.statusText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Parse the response
-      try {
-        return JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse debug response as JSON:', parseError);
-        throw new Error('Invalid JSON response from debug endpoint');
-      }
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error('Error testing debug endpoint:', error);
-      return { error: error.message };
+      return {
+        error: 'Failed to fetch debug info',
+        clientInfo: {
+          location: window.location.href,
+          origin: window.location.origin,
+          hostname: window.location.hostname,
+          environment: process.env.NODE_ENV || 'development'
+        }
+      };
     }
   }
 };
