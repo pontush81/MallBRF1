@@ -347,6 +347,94 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
+// Public endpoints without auth middleware
+app.get('/api/pages/visible', async (req, res) => {
+  try {
+    console.log('Handling /api/pages/visible request directly');
+    
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('ispublished', true)
+      .eq('show', true)
+      .order('createdat', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No visible pages found');
+      return res.json([]);
+    }
+
+    // Format response
+    const formattedPages = data.map(page => ({
+      id: page.id,
+      title: page.title,
+      content: page.content,
+      slug: page.slug,
+      isPublished: Boolean(page.ispublished),
+      show: Boolean(page.show),
+      files: page.files ? JSON.parse(page.files) : [],
+      createdAt: page.createdat,
+      updatedAt: page.updatedat
+    }));
+
+    console.log(`Found ${formattedPages.length} visible pages directly from server.js`);
+    res.json(formattedPages);
+  } catch (error) {
+    console.error('Error fetching visible pages:', error);
+    res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
+  }
+});
+
+// Public endpoint for getting page by slug
+app.get('/api/pages/slug/:slug', async (req, res) => {
+  try {
+    console.log(`Handling /api/pages/slug/${req.params.slug} request directly`);
+    
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('slug', req.params.slug)
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Page not found' });
+      }
+      return res.status(500).json({ error: 'Could not fetch page', details: error.message });
+    }
+
+    if (!data) {
+      console.log('Page not found');
+      return res.status(404).json({ error: 'Page not found' });
+    }
+
+    // Format response
+    const formattedPage = {
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      slug: data.slug,
+      isPublished: Boolean(data.ispublished),
+      show: Boolean(data.show),
+      files: data.files ? JSON.parse(data.files) : [],
+      createdAt: data.createdat,
+      updatedAt: data.updatedat
+    };
+
+    console.log(`Found page with slug ${req.params.slug} directly from server.js`);
+    res.json(formattedPage);
+  } catch (error) {
+    console.error('Error fetching page by slug:', error);
+    res.status(500).json({ error: 'Could not fetch page', details: error.message });
+  }
+});
+
 // Routes with auth middleware
 app.use('/api/pages', auth, pagesRouter);
 app.use('/api/bookings', auth, bookingsRouter);
