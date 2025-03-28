@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
+import ApiDebug from './components/debug/ApiDebug';
 
 // Pages
 import Login from './pages/auth/Login';
@@ -62,6 +63,9 @@ function AppRoutes() {
             </ProtectedRoute>
           </Layout>
         } />
+        
+        {/* Debug route */}
+        <Route path="/debug" element={<ApiDebug />} />
         
         {/* Fallback route */}
         <Route path="*" element={<Layout><NotFound /></Layout>} />

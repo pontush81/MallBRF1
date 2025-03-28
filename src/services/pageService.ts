@@ -117,7 +117,13 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      console.log('Fetching visible pages from:', `${API_BASE_URL}/api/pages/visible`);
+      const requestUrl = `${API_BASE_URL}/api/pages/visible`;
+      console.log('========================================');
+      console.log('Fetching visible pages from:', requestUrl);
+      console.log('API_BASE_URL value:', API_BASE_URL);
+      console.log('Window location:', window.location.href);
+      console.log('Window origin:', window.location.origin);
+      console.log('========================================');
       
       // Try with fetch API first
       try {
@@ -604,6 +610,47 @@ const pageService = {
       throw error;
     }
   },
+
+  // Test debug endpoint
+  testDebugEndpoint: async (): Promise<any> => {
+    try {
+      const requestUrl = `${API_BASE_URL}/api/debug`;
+      console.log('Testing debug endpoint:', requestUrl);
+
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true',
+          'Origin': window.location.origin
+        },
+        mode: 'cors',
+        credentials: 'include'
+      });
+
+      console.log('Debug response status:', response.status);
+
+      // Log the raw response text for debugging
+      const responseText = await response.text();
+      console.log('Raw debug response:', responseText);
+
+      if (!response.ok) {
+        throw new Error(`Debug endpoint error: ${response.status} ${response.statusText}`);
+      }
+
+      // Parse the response
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse debug response as JSON:', parseError);
+        throw new Error('Invalid JSON response from debug endpoint');
+      }
+    } catch (error) {
+      console.error('Error testing debug endpoint:', error);
+      return { error: error.message };
+    }
+  }
 };
 
 export default pageService; 

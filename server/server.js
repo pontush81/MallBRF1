@@ -347,6 +347,27 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
+// Special debug endpoint
+app.get('/api/debug', (req, res) => {
+  console.log('Debug endpoint hit, showing request details');
+  res.json({
+    message: 'Debug endpoint',
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV,
+    headers: req.headers,
+    path: req.path,
+    url: req.url,
+    method: req.method,
+    query: req.query,
+    requestInfo: {
+      ip: req.ip,
+      protocol: req.protocol,
+      hostname: req.hostname,
+      originalUrl: req.originalUrl
+    }
+  });
+});
+
 // Public endpoints without auth middleware
 app.get('/api/pages/visible', async (req, res) => {
   try {
