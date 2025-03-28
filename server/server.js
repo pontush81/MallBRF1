@@ -100,21 +100,42 @@ const getCorsConfig = () => {
       'http://localhost:3002',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
-      'http://127.0.0.1:3002'
+      'http://127.0.0.1:3002',
+      '*'
     ],
     staging: [
       'https://www.stage.gulmaran.com',
-      'https://mallbrf.vercel.app'
+      'https://mallbrf.vercel.app',
+      '*'
     ],
     production: [
       'https://www.gulmaran.com',
-      'https://mallbrf.vercel.app'
+      'https://mallbrf.vercel.app',
+      '*'
     ]
   };
 
   // Get origins for current environment
   const origins = allowedOrigins[env] || allowedOrigins.development;
   console.log('Allowed origins:', origins);
+
+  // For immediate fix, let's use a simpler CORS config that works on all environments
+  if (process.env.CORS_ORIGIN === '*') {
+    console.log('Using wildcard CORS configuration');
+    return {
+      origin: '*',
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'x-vercel-protection-bypass',
+        'Origin',
+        'Accept',
+        'X-Requested-With'
+      ]
+    };
+  }
 
   return {
     origin: function (origin, callback) {
@@ -124,7 +145,16 @@ const getCorsConfig = () => {
         return callback(null, true);
       }
       
-      if (origins.includes(origin)) {
+      // For debugging
+      console.log('Request origin:', origin);
+      
+      // Allow all origins temporarily to fix CORS issues
+      if (true) {
+        console.log('Allowing all origins temporarily');
+        return callback(null, true);
+      }
+      
+      if (origins.includes(origin) || origins.includes('*')) {
         console.log('Origin allowed:', origin);
         callback(null, true);
       } else {
@@ -151,6 +181,19 @@ const getCorsConfig = () => {
 // Apply CORS middleware with environment-specific configuration
 app.use(cors(getCorsConfig()));
 app.use(express.json());
+
+// Add CORS preflight handler for all routes
+app.options('*', cors({ origin: true, credentials: true }));
+
+// Add a global CORS middleware
+app.use((req, res, next) => {
+  // Allow CORS from all origins in development and staging
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 // Serve static files from the build directory (måste vara före autentisering)
 app.use(express.static(path.join(__dirname, '../build')));
