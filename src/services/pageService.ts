@@ -121,6 +121,13 @@ const pageService = {
       
       // Try with fetch API first
       try {
+        console.log('Making API request with headers:', {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true',
+          'Origin': window.location.origin
+        });
+
         const response = await fetch(`${API_BASE_URL}/api/pages/visible`, {
           method: 'GET',
           headers: {
@@ -136,24 +143,35 @@ const pageService = {
         console.log('Response status:', response.status);
         console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
+        // Log the raw response text for debugging
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
           console.error('Server error:', {
             status: response.status,
             statusText: response.statusText,
             headers: Object.fromEntries(response.headers.entries()),
-            error: errorData
+            responseText
           });
           throw new Error(`Kunde inte hämta synliga sidor: ${response.status} ${response.statusText}`);
         }
         
-        const pages = await response.json();
+        // Try to parse the response as JSON
+        let pages;
+        try {
+          pages = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', parseError);
+          throw new Error('Invalid JSON response from server');
+        }
+
         console.log(`Successfully fetched ${pages.length} visible pages`);
         // Sortera sidorna i alfabetisk ordning baserat på titeln
         const sortedPages = [...pages].sort((a, b) => a.title.localeCompare(b.title, 'sv'));
         return sortedPages;
       } catch (fetchError) {
-        console.error('Fetch API failed, trying no-cors mode:', fetchError);
+        console.error('Fetch API failed:', fetchError);
         throw fetchError; // Re-throw to try fallback
       }
     } catch (error) {
