@@ -6,10 +6,8 @@ const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
-      const apiPath = '/pages';
-      const requestUrl = API_BASE_URL.includes('/proxy') 
-        ? `${API_BASE_URL}${apiPath}` 
-        : `${API_BASE_URL}/api${apiPath}`;
+      const apiPath = '/api/pages';
+      const requestUrl = `${API_BASE_URL}${apiPath}`;
       
       console.log('Fetching all pages from:', requestUrl);
       
@@ -65,10 +63,8 @@ const pageService = {
   getPublishedPages: async (): Promise<Page[]> => {
     try {
       try {
-        const apiPath = '/pages/published';
-        const requestUrl = API_BASE_URL.includes('/proxy') 
-          ? `${API_BASE_URL}${apiPath}` 
-          : `${API_BASE_URL}/api${apiPath}`;
+        const apiPath = '/api/pages/published';
+        const requestUrl = `${API_BASE_URL}${apiPath}`;
           
         console.log('Fetching published pages from:', requestUrl);
           
@@ -130,10 +126,8 @@ const pageService = {
   getVisiblePages: async (): Promise<Page[]> => {
     try {
       // URL construction that works with both direct and proxy API modes
-      const apiPath = '/pages/visible';
-      const requestUrl = API_BASE_URL.includes('/proxy') 
-        ? `${API_BASE_URL}${apiPath}` 
-        : `${API_BASE_URL}/api${apiPath}`;
+      const apiPath = '/api/pages/visible';
+      const requestUrl = `${API_BASE_URL}${apiPath}`;
         
       console.log('========================================');
       console.log('Fetching visible pages from:', requestUrl);
@@ -250,10 +244,8 @@ const pageService = {
   getPageById: async (id: string): Promise<Page | null> => {
     try {
       try {
-        const apiPath = `/pages/${id}`;
-        const requestUrl = API_BASE_URL.includes('/proxy') 
-          ? `${API_BASE_URL}${apiPath}` 
-          : `${API_BASE_URL}/api${apiPath}`;
+        const apiPath = `/api/pages/${id}`;
+        const requestUrl = `${API_BASE_URL}${apiPath}`;
           
         console.log(`Fetching page with ID ${id} from:`, requestUrl);
           
@@ -329,10 +321,8 @@ const pageService = {
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
       try {
-        const apiPath = `/pages/slug/${slug}`;
-        const requestUrl = API_BASE_URL.includes('/proxy') 
-          ? `${API_BASE_URL}${apiPath}` 
-          : `${API_BASE_URL}/api${apiPath}`;
+        const apiPath = `/api/pages/slug/${slug}`;
+        const requestUrl = `${API_BASE_URL}${apiPath}`;
           
         console.log(`Fetching page with slug ${slug} from:`, requestUrl);
           
@@ -645,10 +635,8 @@ const pageService = {
   // Test debug endpoint
   testDebugEndpoint: async (): Promise<any> => {
     try {
-      const apiPath = '/debug';
-      const requestUrl = API_BASE_URL.includes('/proxy') 
-        ? `${API_BASE_URL}${apiPath}` 
-        : `${API_BASE_URL}/api${apiPath}`;
+      const apiPath = '/api/debug';
+      const requestUrl = `${API_BASE_URL}${apiPath}`;
         
       console.log('========================================');  
       console.log('Testing debug endpoint:', requestUrl);
