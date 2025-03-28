@@ -20,7 +20,7 @@ const getApiBaseUrl = () => {
 
   // Om vi kör direkt på Vercel, använd absolut URL
   if (hostname.includes('vercel.app')) {
-    return 'https://mallbrf.vercel.app';
+    return '/api';  // Använd relativ URL för att låta proxy hantera anropet
   }
 
   // Fallback för okända miljöer
