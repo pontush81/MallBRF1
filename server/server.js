@@ -90,11 +90,21 @@ const PORT = process.env.PORT || 3002;
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:3000', 'http://localhost:3002'] 
+    ? 'http://localhost:3000'
     : ['https://www.gulmaran.com', 'https://www.stage.gulmaran.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass'],
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'x-vercel-protection-bypass',
+    'Origin',
+    'Accept',
+    'X-Requested-With'
+  ],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  maxAge: 86400 // 24 hours
 };
 
 app.use(cors(corsOptions));

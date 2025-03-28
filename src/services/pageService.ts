@@ -6,16 +6,17 @@ const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
-      console.log('Fetching all pages from:', `${API_BASE_URL}/pages`);
-      const response = await fetch(`${API_BASE_URL}/pages`, {
+      console.log('Fetching all pages from:', `${API_BASE_URL}/api/pages`);
+      const response = await fetch(`${API_BASE_URL}/api/pages`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
+          'x-vercel-protection-bypass': 'true',
+          'Origin': window.location.origin
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
 
       console.log('Response status:', response.status);
@@ -40,7 +41,7 @@ const pageService = {
         error,
         message: error.message,
         stack: error.stack,
-        url: `${API_BASE_URL}/pages`
+        url: `${API_BASE_URL}/api/pages`
       });
       return [];
     }
@@ -49,7 +50,7 @@ const pageService = {
   // Hämta publicerade sidor
   getPublishedPages: async (): Promise<Page[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pages/published`, {
+      const response = await fetch(`${API_BASE_URL}/api/pages/published`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -72,16 +73,17 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      console.log('Fetching visible pages from:', `${API_BASE_URL}/pages/visible`);
-      const response = await fetch(`${API_BASE_URL}/pages/visible`, {
+      console.log('Fetching visible pages from:', `${API_BASE_URL}/api/pages/visible`);
+      const response = await fetch(`${API_BASE_URL}/api/pages/visible`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
+          'x-vercel-protection-bypass': 'true',
+          'Origin': window.location.origin
         },
         mode: 'cors',
-        credentials: 'omit'
+        credentials: 'include'
       });
       
       console.log('Response status:', response.status);
@@ -108,7 +110,7 @@ const pageService = {
         error,
         message: error.message,
         stack: error.stack,
-        url: `${API_BASE_URL}/pages/visible`
+        url: `${API_BASE_URL}/api/pages/visible`
       });
       
       // Use fallback data if the API fails

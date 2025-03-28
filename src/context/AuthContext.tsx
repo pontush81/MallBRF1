@@ -47,15 +47,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          // First, get the ID token result to check claims
+          const idTokenResult = await firebaseUser.getIdTokenResult(true);
+          console.log('Token claims:', idTokenResult.claims);
+          
+          // Try to get user data from API
           const userData = await userService.getUserById(firebaseUser.uid);
-          setUser(userData || {
-            id: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            role: 'user',
-            name: firebaseUser.displayName || undefined
-          });
+          
+          if (userData) {
+            console.log('User data from API:', userData);
+            setUser(userData);
+          } else {
+            // If API call fails, use Firebase data with claims
+            const claimRole = idTokenResult.claims.role;
+            const role = (typeof claimRole === 'string' && 
+              (claimRole === 'admin' || claimRole === 'user')) ? claimRole : 'user';
+            console.log('Using Firebase data with role:', role);
+            
+            const tempUser: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: role,
+              name: firebaseUser.displayName || '',
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString()
+            };
+            setUser(tempUser);
+          }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('Error during auth state change:', error);
           setError('Failed to fetch user data');
         }
       } else {

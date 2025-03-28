@@ -55,7 +55,7 @@ export const userService = {
         return null;
       }
       console.log('Making request to get user:', id); // Debug log
-      const response = await api.get(`/users/${id}`);
+      const response = await api.get(`/api/users/${id}`);
       console.log('User data from API:', response.data); // Debug log
       return response.data;
     } catch (error: any) {
@@ -76,18 +76,8 @@ export const userService = {
       console.log('Firebase auth successful:', firebaseUser.uid); // Debug log
       
       // Force token refresh to get the latest custom claims (role)
-      await firebaseUser.getIdToken(true);
-      console.log('Forced token refresh'); // Debug log
-
-      // Wait a moment for propagation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Get new token with the updated claims
-      const token = await firebaseUser.getIdToken();
-      if (!token) {
-        throw new Error('Failed to get auth token after login');
-      }
-      console.log('Got Firebase token after login'); // Debug log
+      const idTokenResult = await firebaseUser.getIdTokenResult(true);
+      console.log('Token claims after refresh:', idTokenResult.claims); // Debug log
 
       // Try to get the full user data from the API first
       try {
@@ -103,7 +93,7 @@ export const userService = {
       // If we couldn't get the user from the API, create a temporary user
       // but first try to get the user's role from the API
       try {
-        const response = await api.get(`/users/${firebaseUser.uid}/role`);
+        const response = await api.get(`/api/users/${firebaseUser.uid}/role`);
         const role = response.data?.role || 'user';
         console.log('Got user role from API:', role); // Debug log
         
@@ -123,10 +113,9 @@ export const userService = {
         
         // Check token claims for role
         try {
-          const idTokenResult = await firebaseUser.getIdTokenResult();
           const claimRole = idTokenResult.claims.role;
-          const role = typeof claimRole === 'string' && 
-            (claimRole === 'admin' || claimRole === 'user') ? claimRole : 'user';
+          const role = (typeof claimRole === 'string' && 
+            (claimRole === 'admin' || claimRole === 'user')) ? claimRole : 'user';
           console.log('Got role from token claims:', role); // Debug log
           
           const tempUser: User = {
