@@ -6,10 +6,15 @@ const pageService = {
   // Hämta alla sidor
   getAllPages: async (): Promise<Page[]> => {
     try {
-      console.log('Fetching all pages from:', `${API_BASE_URL}/api/pages`);
+      const apiPath = '/pages';
+      const requestUrl = API_BASE_URL.includes('/proxy') 
+        ? `${API_BASE_URL}${apiPath}` 
+        : `${API_BASE_URL}/api${apiPath}`;
+      
+      console.log('Fetching all pages from:', requestUrl);
       
       try {
-        const response = await fetch(`${API_BASE_URL}/api/pages`, {
+        const response = await fetch(requestUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -60,7 +65,14 @@ const pageService = {
   getPublishedPages: async (): Promise<Page[]> => {
     try {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/pages/published`, {
+        const apiPath = '/pages/published';
+        const requestUrl = API_BASE_URL.includes('/proxy') 
+          ? `${API_BASE_URL}${apiPath}` 
+          : `${API_BASE_URL}/api${apiPath}`;
+          
+        console.log('Fetching published pages from:', requestUrl);
+          
+        const response = await fetch(requestUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -117,7 +129,12 @@ const pageService = {
   // Hämta publicerade sidor som ska visas i sidlistan
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      const requestUrl = `${API_BASE_URL}/api/pages/visible`;
+      // URL construction that works with both direct and proxy API modes
+      const apiPath = '/pages/visible';
+      const requestUrl = API_BASE_URL.includes('/proxy') 
+        ? `${API_BASE_URL}${apiPath}` 
+        : `${API_BASE_URL}/api${apiPath}`;
+        
       console.log('========================================');
       console.log('Fetching visible pages from:', requestUrl);
       console.log('API_BASE_URL value:', API_BASE_URL);
@@ -134,7 +151,7 @@ const pageService = {
           'Origin': window.location.origin
         });
 
-        const response = await fetch(`${API_BASE_URL}/api/pages/visible`, {
+        const response = await fetch(requestUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -233,7 +250,14 @@ const pageService = {
   getPageById: async (id: string): Promise<Page | null> => {
     try {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/pages/${id}`, {
+        const apiPath = `/pages/${id}`;
+        const requestUrl = API_BASE_URL.includes('/proxy') 
+          ? `${API_BASE_URL}${apiPath}` 
+          : `${API_BASE_URL}/api${apiPath}`;
+          
+        console.log(`Fetching page with ID ${id} from:`, requestUrl);
+          
+        const response = await fetch(requestUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -305,7 +329,14 @@ const pageService = {
   getPageBySlug: async (slug: string): Promise<Page | null> => {
     try {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/pages/slug/${slug}`, {
+        const apiPath = `/pages/slug/${slug}`;
+        const requestUrl = API_BASE_URL.includes('/proxy') 
+          ? `${API_BASE_URL}${apiPath}` 
+          : `${API_BASE_URL}/api${apiPath}`;
+          
+        console.log(`Fetching page with slug ${slug} from:`, requestUrl);
+          
+        const response = await fetch(requestUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -614,8 +645,17 @@ const pageService = {
   // Test debug endpoint
   testDebugEndpoint: async (): Promise<any> => {
     try {
-      const requestUrl = `${API_BASE_URL}/api/debug`;
+      const apiPath = '/debug';
+      const requestUrl = API_BASE_URL.includes('/proxy') 
+        ? `${API_BASE_URL}${apiPath}` 
+        : `${API_BASE_URL}/api${apiPath}`;
+        
+      console.log('========================================');  
       console.log('Testing debug endpoint:', requestUrl);
+      console.log('API_BASE_URL value:', API_BASE_URL);
+      console.log('Window location:', window.location.href);
+      console.log('Window origin:', window.location.origin);
+      console.log('========================================');
 
       const response = await fetch(requestUrl, {
         method: 'GET',
