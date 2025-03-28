@@ -91,81 +91,17 @@ const usersRoutes = require('./routes/users');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
+console.log(`Server starting at ${new Date().toISOString()}`);
+console.log('Environment:', process.env.NODE_ENV || 'not set');
+
 // CORS configuration
 const getCorsConfig = () => {
   const env = process.env.NODE_ENV || 'development';
   console.log('Configuring CORS for environment:', env);
 
-  // Define allowed origins based on environment
-  const allowedOrigins = {
-    development: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      'http://127.0.0.1:3002',
-      '*'
-    ],
-    staging: [
-      'https://www.stage.gulmaran.com',
-      'https://mallbrf.vercel.app',
-      '*'
-    ],
-    production: [
-      'https://www.gulmaran.com',
-      'https://mallbrf.vercel.app',
-      '*'
-    ]
-  };
-
-  // Get origins for current environment
-  const origins = allowedOrigins[env] || allowedOrigins.development;
-  console.log('Allowed origins:', origins);
-
   // For immediate fix, let's use a simpler CORS config that works on all environments
-  if (process.env.CORS_ORIGIN === '*') {
-    console.log('Using wildcard CORS configuration');
-    return {
-      origin: '*',
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'x-vercel-protection-bypass',
-        'Origin',
-        'Accept',
-        'X-Requested-With'
-      ]
-    };
-  }
-
   return {
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        console.log('Request with no origin - allowing');
-        return callback(null, true);
-      }
-      
-      // For debugging
-      console.log('Request origin:', origin);
-      
-      // Allow all origins temporarily to fix CORS issues
-      if (true) {
-        console.log('Allowing all origins temporarily');
-        return callback(null, true);
-      }
-      
-      if (origins.includes(origin) || origins.includes('*')) {
-        console.log('Origin allowed:', origin);
-        callback(null, true);
-      } else {
-        console.log('Origin blocked:', origin);
-        callback(new Error(`Not allowed by CORS in ${env} environment`));
-      }
-    },
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
@@ -182,9 +118,12 @@ const getCorsConfig = () => {
   };
 };
 
+// =====================================
+// MIDDLEWARE SETUP
+// =====================================
+
 // Apply CORS middleware with environment-specific configuration
 app.use(cors(getCorsConfig()));
-app.use(express.json());
 
 // Add CORS preflight handler for all routes
 app.options('*', (req, res) => {
@@ -195,123 +134,17 @@ app.options('*', (req, res) => {
   res.status(200).send();
 });
 
-// Add a global CORS middleware
-app.use((req, res, next) => {
-  // Allow CORS from all origins in development and staging
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
-
-// Serve static files from the build directory (måste vara före autentisering)
-app.use(express.static(path.join(__dirname, '../build')));
-
-// Handle manifest.json with proper CORS headers (no auth required)
-app.get('/manifest.json', (req, res) => {
-  const manifest = {
-    short_name: "MallBRF",
-    name: "MallBRF Bokningssystem",
-    icons: [
-      {
-        src: "favicon.ico",
-        sizes: "64x64 32x32 24x24 16x16",
-        type: "image/x-icon"
-      },
-      {
-        src: "logo192.png",
-        type: "image/png",
-        sizes: "192x192"
-      },
-      {
-        src: "logo512.png",
-        type: "image/png",
-        sizes: "512x512"
-      }
-    ],
-    start_url: ".",
-    display: "standalone",
-    theme_color: "#000000",
-    background_color: "#ffffff"
-  };
-
-  // Set CORS headers
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  res.json(manifest);
-});
-
-// Add headers middleware (utan CORS-headers)
-app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  next();
-});
-
-// Middleware för att verifiera x-vercel-protection-bypass header - endast för vissa API-anrop
-app.use('/api', (req, res, next) => {
-  // Tillåt OPTIONS-anrop för preflight requests
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
-
-  // Undanta vissa endpoints från autentisering
-  const publicEndpoints = [
-    '/api/pages/visible',
-    '/api/pages/published',
-    '/api/pages/slug',
-    '/api/manifest.json',
-    '/api/health',
-    '/api/test'
-  ];
-
-  // Skip if it's a public endpoint
-  if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
-    return next();
-  }
-
-  // Skip these paths as they're handled by the Firebase auth middleware
-  const firebaseAuthPaths = [
-    '/api/users',
-    '/api/pages', 
-    '/api/bookings',
-    '/api/backup'
-  ];
-  
-  // Skip Vercel protection for paths handled by Firebase auth
-  if (firebaseAuthPaths.some(path => req.path.startsWith(path))) {
-    console.log(`[Vercel Auth] Skipping Vercel protection for Firebase auth path: ${req.path}`);
-    return next();
-  }
-
-  // För övriga API-anrop, verifiera x-vercel-protection-bypass
-  const bypass = req.headers['x-vercel-protection-bypass'];
-  if (!bypass || bypass !== 'true') {
-    console.warn(`[Vercel Auth] Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-});
-
-// Request logging middleware
+// Basic request logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
-  console.log('Origin:', req.headers.origin);
   next();
 });
 
-// Body parsers and file upload middleware
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// File upload middleware
 app.use(fileUpload({
   createParentPath: true,
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -320,28 +153,21 @@ app.use(fileUpload({
   tempFileDir: '/tmp/'
 }));
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
+// =====================================
+// API ROUTES - NO AUTH REQUIRED
+// =====================================
 
-const upload = multer({ storage: storage });
-
-// Health check endpoint (no auth required)
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Test endpoint (no auth required)
+// API health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint
 app.get('/api/test', (req, res) => {
   console.log('Test endpoint hit');
   res.json({ message: 'API is running' });
@@ -456,84 +282,117 @@ app.get('/api/pages/slug/:slug', async (req, res) => {
   }
 });
 
+// Handle manifest.json with proper CORS headers (no auth required)
+app.get('/manifest.json', (req, res) => {
+  const manifest = {
+    short_name: "MallBRF",
+    name: "MallBRF Bokningssystem",
+    icons: [
+      {
+        src: "favicon.ico",
+        sizes: "64x64 32x32 24x24 16x16",
+        type: "image/x-icon"
+      },
+      {
+        src: "logo192.png",
+        type: "image/png",
+        sizes: "192x192"
+      },
+      {
+        src: "logo512.png",
+        type: "image/png",
+        sizes: "512x512"
+      }
+    ],
+    start_url: ".",
+    display: "standalone",
+    theme_color: "#000000",
+    background_color: "#ffffff"
+  };
+
+  // Set CORS headers
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  res.json(manifest);
+});
+
+// =====================================
+// AUTH MIDDLEWARE FOR PROTECTED ROUTES
+// =====================================
+
+// Middleware för att verifiera x-vercel-protection-bypass header - endast för vissa API-anrop
+app.use('/api', (req, res, next) => {
+  // Tillåt OPTIONS-anrop för preflight requests
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  // Undanta vissa endpoints från autentisering
+  const publicEndpoints = [
+    '/api/pages/visible',
+    '/api/pages/published',
+    '/api/pages/slug',
+    '/api/manifest.json',
+    '/api/health',
+    '/api/test',
+    '/api/debug'
+  ];
+
+  // Skip if it's a public endpoint
+  if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
+    console.log(`Skipping auth check for public endpoint: ${req.path}`);
+    return next();
+  }
+
+  // Skip these paths as they're handled by the Firebase auth middleware
+  const firebaseAuthPaths = [
+    '/api/users',
+    '/api/pages', 
+    '/api/bookings',
+    '/api/backup'
+  ];
+  
+  // Skip Vercel protection for paths handled by Firebase auth
+  if (firebaseAuthPaths.some(path => req.path.startsWith(path))) {
+    console.log(`[Vercel Auth] Skipping Vercel protection for Firebase auth path: ${req.path}`);
+    return next();
+  }
+
+  // För övriga API-anrop, verifiera x-vercel-protection-bypass
+  const bypass = req.headers['x-vercel-protection-bypass'];
+  if (!bypass || bypass !== 'true') {
+    console.warn(`[Vercel Auth] Unauthorized request to ${req.path} - Missing or invalid x-vercel-protection-bypass header`);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+});
+
+// =====================================
+// PROTECTED API ROUTES
+// =====================================
+
 // Routes with auth middleware
 app.use('/api/pages', auth, pagesRouter);
 app.use('/api/bookings', auth, bookingsRouter);
 app.use('/api/backup', auth, backupRouter);
 app.use('/api/users', auth, usersRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// =====================================
+// STATIC FILES & SPA ROUTING
+// =====================================
 
-// Säkerställ att uploads-mappen finns - but only in development
-const uploadsDir = path.join(__dirname, 'uploads');
-
-if (process.env.NODE_ENV !== 'production') {
-  // Only attempt to create directories in development environment
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-      }
-    } else {
-  console.log('Running in production mode - skipping directory creation (using read-only filesystem)');
-}
-
-// Update the schema handling
-const DB_SCHEMA = 'public'; // Always use public schema for now
-console.log(`Using database schema: ${DB_SCHEMA}`);
-
-// Helper function to add schema to table names
-function withSchema(tableName) {
-  return tableName; // Don't add schema prefix for now
-}
-
-console.log('Database connection configured with:');
-console.log('- SSL mode: SSL enabled with rejectUnauthorized: false (required for Vercel)');
-console.log('- Node Env:', process.env.NODE_ENV || 'not set');
-console.log('- Schema:', DB_SCHEMA);
-
-// Test database connection
-async function testDatabaseConnection() {
-  try {
-    const isConnected = await testSupabaseConnection();
-    if (!isConnected) {
-      console.error('Database connection failed');
-      return false;
-    }
-    console.log('Database connected successfully');
-    return true;
-        } catch (error) {
-    console.error('Database connection error:', error);
-    return false;
-  }
-}
+// Serve static files from the build directory
+app.use(express.static(path.join(__dirname, '../build')));
 
 // Handle root route - serve the frontend application
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../build/index.html'));
-});
-
-// Handle 404 errors for static files
-app.use((req, res, next) => {
-  // Skip API routes - let them be handled by their own handlers
-  if (req.path.startsWith('/api/')) {
-    return next();
-  }
-
-  // Om det är en statisk fil, försök hitta den i build-mappen
-  if (req.path.includes('.')) {
-    const filePath = path.join(__dirname, '../build', req.path);
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-      } else {
-      console.log(`404 for static file: ${req.path}`);
-      res.status(404).send('Not found');
-    }
-    } else {
-    // För alla andra routes, skicka index.html
-    res.sendFile(path.join(__dirname, '../build/index.html'));
-  }
 });
 
 // Add proxy middleware to avoid CORS issues
@@ -566,6 +425,52 @@ const apiProxy = createProxyMiddleware({
 
 // Apply proxy middleware
 app.use('/proxy/api', apiProxy);
+
+// SPA catch-all route - must be LAST
+app.use((req, res, next) => {
+  console.log(`Catch-all handler for: ${req.path}`);
+  
+  // Skip API routes completely - let them 404 properly if not matched by now
+  if (req.path.startsWith('/api/')) {
+    console.log(`API route not matched: ${req.path}`);
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+
+  // Om det är en statisk fil, försök hitta den i build-mappen
+  if (req.path.includes('.')) {
+    const filePath = path.join(__dirname, '../build', req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      console.log(`404 for static file: ${req.path}`);
+      res.status(404).send('Not found');
+    }
+  } else {
+    // För alla andra routes, skicka index.html för SPA routing
+    console.log(`SPA route: ${req.path}`);
+    res.sendFile(path.join(__dirname, '../build/index.html'));
+  }
+});
+
+// =====================================
+// START SERVER
+// =====================================
+
+// Test database connection
+async function testDatabaseConnection() {
+  try {
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      console.error('Database connection failed');
+      return false;
+    }
+    console.log('Database connected successfully');
+    return true;
+  } catch (error) {
+    console.error('Database connection error:', error);
+    return false;
+  }
+}
 
 // Start the server
 const startServer = () => {
