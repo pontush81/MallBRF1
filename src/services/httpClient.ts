@@ -15,8 +15,8 @@ export const getAuthToken = async () => {
   }
 };
 
-// CORS Proxy URL
-const CORS_PROXY_URL = 'https://api.allorigins.win/get?url=';
+// CORS Proxy URL - byt till en mer pålitlig proxy
+const CORS_PROXY_URL = 'https://corsproxy.io/?';
 
 // Create and configure the HTTP client
 const createHttpClient = (): AxiosInstance => {
@@ -54,15 +54,14 @@ const createHttpClient = (): AxiosInstance => {
   client.interceptors.request.use(async (config) => {
     try {
       // Skapa full URL
-      let fullUrl = `${config.baseURL}${config.url}`.replace(/\/\//g, '/').replace('://', '://');
+      let fullUrl = `${config.baseURL || ''}${config.url || ''}`.replace(/\/\//g, '/').replace('://', '://');
       
       // Använd proxy om det behövs
       if (useProxy && window.location.hostname.includes('stage.gulmaran.com')) {
         // Klient-sidan behöver hantera CORS-proxyn
-        const encodedUrl = encodeURIComponent(fullUrl);
         config.url = '';
-        config.baseURL = `${CORS_PROXY_URL}${encodedUrl}`;
-        fullUrl = `${CORS_PROXY_URL}${encodedUrl}`;
+        config.baseURL = `${CORS_PROXY_URL}${encodeURIComponent(fullUrl)}`;
+        fullUrl = `${CORS_PROXY_URL}${encodeURIComponent(fullUrl)}`;
         console.log('[API] Using CORS proxy URL:', fullUrl);
       }
       
@@ -91,18 +90,15 @@ const createHttpClient = (): AxiosInstance => {
   // Add response interceptor for better error handling
   client.interceptors.response.use(
     response => {
-      // Om vi använder proxy, behöver vi extrahera innehållet från proxysvar
-      if (useProxy && window.location.hostname.includes('stage.gulmaran.com')) {
-        try {
-          if (response.data && response.data.contents) {
-            const parsedContent = JSON.parse(response.data.contents);
-            console.log('[API] Extracted data from proxy response:', parsedContent);
-            return { ...response, data: parsedContent };
-          }
-        } catch (error) {
-          console.error('[API] Failed to parse proxy response:', error);
-        }
-      }
+      console.log('[API] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        data: response.data
+      });
+      
       return response;
     },
     error => {

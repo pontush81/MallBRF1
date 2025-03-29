@@ -33,10 +33,68 @@ class PageService extends BaseService {
   // Hämta synliga sidor
   async getVisiblePages(): Promise<Page[]> {
     try {
+      console.log('Fetching visible pages from API');
       const response = await this.get<Page[]>('/visible');
-      return Array.isArray(response) ? response : [];
+      console.log('Visible pages response received:', { 
+        dataType: typeof response,
+        isArray: Array.isArray(response),
+        length: Array.isArray(response) ? response.length : 0 
+      });
+      
+      // Säkerställ att vi returnerar en array
+      if (!response) {
+        console.warn('No response received from API');
+        return [];
+      }
+      
+      if (!Array.isArray(response)) {
+        console.warn('Response is not an array, converting to array:', response);
+        return [response as unknown as Page]; 
+      }
+      
+      return response;
     } catch (error) {
       console.error('Error fetching visible pages:', error);
+      // Om vi får en CORS-relaterad nätverksfel, försök använda alternativa metoder
+      if (window.location.hostname.includes('stage.gulmaran.com')) {
+        console.log('Attempting fallback method for stage environment');
+        return this.getFallbackPages();
+      }
+      return [];
+    }
+  }
+
+  // Fallback-metod för att hantera CORS-problem
+  private async getFallbackPages(): Promise<Page[]> {
+    try {
+      // Returnera några statiska sidor som fallback
+      console.log('Using fallback static pages due to CORS issues');
+      return [
+        {
+          id: 'fallback-1',
+          title: 'Välkommen till BRF Gulmåran',
+          content: '**OBS: Detta är temporärt innehåll p.g.a. CORS-problem.**\n\nVälkommen till BRF Gulmåran! Vi är glada att du besöker vår sida. Innehållet kommer att laddas när API-problemen är lösta.',
+          slug: 'welcome',
+          isPublished: true,
+          show: true,
+          files: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'fallback-2',
+          title: 'Information',
+          content: '**Detta är statiskt innehåll**\n\nDenna sida visar statiskt innehåll medan vi löser tekniska problem med vår API-server. Vi beklagar eventuella olägenheter.',
+          slug: 'info',
+          isPublished: true,
+          show: true,
+          files: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
+    } catch (error) {
+      console.error('Error in fallback method:', error);
       return [];
     }
   }
