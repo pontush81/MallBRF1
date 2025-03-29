@@ -83,5 +83,6 @@
     "moduleNameMapper": {
       "\\.(css|less|scss|sass)$": "identity-obj-proxy"
     }
-  }
+  },
+  "proxy": "http://localhost:3002"
 }

@@ -41,12 +41,8 @@ const PagesList: React.FC = () => {
     if (!deletePageId) return;
 
     try {
-      const success = await pageService.deletePage(deletePageId);
-      if (success) {
-        setPages(pages.filter(page => page.id !== deletePageId));
-      } else {
-        setError('Kunde inte ta bort sidan');
-      }
+      await pageService.deletePage(deletePageId);
+      setPages(pages.filter(page => page.id !== deletePageId));
     } catch (err) {
       setError('Ett fel uppstod vid borttagning av sidan');
     } finally {

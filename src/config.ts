@@ -1,5 +1,19 @@
 // API base URL configuration
-export const API_BASE_URL = '/api'; // Använd relativ URL istället för extern domän
+// Function to determine the correct API base URL based on environment
+const getApiBaseUrl = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (isDevelopment) {
+    // In development, we can use the proxy from package.json (which forwards to port 3002)
+    return '/api';
+  }
+  
+  // In production, use relative path (handled by Vercel)
+  return '/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 // Fallback API URL (used when the regular API fails)
 export const FALLBACK_API_ENABLED = true;

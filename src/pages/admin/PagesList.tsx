@@ -83,15 +83,10 @@ const PagesList: React.FC = () => {
     
     try {
       setLoading(true);
-      const success = await pageService.deletePage(pageToDelete.id);
-      
-      if (success) {
-        setPages(pages.filter(p => p.id !== pageToDelete.id));
-        setSnackbarMessage(`Sidan "${pageToDelete.title}" har raderats`);
-        setSnackbarOpen(true);
-      } else {
-        setError('Ett fel uppstod vid radering av sidan');
-      }
+      await pageService.deletePage(pageToDelete.id);
+      setPages(pages.filter(p => p.id !== pageToDelete.id));
+      setSnackbarMessage(`Sidan "${pageToDelete.title}" har raderats`);
+      setSnackbarOpen(true);
     } catch (err) {
       setError('Ett fel uppstod vid radering av sidan');
       console.error(err);
