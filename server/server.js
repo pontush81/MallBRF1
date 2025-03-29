@@ -104,16 +104,6 @@ console.log('Environment:', process.env.NODE_ENV || 'not set');
 // Apply CORS middleware with centralized configuration
 app.use(cors(corsConfig.getCorsConfig()));
 
-// Add CORS preflight handler for all routes
-app.options('*', corsConfig.handlePreflight);
-
-// Global middleware för att applicera CORS-headers på alla svar
-app.use((req, res, next) => {
-  // Lägg till CORS-headers för varje förfrågan
-  corsConfig.setCorsHeaders(req, res);
-  next();
-});
-
 // Basic request logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -386,71 +376,6 @@ app.use(express.static(path.join(__dirname, '../build')));
 // Handle root route - serve the frontend application
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../build/index.html'));
-});
-
-// Add proxy middleware to avoid CORS issues
-const apiProxy = createProxyMiddleware({
-  target: process.env.NODE_ENV === 'production' ? 'http://localhost:3002' : 'https://mallbrf.vercel.app',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/proxy/api': '/api'
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    // Add headers to the proxied request
-    proxyReq.setHeader('x-vercel-protection-bypass', 'true');
-    
-    // Copy auth header if present
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      proxyReq.setHeader('Authorization', authHeader);
-    }
-    
-    const targetUrl = process.env.NODE_ENV === 'production' ? 'http://localhost:3002' : 'https://mallbrf.vercel.app';
-    console.log(`Proxying request: ${req.method} ${req.url} -> ${targetUrl}${req.url.replace('/proxy', '')}`);
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    // Säkerställ att CORS-headers är korrekt satta i proxysvar
-    const origin = req.headers.origin;
-    if (origin && corsConfig.isOriginAllowed(origin)) {
-      proxyRes.headers['access-control-allow-origin'] = origin;
-      proxyRes.headers['access-control-allow-credentials'] = 'true';
-    }
-    
-    console.log(`Proxy response: ${proxyRes.statusCode} for ${req.url}`);
-  },
-  onError: (err, req, res) => {
-    console.error('Proxy error:', err);
-    res.status(500).json({ error: 'Proxy error', message: err.message });
-  }
-});
-
-// Apply proxy middleware
-app.use('/proxy/api', apiProxy);
-
-// SPA catch-all route - must be LAST
-app.use((req, res, next) => {
-  console.log(`Catch-all handler for: ${req.path}`);
-  
-  // Skip API routes completely - let them 404 properly if not matched by now
-  if (req.path.startsWith('/api/')) {
-    console.log(`API route not matched: ${req.path}`);
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-
-  // Om det är en statisk fil, försök hitta den i build-mappen
-  if (req.path.includes('.')) {
-    const filePath = path.join(__dirname, '../build', req.path);
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      console.log(`404 for static file: ${req.path}`);
-      res.status(404).send('Not found');
-    }
-  } else {
-    // För alla andra routes, skicka index.html för SPA routing
-    console.log(`SPA route: ${req.path}`);
-    res.sendFile(path.join(__dirname, '../build/index.html'));
-  }
 });
 
 // =====================================
