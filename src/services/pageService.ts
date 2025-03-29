@@ -17,7 +17,7 @@ interface DebugInfo {
 
 class PageService extends BaseService {
   constructor() {
-    super('/api/pages');
+    super('/pages');
   }
 
   // Hämta alla sidor
@@ -105,7 +105,7 @@ class PageService extends BaseService {
   // Test debug endpoint - external API path, so we use a different approach
   async testDebugEndpoint(): Promise<DebugInfo> {
     try {
-      const response = await httpClient.get('/api/debug');
+      const response = await httpClient.get('/debug');
       return response.data;
     } catch (error) {
       console.error('Error testing debug endpoint:', error);
@@ -127,7 +127,7 @@ class PageService extends BaseService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await httpClient.post(`/api/pages/${pageId}/files`, formData, {
+      const response = await httpClient.post(`/pages/${pageId}/files`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -149,7 +149,7 @@ class PageService extends BaseService {
   // Ta bort en fil från en sida
   async deleteFile(pageId: string, fileId: string): Promise<boolean> {
     try {
-      await httpClient.delete(`/api/pages/${pageId}/files/${fileId}`);
+      await httpClient.delete(`/pages/${pageId}/files/${fileId}`);
       return true;
     } catch (error) {
       console.error('Error deleting file:', error);

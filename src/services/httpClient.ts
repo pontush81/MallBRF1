@@ -17,25 +17,29 @@ export const getAuthToken = async () => {
 
 // Create and configure the HTTP client
 const createHttpClient = (): AxiosInstance => {
-  // Log important configuration
-  console.log('Creating HTTP client with baseURL:', API_BASE_URL);
-  console.log('Current hostname:', window.location.hostname);
+  // Determine base URL based on environment
+  let apiBaseUrl = '';
   
-  // Justera baseURL så att vi inte får dubbla /api
-  let adjustedBaseURL = API_BASE_URL;
-  if (window.location.hostname.includes('stage.gulmaran.com') && API_BASE_URL.includes('mallbrf.vercel.app')) {
-    // Ta bort /api i slutet eftersom PageService redan använder /api/pages
-    adjustedBaseURL = 'https://mallbrf.vercel.app';
-    console.log('Adjusted baseURL to prevent double /api:', adjustedBaseURL);
+  if (typeof window !== 'undefined') {
+    // Client-side environment
+    if (window.location.hostname === 'localhost') {
+      apiBaseUrl = 'http://localhost:4000'; // Local development
+    } else if (window.location.hostname.includes('stage.gulmaran.com')) {
+      apiBaseUrl = 'https://mallbrf.vercel.app/api'; // Staging
+    } else {
+      apiBaseUrl = 'https://mallbrf.vercel.app/api'; // Production
+    }
   }
   
+  console.log(`[API] Using base URL: ${apiBaseUrl}`);
+  
+  // Create Axios client with cors configuration
   const client = axios.create({
-    baseURL: adjustedBaseURL,
+    baseURL: apiBaseUrl,
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
     },
-    withCredentials: false,
+    withCredentials: false, // Viktigt: måste matcha server-inställningen
   });
 
   // Add request interceptor for authentication

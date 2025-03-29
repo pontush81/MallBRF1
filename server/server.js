@@ -101,36 +101,47 @@ console.log('Environment:', process.env.NODE_ENV || 'not set');
 // MIDDLEWARE SETUP
 // =====================================
 
-// Apply CORS middleware with centralized configuration
-app.use(cors(corsConfig.getCorsConfig()));
-
-// Add explicit OPTIONS handler for preflight requests with error handling
-app.options('*', (req, res, next) => {
-  console.log('[CORS] Handling preflight request:', {
-    method: req.method,
-    path: req.path,
-    origin: req.headers.origin,
-    headers: req.headers
-  });
-
-  cors(corsConfig.getCorsConfig())(req, res, (err) => {
-    if (err) {
-      console.error('[CORS] Preflight error:', err);
-      res.status(403).json({ 
-        error: 'CORS preflight failed',
-        details: err.message,
-        origin: req.headers.origin
-      });
-    } else {
-      next();
-    }
-  });
+// CORS-konfiguration för Vercel-miljö
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://www.stage.gulmaran.com',
+    'https://gulmaran.com',
+    'https://mallbrf.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  
+  // Logga anrop för felsökning
+  console.log(`[CORS] Request from origin: ${origin || 'unknown'}`);
+  console.log(`[CORS] Method: ${req.method}`);
+  console.log(`[CORS] Path: ${req.path}`);
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    console.log(`[CORS] Allowing origin: ${origin}`);
+  } else {
+    console.log(`[CORS] Origin not allowed: ${origin || 'unknown'}`);
+  }
+  
+  // Vercel-specifika headers
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass');
+  res.setHeader('Access-Control-Allow-Credentials', 'false');
+  
+  // Hantera preflight direkt
+  if (req.method === 'OPTIONS') {
+    console.log('[CORS] Handling OPTIONS preflight request');
+    return res.status(200).end();
+  }
+  
+  next();
 });
 
-// Basic request logging
+// Logga varje anrop
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Request headers:', req.headers);
+  console.log(`Request: ${req.method} ${req.path}`);
   next();
 });
 
