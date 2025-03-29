@@ -12,6 +12,9 @@ const multer = require('multer');
 const admin = require('./utils/firebase');
 const auth = require('./middleware/auth');
 
+// Importera centraliserad CORS-konfiguration
+const corsConfig = require('./utils/corsConfig');
+
 // Lägg till nödvändiga imports för proxy
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const url = require('url');
@@ -94,86 +97,21 @@ const PORT = process.env.PORT || 3002;
 console.log(`Server starting at ${new Date().toISOString()}`);
 console.log('Environment:', process.env.NODE_ENV || 'not set');
 
-// CORS configuration
-const getCorsConfig = () => {
-  const env = process.env.NODE_ENV || 'development';
-  console.log('Configuring CORS for environment:', env);
-
-  // Define allowed origins based on environment
-  let allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
-  
-  // Add production origins if needed
-  if (env === 'production') {
-    allowedOrigins = allowedOrigins.concat([
-      'https://www.gulmaran.com',
-      'https://www.stage.gulmaran.com',
-      'https://mallbrf.vercel.app'
-    ]);
-  }
-
-  return {
-    origin: function(origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        console.log('CORS blocked request from origin:', origin);
-        callback(new Error('CORS policy: The origin is not allowed'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'x-vercel-protection-bypass',
-      'Origin',
-      'Accept',
-      'X-Requested-With'
-    ],
-    exposedHeaders: ['Content-Length', 'Content-Type'],
-    optionsSuccessStatus: 200,
-    maxAge: 86400 // 24 hours
-  };
-};
-
 // =====================================
 // MIDDLEWARE SETUP
 // =====================================
 
-// Apply CORS middleware with environment-specific configuration
-app.use(cors(getCorsConfig()));
+// Apply CORS middleware with centralized configuration
+app.use(cors(corsConfig.getCorsConfig()));
 
 // Add CORS preflight handler for all routes
-app.options('*', (req, res) => {
-  // Get the origin from the request
-  const origin = req.headers.origin;
-  
-  // Check if the origin is allowed
-  const env = process.env.NODE_ENV || 'development';
-  let allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
-  
-  if (env === 'production') {
-    allowedOrigins = allowedOrigins.concat([
-      'https://www.gulmaran.com',
-      'https://www.stage.gulmaran.com',
-      'https://mallbrf.vercel.app'
-    ]);
-  }
-  
-  // Set the Access-Control-Allow-Origin header based on the request origin
-  if (origin && allowedOrigins.indexOf(origin) !== -1) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(200).send();
+app.options('*', corsConfig.handlePreflight);
+
+// Global middleware för att applicera CORS-headers på alla svar
+app.use((req, res, next) => {
+  // Lägg till CORS-headers för varje förfrågan
+  corsConfig.setCorsHeaders(req, res);
+  next();
 });
 
 // Basic request logging
@@ -241,24 +179,8 @@ app.get('/api/pages/visible', async (req, res) => {
   try {
     console.log('Handling /api/pages/visible request directly');
     
-    // Handle CORS for this specific endpoint
-    const origin = req.headers.origin;
-    const env = process.env.NODE_ENV || 'development';
-    let allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
-    
-    if (env === 'production') {
-      allowedOrigins = allowedOrigins.concat([
-        'https://www.gulmaran.com',
-        'https://www.stage.gulmaran.com',
-        'https://mallbrf.vercel.app'
-      ]);
-    }
-    
-    // Set proper CORS headers for credentials
-    if (origin && allowedOrigins.indexOf(origin) !== -1) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
+    // Använd den centraliserade CORS-konfigurationen
+    corsConfig.setCorsHeaders(req, res);
     
     const { data, error } = await supabase
       .from('pages')
