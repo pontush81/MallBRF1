@@ -31,6 +31,7 @@ const ALLOWED_ORIGINS = {
 const getCorsConfig = () => {
   const env = process.env.NODE_ENV || 'development';
   console.log(`[CORS] Configuring for environment: ${env}`);
+  console.log(`[CORS] Current NODE_ENV: ${process.env.NODE_ENV}`);
 
   // Kombinera dev och prod origins baserat på miljö
   const allowedOrigins = [
@@ -40,24 +41,30 @@ const getCorsConfig = () => {
 
   return {
     origin: function(origin, callback) {
-      console.log(`[CORS] Request from origin: ${origin}`);
-      
-      // Tillåt anslutningar utan origin (som lokala testverktyg eller postman)
-      if (!origin) {
-        console.log('[CORS] No origin specified, allowing request');
-        return callback(null, true);
-      }
-      
-      if (allowedOrigins.includes(origin)) {
-        console.log(`[CORS] Allowing request from: ${origin}`);
-        callback(null, true);
-      } else {
-        console.log(`[CORS] Blocking request from: ${origin}`);
+      try {
+        console.log(`[CORS] Request from origin: ${origin}`);
         console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
-        callback(new Error('CORS policy: The origin is not allowed'));
+        
+        // Tillåt anslutningar utan origin (som lokala testverktyg eller postman)
+        if (!origin) {
+          console.log('[CORS] No origin specified, allowing request');
+          return callback(null, true);
+        }
+        
+        if (allowedOrigins.includes(origin)) {
+          console.log(`[CORS] Allowing request from: ${origin}`);
+          callback(null, true);
+        } else {
+          console.log(`[CORS] Blocking request from: ${origin}`);
+          console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+          callback(new Error('CORS policy: The origin is not allowed'));
+        }
+      } catch (error) {
+        console.error('[CORS] Error in origin check:', error);
+        callback(error);
       }
     },
-    credentials: false, // Ändrat till false för att förenkla CORS-hanteringen
+    credentials: false,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
       'Content-Type',
@@ -69,7 +76,8 @@ const getCorsConfig = () => {
     ],
     exposedHeaders: ['Content-Length', 'Content-Type'],
     optionsSuccessStatus: 204,
-    maxAge: 86400 // 24 timmar
+    maxAge: 86400, // 24 timmar
+    preflightContinue: false // Säkerställ att preflight-anrop hanteras korrekt
   };
 };
 

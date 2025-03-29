@@ -104,9 +104,33 @@ console.log('Environment:', process.env.NODE_ENV || 'not set');
 // Apply CORS middleware with centralized configuration
 app.use(cors(corsConfig.getCorsConfig()));
 
+// Add explicit OPTIONS handler for preflight requests with error handling
+app.options('*', (req, res, next) => {
+  console.log('[CORS] Handling preflight request:', {
+    method: req.method,
+    path: req.path,
+    origin: req.headers.origin,
+    headers: req.headers
+  });
+
+  cors(corsConfig.getCorsConfig())(req, res, (err) => {
+    if (err) {
+      console.error('[CORS] Preflight error:', err);
+      res.status(403).json({ 
+        error: 'CORS preflight failed',
+        details: err.message,
+        origin: req.headers.origin
+      });
+    } else {
+      next();
+    }
+  });
+});
+
 // Basic request logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Request headers:', req.headers);
   next();
 });
 

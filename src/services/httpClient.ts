@@ -53,7 +53,12 @@ const createHttpClient = (): AxiosInstance => {
       
       // Add Vercel protection bypass for stage environment
       if (window.location.hostname.includes('stage.gulmaran.com')) {
-        config.headers['x-vercel-protection-bypass'] = 'true';
+        // Lägg till en mer robust kontroll för Vercel-miljö
+        const isVercelEnvironment = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
+        if (isVercelEnvironment) {
+          console.log('[API] Adding Vercel protection bypass for stage environment');
+          config.headers['x-vercel-protection-bypass'] = 'true';
+        }
       }
       
       // Add authentication token
@@ -67,28 +72,29 @@ const createHttpClient = (): AxiosInstance => {
     return config;
   });
 
-  // Add response interceptor for error handling
+  // Add response interceptor for better error handling
   client.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      // Log error details
-      if (error.response) {
-        console.error('API error response:', {
-          status: error.response.status,
-          data: error.response.data,
-          url: error.config.url
-        });
-        
-        // Handle specific HTTP error codes if needed
-        if (error.response.status === 401) {
-          console.error('Authentication error. User might not be logged in or token expired.');
-        }
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Error setting up request:', error.message);
+    response => response,
+    error => {
+      console.error('Request failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        headers: error.response?.headers,
+        data: error.response?.data,
+        config: error.config,
+        message: error.message,
+        stack: error.stack
+      });
+
+      // Hantera specifika feltyper
+      if (error.response?.status === 403) {
+        console.error('[API] CORS error - check server logs for details');
+      } else if (error.response?.status === 401) {
+        console.error('[API] Authentication error - check token');
+      } else if (!error.response) {
+        console.error('[API] Network error - check CORS configuration');
       }
-      
+
       return Promise.reject(error);
     }
   );
