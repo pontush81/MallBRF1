@@ -101,47 +101,53 @@ console.log('Environment:', process.env.NODE_ENV || 'not set');
 // MIDDLEWARE SETUP
 // =====================================
 
-// CORS-konfiguration för Vercel-miljö
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://www.stage.gulmaran.com',
-    'https://gulmaran.com',
-    'https://mallbrf.vercel.app'
-  ];
-  
-  const origin = req.headers.origin;
-  
-  // Logga anrop för felsökning
-  console.log(`[CORS] Request from origin: ${origin || 'unknown'}`);
-  console.log(`[CORS] Method: ${req.method}`);
-  console.log(`[CORS] Path: ${req.path}`);
-  
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    console.log(`[CORS] Allowing origin: ${origin}`);
-  } else {
-    console.log(`[CORS] Origin not allowed: ${origin || 'unknown'}`);
-  }
-  
-  // Vercel-specifika headers
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass');
-  res.setHeader('Access-Control-Allow-Credentials', 'false');
-  
-  // Hantera preflight direkt
-  if (req.method === 'OPTIONS') {
-    console.log('[CORS] Handling OPTIONS preflight request');
-    return res.status(200).end();
-  }
-  
-  next();
-});
+// CORS-hantering - endast för dev/lokal miljö, i produktion använder vi vercel.json
+const isVercelProduction = process.env.VERCEL === '1';
+if (!isVercelProduction) {
+  app.use((req, res, next) => {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://www.stage.gulmaran.com',
+      'https://gulmaran.com',
+      'https://mallbrf.vercel.app'
+    ];
+    
+    const origin = req.headers.origin;
+    
+    // Logga anrop för felsökning
+    console.log(`[CORS] Request from origin: ${origin || 'unknown'}`);
+    console.log(`[CORS] Method: ${req.method}`);
+    console.log(`[CORS] Path: ${req.path}`);
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      console.log(`[CORS] Allowing origin: ${origin}`);
+    } else {
+      console.log(`[CORS] Origin not allowed: ${origin || 'unknown'}`);
+    }
+    
+    // Vercel-specifika headers
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+    
+    // Hantera preflight direkt
+    if (req.method === 'OPTIONS') {
+      console.log('[CORS] Handling OPTIONS preflight request');
+      return res.status(200).end();
+    }
+    
+    next();
+  });
+} else {
+  console.log('[CORS] Vercel production environment detected - using vercel.json for CORS configuration');
+}
 
-// Logga varje anrop
+// Logga varje anrop med mer information
 app.use((req, res, next) => {
-  console.log(`Request: ${req.method} ${req.path}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} from ${req.headers.origin || 'unknown'}`);
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
   next();
 });
 
@@ -202,9 +208,31 @@ app.get('/api/debug', (req, res) => {
 // Public endpoints without auth middleware
 app.get('/api/pages/visible', async (req, res) => {
   try {
-    console.log('Handling /api/pages/visible request');
-    console.log('Request headers:', req.headers);
+    console.log('======= HANDLING /api/pages/visible REQUEST =======');
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
     console.log('Request origin:', req.headers.origin);
+    console.log('Vercel environment:', process.env.VERCEL === '1' ? 'Yes' : 'No');
+    
+    // Sätt CORS-headers manuellt för denna endpoint för att säkerställa korrekt respons
+    if (req.headers.origin) {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://www.stage.gulmaran.com',
+        'https://gulmaran.com',
+        'https://mallbrf.vercel.app'
+      ];
+      
+      if (allowedOrigins.includes(req.headers.origin)) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+        console.log(`[CORS] Manuellt satt Access-Control-Allow-Origin: ${req.headers.origin}`);
+      }
+    }
+    
+    // Sätt alltid dessa headers för denna endpoint
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
     
     console.log('Fetching visible pages from Supabase...');
     const { data, error } = await supabase
