@@ -14,7 +14,9 @@ const getApiBaseUrl = () => {
   // Staging - använd mallbrf.vercel.app som API-server
   if (hostname === 'www.stage.gulmaran.com' || hostname === 'stage.gulmaran.com') {
     console.log('Running on stage.gulmaran.com - using mallbrf.vercel.app as API server');
-    return 'https://mallbrf.vercel.app/api';  // Absolut URL till Vercel-API
+    // Justera till base URL utan /api, eftersom servicelagret lägger till /api/pages
+    // Detta förhindrar den dubbla /api/api/-situationen
+    return 'https://mallbrf.vercel.app'; 
   }
   
   // Production (gulmaran.com) - använd direkta API-anrop

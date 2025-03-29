@@ -16,12 +16,16 @@ const ALLOWED_ORIGINS = {
     'chrome-extension://'
   ],
   production: [
+    // Gulmaran domäner
     'https://www.gulmaran.com',
-    'https://stage.gulmaran.com',
+    'https://gulmaran.com',
     'https://www.stage.gulmaran.com',
+    'https://stage.gulmaran.com',
+    // Vercel appdomäner
     'https://mallbrf.vercel.app',
     'https://mallbrf1.vercel.app',
-    'https://mallbrf-pontush81.vercel.app'
+    'https://mallbrf-pontush81.vercel.app',
+    'https://mallbrf-git-development-pontush81.vercel.app'
   ]
 };
 
@@ -38,15 +42,22 @@ const getCorsConfig = () => {
 
   return {
     origin: function(origin, callback) {
+      console.log(`Checking CORS for origin: ${origin}`);
+      
       // Tillåt anslutningar utan origin (som lokala testverktyg eller postman)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        console.log('No origin specified, allowing request');
+        return callback(null, true);
+      }
       
       // Kontrollera om origin börjar med chrome-extension:// för utvecklingsläge
       if (env === 'development' && origin.startsWith('chrome-extension://')) {
+        console.log('Allowing Chrome extension in development mode');
         return callback(null, true);
       }
       
       if (allowedOrigins.includes(origin)) {
+        console.log(`Origin ${origin} is allowed`);
         callback(null, true);
       } else {
         console.log(`CORS blockerade förfrågan från origin: ${origin}`);

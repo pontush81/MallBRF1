@@ -21,14 +21,22 @@ const createHttpClient = (): AxiosInstance => {
   console.log('Creating HTTP client with baseURL:', API_BASE_URL);
   console.log('Current hostname:', window.location.hostname);
   
+  // Justera baseURL så att vi inte får dubbla /api
+  let adjustedBaseURL = API_BASE_URL;
+  if (window.location.hostname.includes('stage.gulmaran.com') && API_BASE_URL.includes('mallbrf.vercel.app/api')) {
+    // Ta bort /api i slutet eftersom PageService redan använder /api/pages
+    adjustedBaseURL = 'https://mallbrf.vercel.app';
+    console.log('Adjusted baseURL to prevent double /api:', adjustedBaseURL);
+  }
+  
   const client = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: adjustedBaseURL,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
     // Behåll credentials för samma domän, men inte för cross-origin (när vi använder absolut URL)
-    withCredentials: !API_BASE_URL.includes('https://'),
+    withCredentials: !adjustedBaseURL.includes('https://'),
   });
 
   // Add request interceptor for authentication
@@ -53,8 +61,8 @@ const createHttpClient = (): AxiosInstance => {
         config.headers['x-vercel-protection-bypass'] = 'true';
       }
       
-      // Set specific headers for gulmaran.com domains
-      if (window.location.hostname.includes('gulmaran.com')) {
+      // Set specific headers for gulmaran.com domains when using local API
+      if (window.location.hostname.includes('gulmaran.com') && !config.baseURL.includes('https://')) {
         // Ensure we're using the API correctly
         if (!config.url?.startsWith('/api') && !config.baseURL?.includes('/api')) {
           if (!config.url?.startsWith('/')) {
