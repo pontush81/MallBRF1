@@ -36,7 +36,7 @@ const createHttpClient = (): AxiosInstance => {
       'Accept': 'application/json',
     },
     // Behåll credentials för samma domän, men inte för cross-origin (när vi använder absolut URL)
-    withCredentials: !adjustedBaseURL.includes('https://'),
+    withCredentials: true,
   });
 
   // Add request interceptor for authentication
@@ -48,7 +48,8 @@ const createHttpClient = (): AxiosInstance => {
         url: config.url,
         baseURL: config.baseURL,
         fullUrl: `${config.baseURL}${config.url}`,
-        withCredentials: config.withCredentials
+        withCredentials: config.withCredentials,
+        headers: config.headers
       });
       
       // Add Vercel protection bypass in development
@@ -78,6 +79,14 @@ const createHttpClient = (): AxiosInstance => {
       const token = await getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Lägg till CORS-headers för cross-origin requests
+      if (config.baseURL?.includes('https://')) {
+        config.headers['Access-Control-Allow-Origin'] = window.location.origin;
+        config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
+        config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With';
+        config.headers['Access-Control-Allow-Credentials'] = 'true';
       }
     } catch (error) {
       console.error('Error in request interceptor:', error);

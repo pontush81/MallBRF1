@@ -73,7 +73,11 @@ const getCorsConfig = () => {
       'x-vercel-protection-bypass',
       'Origin',
       'Accept',
-      'X-Requested-With'
+      'X-Requested-With',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Methods',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Credentials'
     ],
     exposedHeaders: ['Content-Length', 'Content-Type'],
     optionsSuccessStatus: 200,
