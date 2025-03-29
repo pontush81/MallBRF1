@@ -26,6 +26,7 @@ const createHttpClient = (): AxiosInstance => {
       apiBaseUrl = 'http://localhost:4000'; // Local development
     } else if (window.location.hostname.includes('stage.gulmaran.com')) {
       apiBaseUrl = 'https://mallbrf.vercel.app/api'; // Staging
+      console.log('[API] Setting base URL for stage environment');
     } else {
       apiBaseUrl = 'https://mallbrf.vercel.app/api'; // Production
     }
@@ -42,28 +43,19 @@ const createHttpClient = (): AxiosInstance => {
     withCredentials: false, // Viktigt: måste matcha server-inställningen
   });
 
-  // Add request interceptor for authentication
+  // Add request interceptor for authentication and debugging
   client.interceptors.request.use(async (config) => {
     try {
-      // Log request details
+      // Log request details with full URL for debugging
+      const fullUrl = `${config.baseURL}${config.url}`.replace(/\/\//g, '/').replace('://', '://');
       console.log('Making request:', {
         method: config.method,
         url: config.url,
         baseURL: config.baseURL,
-        fullUrl: `${config.baseURL}${config.url}`,
+        fullUrl: fullUrl,
         withCredentials: config.withCredentials,
         headers: config.headers
       });
-      
-      // Add Vercel protection bypass for stage environment
-      if (window.location.hostname.includes('stage.gulmaran.com')) {
-        // Lägg till en mer robust kontroll för Vercel-miljö
-        const isVercelEnvironment = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
-        if (isVercelEnvironment) {
-          console.log('[API] Adding Vercel protection bypass for stage environment');
-          config.headers['x-vercel-protection-bypass'] = 'true';
-        }
-      }
       
       // Add authentication token
       const token = await getAuthToken();
