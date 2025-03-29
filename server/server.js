@@ -99,9 +99,30 @@ const getCorsConfig = () => {
   const env = process.env.NODE_ENV || 'development';
   console.log('Configuring CORS for environment:', env);
 
-  // For immediate fix, let's use a simpler CORS config that works on all environments
+  // Define allowed origins based on environment
+  let allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+  
+  // Add production origins if needed
+  if (env === 'production') {
+    allowedOrigins = allowedOrigins.concat([
+      'https://www.gulmaran.com',
+      'https://www.stage.gulmaran.com',
+      'https://mallbrf.vercel.app'
+    ]);
+  }
+
   return {
-    origin: '*',
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log('CORS blocked request from origin:', origin);
+        callback(new Error('CORS policy: The origin is not allowed'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
@@ -127,7 +148,28 @@ app.use(cors(getCorsConfig()));
 
 // Add CORS preflight handler for all routes
 app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  // Get the origin from the request
+  const origin = req.headers.origin;
+  
+  // Check if the origin is allowed
+  const env = process.env.NODE_ENV || 'development';
+  let allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+  
+  if (env === 'production') {
+    allowedOrigins = allowedOrigins.concat([
+      'https://www.gulmaran.com',
+      'https://www.stage.gulmaran.com',
+      'https://mallbrf.vercel.app'
+    ]);
+  }
+  
+  // Set the Access-Control-Allow-Origin header based on the request origin
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -198,6 +240,25 @@ app.get('/api/debug', (req, res) => {
 app.get('/api/pages/visible', async (req, res) => {
   try {
     console.log('Handling /api/pages/visible request directly');
+    
+    // Handle CORS for this specific endpoint
+    const origin = req.headers.origin;
+    const env = process.env.NODE_ENV || 'development';
+    let allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+    
+    if (env === 'production') {
+      allowedOrigins = allowedOrigins.concat([
+        'https://www.gulmaran.com',
+        'https://www.stage.gulmaran.com',
+        'https://mallbrf.vercel.app'
+      ]);
+    }
+    
+    // Set proper CORS headers for credentials
+    if (origin && allowedOrigins.indexOf(origin) !== -1) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
     
     const { data, error } = await supabase
       .from('pages')
