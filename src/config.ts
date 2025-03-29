@@ -13,9 +13,10 @@ const getApiBaseUrl = () => {
 
   // Staging och production - använd proxy för att undvika CORS-problem
   // Genom att använda samma origin (current hostname) undviker vi CORS helt
-  if (hostname === 'www.stage.gulmaran.com' || hostname === 'www.gulmaran.com') {
-    // När vi är på samma domän, använd /proxy/api som pekar till vår proxy-middleware
-    return '/proxy';
+  if (hostname === 'www.stage.gulmaran.com' || hostname === 'stage.gulmaran.com' || 
+      hostname === 'www.gulmaran.com' || hostname === 'gulmaran.com') {
+    console.log('Running on gulmaran.com domain - using direct API path');
+    return '/api';  // Ändra från /proxy till /api för att undvika dubbla API-anrop
   }
 
   // Om vi kör direkt på Vercel, använd absolut URL
@@ -24,8 +25,8 @@ const getApiBaseUrl = () => {
   }
 
   // Fallback för okända miljöer
-  console.warn('Unknown environment or hostname, using proxy API URL');
-  return '/proxy';
+  console.warn('Unknown environment or hostname, using direct API URL');
+  return '/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

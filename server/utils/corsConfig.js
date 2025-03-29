@@ -18,6 +18,7 @@ const ALLOWED_ORIGINS = {
   production: [
     'https://www.gulmaran.com',
     'https://stage.gulmaran.com',
+    'https://www.stage.gulmaran.com',
     'https://mallbrf.vercel.app',
     'https://mallbrf1.vercel.app'
   ]

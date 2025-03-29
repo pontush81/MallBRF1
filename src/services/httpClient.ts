@@ -17,6 +17,10 @@ export const getAuthToken = async () => {
 
 // Create and configure the HTTP client
 const createHttpClient = (): AxiosInstance => {
+  // Log important configuration
+  console.log('Creating HTTP client with baseURL:', API_BASE_URL);
+  console.log('Current hostname:', window.location.hostname);
+  
   const client = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -29,9 +33,26 @@ const createHttpClient = (): AxiosInstance => {
   // Add request interceptor for authentication
   client.interceptors.request.use(async (config) => {
     try {
+      // Log request details
+      console.log('Making request:', {
+        method: config.method,
+        url: config.url,
+        baseURL: config.baseURL,
+        fullUrl: `${config.baseURL}${config.url}`
+      });
+      
       // Add Vercel protection bypass in development
       if (window.location.hostname === 'localhost') {
         config.headers['x-vercel-protection-bypass'] = 'true';
+      }
+      
+      // Set specific headers for gulmaran.com domains
+      if (window.location.hostname.includes('gulmaran.com')) {
+        // Ensure we're using the proxy correctly
+        if (!config.url?.startsWith('/api') && config.baseURL === '/proxy') {
+          config.url = `/api${config.url}`;
+          console.log('Modified URL for proxy:', config.url);
+        }
       }
       
       // Add authentication token

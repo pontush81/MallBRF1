@@ -10,10 +10,23 @@ export class BaseService {
   
   protected async get<T>(path: string = '', config?: AxiosRequestConfig): Promise<T> {
     try {
+      console.log(`Calling API: GET ${this.endpoint}${path}`);
       const response = await httpClient.get(`${this.endpoint}${path}`, config);
+      console.log(`API response for GET ${this.endpoint}${path}:`, {
+        status: response.status,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        dataLength: Array.isArray(response.data) ? response.data.length : null
+      });
       return response.data;
     } catch (error) {
       console.error(`Error in GET ${this.endpoint}${path}:`, error);
+      console.error('Request details:', {
+        endpoint: this.endpoint,
+        path,
+        fullUrl: `${this.endpoint}${path}`,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }

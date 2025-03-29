@@ -178,10 +178,13 @@ app.get('/api/debug', (req, res) => {
 app.get('/api/pages/visible', async (req, res) => {
   try {
     console.log('Handling /api/pages/visible request directly');
+    console.log('Request headers:', req.headers);
+    console.log('Request origin:', req.headers.origin);
     
     // Använd den centraliserade CORS-konfigurationen
     corsConfig.setCorsHeaders(req, res);
     
+    console.log('Fetching visible pages from Supabase...');
     const { data, error } = await supabase
       .from('pages')
       .select('*')
@@ -194,8 +197,13 @@ app.get('/api/pages/visible', async (req, res) => {
       return res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
     }
 
-    if (!data || data.length === 0) {
-      console.log('No visible pages found');
+    if (!data) {
+      console.log('No data returned from Supabase');
+      return res.json([]);
+    }
+    
+    if (data.length === 0) {
+      console.log('No visible pages found in database');
       return res.json([]);
     }
 
@@ -213,10 +221,12 @@ app.get('/api/pages/visible', async (req, res) => {
     }));
 
     console.log(`Found ${formattedPages.length} visible pages directly from server.js`);
+    console.log('Sending response with pages:');
+    console.log(formattedPages.map(p => p.title));
     res.json(formattedPages);
   } catch (error) {
     console.error('Error fetching visible pages:', error);
-    res.status(500).json({ error: 'Could not fetch visible pages', details: error.message });
+    res.status(500).json({ error: 'Could not fetch visible pages', details: error.message, stack: error.stack });
   }
 });
 
@@ -380,7 +390,7 @@ app.get('/', (req, res) => {
 
 // Add proxy middleware to avoid CORS issues
 const apiProxy = createProxyMiddleware({
-  target: 'https://mallbrf.vercel.app',
+  target: process.env.NODE_ENV === 'production' ? 'http://localhost:3002' : 'https://mallbrf.vercel.app',
   changeOrigin: true,
   pathRewrite: {
     '^/proxy/api': '/api'
@@ -395,9 +405,17 @@ const apiProxy = createProxyMiddleware({
       proxyReq.setHeader('Authorization', authHeader);
     }
     
-    console.log(`Proxying request: ${req.method} ${req.url} -> https://mallbrf.vercel.app${req.url.replace('/proxy', '')}`);
+    const targetUrl = process.env.NODE_ENV === 'production' ? 'http://localhost:3002' : 'https://mallbrf.vercel.app';
+    console.log(`Proxying request: ${req.method} ${req.url} -> ${targetUrl}${req.url.replace('/proxy', '')}`);
   },
   onProxyRes: (proxyRes, req, res) => {
+    // Säkerställ att CORS-headers är korrekt satta i proxysvar
+    const origin = req.headers.origin;
+    if (origin && corsConfig.isOriginAllowed(origin)) {
+      proxyRes.headers['access-control-allow-origin'] = origin;
+      proxyRes.headers['access-control-allow-credentials'] = 'true';
+    }
+    
     console.log(`Proxy response: ${proxyRes.statusCode} for ${req.url}`);
   },
   onError: (err, req, res) => {
