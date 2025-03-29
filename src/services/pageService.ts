@@ -33,7 +33,8 @@ class PageService extends BaseService {
   // Hämta synliga sidor
   async getVisiblePages(): Promise<Page[]> {
     try {
-      return await this.get<Page[]>('/visible');
+      const response = await this.get<Page[]>('/visible');
+      return Array.isArray(response) ? response : [];
     } catch (error) {
       console.error('Error fetching visible pages:', error);
       return [];

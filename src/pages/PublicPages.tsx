@@ -204,7 +204,7 @@ const PublicPages: React.FC = (): JSX.Element => {
           }
         }}
       >
-        {pages.map((page, index) => (
+        {Array.isArray(pages) && pages.map((page, index) => (
           <Tab 
             key={page.id}
             label={page.title}
@@ -258,7 +258,7 @@ const PublicPages: React.FC = (): JSX.Element => {
           }
         }}
       >
-        {pages.map((page, index) => (
+        {Array.isArray(pages) && pages.map((page, index) => (
           <MenuItem 
             key={page.id}
             onClick={() => scrollToPage(page.id, index)}
@@ -362,7 +362,7 @@ const PublicPages: React.FC = (): JSX.Element => {
           </Box>
           
           {/* Sidornas innehåll */}
-          {pages.map((page, index) => (
+          {Array.isArray(pages) && pages.map((page, index) => (
             <Paper 
               key={page.id}
               ref={setPageRef(page.id)}
