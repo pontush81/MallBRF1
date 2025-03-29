@@ -80,7 +80,7 @@ const getCorsConfig = () => {
       'Access-Control-Allow-Credentials'
     ],
     exposedHeaders: ['Content-Length', 'Content-Type'],
-    optionsSuccessStatus: 200,
+    optionsSuccessStatus: 204,
     maxAge: 86400 // 24 timmar
   };
 };
@@ -109,20 +109,24 @@ const setCorsHeaders = (req, res) => {
   
   if (isOriginAllowed(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With, Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Credentials');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
   } else if (process.env.NODE_ENV !== 'production') {
     // I utvecklingsläge, tillåt localhost som fallback
     res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With, Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Credentials');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
   }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
-  res.header('Access-Control-Allow-Credentials', 'true');
 };
 
 // CORS preflight-hanterare
 const handlePreflight = (req, res) => {
   setCorsHeaders(req, res);
-  res.status(200).send();
+  res.status(204).send();
 };
 
 module.exports = {

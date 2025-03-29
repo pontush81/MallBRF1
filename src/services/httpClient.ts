@@ -80,14 +80,6 @@ const createHttpClient = (): AxiosInstance => {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-
-      // Lägg till CORS-headers för cross-origin requests
-      if (config.baseURL?.includes('https://')) {
-        config.headers['Access-Control-Allow-Origin'] = window.location.origin;
-        config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
-        config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With';
-        config.headers['Access-Control-Allow-Credentials'] = 'true';
-      }
     } catch (error) {
       console.error('Error in request interceptor:', error);
     }
