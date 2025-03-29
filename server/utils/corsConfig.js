@@ -73,11 +73,7 @@ const getCorsConfig = () => {
       'x-vercel-protection-bypass',
       'Origin',
       'Accept',
-      'X-Requested-With',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Credentials'
+      'X-Requested-With'
     ],
     exposedHeaders: ['Content-Length', 'Content-Type'],
     optionsSuccessStatus: 204,
@@ -110,14 +106,14 @@ const setCorsHeaders = (req, res) => {
   if (isOriginAllowed(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With, Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Credentials');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');
   } else if (process.env.NODE_ENV !== 'production') {
     // I utvecklingsläge, tillåt localhost som fallback
     res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With, Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Credentials');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');
   }

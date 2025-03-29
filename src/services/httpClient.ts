@@ -23,7 +23,7 @@ const createHttpClient = (): AxiosInstance => {
   
   // Justera baseURL så att vi inte får dubbla /api
   let adjustedBaseURL = API_BASE_URL;
-  if (window.location.hostname.includes('stage.gulmaran.com') && API_BASE_URL.includes('mallbrf.vercel.app/api')) {
+  if (window.location.hostname.includes('stage.gulmaran.com') && API_BASE_URL.includes('mallbrf.vercel.app')) {
     // Ta bort /api i slutet eftersom PageService redan använder /api/pages
     adjustedBaseURL = 'https://mallbrf.vercel.app';
     console.log('Adjusted baseURL to prevent double /api:', adjustedBaseURL);
