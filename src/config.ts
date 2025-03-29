@@ -11,12 +11,16 @@ const getApiBaseUrl = () => {
     return 'http://localhost:3002';
   }
 
-  // Staging och production - använd proxy för att undvika CORS-problem
-  // Genom att använda samma origin (current hostname) undviker vi CORS helt
-  if (hostname === 'www.stage.gulmaran.com' || hostname === 'stage.gulmaran.com' || 
-      hostname === 'www.gulmaran.com' || hostname === 'gulmaran.com') {
+  // Staging - använd mallbrf.vercel.app som API-server
+  if (hostname === 'www.stage.gulmaran.com' || hostname === 'stage.gulmaran.com') {
+    console.log('Running on stage.gulmaran.com - using mallbrf.vercel.app as API server');
+    return 'https://mallbrf.vercel.app/api';  // Absolut URL till Vercel-API
+  }
+  
+  // Production (gulmaran.com) - använd direkta API-anrop
+  if (hostname === 'www.gulmaran.com' || hostname === 'gulmaran.com') {
     console.log('Running on gulmaran.com domain - using direct API path');
-    return '/api';  // Ändra från /proxy till /api för att undvika dubbla API-anrop
+    return '/api';  // Direkt API-path
   }
 
   // Om vi kör direkt på Vercel, använd absolut URL

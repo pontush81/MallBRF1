@@ -20,7 +20,8 @@ const ALLOWED_ORIGINS = {
     'https://stage.gulmaran.com',
     'https://www.stage.gulmaran.com',
     'https://mallbrf.vercel.app',
-    'https://mallbrf1.vercel.app'
+    'https://mallbrf1.vercel.app',
+    'https://mallbrf-pontush81.vercel.app'
   ]
 };
 

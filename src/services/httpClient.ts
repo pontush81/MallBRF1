@@ -27,7 +27,8 @@ const createHttpClient = (): AxiosInstance => {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    withCredentials: true,
+    // Behåll credentials för samma domän, men inte för cross-origin (när vi använder absolut URL)
+    withCredentials: !API_BASE_URL.includes('https://'),
   });
 
   // Add request interceptor for authentication
@@ -38,7 +39,8 @@ const createHttpClient = (): AxiosInstance => {
         method: config.method,
         url: config.url,
         baseURL: config.baseURL,
-        fullUrl: `${config.baseURL}${config.url}`
+        fullUrl: `${config.baseURL}${config.url}`,
+        withCredentials: config.withCredentials
       });
       
       // Add Vercel protection bypass in development
@@ -46,12 +48,21 @@ const createHttpClient = (): AxiosInstance => {
         config.headers['x-vercel-protection-bypass'] = 'true';
       }
       
+      // Lägg alltid till x-vercel-protection-bypass för stage.gulmaran.com
+      if (window.location.hostname.includes('stage.gulmaran.com')) {
+        config.headers['x-vercel-protection-bypass'] = 'true';
+      }
+      
       // Set specific headers for gulmaran.com domains
       if (window.location.hostname.includes('gulmaran.com')) {
-        // Ensure we're using the proxy correctly
-        if (!config.url?.startsWith('/api') && config.baseURL === '/proxy') {
-          config.url = `/api${config.url}`;
-          console.log('Modified URL for proxy:', config.url);
+        // Ensure we're using the API correctly
+        if (!config.url?.startsWith('/api') && !config.baseURL?.includes('/api')) {
+          if (!config.url?.startsWith('/')) {
+            config.url = `/api/${config.url}`;
+          } else {
+            config.url = `/api${config.url}`;
+          }
+          console.log('Modified URL for API:', config.url);
         }
       }
       
