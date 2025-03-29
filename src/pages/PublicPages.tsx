@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Container, 
   Typography, 
@@ -53,6 +53,18 @@ const PublicPages: React.FC = (): JSX.Element => {
   // Refs för varje sida för att kunna scrolla till dem
   const pageRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
   const headerRef = useRef<HTMLDivElement | null>(null);
+
+  // Ref for tracking clicks outside the menu
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Debounce function for smoother scroll handling
+  const debounce = (fn: Function, ms = 100) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return function(...args: any[]) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), ms);
+    };
+  };
 
   useEffect(() => {
     const fetchPages = async () => {
@@ -139,8 +151,55 @@ const PublicPages: React.FC = (): JSX.Element => {
     }
   };
 
-  // Scrollposition-hantering
+  // Scrollposition-hantering with debounce for active section updates
   useEffect(() => {
+    const updateActiveSection = (scrollPosition: number) => {
+      if (pages.length > 0) {
+        // Get all page sections and their positions
+        const pageSections = pages.map(page => {
+          const element = pageRefs.current[page.id];
+          if (!element) return { id: page.id, top: 0, bottom: 0 };
+          
+          const rect = element.getBoundingClientRect();
+          const scrollOffset = window.pageYOffset || document.documentElement.scrollTop;
+          
+          return {
+            id: page.id,
+            top: rect.top + scrollOffset,
+            bottom: rect.bottom + scrollOffset
+          };
+        });
+        
+        // Calculate threshold based on viewport height (show as active when section is 1/4 into view)
+        const viewportHeight = window.innerHeight;
+        const threshold = viewportHeight * 0.25;
+        const checkPosition = scrollPosition + threshold;
+        
+        // Find the current active section
+        let activeIndex = 0;
+        for (let i = 0; i < pageSections.length; i++) {
+          const section = pageSections[i];
+          const nextSection = i < pageSections.length - 1 ? pageSections[i + 1] : null;
+          
+          if (
+            (checkPosition >= section.top && !nextSection) || 
+            (checkPosition >= section.top && checkPosition < nextSection?.top)
+          ) {
+            activeIndex = i;
+            break;
+          }
+        }
+        
+        // Only update if the index changed to avoid unnecessary re-renders
+        if (selectedPageIndex !== activeIndex) {
+          setSelectedPageIndex(activeIndex);
+        }
+      }
+    };
+
+    // Debounced version for better performance
+    const debouncedUpdateActiveSection = debounce(updateActiveSection, 100);
+
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       setShowScrollTop(scrollPosition > 300);
@@ -150,23 +209,75 @@ const PublicPages: React.FC = (): JSX.Element => {
         const headerBottom = headerRef.current.getBoundingClientRect().bottom;
         setStickyNav(headerBottom < 0);
       }
+      
+      // Update the active section (debounced)
+      debouncedUpdateActiveSection(scrollPosition);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [pages, selectedPageIndex]);
+
+  // Handling clicks outside the menu to close it
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node) && menuAnchorEl) {
+        setMenuAnchorEl(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [menuAnchorEl]);
+
+  // Effect to set up scroll margins and behaviors for better navigation
+  useEffect(() => {
+    // Add scroll-margin-top to all sections
+    document.querySelectorAll('[id]').forEach(element => {
+      if (element.id) {
+        (element as HTMLElement).style.scrollMarginTop = '120px';
+      }
+    });
+    
+    // Apply smooth scroll behavior to entire document
+    document.documentElement.style.scrollBehavior = 'smooth';
+    
+    // Handle initial hash navigation if present
+    if (window.location.hash) {
+      const id = window.location.hash.substring(1);
+      
+      // Short delay to ensure rendering is complete
+      setTimeout(() => {
+        try {
+          // First scroll to the element
+          const element = document.getElementById(id);
+          if (element) {
+            // Scroll to element with offset
+            const rect = element.getBoundingClientRect();
+            const scrollOffset = window.pageYOffset || document.documentElement.scrollTop;
+            window.scrollTo({
+              top: rect.top + scrollOffset - 120,
+              behavior: 'smooth'
+            });
+          }
+        } catch (err) {
+          console.error('Error scrolling to hash element:', err);
+        }
+      }, 300);
+    }
+    
+    // Clean up
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+    };
+  }, [pages]);
 
   // Navigera till en specifik sida
   const scrollToPage = (pageId: string, index: number) => {
-    const element = pageRefs.current[pageId];
-    if (element) {
-      const yOffset = stickyNav ? -STICKY_NAV_HEIGHT - 16 : -16;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-    setSelectedPageIndex(index);
-    setMenuAnchorEl(null);
+    // We can reuse the handler we created for menu items
+    handleMenuItemClick(pageId, index);
   };
 
   // Scrolla till toppen av sidan
@@ -174,22 +285,76 @@ const PublicPages: React.FC = (): JSX.Element => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Hantera klick på menyknappen (mobil)
-  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  // Handler för att navigera till en sida via menyn
+  const handleMenuItemClick = (pageId: string, index: number) => {
+    // Close the menu first
+    handleMenuClose();
+    
+    // Update selected index
+    setSelectedPageIndex(index);
+    
+    // Get the element
+    const element = document.getElementById(pageId);
+    if (element) {
+      // Manually handle the scrolling with offset
+      setTimeout(() => {
+        element.scrollIntoView();
+        window.scrollBy(0, -120);
+      }, 10);
+      
+      // Update URL without causing a jump
+      window.history.pushState(null, '', `#${pageId}`);
+    }
+  };
+
+  // Update refs with IDs for hash navigation
+  const setPageRef = (pageId: string) => (el: HTMLDivElement | null) => {
+    if (el !== pageRefs.current[pageId]) {
+      pageRefs.current[pageId] = el;
+      
+      // Set id for hash navigation
+      if (el) {
+        el.id = pageId;
+      }
+    }
+  };
+
+  // Helper to ensure proper menu opening
+  const handleMenuButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
     setMenuAnchorEl(event.currentTarget);
   };
 
+  // Simple handler to close the menu
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
   };
 
-  // Callback-funktion för att sätta ref på varje sida
-  const setPageRef = (pageId: string) => (el: HTMLDivElement | null) => {
-    pageRefs.current[pageId] = el;
-  };
-
   // Komponent för navigationsflikar
   const NavigationTabs = ({ compact = false }: { compact?: boolean }) => {
+    // Direct handler for tab clicks
+    const onTabClick = (pageId: string, index: number) => {
+      // Update selected index
+      setSelectedPageIndex(index);
+      
+      // Use a short timeout to scroll after state update
+      setTimeout(() => {
+        const element = pageRefs.current[pageId];
+        if (element) {
+          // Get element position
+          const rect = element.getBoundingClientRect();
+          const scrollOffset = window.pageYOffset || document.documentElement.scrollTop;
+          
+          // Scroll with a fixed offset
+          window.scrollTo({
+            top: rect.top + scrollOffset - 120,
+            behavior: 'smooth'
+          });
+        }
+      }, 10);
+    };
+    
     return (
       <Tabs 
         value={selectedPageIndex}
@@ -208,7 +373,7 @@ const PublicPages: React.FC = (): JSX.Element => {
           <Tab 
             key={page.id}
             label={page.title}
-            onClick={() => scrollToPage(page.id, index)}
+            onClick={() => onTabClick(page.id, index)}
             sx={{ 
               textTransform: 'none', 
               fontWeight: selectedPageIndex === index ? 'bold' : 'normal',
@@ -223,54 +388,122 @@ const PublicPages: React.FC = (): JSX.Element => {
   };
 
   // Mobilmeny-komponent
-  const MobileMenu = ({ compact = false }: { compact?: boolean }) => (
-    <Box sx={{ mb: compact ? 0 : 3 }}>
-      <Button
-        variant={compact ? "contained" : "outlined"}
-        onClick={handleMenuClick}
-        endIcon={menuAnchorEl ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-        fullWidth
-        size={compact ? "small" : "medium"}
-        sx={{ 
-          justifyContent: 'space-between', 
-          py: compact ? 0.8 : 1,
-          boxShadow: compact ? 2 : 0
+  const MobileMenu = ({ compact = false }: { compact?: boolean }) => {
+    const menuOpen = Boolean(menuAnchorEl);
+    
+    // Simple direct click handler for menu items
+    const onItemClick = (page: Page, index: number) => {
+      // Close the menu
+      setMenuAnchorEl(null);
+      
+      // Update selected index
+      setSelectedPageIndex(index);
+      
+      // Use standard browser hash navigation
+      window.location.href = `#${page.id}`;
+    };
+    
+    return (
+      <div 
+        style={{
+          position: 'relative',
+          marginBottom: compact ? 0 : '24px',
+          width: '100%'
         }}
       >
-        {pages[selectedPageIndex]?.title || 'Välj sida'}
-      </Button>
-      <Menu
-        anchorEl={menuAnchorEl}
-        open={Boolean(menuAnchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-        PaperProps={{
-          style: {
-            width: menuAnchorEl?.offsetWidth,
-            maxHeight: '70vh'
-          }
-        }}
-      >
-        {pages.map((page, index) => (
-          <MenuItem 
-            key={page.id}
-            onClick={() => scrollToPage(page.id, index)}
-            selected={selectedPageIndex === index}
-            sx={{ minHeight: '48px' }}
+        {/* Menu button */}
+        <button
+          style={{
+            width: '100%',
+            padding: compact ? '8px 16px' : '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: '#1976d2',
+            color: 'white',
+            border: 'none',
+            borderRadius: menuOpen ? '4px 4px 0 0' : '4px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: compact ? '14px' : '16px',
+            minHeight: compact ? '36px' : '48px',
+            textAlign: 'left'
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuAnchorEl(menuAnchorEl ? null : e.currentTarget);
+          }}
+        >
+          <span style={{ 
+            overflow: 'hidden',
+            textOverflow: 'ellipsis', 
+            whiteSpace: 'nowrap', 
+            flexGrow: 1,
+            paddingRight: '8px'
+          }}>
+            {pages[selectedPageIndex]?.title || 'Välj sida'}
+          </span>
+          <span>
+            {menuOpen ? '▲' : '▼'}
+          </span>
+        </button>
+        
+        {/* Menu items */}
+        {menuOpen && (
+          <div 
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: 'white',
+              border: '1px solid #ddd',
+              borderTop: 'none',
+              borderRadius: '0 0 4px 4px',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+              maxHeight: '70vh',
+              overflowY: 'auto',
+              zIndex: 1100
+            }}
           >
-            {page.title}
-          </MenuItem>
-        ))}
-      </Menu>
-    </Box>
-  );
+            {pages.map((page, index) => (
+              <a 
+                key={page.id}
+                href={`#${page.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onItemClick(page, index);
+                }}
+                style={{
+                  display: 'block',
+                  padding: '12px 16px',
+                  color: selectedPageIndex === index ? '#1976d2' : 'inherit',
+                  fontWeight: selectedPageIndex === index ? 'bold' : 'normal',
+                  textDecoration: 'none',
+                  borderBottom: index < pages.length - 1 ? '1px solid #eee' : 'none',
+                  backgroundColor: selectedPageIndex === index ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                  position: 'relative',
+                  paddingLeft: selectedPageIndex === index ? '20px' : '16px'
+                }}
+              >
+                {selectedPageIndex === index && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '4px',
+                    backgroundColor: '#1976d2'
+                  }} />
+                )}
+                {page.title}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Helper function to get file URL (either Supabase Storage URL or local path)
   const getFileUrl = (file: any): string => {
@@ -344,7 +577,8 @@ const PublicPages: React.FC = (): JSX.Element => {
               display: 'flex', 
               alignItems: 'center', 
               height: '100%',
-              p: 1
+              p: 1,
+              width: '100%'
             }}>
               {isMobile ? <MobileMenu compact /> : <NavigationTabs compact />}
             </Box>
@@ -366,12 +600,13 @@ const PublicPages: React.FC = (): JSX.Element => {
             <Paper 
               key={page.id}
               ref={setPageRef(page.id)}
+              id={page.id}
               elevation={2} 
               sx={{ 
                 mb: 6, 
                 p: { xs: 2, md: 4 }, 
                 borderRadius: 2,
-                scrollMarginTop: `${STICKY_NAV_HEIGHT + 16}px`
+                scrollMarginTop: '120px' // Add scroll margin for hash navigation
               }}
             >
               {/* Sidhuvud med titel och metadata */}
