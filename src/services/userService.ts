@@ -1,66 +1,22 @@
 import { User } from '../types/User';
 import { auth } from './firebase';
-import { 
-  signInWithEmailAndPassword,
-} from 'firebase/auth';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { BaseService } from './baseService';
+import { httpClient } from './httpClient';
 
-// Helper function to get the auth token
-const getAuthToken = async () => {
-  const user = auth.currentUser;
-  if (!user) return null;
-  try {
-    const token = await user.getIdToken(true); // Force token refresh
-    console.log('Got Firebase token:', token.substring(0, 10) + '...'); // Debug log (only show first 10 chars)
-    return token;
-  } catch (error) {
-    console.error('Error getting Firebase token:', error);
-    return null;
+class UserService extends BaseService {
+  constructor() {
+    super('/api/users');
   }
-};
 
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
-
-// Add request interceptor to add auth token
-api.interceptors.request.use(async (config) => {
-  try {
-    // Add the Vercel protection bypass header in development mode
-    if (window.location.hostname === 'localhost') {
-      config.headers['x-vercel-protection-bypass'] = 'true';
-    }
-    
-    const token = await getAuthToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('Added token to request headers'); // Debug log
-    } else {
-      console.error('No token available for request'); // Debug log
-    }
-  } catch (error) {
-    console.error('Error in request interceptor:', error);
-  }
-  return config;
-});
-
-export const userService = {
   async getUserById(id: string): Promise<User | null> {
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        console.error('No auth token available');
-        return null;
-      }
-      console.log('Making request to get user:', id); // Debug log
+      console.log('Making request to get user:', id);
       
-      // Use the no-cors mode as a temporary fix for CORS issues
       try {
-        const response = await api.get(`/api/users/${id}`);
-        console.log('User data from API:', response.data); // Debug log
-        return response.data;
+        const user = await this.get<User>(`/${id}`);
+        console.log('User data from API:', user);
+        return user;
       } catch (apiError) {
         console.error('Error with API call:', apiError);
         
@@ -69,7 +25,7 @@ export const userService = {
           const firebaseUser = auth.currentUser;
           if (firebaseUser) {
             const idTokenResult = await firebaseUser.getIdTokenResult(true);
-            console.log('Token claims after refresh:', idTokenResult.claims); // Debug log
+            console.log('Token claims after refresh:', idTokenResult.claims);
             
             const claimRole = idTokenResult.claims.role;
             const role = (typeof claimRole === 'string' && 
@@ -102,25 +58,25 @@ export const userService = {
       }
       return null;
     }
-  },
+  }
 
   async login(email: string, password: string): Promise<User | null> {
     try {
-      console.log('Starting login process...'); // Debug log
+      console.log('Starting login process...');
       
       // First, sign in with Firebase
       const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Firebase auth successful:', firebaseUser.uid); // Debug log
+      console.log('Firebase auth successful:', firebaseUser.uid);
       
       // Force token refresh to get the latest custom claims (role)
       const idTokenResult = await firebaseUser.getIdTokenResult(true);
-      console.log('Token claims after refresh:', idTokenResult.claims); // Debug log
+      console.log('Token claims after refresh:', idTokenResult.claims);
 
       // Try to get the full user data from the API first
       try {
         const apiUser = await this.getUserById(firebaseUser.uid);
         if (apiUser) {
-          console.log('Got user data from API:', apiUser); // Debug log
+          console.log('Got user data from API:', apiUser);
           return apiUser;
         }
       } catch (apiError) {
@@ -130,9 +86,9 @@ export const userService = {
       // If we couldn't get the user from the API, create a temporary user
       // but first try to get the user's role from the API
       try {
-        const response = await api.get(`/api/users/${firebaseUser.uid}/role`);
+        const response = await httpClient.get(`/api/users/${firebaseUser.uid}/role`);
         const role = response.data?.role || 'user';
-        console.log('Got user role from API:', role); // Debug log
+        console.log('Got user role from API:', role);
         
         const tempUser: User = {
           id: firebaseUser.uid,
@@ -143,7 +99,7 @@ export const userService = {
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString()
         };
-        console.log('Created temporary user with role:', tempUser.role); // Debug log
+        console.log('Created temporary user with role:', tempUser.role);
         return tempUser;
       } catch (roleError) {
         console.error('Failed to fetch user role:', roleError);
@@ -153,7 +109,7 @@ export const userService = {
           const claimRole = idTokenResult.claims.role;
           const role = (typeof claimRole === 'string' && 
             (claimRole === 'admin' || claimRole === 'user')) ? claimRole : 'user';
-          console.log('Got role from token claims:', role); // Debug log
+          console.log('Got role from token claims:', role);
           
           const tempUser: User = {
             id: firebaseUser.uid,
@@ -164,7 +120,7 @@ export const userService = {
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString()
           };
-          console.log('Created user with role from token claims:', tempUser); // Debug log
+          console.log('Created user with role from token claims:', tempUser);
           return tempUser;
         } catch (claimsError) {
           console.error('Failed to get token claims:', claimsError);
@@ -179,7 +135,7 @@ export const userService = {
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString()
           };
-          console.log('Created default user:', tempUser); // Debug log
+          console.log('Created default user:', tempUser);
           return tempUser;
         }
       }
@@ -187,64 +143,49 @@ export const userService = {
       console.error('Error during login:', error.message);
       return null;
     }
-  },
+  }
 
   async register(email: string, password: string, name: string): Promise<User | null> {
     try {
-      const response = await api.post('/users', {
-        email,
-        password,
-        name
-      });
-      return response.data;
+      return await this.post<User>('', { email, password, name });
     } catch (error: any) {
-      console.error('Error during registration:', error.response?.data || error.message);
+      console.error('Registration error:', error.response?.data || error.message);
       return null;
     }
-  },
+  }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | null> {
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        console.error('No auth token available');
-        return null;
-      }
-      const response = await api.put(`/users/${id}`, updates);
-      return response.data;
+      return await this.put<User>(`/${id}`, updates);
     } catch (error: any) {
       console.error('Error updating user:', error.response?.data || error.message);
       return null;
     }
-  },
+  }
 
   async deleteUser(id: string): Promise<boolean> {
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        console.error('No auth token available');
-        return false;
-      }
-      await api.delete(`/users/${id}`);
+      await this.delete(`/${id}`);
       return true;
     } catch (error: any) {
       console.error('Error deleting user:', error.response?.data || error.message);
       return false;
     }
-  },
+  }
 
   async getAllUsers(): Promise<User[]> {
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        console.error('No auth token available');
-        return [];
-      }
-      const response = await api.get('/users');
-      return response.data;
+      return await this.get<User[]>();
     } catch (error: any) {
-      console.error('Error fetching users:', error.response?.data || error.message);
+      console.error('Error fetching all users:', error.response?.data || error.message);
       return [];
     }
   }
-}; 
+}
+
+// Skapa en instans av UserService
+const userServiceInstance = new UserService();
+
+// Exportera som både en named export (för bakåtkompatibilitet) och som default export
+export const userService = userServiceInstance;
+export default userServiceInstance; 

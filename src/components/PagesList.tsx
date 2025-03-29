@@ -16,8 +16,10 @@ const PagesList: React.FC = () => {
 
   const loadPages = async () => {
     try {
+      setLoading(true);
       const loadedPages = await pageService.getAllPages();
       setPages(loadedPages);
+      setError(null);
     } catch (err) {
       setError('Ett fel uppstod vid laddning av sidorna');
     } finally {

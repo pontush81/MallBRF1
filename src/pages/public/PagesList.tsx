@@ -33,7 +33,7 @@ const PublicPagesList: React.FC = () => {
   const fetchPages = async () => {
     try {
       setLoading(true);
-      const publishedPages = await pageService.getPublishedPages();
+      const publishedPages = await pageService.getVisiblePages();
       setPages(publishedPages);
       setError(null);
     } catch (err) {

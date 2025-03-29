@@ -1,236 +1,111 @@
 import { Page } from '../types/Page';
 import { API_BASE_URL } from '../config';
-import { DebugInfo } from '../types/Debug';
+import { BaseService } from './baseService';
+import { httpClient } from './httpClient';
 
-// Service för att hantera sidor
-const pageService = {
-  // Hjälpfunktion för att bygga API URL
-  buildApiUrl: (endpoint: string): string => {
-    // Om vi använder proxy, ta bort /api prefix från endpoint
-    const apiPath = API_BASE_URL.includes('/proxy') 
-      ? endpoint.replace(/^\/api/, '')
-      : endpoint;
-    
-    return `${API_BASE_URL}${apiPath}`;
-  },
+// Define interface for the debug response
+interface DebugInfo {
+  clientInfo?: {
+    location: string;
+    origin: string;
+    hostname: string;
+    environment: string;
+  };
+  serverInfo?: any;
+  error?: string;
+}
+
+class PageService extends BaseService {
+  constructor() {
+    super('/api/pages');
+  }
 
   // Hämta alla sidor
-  getAllPages: async (): Promise<Page[]> => {
+  async getAllPages(): Promise<Page[]> {
     try {
-      const requestUrl = pageService.buildApiUrl('/api/pages');
-      console.log('Fetching all pages from:', requestUrl);
-      
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true',
-          'Origin': window.location.origin
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.get<Page[]>();
     } catch (error) {
-      console.error('Error fetching pages:', error);
+      console.error('Error fetching all pages:', error);
       return [];
     }
-  },
+  }
 
-  // Hämta publicerade sidor som ska visas i sidlistan
-  getVisiblePages: async (): Promise<Page[]> => {
+  // Hämta synliga sidor
+  async getVisiblePages(): Promise<Page[]> {
     try {
-      const requestUrl = pageService.buildApiUrl('/api/pages/visible');
-      console.log('Making API request to:', requestUrl);
-      console.log('API_BASE_URL:', API_BASE_URL);
-      console.log('Using proxy:', API_BASE_URL.includes('/proxy'));
-
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      return await this.get<Page[]>('/visible');
     } catch (error) {
       console.error('Error fetching visible pages:', error);
       return [];
     }
-  },
+  }
+
+  // Hämta publicerade sidor
+  async getPublishedPages(): Promise<Page[]> {
+    try {
+      return await this.get<Page[]>('/published');
+    } catch (error) {
+      console.error('Error fetching published pages:', error);
+      return [];
+    }
+  }
 
   // Hämta en sida med ID
-  getPageById: async (id: string): Promise<Page | null> => {
+  async getPageById(id: string): Promise<Page | null> {
     try {
-      const requestUrl = pageService.buildApiUrl(`/api/pages/${id}`);
-      console.log('Making API request to:', requestUrl);
-
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      return await this.get<Page>(`/${id}`);
     } catch (error) {
       console.error('Error fetching page by ID:', error);
       return null;
     }
-  },
+  }
 
   // Hämta en sida med slug
-  getPageBySlug: async (slug: string): Promise<Page | null> => {
+  async getPageBySlug(slug: string): Promise<Page | null> {
     try {
-      const requestUrl = pageService.buildApiUrl(`/api/pages/slug/${slug}`);
-      console.log('Making API request to:', requestUrl);
-
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      return await this.get<Page>(`/slug/${slug}`);
     } catch (error) {
       console.error('Error fetching page by slug:', error);
       return null;
     }
-  },
+  }
 
   // Skapa en ny sida
-  createPage: async (pageData: Partial<Page>): Promise<Page | null> => {
+  async createPage(pageData: Partial<Page>): Promise<Page | null> {
     try {
-      const requestUrl = pageService.buildApiUrl('/api/pages');
-      console.log('Creating new page at:', requestUrl);
-
-      const response = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(pageData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      return await this.post<Page>('', pageData);
     } catch (error) {
       console.error('Error creating page:', error);
       return null;
     }
-  },
+  }
 
   // Uppdatera en sida
-  updatePage: async (id: string, pageData: Partial<Page>): Promise<Page | null> => {
+  async updatePage(id: string, pageData: Partial<Page>): Promise<Page | null> {
     try {
-      const requestUrl = pageService.buildApiUrl(`/api/pages/${id}`);
-      console.log('Updating page at:', requestUrl);
-
-      const response = await fetch(requestUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(pageData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      return await this.put<Page>(`/${id}`, pageData);
     } catch (error) {
       console.error('Error updating page:', error);
       return null;
     }
-  },
+  }
 
   // Ta bort en sida
-  deletePage: async (id: string): Promise<boolean> => {
+  async deletePage(id: string): Promise<boolean> {
     try {
-      const requestUrl = pageService.buildApiUrl(`/api/pages/${id}`);
-      console.log('Deleting page at:', requestUrl);
-
-      const response = await fetch(requestUrl, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      await this.delete(`/${id}`);
       return true;
     } catch (error) {
       console.error('Error deleting page:', error);
       return false;
     }
-  },
+  }
 
-  // Test debug endpoint
-  testDebugEndpoint: async (): Promise<DebugInfo> => {
+  // Test debug endpoint - external API path, so we use a different approach
+  async testDebugEndpoint(): Promise<DebugInfo> {
     try {
-      const requestUrl = pageService.buildApiUrl('/api/debug');
-      console.log('Making debug request to:', requestUrl);
-      console.log('API_BASE_URL:', API_BASE_URL);
-      console.log('Using proxy:', API_BASE_URL.includes('/proxy'));
-
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      const response = await httpClient.get('/api/debug');
+      return response.data;
     } catch (error) {
       console.error('Error testing debug endpoint:', error);
       return {
@@ -244,6 +119,52 @@ const pageService = {
       };
     }
   }
-};
 
-export default pageService; 
+  // Ladda upp en fil till en sida
+  async uploadFile(pageId: string, file: File): Promise<{ success: boolean; file?: any; error?: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await httpClient.post(`/api/pages/${pageId}/files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return {
+        success: true,
+        file: response.data
+      };
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  // Ta bort en fil från en sida
+  async deleteFile(pageId: string, fileId: string): Promise<boolean> {
+    try {
+      await httpClient.delete(`/api/pages/${pageId}/files/${fileId}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      return false;
+    }
+  }
+
+  // Hjälpfunktion för att bygga URL:er (legacy, kept for backward compatibility)
+  buildApiUrl(path: string): string {
+    return `${API_BASE_URL}${path}`;
+  }
+}
+
+// Skapa en instans av PageService
+const pageServiceInstance = new PageService();
+
+// Exportera som både en named export (för bakåtkompatibilitet) och som default export
+export const pageService = pageServiceInstance;
+export default pageServiceInstance; 

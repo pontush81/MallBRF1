@@ -1,8 +1,6 @@
 import { Booking } from '../types/Booking';
 import { API_BASE_URL } from '../config';
-
-// Use the same API base URL as other services
-console.log('BookingService använder API URL:', API_BASE_URL);
+import { BaseService } from './baseService';
 
 // Interface för tillgänglighetskontroll
 interface AvailabilityResponse {
@@ -30,205 +28,94 @@ interface UpdateBookingData {
   notes?: string;
 }
 
-// Service för att hantera bokningar
-const bookingService = {
+class BookingService extends BaseService {
+  constructor() {
+    super('/api/bookings');
+    console.log('BookingService använder API URL:', API_BASE_URL);
+  }
+
   // Hämta alla bokningar
-  getAllBookings: async (): Promise<Booking[]> => {
+  async getAllBookings(): Promise<Booking[]> {
     try {
-      console.log('Försöker hämta alla bokningar från:', `${API_BASE_URL}/bookings`);
-      const response = await fetch(`${API_BASE_URL}/bookings`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Bokningsrespons status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`Kunde inte hämta bokningar: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Hämtade bokningar:', data);
-      return data;
+      console.log('Försöker hämta alla bokningar');
+      const bookings = await this.get<Booking[]>();
+      console.log('Hämtade bokningar:', bookings);
+      return bookings;
     } catch (error) {
       console.error('Fel vid hämtning av bokningar:', error);
       return [];
     }
-  },
+  }
 
   // Hämta en specifik bokning med ID
-  getBookingById: async (id: string): Promise<Booking | null> => {
+  async getBookingById(id: string): Promise<Booking | null> {
     try {
       console.log('Hämtar bokning med ID:', id);
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Bokningsrespons status:', response.status);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log('Bokning hittades inte (404)');
-          return null;
-        }
-        throw new Error(`Kunde inte hämta bokningen: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Hittad bokning:', data);
-      return data;
+      const booking = await this.get<Booking>(`/${id}`);
+      console.log('Hittad bokning:', booking);
+      return booking;
     } catch (error) {
       console.error('Fel vid hämtning av bokning:', error);
       return null;
     }
-  },
+  }
 
   // Kontrollera tillgänglighet för datum
-  checkAvailability: async (startDate: string, endDate: string): Promise<AvailabilityResponse> => {
+  async checkAvailability(startDate: string, endDate: string): Promise<AvailabilityResponse> {
     try {
       console.log('Kontrollerar tillgänglighet för:', startDate, 'till', endDate);
-      const response = await fetch(`${API_BASE_URL}/bookings/check-availability`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: JSON.stringify({ startDate, endDate }),
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Tillgänglighetsrespons status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`Kunde inte kontrollera tillgänglighet: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Tillgänglighetsresultat:', data);
-      return data;
+      const result = await this.post<AvailabilityResponse>('/check-availability', { startDate, endDate });
+      console.log('Tillgänglighetsresultat:', result);
+      return result;
     } catch (error) {
       console.error('Fel vid kontroll av tillgänglighet:', error);
       throw error;
     }
-  },
+  }
 
   // Skapa en ny bokning
-  createBooking: async (bookingData: CreateBookingData): Promise<Booking | null> => {
+  async createBooking(bookingData: CreateBookingData): Promise<Booking | null> {
     try {
       console.log('Skapar ny bokning:', bookingData);
-      const response = await fetch(`${API_BASE_URL}/bookings`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: JSON.stringify(bookingData),
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Skapa bokning respons status:', response.status);
-
-      if (!response.ok) {
-        // Om det är en konflikt (datum inte tillgängliga)
-        if (response.status === 409) {
-          const errorData = await response.json();
-          console.log('Konflikt vid bokning:', errorData);
-          throw new Error(errorData.error);
-        }
-        throw new Error(`Kunde inte skapa bokningen: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Skapad bokning:', data);
-      return data;
+      const booking = await this.post<Booking>('', bookingData);
+      console.log('Skapad bokning:', booking);
+      return booking;
     } catch (error) {
       console.error('Fel vid skapande av bokning:', error);
       throw error;
     }
-  },
+  }
 
   // Uppdatera en befintlig bokning
-  updateBooking: async (id: string, bookingData: UpdateBookingData): Promise<Booking | null> => {
+  async updateBooking(id: string, bookingData: UpdateBookingData): Promise<Booking | null> {
     try {
       console.log('Uppdaterar bokning:', id, bookingData);
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: JSON.stringify(bookingData),
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Uppdatera bokning respons status:', response.status);
-
-      if (!response.ok) {
-        // Om det är en konflikt (datum inte tillgängliga)
-        if (response.status === 409) {
-          const errorData = await response.json();
-          console.log('Konflikt vid uppdatering:', errorData);
-          throw new Error(errorData.error);
-        }
-        
-        if (response.status === 404) {
-          console.log('Bokning hittades inte vid uppdatering (404)');
-          return null;
-        }
-        throw new Error(`Kunde inte uppdatera bokningen: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Uppdaterad bokning:', data);
-      return data;
+      const booking = await this.put<Booking>(`/${id}`, bookingData);
+      console.log('Uppdaterad bokning:', booking);
+      return booking;
     } catch (error) {
       console.error('Fel vid uppdatering av bokning:', error);
       throw error;
     }
-  },
+  }
 
-  // Radera en bokning
-  deleteBooking: async (id: string): Promise<boolean> => {
+  // Ta bort en bokning
+  async deleteBooking(id: string): Promise<boolean> {
     try {
-      console.log('Raderar bokning:', id);
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Radera bokning respons status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`Kunde inte radera bokningen: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Raderingsresultat:', data);
+      console.log('Tar bort bokning:', id);
+      await this.delete(`/${id}`);
+      console.log('Bokning borttagen');
       return true;
     } catch (error) {
-      console.error('Fel vid radering av bokning:', error);
+      console.error('Fel vid borttagning av bokning:', error);
       return false;
     }
-  },
-};
+  }
+}
 
-export default bookingService; 
+// Skapa en instans av BookingService
+const bookingServiceInstance = new BookingService();
+
+// Exportera som både en named export (för bakåtkompatibilitet) och som default export
+export const bookingService = bookingServiceInstance;
+export default bookingServiceInstance; 
