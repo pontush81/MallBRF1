@@ -11,9 +11,7 @@ const ALLOWED_ORIGINS = {
     'http://localhost:3002',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
-    'http://127.0.0.1:3002',
-    // Chrome extension origins, if you use any during development
-    'chrome-extension://'
+    'http://127.0.0.1:3002'
   ],
   production: [
     // Gulmaran domäner
@@ -50,12 +48,6 @@ const getCorsConfig = () => {
         return callback(null, true);
       }
       
-      // Kontrollera om origin börjar med chrome-extension:// för utvecklingsläge
-      if (env === 'development' && origin.startsWith('chrome-extension://')) {
-        console.log('Allowing Chrome extension in development mode');
-        return callback(null, true);
-      }
-      
       if (allowedOrigins.includes(origin)) {
         console.log(`Origin ${origin} is allowed`);
         callback(null, true);
@@ -81,37 +73,17 @@ const getCorsConfig = () => {
   };
 };
 
-// Funktion för att kontrollera om en origin är tillåten
-const isOriginAllowed = (origin) => {
-  if (!origin) return true;
-  
+// Hjälpfunktion för att sätta CORS-headers manuellt
+const setCorsHeaders = (req, res) => {
+  const origin = req.headers.origin;
   const env = process.env.NODE_ENV || 'development';
   const allowedOrigins = [
     ...ALLOWED_ORIGINS.development,
     ...(env === 'production' ? ALLOWED_ORIGINS.production : [])
   ];
-  
-  // Hantera Chrome-tillägg i utvecklingsläge
-  if (env === 'development' && origin.startsWith('chrome-extension://')) {
-    return true;
-  }
-  
-  return allowedOrigins.includes(origin);
-};
 
-// Hjälpfunktion för att sätta CORS-headers manuellt
-const setCorsHeaders = (req, res) => {
-  const origin = req.headers.origin;
-  
-  if (isOriginAllowed(origin)) {
+  if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-  } else if (process.env.NODE_ENV !== 'production') {
-    // I utvecklingsläge, tillåt localhost som fallback
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-vercel-protection-bypass, Origin, Accept, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -127,7 +99,6 @@ const handlePreflight = (req, res) => {
 
 module.exports = {
   getCorsConfig,
-  isOriginAllowed,
   setCorsHeaders,
   handlePreflight,
   ALLOWED_ORIGINS

@@ -35,7 +35,6 @@ const createHttpClient = (): AxiosInstance => {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    // Behåll credentials för samma domän, men inte för cross-origin (när vi använder absolut URL)
     withCredentials: true,
   });
 
@@ -52,27 +51,9 @@ const createHttpClient = (): AxiosInstance => {
         headers: config.headers
       });
       
-      // Add Vercel protection bypass in development
-      if (window.location.hostname === 'localhost') {
-        config.headers['x-vercel-protection-bypass'] = 'true';
-      }
-      
-      // Lägg alltid till x-vercel-protection-bypass för stage.gulmaran.com
+      // Add Vercel protection bypass for stage environment
       if (window.location.hostname.includes('stage.gulmaran.com')) {
         config.headers['x-vercel-protection-bypass'] = 'true';
-      }
-      
-      // Set specific headers for gulmaran.com domains when using local API
-      if (window.location.hostname.includes('gulmaran.com') && !config.baseURL.includes('https://')) {
-        // Ensure we're using the API correctly
-        if (!config.url?.startsWith('/api') && !config.baseURL?.includes('/api')) {
-          if (!config.url?.startsWith('/')) {
-            config.url = `/api/${config.url}`;
-          } else {
-            config.url = `/api${config.url}`;
-          }
-          console.log('Modified URL for API:', config.url);
-        }
       }
       
       // Add authentication token
