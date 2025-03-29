@@ -184,23 +184,46 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
-// Special debug endpoint
+// Debug-route för CORS-testning
 app.get('/api/debug', (req, res) => {
-  console.log('Debug endpoint hit, showing request details');
+  console.log('Debug endpoint called');
+  console.log('Headers:', req.headers);
+  console.log('Origin:', req.headers.origin);
+  
+  // Säkerställ att CORS-headers sätts korrekt
+  if (req.headers.origin) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://www.stage.gulmaran.com',
+      'https://gulmaran.com',
+      'https://mallbrf.vercel.app'
+    ];
+    
+    if (allowedOrigins.includes(req.headers.origin)) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    }
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'false');
+  
   res.json({
-    message: 'Debug endpoint',
-    time: new Date().toISOString(),
-    env: process.env.NODE_ENV,
+    message: 'Debug info from server',
     headers: req.headers,
-    path: req.path,
-    url: req.url,
-    method: req.method,
-    query: req.query,
-    requestInfo: {
-      ip: req.ip,
-      protocol: req.protocol,
-      hostname: req.hostname,
-      originalUrl: req.originalUrl
+    environment: process.env.NODE_ENV,
+    vercel: process.env.VERCEL === '1' ? 'true' : 'false',
+    serverTime: new Date().toISOString(),
+    corsConfig: {
+      allowCredentials: false,
+      allowedOrigins: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://www.stage.gulmaran.com',
+        'https://gulmaran.com',
+        'https://mallbrf.vercel.app'
+      ]
     }
   });
 });
