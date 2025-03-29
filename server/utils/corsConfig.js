@@ -30,7 +30,7 @@ const ALLOWED_ORIGINS = {
 // Standard CORS-konfiguration
 const getCorsConfig = () => {
   const env = process.env.NODE_ENV || 'development';
-  console.log('Configuring CORS for environment:', env);
+  console.log(`[CORS] Configuring for environment: ${env}`);
 
   // Kombinera dev och prod origins baserat på miljö
   const allowedOrigins = [
@@ -40,24 +40,24 @@ const getCorsConfig = () => {
 
   return {
     origin: function(origin, callback) {
-      console.log(`Checking CORS for origin: ${origin}`);
+      console.log(`[CORS] Request from origin: ${origin}`);
       
       // Tillåt anslutningar utan origin (som lokala testverktyg eller postman)
       if (!origin) {
-        console.log('No origin specified, allowing request');
+        console.log('[CORS] No origin specified, allowing request');
         return callback(null, true);
       }
       
       if (allowedOrigins.includes(origin)) {
-        console.log(`Origin ${origin} is allowed`);
+        console.log(`[CORS] Allowing request from: ${origin}`);
         callback(null, true);
       } else {
-        console.log(`CORS blockerade förfrågan från origin: ${origin}`);
-        console.log(`Tillåtna origins: ${allowedOrigins.join(', ')}`);
+        console.log(`[CORS] Blocking request from: ${origin}`);
+        console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
         callback(new Error('CORS policy: The origin is not allowed'));
       }
     },
-    credentials: true,
+    credentials: false, // Ändrat till false för att förenkla CORS-hanteringen
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
       'Content-Type',

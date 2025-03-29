@@ -167,12 +167,9 @@ app.get('/api/debug', (req, res) => {
 // Public endpoints without auth middleware
 app.get('/api/pages/visible', async (req, res) => {
   try {
-    console.log('Handling /api/pages/visible request directly');
+    console.log('Handling /api/pages/visible request');
     console.log('Request headers:', req.headers);
     console.log('Request origin:', req.headers.origin);
-    
-    // Använd den centraliserade CORS-konfigurationen
-    corsConfig.setCorsHeaders(req, res);
     
     console.log('Fetching visible pages from Supabase...');
     const { data, error } = await supabase
@@ -210,9 +207,8 @@ app.get('/api/pages/visible', async (req, res) => {
       updatedAt: page.updatedat
     }));
 
-    console.log(`Found ${formattedPages.length} visible pages directly from server.js`);
-    console.log('Sending response with pages:');
-    console.log(formattedPages.map(p => p.title));
+    console.log(`Found ${formattedPages.length} visible pages`);
+    console.log('Sending response with pages:', formattedPages.map(p => p.title));
     res.json(formattedPages);
   } catch (error) {
     console.error('Error fetching visible pages:', error);
@@ -265,7 +261,7 @@ app.get('/api/pages/slug/:slug', async (req, res) => {
   }
 });
 
-// Handle manifest.json with proper CORS headers (no auth required)
+// Handle manifest.json
 app.get('/manifest.json', (req, res) => {
   const manifest = {
     short_name: "MallBRF",
@@ -292,15 +288,6 @@ app.get('/manifest.json', (req, res) => {
     theme_color: "#000000",
     background_color: "#ffffff"
   };
-
-  // Set CORS headers
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   res.json(manifest);
 });
