@@ -88,6 +88,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
+      'http://localhost:3002',
       'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
       'https://mall-brf-1.vercel.app',
       'https://mallbrf.vercel.app',

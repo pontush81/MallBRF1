@@ -29,6 +29,7 @@ interface UpdateBookingData {
   endDate?: string;
   status?: 'pending' | 'confirmed' | 'cancelled';
   notes?: string;
+  phone?: string;
   parking?: boolean;
 }
 
@@ -165,7 +166,22 @@ const bookingService = {
   // Uppdatera en befintlig bokning
   updateBooking: async (id: string, bookingData: UpdateBookingData): Promise<Booking | null> => {
     try {
-      console.log('Uppdaterar bokning:', id, bookingData);
+      console.log('Uppdaterar bokning:', id);
+      
+      // The server expects startDate, endDate, parking and then maps them to database fields
+      const serverBookingData = {
+        name: bookingData.name,
+        email: bookingData.email,
+        phone: bookingData.phone || "",
+        notes: bookingData.notes || "",
+        startDate: bookingData.startDate, // Server expects startDate (camelCase)
+        endDate: bookingData.endDate,     // Server expects endDate (camelCase)
+        parking: bookingData.parking,     // Server expects parking (camelCase)
+        status: bookingData.status || "pending"
+      };
+      
+      console.log('Sending booking data:', JSON.stringify(serverBookingData, null, 2));
+      
       const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
         method: 'PUT',
         headers: {
@@ -173,32 +189,56 @@ const bookingService = {
           'Content-Type': 'application/json',
           'x-vercel-protection-bypass': 'true'
         },
-        body: JSON.stringify(bookingData),
+        body: JSON.stringify(serverBookingData),
         mode: 'cors',
         credentials: 'include'
       });
-      console.log('Uppdatera bokning respons status:', response.status);
+      
+      console.log('Update booking response status:', response.status);
 
       if (!response.ok) {
-        // Om det är en konflikt (datum inte tillgängliga)
-        if (response.status === 409) {
-          const errorData = await response.json();
-          console.log('Konflikt vid uppdatering:', errorData);
-          throw new Error(errorData.error);
-        }
-        
         if (response.status === 404) {
-          console.log('Bokning hittades inte vid uppdatering (404)');
+          console.log('Booking not found (404)');
           return null;
         }
-        throw new Error(`Kunde inte uppdatera bokningen: ${response.status} ${response.statusText}`);
+        
+        // Try to extract error message from response
+        try {
+          const errorText = await response.text();
+          console.error('Error response text:', errorText);
+          
+          try {
+            // Try to parse as JSON
+            const errorJson = JSON.parse(errorText);
+            if (errorJson && errorJson.error) {
+              throw new Error(`Kunde inte uppdatera bokningen: ${errorJson.error}`);
+            }
+          } catch (parseError) {
+            // Not valid JSON, use as is
+          }
+          
+          if (response.status === 409) {
+            throw new Error('Det finns redan bokningar för detta datum');
+          }
+          
+          if (response.status === 500) {
+            throw new Error('Servern kunde inte uppdatera bokningen.');
+          }
+          
+          throw new Error(`Kunde inte uppdatera bokningen: ${errorText || response.statusText}`);
+        } catch (e) {
+          if (e instanceof Error) {
+            throw e; // Re-throw our custom error
+          }
+          throw new Error(`Kunde inte uppdatera bokningen: ${response.statusText}`);
+        }
       }
 
       const data = await response.json();
-      console.log('Uppdaterad bokning:', data);
+      console.log('Updated booking response:', data);
       return data;
     } catch (error) {
-      console.error('Fel vid uppdatering av bokning:', error);
+      console.error('Error updating booking:', error);
       throw error;
     }
   },

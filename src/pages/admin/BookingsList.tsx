@@ -27,16 +27,19 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
-  Tooltip
+  Tooltip,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { 
   Delete as DeleteIcon,
   Email as EmailIcon,
   Backup as BackupIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { Booking } from '../../types/Booking';
-import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths } from 'date-fns';
+import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 
@@ -60,6 +63,18 @@ const BookingsList: React.FC = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editParking, setEditParking] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
   // Hämta alla bokningar vid komponentmontering
   useEffect(() => {
@@ -264,6 +279,199 @@ const BookingsList: React.FC = () => {
     }, 0);
   };
 
+  // Calculate nights for a booking
+  const calculateNights = (booking: Booking): number => {
+    if (!booking.startDate || !booking.endDate) return 0;
+    
+    try {
+      const startDate = new Date(booking.startDate);
+      const endDate = new Date(booking.endDate);
+      
+      // Check if dates are valid
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return 0;
+      }
+      
+      // Calculate nights (end date - start date)
+      return differenceInDays(endDate, startDate);
+    } catch (error) {
+      console.warn('Error calculating nights for booking:', booking.id);
+      return 0;
+    }
+  };
+
+  // Hjälpfunktion för att visa parkeringsstatus
+  const renderParkingStatus = (parkingValue: any) => {
+    // Om det är ett booleskt värde
+    if (parkingValue === true) {
+      return <Chip color="success" label="Ja" size="small" />;
+    }
+    
+    if (parkingValue === false) {
+      return <Chip color="error" label="Nej" size="small" />;
+    }
+    
+    // Om det är en sträng
+    if (typeof parkingValue === 'string') {
+      const val = parkingValue.toLowerCase().trim();
+      if (val === 'ja' || val === 'yes' || val === 'true' || val === 't') {
+        return <Chip color="success" label="Ja" size="small" />;
+      }
+      if (val === 'nej' || val === 'no' || val === 'false' || val === 'f') {
+        return <Chip color="error" label="Nej" size="small" />;
+      }
+    }
+    
+    // Om inget av ovanstående matchar
+    return <Chip color="default" label="Ej angivet" size="small" />;
+  };
+
+  // Öppna dialog för att redigera bokning
+  const handleEditClick = (booking: Booking) => {
+    setBookingToEdit(booking);
+    setEditName(booking.name || '');
+    setEditEmail(booking.email || '');
+    setEditPhone(booking.phone || '');
+    setEditNotes(booking.notes || '');
+    
+    // Format dates properly for the edit form
+    try {
+      if (booking.startDate) {
+        const startDate = new Date(booking.startDate);
+        if (!isNaN(startDate.getTime())) {
+          // For the date input field, we need YYYY-MM-DD format
+          const year = startDate.getFullYear();
+          const month = String(startDate.getMonth() + 1).padStart(2, '0');
+          const day = String(startDate.getDate()).padStart(2, '0');
+          setEditStartDate(`${year}-${month}-${day}`);
+        } else {
+          console.error('Invalid startDate:', booking.startDate);
+          setEditStartDate('');
+        }
+      } else {
+        setEditStartDate('');
+      }
+      
+      if (booking.endDate) {
+        const endDate = new Date(booking.endDate);
+        if (!isNaN(endDate.getTime())) {
+          // For the date input field, we need YYYY-MM-DD format
+          const year = endDate.getFullYear();
+          const month = String(endDate.getMonth() + 1).padStart(2, '0');
+          const day = String(endDate.getDate()).padStart(2, '0');
+          setEditEndDate(`${year}-${month}-${day}`);
+        } else {
+          console.error('Invalid endDate:', booking.endDate);
+          setEditEndDate('');
+        }
+      } else {
+        setEditEndDate('');
+      }
+    } catch (error) {
+      console.error('Error formatting dates:', error);
+      setEditStartDate('');
+      setEditEndDate('');
+    }
+    
+    setEditParking(booking.parking || false);
+    setEditDialogOpen(true);
+  };
+
+  // Stäng redigeringsdialogrutan
+  const handleEditCancel = () => {
+    setBookingToEdit(null);
+    setEditDialogOpen(false);
+  };
+
+  // Bekräfta redigering av bokning
+  const handleEditConfirm = async () => {
+    if (!bookingToEdit) return;
+    
+    setEditLoading(true);
+    
+    try {
+      // Format dates into ISO format for the API
+      let startDateFormatted = '';
+      let endDateFormatted = '';
+      
+      if (editStartDate) {
+        try {
+          // Add time to make sure it's properly parsed as UTC
+          startDateFormatted = new Date(`${editStartDate}T12:00:00Z`).toISOString();
+        } catch (error) {
+          console.error('Error formatting start date:', error);
+          setSnackbarMessage('Ogiltigt ankomstdatum format');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
+          setEditLoading(false);
+          return;
+        }
+      }
+      
+      if (editEndDate) {
+        try {
+          // Add time to make sure it's properly parsed as UTC
+          endDateFormatted = new Date(`${editEndDate}T12:00:00Z`).toISOString();
+        } catch (error) {
+          console.error('Error formatting end date:', error);
+          setSnackbarMessage('Ogiltigt avresedatum format');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
+          setEditLoading(false);
+          return;
+        }
+      }
+      
+      console.log('Editing booking with formatted dates:', {
+        startDate: startDateFormatted,
+        endDate: endDateFormatted
+      });
+      
+      const updatedBooking = {
+        ...bookingToEdit,
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        notes: editNotes,
+        startDate: startDateFormatted,
+        endDate: endDateFormatted,
+        parking: editParking
+      };
+      
+      console.log('Attempting to update booking:', bookingToEdit.id);
+      const updatedBookingResponse = await bookingService.updateBooking(bookingToEdit.id, updatedBooking);
+      
+      if (updatedBookingResponse) {
+        // Successfully updated - update UI
+        console.log('Update successful, updating UI');
+        setBookings(prevBookings => 
+          prevBookings.map(b => b.id === bookingToEdit.id ? updatedBookingResponse : b)
+        );
+        
+        setSnackbarMessage('Bokningen har uppdaterats');
+        setSnackbarSeverity('success');
+      } else {
+        // 404 error - booking not found
+        console.log('Booking not found (404)');
+        setSnackbarMessage('Kunde inte uppdatera bokningen - bokningen hittades inte');
+        setSnackbarSeverity('error');
+      }
+    } catch (error) {
+      console.error('Fel vid uppdatering:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Ett fel uppstod vid uppdatering av bokningen';
+      
+      setSnackbarMessage(errorMessage);
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      setBookingToEdit(null);
+      setEditDialogOpen(false);
+      setEditLoading(false);
+    }
+  };
+
   // Rendera bokning beroende på skärmstorlek
   const renderBookingItem = (booking: Booking) => {
     if (isMobile) {
@@ -305,13 +513,33 @@ const BookingsList: React.FC = () => {
             </Typography>
           )}
           
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Nätter: {calculateNights(booking)}
+          </Typography>
+          
           {booking.notes && (
             <Typography variant="body2" sx={{ mb: 1 }}>
               Anteckning: {booking.notes}
             </Typography>
           )}
           
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Typography variant="body2" sx={{ mr: 1 }}>
+              Parkering:
+            </Typography>
+            {renderParkingStatus(booking.parking)}
+          </Box>
+          
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Button
+              startIcon={<EditIcon />}
+              color="primary"
+              onClick={() => handleEditClick(booking)}
+              size="small"
+              sx={{ minWidth: '44px', minHeight: '44px' }} // Touch-friendly size
+            >
+              Redigera
+            </Button>
             <Button
               startIcon={<DeleteIcon />}
               color="error"
@@ -332,6 +560,7 @@ const BookingsList: React.FC = () => {
         <TableCell>{booking.name}</TableCell>
         <TableCell>{formatDate(booking.startDate)}</TableCell>
         <TableCell>{formatDate(booking.endDate)}</TableCell>
+        <TableCell align="center">{calculateNights(booking)}</TableCell>
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {booking.email}
@@ -346,15 +575,27 @@ const BookingsList: React.FC = () => {
         </TableCell>
         <TableCell>{booking.phone || '-'}</TableCell>
         <TableCell>{booking.notes || '-'}</TableCell>
+        <TableCell align="center">{renderParkingStatus(booking.parking)}</TableCell>
         <TableCell align="right">
-          <IconButton 
-            color="error" 
-            size="small" 
-            onClick={() => handleDeleteClick(booking)}
-            aria-label="Ta bort bokning"
-          >
-            <DeleteIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <IconButton 
+              color="primary" 
+              size="small" 
+              onClick={() => handleEditClick(booking)}
+              aria-label="Redigera bokning"
+              sx={{ mr: 1 }}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton 
+              color="error" 
+              size="small" 
+              onClick={() => handleDeleteClick(booking)}
+              aria-label="Ta bort bokning"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
         </TableCell>
       </TableRow>
     );
@@ -506,9 +747,11 @@ const BookingsList: React.FC = () => {
                               <TableCell>Namn</TableCell>
                               <TableCell>Ankomst</TableCell>
                               <TableCell>Avresa</TableCell>
+                              <TableCell align="center">Nätter</TableCell>
                               <TableCell>E-post</TableCell>
                               <TableCell>Telefon</TableCell>
                               <TableCell>Anteckningar</TableCell>
+                              <TableCell align="center">Parkering</TableCell>
                               <TableCell align="right">Åtgärder</TableCell>
                             </TableRow>
                           </TableHead>
@@ -554,6 +797,116 @@ const BookingsList: React.FC = () => {
           <Button onClick={handleDeleteCancel}>Avbryt</Button>
           <Button onClick={handleDeleteConfirm} color="error">
             Radera
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Dialogruta för att redigera bokning */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={handleEditCancel}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>Redigera bokning</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Namn"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                fullWidth
+                variant="outlined"
+                margin="normal"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="E-post"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                fullWidth
+                variant="outlined"
+                margin="normal"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Telefon"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                fullWidth
+                variant="outlined"
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={editParking}
+                    onChange={(e) => setEditParking(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Parkering"
+                sx={{ mt: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Ankomstdatum"
+                type="date"
+                value={editStartDate || ''}
+                onChange={(e) => setEditStartDate(e.target.value)}
+                fullWidth
+                variant="outlined"
+                margin="normal"
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Avresedatum"
+                type="date"
+                value={editEndDate || ''}
+                onChange={(e) => setEditEndDate(e.target.value)}
+                fullWidth
+                variant="outlined"
+                margin="normal"
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Anteckningar"
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                fullWidth
+                variant="outlined"
+                margin="normal"
+                multiline
+                rows={4}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditCancel}>Avbryt</Button>
+          <Button 
+            onClick={handleEditConfirm} 
+            color="primary" 
+            variant="contained"
+            disabled={editLoading}
+            startIcon={editLoading ? <CircularProgress size={20} /> : null}
+          >
+            Spara ändringar
           </Button>
         </DialogActions>
       </Dialog>

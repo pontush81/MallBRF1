@@ -5,8 +5,9 @@ const getApiBaseUrl = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   if (isDevelopment) {
-    // In development, we can use the proxy from package.json (which forwards to port 3002)
-    return '/api';
+    // In development, use the absolute URL to the API server
+    // This ensures we don't rely on proxy settings which can sometimes fail
+    return 'http://localhost:3002/api';
   }
   
   // In production, use relative path (handled by Vercel)

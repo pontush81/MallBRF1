@@ -238,7 +238,7 @@ router.put('/:id', async (req, res) => {
     const bookingData = req.body;
     console.log('Uppdaterar bokning:', id, bookingData);
 
-    // Mappa frontend-fält till databasfält
+    // Mappa frontend-fält till databasfält och ta bort fields som inte finns i databasen
     const dbBookingData = {
       name: bookingData.name,
       email: bookingData.email,
@@ -246,9 +246,16 @@ router.put('/:id', async (req, res) => {
       startdate: bookingData.startDate,
       enddate: bookingData.endDate,
       notes: bookingData.notes,
-      status: bookingData.status,
       parkering: bookingData.parking
     };
+
+    // Add status only if provided
+    if (bookingData.status) {
+      dbBookingData.status = bookingData.status;
+    }
+
+    // Log the mapped booking data
+    console.log('DB Booking Data:', dbBookingData);
 
     // Kontrollera tillgänglighet för uppdateringen
     if (dbBookingData.startdate || dbBookingData.enddate) {
@@ -272,32 +279,76 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    // First, get the existing booking to keep fields we're not updating
+    const { data: existingBooking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (fetchError) {
+      console.error('Fel vid hämtning av existerande bokning:', fetchError);
+      return res.status(404).json({ error: 'Bokning hittades inte' });
+    }
+    
+    // Create update object - only include fields from dbBookingData that are actually changing
+    const updateData = {};
+    for (const [key, value] of Object.entries(dbBookingData)) {
+      // Only include fields that are different from existing data or explicitly provided
+      if (existingBooking[key] !== value || bookingData.hasOwnProperty(key === 'parkering' ? 'parking' : key)) {
+        updateData[key] = value;
+      }
+    }
+    
+    // Always add the updatedat timestamp
+    updateData.updatedat = new Date().toISOString();
+    
+    console.log('Final update data:', updateData);
+    
+    if (Object.keys(updateData).length === 0) {
+      console.log('No changes to update');
+      
+      // Return the existing booking even if no changes
+      const mappedData = {
+        ...existingBooking,
+        startDate: existingBooking.startdate,
+        endDate: existingBooking.enddate,
+        createdAt: existingBooking.createdat,
+        parking: existingBooking.parkering === true || existingBooking.parkering === 'true' || existingBooking.parkering === 't' ? true : 
+                existingBooking.parkering === false || existingBooking.parkering === 'false' || existingBooking.parkering === 'f' ? false : null
+      };
+      
+      return res.json(mappedData);
+    }
+    
+    // Make the update
     const { data, error } = await supabase
       .from('bookings')
-      .update(dbBookingData)
+      .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Fel vid uppdatering av bokning:', error);
       return res.status(500).json({ error: error.message });
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       return res.status(404).json({ error: 'Bokning hittades inte' });
     }
 
     // Mappa svaret för frontend
+    const updatedBooking = data[0];
     const mappedData = {
-      ...data,
-      startDate: data.startdate,
-      endDate: data.enddate,
-      createdAt: data.createdat,
-      parking: data.parkering === true || data.parkering === 'true' || data.parkering === 't' ? true : 
-               data.parkering === false || data.parkering === 'false' || data.parkering === 'f' ? false : null
+      ...updatedBooking,
+      startDate: updatedBooking.startdate,
+      endDate: updatedBooking.enddate,
+      createdAt: updatedBooking.createdat,
+      parking: updatedBooking.parkering === true || updatedBooking.parkering === 'true' || updatedBooking.parkering === 't' ? true : 
+               updatedBooking.parkering === false || updatedBooking.parkering === 'false' || updatedBooking.parkering === 'f' ? false : null
     };
 
+    console.log('Update successful');
     res.json(mappedData);
   } catch (error) {
     console.error('Serverfel vid uppdatering av bokning:', error);
