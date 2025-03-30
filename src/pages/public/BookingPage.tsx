@@ -25,18 +25,21 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip
+  Chip,
+  Link
 } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { Person, Email, Check, ExpandMore } from '@mui/icons-material';
+import { Person, Email, Check, ExpandMore, LockOutlined } from '@mui/icons-material';
 import bookingService from '../../services/bookingService';
 import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
+import { useAuth } from '../../context/AuthContext';
 
 // Förenklade steg i bokningsprocessen
 const steps = ['Välj datum och dina uppgifter', 'Klar'];
@@ -118,6 +121,10 @@ const BookingPage: React.FC = () => {
   // Flytta hooks till komponentnivån
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Använd Authentication context
+  const { isLoggedIn, currentUser } = useAuth();
+  const navigate = useNavigate();
 
   // Hämta befintliga bokningar när komponenten laddas
   const fetchBookings = async () => {
@@ -246,6 +253,16 @@ const BookingPage: React.FC = () => {
     fetchApartmentInfo();
   }, []);
 
+  // Använd användardata om inloggad
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      // Säker åtkomst till phone-egenskapen med typkontroll
+      setPhone((currentUser as any).phone || '');
+    }
+  }, [isLoggedIn, currentUser]);
+
   // Validering för e-post
   const validateEmail = (email: string) => {
     return /\S+@\S+\.\S+/.test(email);
@@ -356,13 +373,20 @@ const BookingPage: React.FC = () => {
     setActiveStep(0);
     setStartDate(null);
     setEndDate(null);
-    setName('');
-    setEmail('');
-    setPhone('');
-    setNotes('');
     setSuccessMessage('');
-    setValidationErrors({});
     setErrorMessage('');
+    setValidationErrors({});
+    
+    // Återställ användardata enbart om användaren inte är inloggad
+    if (!isLoggedIn) {
+      setName('');
+      setEmail('');
+      setPhone('');
+      setNotes('');
+    }
+    
+    // Ladda om bokningar
+    fetchBookings();
   };
 
   // Ny funktion för att rendera kalendern
@@ -671,59 +695,71 @@ const BookingPage: React.FC = () => {
     );
   };
 
-  // Visa olika innehåll beroende på aktivt steg
-  const getStepContent = (step: number) => {
-    switch (step) {
-      case 0:
-        return (
+  // Rendera bokningsformuläret - endast för inloggade användare
+  const renderBookingForm = () => {
+    if (!isLoggedIn) {
+      return (
+        <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
+          <Alert 
+            severity="info" 
+            icon={<LockOutlined />}
+            sx={{ mb: 3 }}
+          >
+            Du måste vara inloggad för att kunna boka lägenheten.
+          </Alert>
+          
+          <Box sx={{ textAlign: 'center', my: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Logga in för att boka
+            </Typography>
+            <Typography variant="body1" paragraph>
+              För att boka lägenheten behöver du vara inloggad.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              component={RouterLink}
+              to="/login"
+              sx={{ mt: 1 }}
+            >
+              Logga in
+            </Button>
+          </Box>
+        </Paper>
+      );
+    }
+    
+    if (activeStep === 0) {
+      return (
+        <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Gör din bokning
+          </Typography>
+          
+          {startDate && endDate && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0', mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                <strong>Bokningsöversikt:</strong>
+              </Typography>
+              <Typography variant="body2">
+                <strong>Ankomst:</strong> {format(startDate, 'PPP', { locale: sv })}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Avresa:</strong> {format(endDate, 'PPP', { locale: sv })}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Antal nätter:</strong> {differenceInDays(endDate, startDate)}
+              </Typography>
+            </Box>
+          )}
+
+          <Divider sx={{ my: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Dina uppgifter
+            </Typography>
+          </Divider>
+
           <Grid container spacing={3}>
-            <Grid item xs={12}>
-              {loadingBookings ? (
-                <Alert severity="info" icon={<CircularProgress size={24} />}>
-                  Laddar tillgänglighet...
-                </Alert>
-              ) : (
-                <Alert severity="info">
-                  Välj ditt ankomst- och avresedatum. Redan bokade datum visas i rött.
-                </Alert>
-              )}
-            </Grid>
-
-            <Grid item xs={12}>
-              {loadingBookings ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : renderCalendar()}
-            </Grid>
-
-            {startDate && endDate && (
-              <Grid item xs={12}>
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0' }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    <strong>Bokningsöversikt:</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Ankomst:</strong> {format(startDate, 'PPP', { locale: sv })}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Avresa:</strong> {format(endDate, 'PPP', { locale: sv })}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Antal nätter:</strong> {differenceInDays(endDate, startDate)}
-                  </Typography>
-                </Box>
-              </Grid>
-            )}
-
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Dina uppgifter
-                </Typography>
-              </Divider>
-            </Grid>
-
             <Grid item xs={12}>
               <TextField
                 label="Namn"
@@ -783,7 +819,7 @@ const BookingPage: React.FC = () => {
             </Grid>
             
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                 <Button
                   variant="contained"
                   color="primary"
@@ -796,40 +832,41 @@ const BookingPage: React.FC = () => {
               </Box>
             </Grid>
           </Grid>
-        );
-      
-      case 1:
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12} textAlign="center">
-              {successMessage && (
-                <Alert severity="success" icon={<Check fontSize="inherit" />} sx={{ mb: 3 }}>
-                  {successMessage}
-                </Alert>
-              )}
-              
-              <Typography variant="h5" gutterBottom color="primary">
-                Tack för din bokning!
-              </Typography>
-              
-              <Typography variant="body1" paragraph>
-                Vi har tagit emot din bokning och kommer att bekräfta den så snart som möjligt.
-              </Typography>
-              
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleReset}
-                sx={{ mt: 2 }}
-              >
-                Gör en ny bokning
-              </Button>
-            </Grid>
-          </Grid>
-        );
-      
-      default:
-        return 'Okänt steg';
+          
+          {errorMessage && (
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="error">{errorMessage}</Alert>
+            </Box>
+          )}
+        </Paper>
+      );
+    } else {
+      return (
+        <Paper elevation={2} sx={{ p: 3, borderRadius: 2, textAlign: 'center', mb: 4 }}>
+          {successMessage && (
+            <Alert severity="success" icon={<Check fontSize="inherit" />} sx={{ mb: 3 }}>
+              {successMessage}
+            </Alert>
+          )}
+          
+          <Typography variant="h5" gutterBottom color="primary">
+            Tack för din bokning!
+          </Typography>
+          
+          <Typography variant="body1" paragraph>
+            Vi har tagit emot din bokning och kommer att bekräfta den så snart som möjligt.
+          </Typography>
+          
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleReset}
+            sx={{ mt: 2 }}
+          >
+            Gör en ny bokning
+          </Button>
+        </Paper>
+      );
     }
   };
 
@@ -851,16 +888,29 @@ const BookingPage: React.FC = () => {
         </Box>
 
         <Grid container spacing={4}>
-          <Grid item xs={12} md={7}>
-            <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
-              {getStepContent(activeStep)}
-               
-              {errorMessage && (
-                <Box sx={{ mt: 2 }}>
-                  <Alert severity="error">{errorMessage}</Alert>
-                </Box>
-              )}
-            </Paper>
+          <Grid item xs={12}>
+            {loadingBookings ? (
+              <Alert severity="info" icon={<CircularProgress size={24} />}>
+                Laddar tillgänglighet...
+              </Alert>
+            ) : (
+              <Alert severity="info">
+                Välj ditt ankomst- och avresedatum. Redan bokade datum visas i rött.
+              </Alert>
+            )}
+          </Grid>
+          
+          <Grid item xs={12}>
+            {loadingBookings ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : renderCalendar()}
+          </Grid>
+          
+          {/* Bokningsformulär - endast för inloggade */}
+          <Grid item xs={12}>
+            {renderBookingForm()}
           </Grid>
         </Grid>
         

@@ -54,6 +54,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     defaultMatches: false  // Standard är desktop
   });
   
+  // State för att hantera initial laddning
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+  
   // State för sidomenyn på mobil
   const [drawerOpen, setDrawerOpen] = useState(false);
   
@@ -118,6 +121,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
     
     fetchPublicPages();
+  }, []);
+
+  // Lägg till en effekt för att hantera initial laddning med fördröjning
+  useEffect(() => {
+    // Kort fördröjning för att säkerställa att auth-status har laddats
+    const timer = setTimeout(() => {
+      setIsAuthLoaded(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const handleDrawerToggle = () => {
@@ -212,6 +225,34 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </ListItem>
         ))}
         
+        {/* Boka-länk endast för inloggade användare */}
+        {isLoggedIn && (
+          <ListItem 
+            component="div"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate('/booking');
+            }}
+            sx={{
+              py: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              },
+              cursor: 'pointer'
+            }}
+          >
+            <ListItemText 
+              primary="BOKA" 
+              primaryTypographyProps={{
+                variant: 'h6',
+                fontWeight: 'bold'
+              }}
+            />
+          </ListItem>
+        )}
+        
         {/* Admin-länk endast för administratörer */}
         {isAdmin && (
           <ListItem 
@@ -295,31 +336,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 }}
               />
             </ListItem>
-            
-            <ListItem 
-              component="div"
-              onClick={() => {
-                setDrawerOpen(false);
-                navigate('/register');
-              }}
-              sx={{
-                py: 2,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                },
-                cursor: 'pointer'
-              }}
-            >
-              <ListItemText 
-                primary="REGISTRERA" 
-                primaryTypographyProps={{
-                  variant: 'h6',
-                  fontWeight: 'bold'
-                }}
-              />
-            </ListItem>
           </>
         )}
       </List>
@@ -365,8 +381,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             Gulmåran
           </Typography>
           
-          {/* Desktop-navigation */}
-          {!isMobile && (
+          {/* Desktop-navigation - Visa endast när auth har laddats */}
+          {!isMobile && isAuthLoaded && (
             <Box sx={{ display: 'flex', flexGrow: 1 }}>
               {/* Pages dropdown menu */}
               <Box>
@@ -410,15 +426,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </Menu>
               </Box>
               
-              {/* Boka-länk */}
-              <Button 
-                color="inherit" 
-                component={RouterLink} 
-                to="/booking"
-                sx={{ textTransform: 'none', fontSize: '1rem' }}
-              >
-                Boka
-              </Button>
+              {/* Boka-länk - Endast för inloggade användare */}
+              {isLoggedIn && (
+                <Button 
+                  color="inherit" 
+                  component={RouterLink} 
+                  to="/booking"
+                  sx={{ textTransform: 'none', fontSize: '1rem' }}
+                >
+                  Boka
+                </Button>
+              )}
               
               {/* Admin-länk om användaren är admin */}
               {isAdmin && (
@@ -491,26 +509,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     color="inherit" 
                     component={RouterLink} 
                     to="/login"
-                    sx={{ textTransform: 'none', fontSize: '1rem', mr: 1 }}
+                    sx={{ textTransform: 'none', fontSize: '1rem' }}
                   >
                     Logga in
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    color="inherit" 
-                    component={RouterLink} 
-                    to="/register"
-                    sx={{ 
-                      textTransform: 'none', 
-                      fontSize: '1rem',
-                      border: '1px solid white',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid white'
-                      }
-                    }}
-                  >
-                    Registrera
                   </Button>
                 </Box>
               )}
