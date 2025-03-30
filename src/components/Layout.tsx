@@ -1,5 +1,6 @@
-import React, { ReactNode, useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import React, { ReactNode, useState, useEffect } from 'react';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import { Link as ScrollLink, scroller } from 'react-scroll';
 import { useAuth } from '../context/AuthContext';
 import {
   AppBar,
@@ -18,15 +19,21 @@ import {
   useTheme,
   Menu,
   MenuItem,
-  Divider
+  Divider,
+  Collapse,
+  ListItemButton
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Event as EventIcon,
   Dashboard as DashboardIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Article as ArticleIcon,
+  ExpandLess,
+  ExpandMore
 } from '@mui/icons-material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import pageService from '../services/pageService';
 
 interface LayoutProps {
   children: ReactNode;
@@ -35,35 +42,87 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isLoggedIn, isAdmin, currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // State för menyknappen för användarprofil
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
   
   // State för sidomenyn på mobil
   const [drawerOpen, setDrawerOpen] = useState(false);
   
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
+  // State för att visa/dölja sidor i menyn
+  const [pagesOpen, setPagesOpen] = useState(false);
+  const [pages, setPages] = useState<Array<{id: string, title: string}>>([]);
+  
+  // Funktion för att navigera till en sektion med react-scroll
+  const navigateToSection = (sectionId: string) => {
+    // Stäng drawer först
+    setDrawerOpen(false);
+    
+    if (location.pathname === '/pages') {
+      // Om vi redan är på /pages, uppdatera URL hash och skrolla manuellt
+      window.history.pushState(null, '', `#${sectionId}`);
+      
+      // Kort timeout för att säkerställa att DOM har uppdaterats
+      setTimeout(() => {
+        scroller.scrollTo(sectionId, {
+          duration: 500, // Snabbare scrollning (500ms istället för 800ms)
+          delay: 0,
+          smooth: 'easeInOutQuart',
+          offset: -70, // Kompensera för headern
+        });
+      }, 50); // Kortare timeout (50ms istället för 100ms)
+    } else {
+      // Om vi inte är på /pages, navigera dit först med hash
+      navigate(`/pages#${sectionId}`);
+    }
   };
   
+  // Kontrollera om det finns en hash i URL:en vid inladdning
+  useEffect(() => {
+    if (location.pathname === '/pages' && location.hash) {
+      const sectionId = location.hash.substring(1); // Ta bort #
+      
+      // Använd react-scroll med timeout
+      setTimeout(() => {
+        scroller.scrollTo(sectionId, {
+          duration: 500, // Snabbare scrollning
+          delay: 0,
+          smooth: 'easeInOutQuart',
+          offset: -70,
+        });
+      }, 300); // Kortare timeout (300ms istället för 500ms)
+    }
+  }, [location.pathname, location.hash]);
+  
+  // Hämta sidor vid inläsning
+  useEffect(() => {
+    const fetchPublicPages = async () => {
+      try {
+        const visiblePages = await pageService.getVisiblePages();
+        setPages(visiblePages.map(page => ({ id: page.id, title: page.title })));
+      } catch (err) {
+        console.error('Kunde inte hämta sidor:', err);
+      }
+    };
+    
+    fetchPublicPages();
+  }, []);
+
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
   };
   
   const handleLogout = () => {
     logout();
-    handleClose();
     navigate('/login');
   };
   
+  const handlePagesClick = () => {
+    setPagesOpen(!pagesOpen);
+  };
+  
   const navItems = [
+    { label: 'Sidor', path: '/pages', icon: <ArticleIcon />, clickHandler: handlePagesClick, hasSubmenu: true },
     { label: 'Boka', path: '/booking', icon: <EventIcon /> }
   ];
   
@@ -74,55 +133,195 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navItems.push({ label: 'Profil', path: '/profile', icon: <AccountCircle /> });
   }
   
-  const drawer = (
+  // Komponent för drawer-innehållet
+  const drawerContent = (
     <Box 
-      sx={{ width: 250 }}
-      role="presentation"
-      onClick={() => setDrawerOpen(false)}
+      sx={{ 
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: theme.palette.background.paper,
+        pt: 8, // Utrymme för logotypen
+        pb: 4,
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+      role="navigation"
     >
-      <List>
-        {navItems.map((item) => (
-          <ListItem 
-            key={item.label} 
-            component={RouterLink} 
-            to={item.path}
+      {/* Stängknapp i övre högra hörnet */}
+      <IconButton
+        onClick={handleDrawerToggle}
+        sx={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          color: 'text.primary',
+          fontSize: '2rem'
+        }}
+        aria-label="stäng meny"
+      >
+        ×
+      </IconButton>
+      
+      {/* Visa alla sidor direkt utan expanderbar undermeny */}
+      <List sx={{ 
+        width: '100%',
+        maxWidth: '100%',
+        py: 2,
+        px: 4
+      }}>
+        {/* Lista alla tillgängliga sidor direkt i huvudmenyn */}
+        {pages.map(page => (
+          <ListItem
+            key={page.id}
+            component="div"
+            onClick={() => navigateToSection(page.id)}
+            sx={{
+              py: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              },
+              cursor: 'pointer'
+            }}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
+            <ListItemText 
+              primary={page.title}
+              primaryTypographyProps={{
+                variant: 'h6',
+                fontWeight: 'bold'
+              }}
+            />
           </ListItem>
         ))}
-      </List>
-      
-      {isLoggedIn && (
-        <>
-          <Divider />
-          <List>
+        
+        {/* Admin-länk endast för administratörer */}
+        {isAdmin && (
+          <ListItem 
+            component="div"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate('/admin');
+            }}
+            sx={{
+              py: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              },
+              cursor: 'pointer'
+            }}
+          >
+            <ListItemText 
+              primary="ADMIN" 
+              primaryTypographyProps={{
+                variant: 'h6',
+                fontWeight: 'bold'
+              }}
+            />
+          </ListItem>
+        )}
+        
+        {/* Logga ut-knapp om inloggad */}
+        {isLoggedIn && (
+          <ListItem 
+            component="div"
+            onClick={() => {
+              handleLogout();
+              setDrawerOpen(false);
+            }}
+            sx={{
+              py: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              },
+              cursor: 'pointer'
+            }}
+          >
+            <ListItemText 
+              primary="LOGGA UT" 
+              primaryTypographyProps={{
+                variant: 'h6',
+                fontWeight: 'bold'
+              }}
+            />
+          </ListItem>
+        )}
+        
+        {/* Logga in-knapp om inte inloggad */}
+        {!isLoggedIn && (
+          <>
             <ListItem 
-              onClick={handleLogout}
+              component="div"
+              onClick={() => {
+                setDrawerOpen(false);
+                navigate('/login');
+              }}
+              sx={{
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                },
+                cursor: 'pointer'
+              }}
             >
-              <ListItemIcon><LogoutIcon /></ListItemIcon>
-              <ListItemText primary="Logga ut" />
+              <ListItemText 
+                primary="LOGGA IN" 
+                primaryTypographyProps={{
+                  variant: 'h6',
+                  fontWeight: 'bold'
+                }}
+              />
             </ListItem>
-          </List>
-        </>
-      )}
+            
+            <ListItem 
+              component="div"
+              onClick={() => {
+                setDrawerOpen(false);
+                navigate('/register');
+              }}
+              sx={{
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                },
+                cursor: 'pointer'
+              }}
+            >
+              <ListItemText 
+                primary="REGISTRERA" 
+                primaryTypographyProps={{
+                  variant: 'h6',
+                  fontWeight: 'bold'
+                }}
+              />
+            </ListItem>
+          </>
+        )}
+      </List>
     </Box>
   );
 
   return (
     <>
-      <AppBar position="static">
+      <AppBar position="fixed">
         <Toolbar>
-          {isMobile && (
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2 }}
+            aria-label="öppna meny"
+          >
+            <MenuIcon />
+          </IconButton>
           
           <Typography 
             variant="h6" 
@@ -136,81 +335,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             Gulmåran
           </Typography>
-          
-          {!isMobile && (
-            <Box sx={{ display: 'flex' }}>
-              <Button 
-                color="inherit" 
-                component={RouterLink} 
-                to="/pages"
-              >
-                Sidor
-              </Button>
-              
-              <Button 
-                color="inherit" 
-                component={RouterLink} 
-                to="/booking"
-              >
-                Boka
-              </Button>
-              
-              {isAdmin && (
-                <Button 
-                  color="inherit" 
-                  component={RouterLink} 
-                  to="/admin"
-                >
-                  Admin
-                </Button>
-              )}
-            </Box>
-          )}
-          
-          <Box>
-            {isLoggedIn ? (
-              <>
-                <IconButton
-                  size="large"
-                  edge="end"
-                  onClick={handleMenu}
-                  color="inherit"
-                >
-                  <AccountCircle />
-                </IconButton>
-                <Menu
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
-                >
-                  <MenuItem disabled>{currentUser?.name || currentUser?.email}</MenuItem>
-                  <Divider />
-                  <MenuItem onClick={() => { handleClose(); navigate('/profile'); }}>Min profil</MenuItem>
-                  {isAdmin && (
-                    <MenuItem onClick={() => { handleClose(); navigate('/admin'); }}>Admin panel</MenuItem>
-                  )}
-                  <MenuItem onClick={handleLogout}>Logga ut</MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <>
-                <Button 
-                  color="inherit" 
-                  component={RouterLink} 
-                  to="/login"
-                >
-                  Logga in
-                </Button>
-                <Button 
-                  color="inherit" 
-                  component={RouterLink} 
-                  to="/register"
-                >
-                  Registrera
-                </Button>
-              </>
-            )}
-          </Box>
         </Toolbar>
       </AppBar>
       
@@ -218,9 +342,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         anchor="left"
         open={drawerOpen}
         onClose={handleDrawerToggle}
+        variant="temporary"
+        ModalProps={{
+          keepMounted: true,
+          disableScrollLock: true,
+          hideBackdrop: false
+        }}
+        sx={{
+          '& .MuiDrawer-paper': { 
+            width: '100%', 
+            height: '100%',
+            boxSizing: 'border-box',
+            borderRight: 'none'
+          }
+        }}
       >
-        {drawer}
+        {drawerContent}
       </Drawer>
+      
+      {/* Tomt Toolbar-element för att kompensera för fixed AppBar */}
+      <Toolbar />
       
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {children}

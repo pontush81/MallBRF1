@@ -11,3 +11,12 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Scrollning och sektionsmarginal */
+.section-element {
+  scroll-margin-top: 80px; /* Margin för när vi scrollar till sektionen */
+}
+
+html {
+  scroll-behavior: smooth; /* Global smooth-scroll för bättre upplevelse */
+}

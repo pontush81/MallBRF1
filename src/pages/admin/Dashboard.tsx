@@ -10,6 +10,7 @@ import {
   ListItemText,
   Drawer,
   List,
+  ListItem,
   Divider,
   AppBar,
   Toolbar,
@@ -30,7 +31,9 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useNavigate, Route, Routes, useLocation } from 'react-router-dom';
+import { scroller } from 'react-scroll';
 import { useAuth } from '../../context/AuthContext';
+import pageService from '../../services/pageService';
 
 import PagesList from './PagesList';
 import PageEditor from './PageEditor';
@@ -50,9 +53,63 @@ const Dashboard: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   
-  // State för användarmenyn
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const userMenuOpen = Boolean(anchorEl);
+  // State för sidor i menyn (samma som i Layout)
+  const [pages, setPages] = useState<Array<{id: string, title: string}>>([]);
+  
+  // Funktion för att navigera till en sektion med react-scroll
+  const navigateToSection = (sectionId: string) => {
+    // Stäng drawer först
+    setMobileOpen(false);
+    
+    if (location.pathname === '/pages') {
+      // Om vi redan är på /pages, uppdatera URL hash och skrolla manuellt
+      window.history.pushState(null, '', `#${sectionId}`);
+      
+      // Kort timeout för att säkerställa att DOM har uppdaterats
+      setTimeout(() => {
+        scroller.scrollTo(sectionId, {
+          duration: 500, // Snabbare scrollning
+          delay: 0,
+          smooth: 'easeInOutQuart',
+          offset: -70, // Kompensera för headern
+        });
+      }, 50); // Kortare timeout
+    } else {
+      // Om vi inte är på /pages, navigera dit först med hash
+      navigate(`/pages#${sectionId}`);
+    }
+  };
+  
+  // Kontrollera om det finns en hash i URL:en vid inladdning
+  useEffect(() => {
+    if (location.pathname === '/pages' && location.hash) {
+      const sectionId = location.hash.substring(1); // Ta bort #
+      
+      // Använd react-scroll med timeout
+      setTimeout(() => {
+        scroller.scrollTo(sectionId, {
+          duration: 500, // Snabbare scrollning
+          delay: 0,
+          smooth: 'easeInOutQuart',
+          offset: -70,
+        });
+      }, 300); // Kortare timeout
+    }
+  }, [location.pathname, location.hash]);
+  
+  // Hämta sidor vid inläsning
+  useEffect(() => {
+    const fetchPublicPages = async () => {
+      try {
+        const visiblePages = await pageService.getVisiblePages();
+        setPages(visiblePages.map(page => ({ id: page.id, title: page.title })));
+      } catch (err) {
+        console.error('Kunde inte hämta sidor:', err);
+      }
+    };
+    
+    fetchPublicPages();
+  }, []);
   
   // Uppdatera vald menypunkt baserat på nuvarande sökväg
   const getSelectedItem = () => {
@@ -95,22 +152,130 @@ const Dashboard: React.FC = () => {
 
   const selectedItem = getSelectedItem();
 
-  const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleLogout = () => {
     logout();
-    handleUserMenuClose();
     navigate('/login');
   };
 
-  // Innehåll för sidpanelen
-  const drawer = (
+  // Global drawer-innehåll som används i både Layout och Dashboard
+  const drawerContent = (
+    <Box 
+      sx={{ 
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: theme.palette.background.paper,
+        pt: 8, // Utrymme för logotypen
+        pb: 4,
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+      role="navigation"
+    >
+      {/* Stängknapp i övre högra hörnet */}
+      <IconButton
+        onClick={handleDrawerToggle}
+        sx={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          color: 'text.primary',
+          fontSize: '2rem'
+        }}
+        aria-label="stäng meny"
+      >
+        ×
+      </IconButton>
+      
+      {/* Visa alla sidor direkt utan expanderbar undermeny */}
+      <List sx={{ 
+        width: '100%',
+        maxWidth: '100%',
+        py: 2,
+        px: 4
+      }}>
+        {/* Lista alla tillgängliga sidor direkt i huvudmenyn */}
+        {pages.map(page => (
+          <ListItem
+            key={page.id}
+            component="div"
+            onClick={() => navigateToSection(page.id)}
+            sx={{
+              py: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              },
+              cursor: 'pointer'
+            }}
+          >
+            <ListItemText 
+              primary={page.title}
+              primaryTypographyProps={{
+                variant: 'h6',
+                fontWeight: 'bold'
+              }}
+            />
+          </ListItem>
+        ))}
+        
+        {/* Admin-specifika menyalternativ - visas alltid i admin-vyn */}
+        <ListItem 
+          component="div"
+          onClick={() => {
+            setMobileOpen(false);
+            navigate('/admin');
+          }}
+          sx={{
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            },
+            cursor: 'pointer'
+          }}
+        >
+          <ListItemText 
+            primary="ADMIN" 
+            primaryTypographyProps={{
+              variant: 'h6',
+              fontWeight: 'bold'
+            }}
+          />
+        </ListItem>
+        
+        {/* Logga ut-knapp */}
+        <ListItem 
+          component="div"
+          onClick={() => {
+            handleLogout();
+            setMobileOpen(false);
+          }}
+          sx={{
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            },
+            cursor: 'pointer'
+          }}
+        >
+          <ListItemText 
+            primary="LOGGA UT" 
+            primaryTypographyProps={{
+              variant: 'h6',
+              fontWeight: 'bold'
+            }}
+          />
+        </ListItem>
+      </List>
+    </Box>
+  );
+
+  // Permanent drawer för desktop-vyn (minimal version)
+  const permanentDrawer = (
     <div>
       <Toolbar sx={{ justifyContent: 'center' }}>
         <Typography variant="h6" noWrap component="div">
@@ -195,75 +360,6 @@ const Dashboard: React.FC = () => {
               {selectedItem === 'users' && 'Användare'}
             </Typography>
           </Box>
-          
-          {/* Navigeringslänkar till höger */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Button 
-              color="inherit" 
-              size="small"
-              onClick={() => window.location.href = '/pages'}
-            >
-              Sidor
-            </Button>
-            <Button 
-              color="inherit" 
-              size="small"
-              onClick={() => window.location.href = '/booking'}
-            >
-              Boka
-            </Button>
-            <Button 
-              color="inherit" 
-              size="small"
-              variant="outlined"
-              onClick={() => window.location.href = '/admin'}
-              sx={{ 
-                border: '1px solid rgba(255,255,255,0.3)',
-                '&:hover': { 
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  border: '1px solid rgba(255,255,255,0.5)'
-                }
-              }}
-            >
-              Admin
-            </Button>
-            
-            {/* Användarikon och meny */}
-            <IconButton
-              color="inherit"
-              onClick={handleUserMenuClick}
-              size="small"
-              sx={{ ml: 1 }}
-              aria-controls={userMenuOpen ? 'user-menu' : undefined}
-              aria-haspopup="true"
-              aria-expanded={userMenuOpen ? 'true' : undefined}
-            >
-              <AccountCircle />
-            </IconButton>
-            <Menu
-              id="user-menu"
-              anchorEl={anchorEl}
-              open={userMenuOpen}
-              onClose={handleUserMenuClose}
-              PaperProps={{
-                elevation: 3,
-                sx: { minWidth: 180 }
-              }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-              <MenuItem disabled>
-                {currentUser?.name || currentUser?.email || 'Användare'}
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" />
-                </ListItemIcon>
-                Logga ut
-              </MenuItem>
-            </Menu>
-          </Box>
         </Toolbar>
       </AppBar>
       
@@ -272,19 +368,27 @@ const Dashboard: React.FC = () => {
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
       >
+        {/* Använd samma fullskärmsdesign som i Layout för mobil */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
             keepMounted: true, // Bättre prestanda på mobila enheter
+            disableScrollLock: true,
+            hideBackdrop: false
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              width: '100%', 
+              height: '100%',
+              boxSizing: 'border-box',
+              borderRight: 'none'
+            }
           }}
         >
-          {drawer}
+          {drawerContent}
         </Drawer>
         
         {/* Permanent drawer för desktop */}
@@ -296,7 +400,7 @@ const Dashboard: React.FC = () => {
           }}
           open
         >
-          {drawer}
+          {permanentDrawer}
         </Drawer>
       </Box>
       

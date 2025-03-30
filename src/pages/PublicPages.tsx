@@ -12,8 +12,6 @@ import {
   Tab,
   useMediaQuery,
   Fab,
-  Menu,
-  MenuItem,
   Button,
   AppBar,
   Grid,
@@ -21,13 +19,18 @@ import {
   CardMedia,
   CardContent,
   CardActions,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { 
   Image as ImageIcon,
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import pageService from '../services/pageService';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
@@ -36,6 +39,9 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { API_BASE_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Element, scroller } from 'react-scroll';
 
 const STICKY_NAV_HEIGHT = 64; // Höjd på sticky navbar i pixlar
 
@@ -45,17 +51,16 @@ const PublicPages: React.FC = (): JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [stickyNav, setStickyNav] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  const { isLoggedIn, isAdmin, logout } = useAuth();
   
   // Refs för varje sida för att kunna scrolla till dem
   const pageRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
   const headerRef = useRef<HTMLDivElement | null>(null);
-
-  // Ref for tracking clicks outside the menu
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Debounce function for smoother scroll handling
   const debounce = (fn: Function, ms = 100) => {
@@ -157,7 +162,7 @@ const PublicPages: React.FC = (): JSX.Element => {
       if (pages.length > 0) {
         // Get all page sections and their positions
         const pageSections = pages.map(page => {
-          const element = pageRefs.current[page.id];
+          const element = document.getElementById(page.id) || document.querySelector(`[name="${page.id}"]`);
           if (!element) return { id: page.id, top: 0, bottom: 0 };
           
           const rect = element.getBoundingClientRect();
@@ -204,11 +209,8 @@ const PublicPages: React.FC = (): JSX.Element => {
       const scrollPosition = window.scrollY;
       setShowScrollTop(scrollPosition > 300);
       
-      // Kontrollera om vi bör visa sticky navigation
-      if (headerRef.current) {
-        const headerBottom = headerRef.current.getBoundingClientRect().bottom;
-        setStickyNav(headerBottom < 0);
-      }
+      // Alltid visa sticky navigation efter liten scroll för att menyn ska vara tillgänglig
+      setStickyNav(scrollPosition > 50);
       
       // Update the active section (debounced)
       debouncedUpdateActiveSection(scrollPosition);
@@ -217,20 +219,6 @@ const PublicPages: React.FC = (): JSX.Element => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [pages, selectedPageIndex]);
-
-  // Handling clicks outside the menu to close it
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node) && menuAnchorEl) {
-        setMenuAnchorEl(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, [menuAnchorEl]);
 
   // Effect to set up scroll margins and behaviors for better navigation
   useEffect(() => {
@@ -248,23 +236,14 @@ const PublicPages: React.FC = (): JSX.Element => {
     if (window.location.hash) {
       const id = window.location.hash.substring(1);
       
-      // Short delay to ensure rendering is complete
+      // Använd react-scroll med fördröjning
       setTimeout(() => {
-        try {
-          // First scroll to the element
-          const element = document.getElementById(id);
-          if (element) {
-            // Scroll to element with offset
-            const rect = element.getBoundingClientRect();
-            const scrollOffset = window.pageYOffset || document.documentElement.scrollTop;
-            window.scrollTo({
-              top: rect.top + scrollOffset - 120,
-              behavior: 'smooth'
-            });
-          }
-        } catch (err) {
-          console.error('Error scrolling to hash element:', err);
-        }
+        scroller.scrollTo(id, {
+          duration: 500,
+          delay: 0,
+          smooth: 'easeInOutQuart',
+          offset: -70,
+        });
       }, 300);
     }
     
@@ -274,235 +253,32 @@ const PublicPages: React.FC = (): JSX.Element => {
     };
   }, [pages]);
 
-  // Navigera till en specifik sida
+  // Funktionen för att scrolla till en sida med react-scroll
   const scrollToPage = (pageId: string, index: number) => {
-    // We can reuse the handler we created for menu items
-    handleMenuItemClick(pageId, index);
+    setSelectedPageIndex(index);
+    
+    // Uppdatera URL för konsekvent länkhantering
+    window.history.pushState(null, '', `#${pageId}`);
+    
+    // Använd react-scroll för en smidigare upplevelse
+    setTimeout(() => {
+      scroller.scrollTo(pageId, {
+        duration: 500,
+        delay: 0,
+        smooth: 'easeInOutQuart',
+        offset: -70,
+      });
+    }, 50);
+    
+    // Stäng drawer om det är öppet
+    if (drawerOpen) {
+      setDrawerOpen(false);
+    }
   };
 
   // Scrolla till toppen av sidan
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Handler för att navigera till en sida via menyn
-  const handleMenuItemClick = (pageId: string, index: number) => {
-    // Close the menu first
-    handleMenuClose();
-    
-    // Update selected index
-    setSelectedPageIndex(index);
-    
-    // Get the element
-    const element = document.getElementById(pageId);
-    if (element) {
-      // Manually handle the scrolling with offset
-      setTimeout(() => {
-        element.scrollIntoView();
-        window.scrollBy(0, -120);
-      }, 10);
-      
-      // Update URL without causing a jump
-      window.history.pushState(null, '', `#${pageId}`);
-    }
-  };
-
-  // Update refs with IDs for hash navigation
-  const setPageRef = (pageId: string) => (el: HTMLDivElement | null) => {
-    if (el !== pageRefs.current[pageId]) {
-      pageRefs.current[pageId] = el;
-      
-      // Set id for hash navigation
-      if (el) {
-        el.id = pageId;
-      }
-    }
-  };
-
-  // Helper to ensure proper menu opening
-  const handleMenuButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    event.preventDefault();
-    setMenuAnchorEl(event.currentTarget);
-  };
-
-  // Simple handler to close the menu
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
-  };
-
-  // Komponent för navigationsflikar
-  const NavigationTabs = ({ compact = false }: { compact?: boolean }) => {
-    // Direct handler for tab clicks
-    const onTabClick = (pageId: string, index: number) => {
-      // Update selected index
-      setSelectedPageIndex(index);
-      
-      // Use a short timeout to scroll after state update
-      setTimeout(() => {
-        const element = pageRefs.current[pageId];
-        if (element) {
-          // Get element position
-          const rect = element.getBoundingClientRect();
-          const scrollOffset = window.pageYOffset || document.documentElement.scrollTop;
-          
-          // Scroll with a fixed offset
-          window.scrollTo({
-            top: rect.top + scrollOffset - 120,
-            behavior: 'smooth'
-          });
-        }
-      }, 10);
-    };
-    
-    return (
-      <Tabs 
-        value={selectedPageIndex}
-        onChange={(_, newValue) => setSelectedPageIndex(newValue)}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{ 
-          minHeight: compact ? '48px' : '56px',
-          '& .MuiTabs-indicator': {
-            display: compact ? 'none' : 'block'
-          }
-        }}
-      >
-        {pages.map((page, index) => (
-          <Tab 
-            key={page.id}
-            label={page.title}
-            onClick={() => onTabClick(page.id, index)}
-            sx={{ 
-              textTransform: 'none', 
-              fontWeight: selectedPageIndex === index ? 'bold' : 'normal',
-              fontSize: compact ? '0.875rem' : '1rem',
-              minHeight: compact ? '48px' : '56px',
-              py: compact ? 1 : 2
-            }}
-          />
-        ))}
-      </Tabs>
-    );
-  };
-
-  // Mobilmeny-komponent
-  const MobileMenu = ({ compact = false }: { compact?: boolean }) => {
-    const menuOpen = Boolean(menuAnchorEl);
-    
-    // Simple direct click handler for menu items
-    const onItemClick = (page: Page, index: number) => {
-      // Close the menu
-      setMenuAnchorEl(null);
-      
-      // Update selected index
-      setSelectedPageIndex(index);
-      
-      // Use standard browser hash navigation
-      window.location.href = `#${page.id}`;
-    };
-    
-    return (
-      <div 
-        style={{
-          position: 'relative',
-          marginBottom: compact ? 0 : '24px',
-          width: '100%'
-        }}
-      >
-        {/* Menu button */}
-        <button
-          style={{
-            width: '100%',
-            padding: compact ? '8px 16px' : '12px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: menuOpen ? '4px 4px 0 0' : '4px',
-            cursor: 'pointer',
-            fontWeight: 500,
-            fontSize: compact ? '14px' : '16px',
-            minHeight: compact ? '36px' : '48px',
-            textAlign: 'left'
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuAnchorEl(menuAnchorEl ? null : e.currentTarget);
-          }}
-        >
-          <span style={{ 
-            overflow: 'hidden',
-            textOverflow: 'ellipsis', 
-            whiteSpace: 'nowrap', 
-            flexGrow: 1,
-            paddingRight: '8px'
-          }}>
-            {pages[selectedPageIndex]?.title || 'Välj sida'}
-          </span>
-          <span>
-            {menuOpen ? '▲' : '▼'}
-          </span>
-        </button>
-        
-        {/* Menu items */}
-        {menuOpen && (
-          <div 
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              backgroundColor: 'white',
-              border: '1px solid #ddd',
-              borderTop: 'none',
-              borderRadius: '0 0 4px 4px',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-              maxHeight: '70vh',
-              overflowY: 'auto',
-              zIndex: 1100
-            }}
-          >
-            {pages.map((page, index) => (
-              <a 
-                key={page.id}
-                href={`#${page.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onItemClick(page, index);
-                }}
-                style={{
-                  display: 'block',
-                  padding: '12px 16px',
-                  color: selectedPageIndex === index ? '#1976d2' : 'inherit',
-                  fontWeight: selectedPageIndex === index ? 'bold' : 'normal',
-                  textDecoration: 'none',
-                  borderBottom: index < pages.length - 1 ? '1px solid #eee' : 'none',
-                  backgroundColor: selectedPageIndex === index ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
-                  position: 'relative',
-                  paddingLeft: selectedPageIndex === index ? '20px' : '16px'
-                }}
-              >
-                {selectedPageIndex === index && (
-                  <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '4px',
-                    backgroundColor: '#1976d2'
-                  }} />
-                )}
-                {page.title}
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-    );
   };
 
   // Helper function to get file URL (either Supabase Storage URL or local path)
@@ -516,20 +292,17 @@ const PublicPages: React.FC = (): JSX.Element => {
     return `${API_BASE_URL}${file.path}`;
   };
 
-  // Add scroll event handler to close menu when scrolling
-  useEffect(() => {
-    const handleScroll = () => {
-      // Close the menu when scrolling
-      if (menuAnchorEl) {
-        setMenuAnchorEl(null);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [menuAnchorEl]);
+  // Funktion för att öppna hamburgermenyn
+  const handleDrawerToggle = () => {
+    setDrawerOpen(!drawerOpen);
+  };
+
+  // Logga ut funktion
+  const handleLogout = () => {
+    logout();
+    setDrawerOpen(false);
+    navigate('/login');
+  };
 
   if (loading) {
     return (
@@ -591,193 +364,375 @@ const PublicPages: React.FC = (): JSX.Element => {
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
+              justifyContent: 'space-between',
               height: '100%',
               p: 1,
               width: '100%'
             }}>
-              {isMobile ? <MobileMenu compact /> : <NavigationTabs compact />}
+              {/* Hamburger-meny ikon till vänster för konsekvent upplevelse */}
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDrawerToggle}
+                aria-label="öppna meny"
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
             </Box>
           </Container>
         </AppBar>
       )}
+      
+      {/* Drawer för hamburgermenyn */}
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={handleDrawerToggle}
+        variant="temporary"
+        ModalProps={{
+          keepMounted: true,
+          disableScrollLock: true,
+          hideBackdrop: false
+        }}
+        sx={{
+          '& .MuiDrawer-paper': { 
+            width: '100%', 
+            height: '100%',
+            boxSizing: 'border-box',
+            borderRight: 'none'
+          }
+        }}
+      >
+        {/* Drawer-innehåll */}
+        <Box 
+          sx={{ 
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: theme.palette.background.paper,
+            pt: 8, // Utrymme för logotypen
+            pb: 4,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+          role="navigation"
+        >
+          {/* Stängknapp i övre högra hörnet */}
+          <IconButton
+            onClick={handleDrawerToggle}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              color: 'text.primary',
+              fontSize: '2rem'
+            }}
+            aria-label="stäng meny"
+          >
+            ×
+          </IconButton>
+          
+          {/* Lista över sidor */}
+          <List sx={{ 
+            width: '100%',
+            maxWidth: '100%',
+            py: 2,
+            px: 4
+          }}>
+            {pages.map((page, idx) => (
+              <ListItem
+                key={page.id}
+                component="div"
+                onClick={() => {
+                  scrollToPage(page.id, idx);
+                  setDrawerOpen(false);
+                }}
+                sx={{
+                  py: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                <ListItemText 
+                  primary={page.title}
+                  primaryTypographyProps={{
+                    variant: 'h6',
+                    fontWeight: 'bold'
+                  }}
+                />
+              </ListItem>
+            ))}
+            
+            {/* Admin-länk endast för administratörer */}
+            {isAdmin && (
+              <ListItem 
+                component="div"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  navigate('/admin');
+                }}
+                sx={{
+                  py: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                <ListItemText 
+                  primary="ADMIN" 
+                  primaryTypographyProps={{
+                    variant: 'h6',
+                    fontWeight: 'bold'
+                  }}
+                />
+              </ListItem>
+            )}
+            
+            {/* Logga ut-knapp om inloggad */}
+            {isLoggedIn && (
+              <ListItem 
+                component="div"
+                onClick={handleLogout}
+                sx={{
+                  py: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                <ListItemText 
+                  primary="LOGGA UT" 
+                  primaryTypographyProps={{
+                    variant: 'h6',
+                    fontWeight: 'bold'
+                  }}
+                />
+              </ListItem>
+            )}
+            
+            {/* Logga in-knapp om inte inloggad */}
+            {!isLoggedIn && (
+              <ListItem 
+                component="div"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  navigate('/login');
+                }}
+                sx={{
+                  py: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                <ListItemText 
+                  primary="LOGGA IN" 
+                  primaryTypographyProps={{
+                    variant: 'h6',
+                    fontWeight: 'bold'
+                  }}
+                />
+              </ListItem>
+            )}
+          </List>
+        </Box>
+      </Drawer>
       
       {/* Huvudinnehåll */}
       <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
           <Box ref={headerRef}>
             <Box sx={{ mb: 4 }}>
-              {isMobile ? <MobileMenu /> : <NavigationTabs />}
+              <Typography variant="h4" component="h1" gutterBottom>
+                Innehåll
+              </Typography>
             </Box>
           </Box>
           
           {/* Sidornas innehåll */}
           {pages.map((page, index) => (
-            <Paper 
+            <Element 
+              name={page.id}
               key={page.id}
-              ref={setPageRef(page.id)}
               id={page.id}
-              elevation={2} 
-              sx={{ 
-                mb: 6, 
-                p: { xs: 2, md: 4 }, 
-                borderRadius: 2,
-                scrollMarginTop: '120px' // Add scroll margin for hash navigation
-              }}
+              className="section-element"
             >
-              {/* Sidhuvud med titel och metadata */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h4" component="h2" gutterBottom>
-                  {page.title}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    Uppdaterad: {formatDate((page.updatedAt || page.createdAt || '') as string)}
+              <Paper 
+                elevation={2} 
+                sx={{ 
+                  mb: 6, 
+                  p: { xs: 2, md: 4 }, 
+                  borderRadius: 2,
+                }}
+              >
+                {/* Sidhuvud med titel och metadata */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h4" component="h2" gutterBottom>
+                    {page.title}
                   </Typography>
-                </Box>
-              </Box>
-              
-              <Divider sx={{ mb: 3 }} />
-              
-              {/* Sidans innehåll med markdown */}
-              <Box sx={{ 
-                ...markdownStyles,
-                typography: 'body1' 
-              }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {page.content}
-                </ReactMarkdown>
-              </Box>
-
-              {/* Visa filer om de finns */}
-              {page.files && page.files.length > 0 && (
-                <Box sx={{ mt: 4 }}>
-                  <Divider sx={{ mb: 3 }} />
                   
-                  {/* Visa bilder */}
-                  {page.files.filter(file => file.mimetype && file.mimetype.startsWith('image/')).length > 0 && (
-                    <Box sx={{ mb: 4 }}>
-                      <Typography variant="h5" gutterBottom>
-                        Bilder
-                      </Typography>
-                      <Grid container spacing={2}>
-                        {page.files
-                          .filter(file => file.mimetype && file.mimetype.startsWith('image/'))
-                          .map((file) => (
-                            <Grid item xs={12} sm={6} md={4} key={file.id || file.filename}>
-                              <Card>
-                                <CardMedia
-                                  component="img"
-                                  height="180"
-                                  image={getFileUrl(file)}
-                                  alt={file.originalName}
-                                  sx={{ objectFit: 'cover' }}
-                                />
-                                <CardContent sx={{ py: 1 }}>
-                                  <Typography variant="body2" noWrap title={file.originalName}>
-                                    {file.originalName}
-                                  </Typography>
-                                </CardContent>
-                                <CardActions>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Uppdaterad: {formatDate((page.updatedAt || page.createdAt || '') as string)}
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Divider sx={{ mb: 3 }} />
+                
+                {/* Sidans innehåll med markdown */}
+                <Box sx={{ 
+                  ...markdownStyles,
+                  typography: 'body1' 
+                }}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {page.content}
+                  </ReactMarkdown>
+                </Box>
+
+                {/* Visa filer om de finns */}
+                {page.files && page.files.length > 0 && (
+                  <Box sx={{ mt: 4 }}>
+                    <Divider sx={{ mb: 3 }} />
+                    
+                    {/* Visa bilder */}
+                    {page.files.filter(file => file.mimetype && file.mimetype.startsWith('image/')).length > 0 && (
+                      <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" gutterBottom>
+                          Bilder
+                        </Typography>
+                        <Grid container spacing={2}>
+                          {page.files
+                            .filter(file => file.mimetype && file.mimetype.startsWith('image/'))
+                            .map((file) => (
+                              <Grid item xs={12} sm={6} md={4} key={file.id || file.filename}>
+                                <Card>
+                                  <CardMedia
+                                    component="img"
+                                    height="180"
+                                    image={getFileUrl(file)}
+                                    alt={file.originalName}
+                                    sx={{ objectFit: 'cover' }}
+                                  />
+                                  <CardContent sx={{ py: 1 }}>
+                                    <Typography variant="body2" noWrap title={file.originalName}>
+                                      {file.originalName}
+                                    </Typography>
+                                  </CardContent>
+                                  <CardActions>
+                                    <Button 
+                                      size="small" 
+                                      component="a"
+                                      href={getFileUrl(file)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      startIcon={<ImageIcon />}
+                                    >
+                                      Öppna
+                                    </Button>
+                                  </CardActions>
+                                </Card>
+                              </Grid>
+                            ))}
+                        </Grid>
+                      </Box>
+                    )}
+
+                    {/* Dokument (PDF) */}
+                    {page.files.filter(file => file.mimetype && file.mimetype.includes('pdf')).length > 0 && (
+                      <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" gutterBottom>
+                          Dokument
+                        </Typography>
+                        <Grid container spacing={1}>
+                          {page.files
+                            .filter(file => file.mimetype && file.mimetype.includes('pdf'))
+                            .map((file) => (
+                              <Grid item xs={12} md={6} key={file.id || file.filename}>
+                                <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                                  <PictureAsPdfIcon color="error" sx={{ mr: 2 }} />
+                                  <Box sx={{ flexGrow: 1 }}>
+                                    <Typography variant="body2" noWrap title={file.originalName}>
+                                      {file.originalName}
+                                    </Typography>
+                                  </Box>
                                   <Button 
                                     size="small" 
                                     component="a"
                                     href={getFileUrl(file)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    startIcon={<ImageIcon />}
+                                    startIcon={<FileDownloadIcon />}
                                   >
-                                    Öppna
+                                    Ladda ner
                                   </Button>
-                                </CardActions>
-                              </Card>
-                            </Grid>
-                          ))}
-                      </Grid>
-                    </Box>
-                  )}
+                                </Paper>
+                              </Grid>
+                            ))}
+                        </Grid>
+                      </Box>
+                    )}
 
-                  {/* Dokument (PDF) */}
-                  {page.files.filter(file => file.mimetype && file.mimetype.includes('pdf')).length > 0 && (
-                    <Box sx={{ mb: 4 }}>
-                      <Typography variant="h5" gutterBottom>
-                        Dokument
-                      </Typography>
-                      <Grid container spacing={1}>
-                        {page.files
-                          .filter(file => file.mimetype && file.mimetype.includes('pdf'))
-                          .map((file) => (
-                            <Grid item xs={12} md={6} key={file.id || file.filename}>
-                              <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-                                <PictureAsPdfIcon color="error" sx={{ mr: 2 }} />
-                                <Box sx={{ flexGrow: 1 }}>
-                                  <Typography variant="body2" noWrap title={file.originalName}>
-                                    {file.originalName}
-                                  </Typography>
-                                </Box>
-                                <Button 
-                                  size="small" 
-                                  component="a"
-                                  href={getFileUrl(file)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  startIcon={<FileDownloadIcon />}
-                                >
-                                  Ladda ner
-                                </Button>
-                              </Paper>
-                            </Grid>
-                          ))}
-                      </Grid>
-                    </Box>
-                  )}
-
-                  {/* Övriga filer */}
-                  {page.files.filter(file => 
-                    file.mimetype && 
-                    !file.mimetype.startsWith('image/') && 
-                    !file.mimetype.includes('pdf')
-                  ).length > 0 && (
-                    <Box sx={{ mb: 4 }}>
-                      <Typography variant="h5" gutterBottom>
-                        Övriga filer
-                      </Typography>
-                      <Grid container spacing={1}>
-                        {page.files
-                          .filter(file => 
-                            file.mimetype && 
-                            !file.mimetype.startsWith('image/') && 
-                            !file.mimetype.includes('pdf')
-                          )
-                          .map((file) => (
-                            <Grid item xs={12} md={6} key={file.id || file.filename}>
-                              <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-                                <AttachFileIcon sx={{ mr: 2 }} />
-                                <Box sx={{ flexGrow: 1 }}>
-                                  <Typography variant="body2" noWrap title={file.originalName}>
-                                    {file.originalName}
-                                  </Typography>
-                                </Box>
-                                <Button 
-                                  size="small" 
-                                  component="a"
-                                  href={getFileUrl(file)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  startIcon={<FileDownloadIcon />}
-                                >
-                                  Ladda ner
-                                </Button>
-                              </Paper>
-                            </Grid>
-                          ))}
-                      </Grid>
-                    </Box>
-                  )}
-                </Box>
-              )}
-            </Paper>
+                    {/* Övriga filer */}
+                    {page.files.filter(file => 
+                      file.mimetype && 
+                      !file.mimetype.startsWith('image/') && 
+                      !file.mimetype.includes('pdf')
+                    ).length > 0 && (
+                      <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" gutterBottom>
+                          Övriga filer
+                        </Typography>
+                        <Grid container spacing={1}>
+                          {page.files
+                            .filter(file => 
+                              file.mimetype && 
+                              !file.mimetype.startsWith('image/') && 
+                              !file.mimetype.includes('pdf')
+                            )
+                            .map((file) => (
+                              <Grid item xs={12} md={6} key={file.id || file.filename}>
+                                <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                                  <AttachFileIcon sx={{ mr: 2 }} />
+                                  <Box sx={{ flexGrow: 1 }}>
+                                    <Typography variant="body2" noWrap title={file.originalName}>
+                                      {file.originalName}
+                                    </Typography>
+                                  </Box>
+                                  <Button 
+                                    size="small" 
+                                    component="a"
+                                    href={getFileUrl(file)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    startIcon={<FileDownloadIcon />}
+                                  >
+                                    Ladda ner
+                                  </Button>
+                                </Paper>
+                              </Grid>
+                            ))}
+                        </Grid>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Paper>
+            </Element>
           ))}
         </Box>
         
