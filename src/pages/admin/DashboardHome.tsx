@@ -13,7 +13,10 @@ import {
   Avatar,
   LinearProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { 
   TrendingUp as TrendingUpIcon,
@@ -29,6 +32,7 @@ import bookingService from '../../services/bookingService';
 import { userService } from '../../services/userService';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import AdminMenu from '../../components/AdminMenu';
 
 // Komponenten för översiktsdashboard
 const DashboardHome: React.FC = () => {
@@ -40,6 +44,7 @@ const DashboardHome: React.FC = () => {
     pendingBookings: 0,
     confirmedBookings: 0,
     totalUsers: 0,
+    bookingsByYear: {} as Record<string, number>,
     recentPages: [] as { id: string; title: string; updatedAt: string }[]
   });
 
@@ -68,8 +73,27 @@ const DashboardHome: React.FC = () => {
       const pending = bookings.filter(b => b.status === 'pending').length;
       const confirmed = bookings.filter(b => b.status === 'confirmed').length;
       
-      // Force fresh user data without caching
+      // Räkna bokningar per år
+      const bookingsByYear: Record<string, number> = {};
+      
+      bookings.forEach(booking => {
+        // Använd startDate eller startdate (för att hantera båda formaten)
+        const startDateStr = booking.startDate || booking.startdate;
+        if (startDateStr) {
+          const year = new Date(startDateStr).getFullYear().toString();
+          if (!bookingsByYear[year]) {
+            bookingsByYear[year] = 0;
+          }
+          bookingsByYear[year]++;
+        }
+      });
+      
+      // First make sure we sync auth users with Firestore
+      await userService.syncAuthUsersWithFirestore();
+      
+      // Then get all users which should now include the synced auth users
       const users = await userService.getAllUsers();
+      console.log(`Dashboard found ${users.length} unique users`);
       
       // Hämta senaste sidorna
       const recentPages = pages
@@ -89,6 +113,7 @@ const DashboardHome: React.FC = () => {
         pendingBookings: pending,
         confirmedBookings: confirmed,
         totalUsers: users.length,
+        bookingsByYear,
         recentPages
       });
     } catch (error) {
@@ -120,100 +145,122 @@ const DashboardHome: React.FC = () => {
 
   return (
     <Box sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-      <Typography variant="h4" component="h1" sx={{ mt: 0, mb: 2 }}>
-        Välkommen till adminpanelen
-      </Typography>
+      {/* Använd AdminMenu-komponenten istället för att återskapa statistikkorten */}
+      <AdminMenu />
       
-      {/* Statistik-kort */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-            <CardHeader
-              avatar={
-                <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
-                  <PageIcon fontSize="small" />
-                </Avatar>
-              }
-              title="Sidor"
-              sx={{ pb: 0 }}
-            />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">{stats.totalPages}</Typography>
-            </CardContent>
-            <CardActions sx={{ pt: 0 }}>
-              <Button size="small" onClick={() => navigate('/admin/pages')}>
-                Hantera sidor
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
+      {/* Behåll den befintliga statisk-korten som backup (dold) ifall AdminMenu inte fungerar */}
+      <Box sx={{ display: 'none' }}>
+        <Typography variant="h4" component="h1" sx={{ mt: 0, mb: 2 }}>
+          Välkommen till adminpanelen
+        </Typography>
         
-        <Grid item xs={12} sm={6} md={4}>
-          <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-            <CardHeader
-              avatar={
-                <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}>
-                  <BookingIcon fontSize="small" />
-                </Avatar>
-              }
-              title="Bokningar"
-              sx={{ pb: 0 }}
-            />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">{stats.totalBookings}</Typography>
-            </CardContent>
-            <CardActions sx={{ pt: 0 }}>
-              <Button size="small" onClick={() => navigate('/admin/bookings')}>
-                Hantera bokningar
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4}>
-          <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-            <CardHeader
-              avatar={
-                <Avatar sx={{ bgcolor: 'success.main', width: 40, height: 40 }}>
-                  <PeopleIcon fontSize="small" />
-                </Avatar>
-              }
-              title="Användare"
-              action={
-                <Tooltip title="Uppdatera användarantal">
-                  <IconButton 
-                    aria-label="uppdatera" 
-                    size="small" 
-                    onClick={handleRefreshUserCount}
-                    disabled={refreshing}
-                  >
-                    <RefreshIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              }
-              sx={{ pb: 0 }}
-            />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">
-                {refreshing ? 
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <Box sx={{ width: '20px', mr: 1 }}>
-                      <LinearProgress />
-                    </Box>
-                    {stats.totalUsers}
-                  </Box> : 
-                  stats.totalUsers
+        {/* Statistik-kort */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
+              <CardHeader
+                avatar={
+                  <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+                    <PageIcon fontSize="small" />
+                  </Avatar>
                 }
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" onClick={() => navigate('/admin/users')}>
-                Hantera användare
-              </Button>
-            </CardActions>
-          </Card>
+                title="Sidor"
+                sx={{ pb: 0 }}
+              />
+              <CardContent sx={{ pt: 1, pb: 1 }}>
+                <Typography variant="h4">{stats.totalPages}</Typography>
+              </CardContent>
+              <CardActions sx={{ pt: 0 }}>
+                <Button size="small" onClick={() => navigate('/admin/pages')}>
+                  Hantera sidor
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={4}>
+            <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
+              <CardHeader
+                avatar={
+                  <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}>
+                    <BookingIcon fontSize="small" />
+                  </Avatar>
+                }
+                title="Bokningar"
+                sx={{ pb: 0 }}
+              />
+              <CardContent sx={{ pt: 1, pb: 1 }}>
+                <Typography variant="h4">{stats.totalBookings}</Typography>
+                
+                {/* Visa bokningar per år */}
+                {Object.keys(stats.bookingsByYear).length > 0 && (
+                  <List dense sx={{ mt: 1, p: 0 }}>
+                    {Object.keys(stats.bookingsByYear)
+                      .sort((a, b) => parseInt(b) - parseInt(a)) // Sortera åren i fallande ordning
+                      .map(year => (
+                        <ListItem key={year} sx={{ py: 0, px: 1 }}>
+                          <ListItemText 
+                            primary={`${year}: ${stats.bookingsByYear[year]} bokningar`}
+                            primaryTypographyProps={{ variant: 'body2' }}
+                          />
+                        </ListItem>
+                      ))}
+                  </List>
+                )}
+              </CardContent>
+              <CardActions sx={{ pt: 0 }}>
+                <Button size="small" onClick={() => navigate('/admin/bookings')}>
+                  Hantera bokningar
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={4}>
+            <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
+              <CardHeader
+                avatar={
+                  <Avatar sx={{ bgcolor: 'success.main', width: 40, height: 40 }}>
+                    <PeopleIcon fontSize="small" />
+                  </Avatar>
+                }
+                title="Användare"
+                action={
+                  <Tooltip title="Uppdatera användarantal">
+                    <IconButton 
+                      aria-label="uppdatera" 
+                      size="small" 
+                      onClick={handleRefreshUserCount}
+                      disabled={refreshing}
+                    >
+                      <RefreshIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                }
+                sx={{ pb: 0 }}
+              />
+              <CardContent sx={{ pt: 1, pb: 1 }}>
+                <Typography variant="h4">
+                  {refreshing ? 
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <Box sx={{ width: '20px', mr: 1 }}>
+                        <LinearProgress />
+                      </Box>
+                      {stats.totalUsers}
+                    </Box> : 
+                    stats.totalUsers
+                  }
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <Button size="small" onClick={() => navigate('/admin/users')}>
+                  Hantera användare
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
     </Box>
   );
 };

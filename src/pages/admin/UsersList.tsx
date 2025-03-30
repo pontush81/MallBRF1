@@ -37,7 +37,14 @@ const UsersList: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      
+      // First sync auth users with Firestore
+      await userService.syncAuthUsersWithFirestore();
+      
+      // Then get all users from Firestore
       const allUsers = await userService.getAllUsers();
+      console.log(`UsersList found ${allUsers.length} users after syncing`);
+      
       setUsers(allUsers);
       setError(null);
     } catch (err) {
