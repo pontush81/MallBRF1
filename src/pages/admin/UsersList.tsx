@@ -11,7 +11,11 @@ import {
   TableRow,
   Chip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Grid,
+  Divider
 } from '@mui/material';
 import { 
   CheckCircle as ActiveIcon,
@@ -27,6 +31,10 @@ const UsersList: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Add theme and responsive media query
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Hämta alla användare vid komponentmontering
   useEffect(() => {
@@ -69,6 +77,84 @@ const UsersList: React.FC = () => {
       return '-';
     }
   };
+  
+  // Render user item based on screen size
+  const renderUserItem = (user: User) => {
+    if (isMobile) {
+      // Card-based mobile view
+      return (
+        <Paper 
+          key={user.id} 
+          elevation={1} 
+          sx={{ 
+            p: 2, 
+            mb: 2, 
+            borderLeft: '4px solid', 
+            borderColor: user.role === 'admin' ? 'secondary.main' : 'primary.main' 
+          }}
+        >
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="h6">{user.name || user.email}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {user.email}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, mt: 2 }}>
+            <Chip 
+              label={user.role === 'admin' ? 'Administratör' : 'Användare'} 
+              color={user.role === 'admin' ? 'secondary' : 'default'}
+              size="small"
+            />
+            <Chip 
+              icon={user.isActive ? <ActiveIcon /> : <InactiveIcon />}
+              label={user.isActive ? 'Aktiv' : 'Inaktiv'} 
+              color={user.isActive ? 'success' : 'error'}
+              size="small"
+            />
+          </Box>
+          
+          <Divider sx={{ my: 1 }} />
+          
+          <Grid container spacing={1} sx={{ mt: 1 }}>
+            <Grid item xs={6}>
+              <Typography variant="caption" color="text.secondary">Skapad:</Typography>
+              <Typography variant="body2">{formatDate(user.createdAt)}</Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="caption" color="text.secondary">Senaste inloggning:</Typography>
+              <Typography variant="body2">{formatDate(user.lastLogin)}</Typography>
+            </Grid>
+          </Grid>
+        </Paper>
+      );
+    }
+    
+    // Standard table row for desktop
+    return (
+      <TableRow key={user.id}>
+        <TableCell>{user.name || '-'}</TableCell>
+        <TableCell>{user.email}</TableCell>
+        <TableCell>
+          <Chip 
+            label={user.role === 'admin' ? 'Administratör' : 'Användare'} 
+            color={user.role === 'admin' ? 'secondary' : 'default'}
+            size="small"
+          />
+        </TableCell>
+        <TableCell>
+          <Chip 
+            icon={user.isActive ? <ActiveIcon /> : <InactiveIcon />}
+            label={user.isActive ? 'Aktiv' : 'Inaktiv'} 
+            color={user.isActive ? 'success' : 'error'}
+            size="small"
+          />
+        </TableCell>
+        <TableCell>{formatDate(user.createdAt)}</TableCell>
+        <TableCell>{formatDate(user.lastLogin)}</TableCell>
+      </TableRow>
+    );
+  };
 
   if (loading && users.length === 0) {
     return (
@@ -79,9 +165,23 @@ const UsersList: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        flexWrap: { xs: 'wrap', sm: 'nowrap' }
+      }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontSize: { xs: '1.8rem', sm: '2.125rem' }, 
+            width: { xs: '100%', sm: 'auto' },
+            mb: { xs: 1, sm: 0 }
+          }}
+        >
           Användare ({users.length})
         </Typography>
       </Box>
@@ -92,53 +192,45 @@ const UsersList: React.FC = () => {
         </Alert>
       )}
 
-      <TableContainer component={Paper} elevation={2}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Användarnamn</TableCell>
-              <TableCell>E-post</TableCell>
-              <TableCell>Roll</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Skapad</TableCell>
-              <TableCell>Senaste inloggning</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.length === 0 ? (
+      {/* Desktop view with table */}
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <TableContainer component={Paper} elevation={2}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">
-                  Inga användare hittades
-                </TableCell>
+                <TableCell>Användarnamn</TableCell>
+                <TableCell>E-post</TableCell>
+                <TableCell>Roll</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Skapad</TableCell>
+                <TableCell>Senaste inloggning</TableCell>
               </TableRow>
-            ) : (
-              users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name || '-'}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={user.role === 'admin' ? 'Administratör' : 'Användare'} 
-                      color={user.role === 'admin' ? 'secondary' : 'default'}
-                      size="small"
-                    />
+            </TableHead>
+            <TableBody>
+              {users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    Inga användare hittades
                   </TableCell>
-                  <TableCell>
-                    <Chip 
-                      icon={user.isActive ? <ActiveIcon /> : <InactiveIcon />}
-                      label={user.isActive ? 'Aktiv' : 'Inaktiv'} 
-                      color={user.isActive ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{formatDate(user.createdAt)}</TableCell>
-                  <TableCell>{formatDate(user.lastLogin)}</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              ) : (
+                users.map((user) => renderUserItem(user))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+
+      {/* Mobile view with cards */}
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        {users.length === 0 ? (
+          <Paper sx={{ p: 3, textAlign: 'center' }}>
+            <Typography>Inga användare hittades</Typography>
+          </Paper>
+        ) : (
+          users.map((user) => renderUserItem(user))
+        )}
+      </Box>
     </Box>
   );
 };
