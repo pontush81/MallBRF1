@@ -1,18 +1,16 @@
 import { User } from '../types/User';
 import { auth, db } from './firebase';
 import { 
-  createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
 import { 
   doc, 
   getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc,
   collection,
-  getDocs
+  getDocs,
+  setDoc
 } from 'firebase/firestore';
 
 export const userService = {
@@ -63,31 +61,27 @@ export const userService = {
     }
   },
 
-  async updateUser(id: string, updates: Partial<User>): Promise<User | null> {
-    try {
-      const userRef = doc(db, 'users', id);
-      await updateDoc(userRef, updates);
-      return this.getUserById(id);
-    } catch (error) {
-      console.error('Error updating user:', error);
-      return null;
-    }
-  },
-
-  async deleteUser(id: string): Promise<boolean> {
-    try {
-      await deleteDoc(doc(db, 'users', id));
-      return true;
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      return false;
-    }
-  },
-
   async getAllUsers(): Promise<User[]> {
     try {
       const querySnapshot = await getDocs(collection(db, 'users'));
-      return querySnapshot.docs.map(doc => doc.data() as User);
+      
+      // Debug: Log all document IDs to check for duplicates
+      console.log('User documents in Firestore:', querySnapshot.docs.map(doc => doc.id));
+      
+      // Create a Map to filter duplicates by ID
+      const uniqueUsers = new Map<string, User>();
+      
+      querySnapshot.docs.forEach(doc => {
+        const userData = doc.data() as User;
+        // Only add if we have a valid ID and haven't seen this ID before
+        if (userData.id && !uniqueUsers.has(userData.id)) {
+          uniqueUsers.set(userData.id, userData);
+        }
+      });
+      
+      const users = Array.from(uniqueUsers.values());
+      console.log(`Found ${querySnapshot.docs.length} total documents, ${users.length} unique users`);
+      return users;
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];

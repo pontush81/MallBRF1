@@ -11,18 +11,22 @@ import {
   CardActions,
   CardHeader,
   Avatar,
-  LinearProgress
+  LinearProgress,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { 
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon, 
   Article as PageIcon, 
   Event as BookingIcon,
-  Today as CalendarIcon
+  Today as CalendarIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import pageService from '../../services/pageService';
 import bookingService from '../../services/bookingService';
+import { userService } from '../../services/userService';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
@@ -35,7 +39,7 @@ const DashboardHome: React.FC = () => {
     totalBookings: 0,
     pendingBookings: 0,
     confirmedBookings: 0,
-    totalUsers: 12, // Mock-data för användare
+    totalUsers: 0,
     recentPages: [] as { id: string; title: string; updatedAt: string }[]
   });
 
@@ -43,50 +47,63 @@ const DashboardHome: React.FC = () => {
   
   const navigate = useNavigate();
 
+  // Add state to track user count refresh
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        
-        // Hämta sidstatistik
-        const pages = await pageService.getAllPages();
-        const published = pages.filter(p => p.isPublished).length;
-        const drafts = pages.length - published;
-        
-        // Hämta bokningsstatistik
-        const bookings = await bookingService.getAllBookings();
-        const pending = bookings.filter(b => b.status === 'pending').length;
-        const confirmed = bookings.filter(b => b.status === 'confirmed').length;
-        
-        // Hämta senaste sidorna
-        const recentPages = pages
-          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-          .slice(0, 5)
-          .map(page => ({
-            id: page.id,
-            title: page.title,
-            updatedAt: page.updatedAt
-          }));
-        
-        setStats({
-          totalPages: pages.length,
-          publishedPages: published,
-          draftPages: drafts,
-          totalBookings: bookings.length,
-          pendingBookings: pending,
-          confirmedBookings: confirmed,
-          totalUsers: 12, // Mock-data tills vi har användarstatistik
-          recentPages
-        });
-      } catch (error) {
-        console.error('Fel vid hämtning av statistik:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Hämta sidstatistik
+      const pages = await pageService.getAllPages();
+      const published = pages.filter(p => p.isPublished).length;
+      const drafts = pages.length - published;
+      
+      // Hämta bokningsstatistik
+      const bookings = await bookingService.getAllBookings();
+      const pending = bookings.filter(b => b.status === 'pending').length;
+      const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+      
+      // Force fresh user data without caching
+      const users = await userService.getAllUsers();
+      
+      // Hämta senaste sidorna
+      const recentPages = pages
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .slice(0, 5)
+        .map(page => ({
+          id: page.id,
+          title: page.title,
+          updatedAt: page.updatedAt
+        }));
+      
+      setStats({
+        totalPages: pages.length,
+        publishedPages: published,
+        draftPages: drafts,
+        totalBookings: bookings.length,
+        pendingBookings: pending,
+        confirmedBookings: confirmed,
+        totalUsers: users.length,
+        recentPages
+      });
+    } catch (error) {
+      console.error('Fel vid hämtning av statistik:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Function to refresh user count
+  const handleRefreshUserCount = () => {
+    setRefreshing(true);
+    fetchStats();
+  };
 
   // Formatera datum
   const formatDate = (dateString: string) => {
@@ -162,10 +179,32 @@ const DashboardHome: React.FC = () => {
                 </Avatar>
               }
               title="Användare"
+              action={
+                <Tooltip title="Uppdatera användarantal">
+                  <IconButton 
+                    aria-label="uppdatera" 
+                    size="small" 
+                    onClick={handleRefreshUserCount}
+                    disabled={refreshing}
+                  >
+                    <RefreshIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              }
               sx={{ pb: 0 }}
             />
             <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">{stats.totalUsers}</Typography>
+              <Typography variant="h4">
+                {refreshing ? 
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <Box sx={{ width: '20px', mr: 1 }}>
+                      <LinearProgress />
+                    </Box>
+                    {stats.totalUsers}
+                  </Box> : 
+                  stats.totalUsers
+                }
+              </Typography>
             </CardContent>
             <CardActions>
               <Button size="small" onClick={() => navigate('/admin/users')}>
