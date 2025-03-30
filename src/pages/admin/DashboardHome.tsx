@@ -36,8 +36,7 @@ const DashboardHome: React.FC = () => {
     pendingBookings: 0,
     confirmedBookings: 0,
     totalUsers: 12, // Mock-data för användare
-    recentPages: [] as { id: string; title: string; updatedAt: string }[],
-    upcomingBookings: [] as { id: string; name: string; startDate: string; endDate: string }[]
+    recentPages: [] as { id: string; title: string; updatedAt: string }[]
   });
 
   const [loading, setLoading] = useState(true);
@@ -69,19 +68,6 @@ const DashboardHome: React.FC = () => {
             updatedAt: page.updatedAt
           }));
         
-        // Hämta kommande bokningar (sorterade efter startdatum)
-        const today = new Date();
-        const upcomingBookings = bookings
-          .filter(b => new Date(b.startDate) >= today)
-          .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-          .slice(0, 5)
-          .map(booking => ({
-            id: booking.id,
-            name: booking.name,
-            startDate: booking.startDate,
-            endDate: booking.endDate
-          }));
-        
         setStats({
           totalPages: pages.length,
           publishedPages: published,
@@ -90,8 +76,7 @@ const DashboardHome: React.FC = () => {
           pendingBookings: pending,
           confirmedBookings: confirmed,
           totalUsers: 12, // Mock-data tills vi har användarstatistik
-          recentPages,
-          upcomingBookings
+          recentPages
         });
       } catch (error) {
         console.error('Fel vid hämtning av statistik:', error);
@@ -124,7 +109,7 @@ const DashboardHome: React.FC = () => {
       
       {/* Statistik-kort */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
             <CardHeader
               avatar={
@@ -146,7 +131,7 @@ const DashboardHome: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
             <CardHeader
               avatar={
@@ -168,7 +153,7 @@ const DashboardHome: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
             <CardHeader
               avatar={
@@ -185,87 +170,6 @@ const DashboardHome: React.FC = () => {
             <CardActions>
               <Button size="small" onClick={() => navigate('/admin/users')}>
                 Hantera användare
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-            <CardHeader
-              avatar={
-                <Avatar sx={{ bgcolor: 'info.main', width: 40, height: 40 }}>
-                  <TrendingUpIcon fontSize="small" />
-                </Avatar>
-              }
-              title="Besökare"
-              sx={{ pb: 0 }}
-            />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">105</Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" disabled>Visa detaljer</Button>
-            </CardActions>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Senaste aktiviteter */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-            <CardHeader title="Senast uppdaterade sidor" sx={{ pb: 1 }} />
-            <Divider />
-            <CardContent sx={{ maxHeight: 300, overflow: 'auto', py: 1 }}>
-              {stats.recentPages.length === 0 ? (
-                <Typography color="text.secondary">Inga sidor har uppdaterats nyligen</Typography>
-              ) : (
-                stats.recentPages.map((page) => (
-                  <Box key={page.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
-                    <Typography variant="subtitle1">{page.title}</Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Uppdaterad: {formatDate(page.updatedAt)}
-                      </Typography>
-                      <Button 
-                        size="small" 
-                        onClick={() => navigate(`/admin/pages/edit/${page.id}`)}
-                      >
-                        Redigera
-                      </Button>
-                    </Box>
-                  </Box>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card elevation={2} sx={{ userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
-            <CardHeader title="Kommande bokningar" sx={{ pb: 1 }} />
-            <Divider />
-            <CardContent sx={{ maxHeight: 300, overflow: 'auto', py: 1 }}>
-              {stats.upcomingBookings.length === 0 ? (
-                <Typography color="text.secondary">Inga kommande bokningar</Typography>
-              ) : (
-                stats.upcomingBookings.map((booking) => (
-                  <Box key={booking.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
-                    <Typography variant="subtitle1">{booking.name}</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))
-              )}
-            </CardContent>
-            <CardActions>
-              <Button size="small" onClick={() => navigate('/admin/bookings')}>
-                Visa alla bokningar
               </Button>
             </CardActions>
           </Card>
