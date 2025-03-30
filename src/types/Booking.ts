@@ -11,4 +11,5 @@ export interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled';
   notes?: string;
   phone?: string;
+  parking?: boolean;   // Om parkering har bokats
 } 

@@ -30,7 +30,9 @@ router.post('/check-availability', async (req, res) => {
       ...booking,
       startDate: booking.startdate,
       endDate: booking.enddate,
-      createdAt: booking.createdat
+      createdAt: booking.createdat,
+      parking: booking.parkering === true || booking.parkering === 'true' || booking.parkering === 't' ? true : 
+               booking.parkering === false || booking.parkering === 'false' || booking.parkering === 'f' ? false : null
     }));
 
     console.log('Hittade bokningar:', mappedBookings.length);
@@ -71,13 +73,50 @@ router.get('/', async (req, res) => {
       });
     }
 
+    // Logga parkering-fälten för felsökning
+    if (data && data.length > 0) {
+      console.log('FELSÖKNING - Parkeringsvärden:');
+      data.forEach((booking, index) => {
+        console.log(`Bokning ${index + 1} (${booking.id}): parkering = ${booking.parkering} (typ: ${typeof booking.parkering})`);
+      });
+    }
+
     // Mappa fältnamnen för frontend
-    const mappedData = data.map(booking => ({
-      ...booking,
-      startDate: booking.startdate,
-      endDate: booking.enddate,
-      createdAt: booking.createdat
-    }));
+    const mappedData = data.map(booking => {
+      // Konvertera specifikt parkering-fältet
+      let parkingValue = null;
+      
+      // För true-värden
+      if (booking.parkering === true || booking.parkering === 'true' || booking.parkering === 't' || booking.parkering === 'yes' || booking.parkering === 'ja') {
+        parkingValue = true;
+      } 
+      // För false-värden
+      else if (booking.parkering === false || booking.parkering === 'false' || booking.parkering === 'f' || booking.parkering === 'no' || booking.parkering === 'nej') {
+        parkingValue = false;
+      }
+      
+      // Om databasen innehåller "Ja"/"Nej" som strängar
+      else if (typeof booking.parkering === 'string') {
+        const val = booking.parkering.toLowerCase().trim();
+        if (val === 'ja' || val === 'yes') {
+          parkingValue = true;
+        } else if (val === 'nej' || val === 'no') {
+          parkingValue = false;
+        }
+      }
+
+      const result = {
+        ...booking,
+        startDate: booking.startdate,
+        endDate: booking.enddate,
+        createdAt: booking.createdat,
+        parking: parkingValue
+      };
+      
+      console.log(`Bokning ${booking.id} - Konverterad: parkering=${booking.parkering} → parking=${result.parking}`);
+      
+      return result;
+    });
 
     console.log(`Hittade ${mappedData.length} bokningar`);
     res.json(mappedData);
@@ -115,7 +154,9 @@ router.get('/:id', async (req, res) => {
       ...data,
       startDate: data.startdate,
       endDate: data.enddate,
-      createdAt: data.createdat
+      createdAt: data.createdat,
+      parking: data.parkering === true || data.parkering === 'true' || data.parkering === 't' ? true : 
+               data.parkering === false || data.parkering === 'false' || data.parkering === 'f' ? false : null
     };
 
     res.json(mappedData);
@@ -139,7 +180,8 @@ router.post('/', async (req, res) => {
       startdate: bookingData.startDate,
       enddate: bookingData.endDate,
       notes: bookingData.notes,
-      status: bookingData.status || 'pending'
+      status: bookingData.status || 'pending',
+      parkering: bookingData.parking || false
     };
 
     // Kontrollera tillgänglighet
@@ -177,7 +219,9 @@ router.post('/', async (req, res) => {
       ...data,
       startDate: data.startdate,
       endDate: data.enddate,
-      createdAt: data.createdat
+      createdAt: data.createdat,
+      parking: data.parkering === true || data.parkering === 'true' || data.parkering === 't' ? true : 
+               data.parkering === false || data.parkering === 'false' || data.parkering === 'f' ? false : null
     };
 
     res.status(201).json(mappedData);
@@ -202,7 +246,8 @@ router.put('/:id', async (req, res) => {
       startdate: bookingData.startDate,
       enddate: bookingData.endDate,
       notes: bookingData.notes,
-      status: bookingData.status
+      status: bookingData.status,
+      parkering: bookingData.parking
     };
 
     // Kontrollera tillgänglighet för uppdateringen
@@ -248,7 +293,9 @@ router.put('/:id', async (req, res) => {
       ...data,
       startDate: data.startdate,
       endDate: data.enddate,
-      createdAt: data.createdat
+      createdAt: data.createdat,
+      parking: data.parkering === true || data.parkering === 'true' || data.parkering === 't' ? true : 
+               data.parkering === false || data.parkering === 'false' || data.parkering === 'f' ? false : null
     };
 
     res.json(mappedData);

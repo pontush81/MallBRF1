@@ -42,7 +42,18 @@ const FALLBACK_PAGES = [
 const FALLBACK_PAGES_BY_SLUG = {
   "valkomstsida": FALLBACK_PAGES[2],
   "information": FALLBACK_PAGES[1],
-  "bokning": FALLBACK_PAGES[0]
+  "bokning": FALLBACK_PAGES[0],
+  "lagenhet-info": {
+    id: "fallback-4",
+    title: "Lägenhetsinformation",
+    content: "# Lägenhetsinformation\n\nInformation om föreningens lägenheter.",
+    slug: "lagenhet-info",
+    isPublished: true,
+    show: true,
+    files: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
 };
 
 // Service för att hantera sidor
@@ -99,11 +110,16 @@ const pageService = {
     try {
       return await apiRequest<Page>(`/pages/slug/${slug}`);
     } catch (error) {
-      if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
-        return null;
-      }
       console.error('Fel vid hämtning av sida med slug:', error);
-      return FALLBACK_PAGES_BY_SLUG[slug] || null;
+      
+      // Försök använda fallback för denna slug
+      if (slug in FALLBACK_PAGES_BY_SLUG) {
+        console.log(`Använder fallback för slug: ${slug}`);
+        return FALLBACK_PAGES_BY_SLUG[slug];
+      }
+      
+      // Returnera null som säkerhetsåtgärd
+      return null;
     }
   },
 

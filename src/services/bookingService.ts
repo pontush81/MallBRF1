@@ -18,6 +18,7 @@ interface CreateBookingData {
   endDate: string;
   notes?: string;
   phone?: string;
+  parking?: boolean;
 }
 
 // Interface för att uppdatera en bokning
@@ -28,6 +29,7 @@ interface UpdateBookingData {
   endDate?: string;
   status?: 'pending' | 'confirmed' | 'cancelled';
   notes?: string;
+  parking?: boolean;
 }
 
 // Service för att hantera bokningar

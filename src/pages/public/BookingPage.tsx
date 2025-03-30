@@ -26,7 +26,9 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Link
+  Link,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -61,9 +63,18 @@ const CustomPickersDay = ({
 
   const isBooked = bookedDates.some(
     (booking) => {
+      // Create dates with time set to beginning of day for accurate date comparison
       const bookingStart = new Date(booking.startDate);
+      bookingStart.setHours(0, 0, 0, 0);
+      
       const bookingEnd = new Date(booking.endDate);
-      return other.day >= bookingStart && other.day <= bookingEnd;
+      bookingEnd.setHours(0, 0, 0, 0);
+      
+      // Clone and normalize the day from props for comparison
+      const dayToCheck = new Date(other.day);
+      dayToCheck.setHours(0, 0, 0, 0);
+      
+      return dayToCheck >= bookingStart && dayToCheck <= bookingEnd;
     }
   );
 
@@ -103,6 +114,7 @@ const BookingPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [parking, setParking] = useState(false);
   
   // State för valideringsfel
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -234,22 +246,14 @@ const BookingPage: React.FC = () => {
   useEffect(() => {
     const fetchApartmentInfo = async () => {
       try {
-        // setLoadingInfo(true);
         const page = await pageService.getPageBySlug('lagenhet-info');
-        if (page) {
-          // setApartmentInfo({
-          //   title: page.title,
-          //   content: page.content,
-          //   files: page.files || []
-          // });
-        }
+        // Tyst felhantering - gör inget om sidan inte hittas
       } catch (error) {
-        console.error('Failed to fetch apartment info:', error);
-      } finally {
-        // setLoadingInfo(false);
+        // Tyst felhantering
+        console.log('Kunde inte hämta lägenhetsinformation, fortsätter utan den');
       }
     };
-    
+
     fetchApartmentInfo();
   }, []);
 
@@ -350,7 +354,8 @@ const BookingPage: React.FC = () => {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         notes: notes,
-        phone: phone
+        phone: phone,
+        parking: parking
       });
       
       if (booking) {
@@ -376,6 +381,7 @@ const BookingPage: React.FC = () => {
     setSuccessMessage('');
     setErrorMessage('');
     setValidationErrors({});
+    setParking(false);
     
     // Återställ användardata enbart om användaren inte är inloggad
     if (!isLoggedIn) {
@@ -614,20 +620,62 @@ const BookingPage: React.FC = () => {
     const sortedBookings = sortBookingsByDate(existingBookings);
     const groupedBookings = groupBookingsByMonth(sortedBookings);
     
-    // Sortera månadsnycklarna så att de senaste kommer först
-    const sortedMonthKeys = Object.keys(groupedBookings).sort().reverse();
+    // Sortera månadsnycklarna så att aktuell månad kommer först, 
+    // sedan framtida månader i kronologisk ordning, 
+    // sedan tidigare månader i omvänd kronologisk ordning
+    const sortedMonthKeys = Object.keys(groupedBookings).sort((a, b) => {
+      const dateA = parseISO(a + '-01');
+      const dateB = parseISO(b + '-01');
+      const now = new Date();
+      const currentMonth = startOfMonth(now);
+      
+      // Om en månad är aktuell, prioritera den
+      if (a === format(currentMonth, 'yyyy-MM')) return -1;
+      if (b === format(currentMonth, 'yyyy-MM')) return 1;
+      
+      // Annars sortera framtida först, sedan tidigare
+      const aIsFuture = isAfter(dateA, currentMonth);
+      const bIsFuture = isAfter(dateB, currentMonth);
+      
+      if (aIsFuture && !bIsFuture) return -1;
+      if (!aIsFuture && bIsFuture) return 1;
+      
+      // För framtida månader, sortera i kronologisk ordning
+      if (aIsFuture && bIsFuture) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      
+      // För tidigare månader, sortera i omvänd kronologisk ordning
+      return dateB.getTime() - dateA.getTime();
+    });
     
     return (
-      <Box sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Aktuella bokningar
-        </Typography>
+      <Box sx={{ mt: 2, mb: 2 }}>
         <Typography variant="body2" sx={{ mb: 3 }}>
           Här kan du se alla bokningar som är inplanerade. Tidigare månader är ihopfällda.
         </Typography>
         
         {sortedMonthKeys.map(monthKey => {
-          const bookingsInMonth = groupedBookings[monthKey];
+          const bookingsInMonth = [...groupedBookings[monthKey]].sort((a, b) => {
+            if (!a.startDate || !b.startDate) return 0;
+            
+            const dateA = new Date(a.startDate);
+            const dateB = new Date(b.startDate);
+            const now = new Date();
+            
+            // Om båda bokningarna är i framtiden, visa den närmast i tiden först
+            if (dateA > now && dateB > now) {
+              return dateA.getTime() - dateB.getTime();
+            }
+            
+            // Om en är i framtiden, visa den först
+            if (dateA > now) return -1;
+            if (dateB > now) return 1;
+            
+            // Annars visa den senaste först
+            return dateB.getTime() - dateA.getTime();
+          });
+          
           const isExpanded = isCurrentOrFutureMonth(monthKey);
           const isPastMonth = !isExpanded;
           
@@ -637,19 +685,27 @@ const BookingPage: React.FC = () => {
               defaultExpanded={isExpanded}
               sx={{ 
                 mb: 2,
+                '&.MuiAccordion-root': {
+                  borderRadius: 1,
+                  boxShadow: 1,
+                },
                 ...(isPastMonth && {
-                  '&:before': {
-                    opacity: 0.05,
-                  },
+                  opacity: 0.85,
+                  '& .MuiAccordionSummary-root': {
+                    backgroundColor: 'grey.300',
+                    color: 'text.primary'
+                  }
                 })
               }}
             >
               <AccordionSummary 
                 expandIcon={<ExpandMore />}
-                sx={{
-                  ...(isPastMonth && {
-                    backgroundColor: 'rgba(0, 0, 0, 0.03)',
-                  })
+                sx={{ 
+                  backgroundColor: isExpanded ? 'primary.light' : 'grey.300',
+                  color: isExpanded ? 'primary.contrastText' : 'text.primary',
+                  '&:hover': { 
+                    backgroundColor: isExpanded ? 'primary.main' : 'grey.400' 
+                  },
                 }}
               >
                 <Typography sx={{ fontWeight: isExpanded ? 'bold' : 'normal' }}>
@@ -657,7 +713,12 @@ const BookingPage: React.FC = () => {
                   <Chip 
                     label={`${bookingsInMonth.length} bokning${bookingsInMonth.length !== 1 ? 'ar' : ''}`} 
                     size="small" 
-                    sx={{ ml: 2 }}
+                    sx={{ 
+                      ml: 1, 
+                      backgroundColor: isExpanded 
+                        ? 'rgba(255,255,255,0.3)' 
+                        : 'rgba(0,0,0,0.08)'
+                    }}
                     color={isExpanded ? "primary" : "default"}
                     variant={isExpanded ? "filled" : "outlined"}
                   />
@@ -671,6 +732,8 @@ const BookingPage: React.FC = () => {
                         <TableCell>Ankomst</TableCell>
                         <TableCell>Avresa</TableCell>
                         <TableCell>Namn</TableCell>
+                        <TableCell align="center">Nätter</TableCell>
+                        <TableCell align="center">Parkering</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -689,6 +752,15 @@ const BookingPage: React.FC = () => {
                             }
                           </TableCell>
                           <TableCell>{booking.name}</TableCell>
+                          <TableCell align="center">
+                            {booking.startDate && booking.endDate
+                              ? differenceInDays(new Date(booking.endDate), new Date(booking.startDate))
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell align="center">
+                            {renderParkingStatus(booking.parking)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -826,6 +898,21 @@ const BookingPage: React.FC = () => {
             </Grid>
             
             <Grid item xs={12}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={parking}
+                      onChange={(e) => setParking(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Jag vill boka parkering"
+                />
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                 <Button
                   variant="contained"
@@ -877,6 +964,34 @@ const BookingPage: React.FC = () => {
     }
   };
 
+  // Hjälpfunktion för att visa parkeringsstatus
+  const renderParkingStatus = (parkingValue: any) => {
+    console.log(`Parkering:`, parkingValue, typeof parkingValue);
+    
+    // Om det är ett booleskt värde
+    if (parkingValue === true) {
+      return <Chip color="success" label="Ja" size="small" />;
+    }
+    
+    if (parkingValue === false) {
+      return <Chip color="error" label="Nej" size="small" />;
+    }
+    
+    // Om det är en sträng
+    if (typeof parkingValue === 'string') {
+      const val = parkingValue.toLowerCase().trim();
+      if (val === 'ja' || val === 'yes' || val === 'true' || val === 't') {
+        return <Chip color="success" label="Ja" size="small" />;
+      }
+      if (val === 'nej' || val === 'no' || val === 'false' || val === 'f') {
+        return <Chip color="error" label="Nej" size="small" />;
+      }
+    }
+    
+    // Om inget av ovanstående matchar
+    return <Chip color="default" label="Ej angivet" size="small" />;
+  };
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ mb: 5, mt: 3 }}>
@@ -922,10 +1037,16 @@ const BookingPage: React.FC = () => {
         </Grid>
         
         {/* Visa bokningslistan längst ner på sidan */}
-        <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2, mt: 4 }}>
-          <Divider sx={{ mb: 4 }} />
-          {renderBookingsList()}
-        </Paper>
+        <Box sx={{ mt: 6, mb: 2 }}>
+          <Divider sx={{ mb: 5 }} />
+          
+          <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, color: 'primary.main' }}>
+              Aktuella bokningar
+            </Typography>
+            {renderBookingsList()}
+          </Paper>
+        </Box>
       </Box>
     </Container>
   );
