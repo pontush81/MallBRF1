@@ -66,7 +66,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // State för desktop-menyn
   const [pagesMenuAnchorEl, setPagesMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   
   // Funktion för att navigera till en sektion med react-scroll
   const navigateToSection = (sectionId: string) => {
@@ -153,14 +152,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   const handlePagesMenuClose = () => {
     setPagesMenuAnchorEl(null);
-  };
-  
-  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setUserMenuAnchorEl(event.currentTarget);
-  };
-  
-  const handleUserMenuClose = () => {
-    setUserMenuAnchorEl(null);
   };
 
   // Komponent för drawer-innehållet
@@ -455,53 +446,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Användarmenyn till höger */}
               {isLoggedIn ? (
                 <Box>
-                  <Tooltip title={currentUser?.name || 'Profil'}>
-                    <Button
-                      color="inherit"
-                      onClick={handleUserMenuOpen}
-                      startIcon={<AccountCircle />}
-                      endIcon={<KeyboardArrowDown />}
-                      sx={{ textTransform: 'none', fontSize: '1rem' }}
-                    >
-                      {currentUser?.name || 'Profil'}
-                    </Button>
-                  </Tooltip>
-                  <Menu
-                    id="user-menu"
-                    anchorEl={userMenuAnchorEl}
-                    keepMounted
-                    open={Boolean(userMenuAnchorEl)}
-                    onClose={handleUserMenuClose}
-                    TransitionComponent={Fade}
-                    PaperProps={{
-                      elevation: 3,
-                      sx: { minWidth: '200px' }
-                    }}
+                  <Button
+                    color="inherit"
+                    onClick={handleLogout}
+                    startIcon={<LogoutIcon />}
+                    sx={{ textTransform: 'none', fontSize: '1rem' }}
                   >
-                    <MenuItem 
-                      onClick={() => {
-                        navigate('/profile');
-                        handleUserMenuClose();
-                      }}
-                    >
-                      <ListItemIcon>
-                        <PersonIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>Min profil</ListItemText>
-                    </MenuItem>
-                    <Divider />
-                    <MenuItem 
-                      onClick={() => {
-                        handleLogout();
-                        handleUserMenuClose();
-                      }}
-                    >
-                      <ListItemIcon>
-                        <LogoutIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>Logga ut</ListItemText>
-                    </MenuItem>
-                  </Menu>
+                    Logga ut
+                  </Button>
                 </Box>
               ) : (
                 <Box>

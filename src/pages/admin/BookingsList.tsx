@@ -24,7 +24,10 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Chip
+  Chip,
+  useTheme,
+  useMediaQuery,
+  Tooltip
 } from '@mui/material';
 import { 
   Delete as DeleteIcon,
@@ -54,6 +57,9 @@ const BookingsList: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   const [backupLoading, setBackupLoading] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Hämta alla bokningar vid komponentmontering
   useEffect(() => {
@@ -219,15 +225,17 @@ const BookingsList: React.FC = () => {
     }
   };
 
-  // Kontrollera om månaden är aktuell eller framtida
+  // Modify the isCurrentOrFutureMonth function to correctly identify current and future months
   const isCurrentOrFutureMonth = (monthKey: string): boolean => {
     try {
       const [year, month] = monthKey.split('-').map(Number);
       const date = new Date(year, month - 1, 1);
       const now = new Date();
       const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      return !isBefore(date, currentMonth);
+      // Compare if the provided month is the current month or in the future
+      return date.getTime() >= currentMonth.getTime();
     } catch (error) {
+      console.error('Error checking month status:', error);
       return false;
     }
   };
@@ -256,6 +264,102 @@ const BookingsList: React.FC = () => {
     }, 0);
   };
 
+  // Rendera bokning beroende på skärmstorlek
+  const renderBookingItem = (booking: Booking) => {
+    if (isMobile) {
+      // Card-based mobile view
+      return (
+        <Paper 
+          key={booking.id} 
+          elevation={1} 
+          sx={{ 
+            p: 2, 
+            mb: 2, 
+            borderLeft: '4px solid', 
+            borderColor: 'primary.main' 
+          }}
+        >
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="h6">{booking.name}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Typography variant="body2" sx={{ mr: 1 }}>
+              {booking.email}
+            </Typography>
+            <IconButton 
+              size="small" 
+              onClick={() => handleEmailClick(booking.email)}
+              aria-label="Skicka e-post"
+            >
+              <EmailIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          
+          {booking.phone && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Tel: {booking.phone}
+            </Typography>
+          )}
+          
+          {booking.notes && (
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Anteckning: {booking.notes}
+            </Typography>
+          )}
+          
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              startIcon={<DeleteIcon />}
+              color="error"
+              onClick={() => handleDeleteClick(booking)}
+              size="small"
+              sx={{ minWidth: '44px', minHeight: '44px' }} // Touch-friendly size
+            >
+              Ta bort
+            </Button>
+          </Box>
+        </Paper>
+      );
+    }
+    
+    // Standard table row for desktop
+    return (
+      <TableRow key={booking.id}>
+        <TableCell>{booking.name}</TableCell>
+        <TableCell>{formatDate(booking.startDate)}</TableCell>
+        <TableCell>{formatDate(booking.endDate)}</TableCell>
+        <TableCell>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {booking.email}
+            <IconButton 
+              size="small" 
+              onClick={() => handleEmailClick(booking.email)}
+              aria-label="Skicka e-post"
+            >
+              <EmailIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </TableCell>
+        <TableCell>{booking.phone || '-'}</TableCell>
+        <TableCell>{booking.notes || '-'}</TableCell>
+        <TableCell align="right">
+          <IconButton 
+            color="error" 
+            size="small" 
+            onClick={() => handleDeleteClick(booking)}
+            aria-label="Ta bort bokning"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -279,17 +383,30 @@ const BookingsList: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4">Aktuella bokningar</Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<BackupIcon />}
-              onClick={handleBackup}
-              disabled={backupLoading}
-            >
-              {backupLoading ? <CircularProgress size={24} /> : 'Säkerhetskopiera bokningar'}
-            </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+            <Typography variant="h4" sx={{ fontSize: { xs: '1.8rem', sm: '2.125rem' }, mb: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}>
+              Aktuella bokningar
+            </Typography>
+            <Tooltip title={isMobile ? "Säkerhetskopiera alla bokningar" : ""}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<BackupIcon />}
+                onClick={handleBackup}
+                disabled={backupLoading}
+                size="small"
+                sx={{ 
+                  whiteSpace: 'nowrap',
+                  minHeight: '44px',
+                  px: { xs: 1.5, sm: 3 },
+                  minWidth: { xs: 'auto', sm: '180px' }
+                }}
+              >
+                {backupLoading ? <CircularProgress size={20} /> : (
+                  isMobile ? 'Backup' : 'Säkerhetskopiera'
+                )}
+              </Button>
+            </Tooltip>
           </Box>
         </Grid>
 
@@ -314,7 +431,8 @@ const BookingsList: React.FC = () => {
 
         <Grid item xs={12}>
           <Typography variant="subtitle1" sx={{ mb: 2 }}>
-            Här kan du se alla bokningar som är inplanerade. Tidigare månader är ihopfällda.
+            <strong> Aktuell månad och framtida månader visas automatiskt</strong>, medan tidigare månader är ihopfällda 
+            (klicka på respektive månad för att expandera och se historiska bokningar).
           </Typography>
 
           {sortedMonthKeys.length === 0 ? (
@@ -324,26 +442,34 @@ const BookingsList: React.FC = () => {
           ) : (
             sortedMonthKeys.map(monthKey => {
               const monthBookings = sortBookingsByDate(groupedBookings[monthKey]);
-              const isCurrentFuture = isCurrentOrFutureMonth(monthKey);
               
               return (
                 <Accordion 
                   key={monthKey} 
-                  defaultExpanded={isCurrentFuture}
+                  defaultExpanded={isCurrentOrFutureMonth(monthKey)}
                   sx={{ 
                     mb: 2,
                     '&.MuiAccordion-root': {
                       borderRadius: 1,
                       boxShadow: 1,
-                    }
+                    },
+                    ...(isCurrentOrFutureMonth(monthKey) ? {} : {
+                      opacity: 0.85,
+                      '& .MuiAccordionSummary-root': {
+                        backgroundColor: 'grey.300',
+                        color: 'text.primary'
+                      }
+                    })
                   }}
                 >
                   <AccordionSummary 
                     expandIcon={<ExpandMoreIcon />}
                     sx={{ 
-                      backgroundColor: 'primary.light',
-                      color: 'primary.contrastText',
-                      '&:hover': { backgroundColor: 'primary.main' },
+                      backgroundColor: isCurrentOrFutureMonth(monthKey) ? 'primary.light' : 'grey.300',
+                      color: isCurrentOrFutureMonth(monthKey) ? 'primary.contrastText' : 'text.primary',
+                      '&:hover': { 
+                        backgroundColor: isCurrentOrFutureMonth(monthKey) ? 'primary.main' : 'grey.400' 
+                      },
                     }}
                   >
                     <Typography variant="h6">
@@ -351,63 +477,56 @@ const BookingsList: React.FC = () => {
                       <Chip 
                         label={`${monthBookings.length} bokningar`} 
                         size="small" 
-                        sx={{ ml: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} 
+                        sx={{ 
+                          ml: 1, 
+                          backgroundColor: isCurrentOrFutureMonth(monthKey) 
+                            ? 'rgba(255,255,255,0.3)' 
+                            : 'rgba(0,0,0,0.08)'
+                        }} 
                       />
                       <Chip 
                         label={`${calculateTotalNights(monthBookings)} nätter`} 
                         size="small" 
-                        sx={{ ml: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} 
+                        sx={{ 
+                          ml: 1, 
+                          backgroundColor: isCurrentOrFutureMonth(monthKey) 
+                            ? 'rgba(255,255,255,0.3)' 
+                            : 'rgba(0,0,0,0.08)'
+                        }}
                       />
                     </Typography>
                   </AccordionSummary>
-                  <AccordionDetails sx={{ p: 0 }}>
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Namn</TableCell>
-                            <TableCell>Ankomst</TableCell>
-                            <TableCell>Avresa</TableCell>
-                            <TableCell>E-post</TableCell>
-                            <TableCell>Skapad</TableCell>
-                            <TableCell align="right">Åtgärder</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {monthBookings.map((booking) => (
-                            <TableRow key={booking.id}>
-                              <TableCell>{booking.name}</TableCell>
-                              <TableCell>{formatDate(booking.startDate)}</TableCell>
-                              <TableCell>{formatDate(booking.endDate)}</TableCell>
-                              <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                  {booking.email}
-                                  <IconButton 
-                                    size="small" 
-                                    onClick={() => handleEmailClick(booking.email)} 
-                                    sx={{ ml: 1 }}
-                                    title="Skicka e-post"
-                                  >
-                                    <EmailIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </TableCell>
-                              <TableCell>{formatDate(booking.createdAt)}</TableCell>
-                              <TableCell align="right">
-                                <IconButton 
-                                  size="small" 
-                                  color="error" 
-                                  onClick={() => handleDeleteClick(booking)}
-                                  title="Radera bokning"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </TableCell>
+                  <AccordionDetails>
+                    {/* Desktop vy med tabell */}
+                    <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Namn</TableCell>
+                              <TableCell>Ankomst</TableCell>
+                              <TableCell>Avresa</TableCell>
+                              <TableCell>E-post</TableCell>
+                              <TableCell>Telefon</TableCell>
+                              <TableCell>Anteckningar</TableCell>
+                              <TableCell align="right">Åtgärder</TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                          </TableHead>
+                          <TableBody>
+                            {monthBookings.map(booking => (
+                              renderBookingItem(booking)
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                    
+                    {/* Mobil vy med cards */}
+                    <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                      {monthBookings.map(booking => (
+                        renderBookingItem(booking)
+                      ))}
+                    </Box>
                   </AccordionDetails>
                 </Accordion>
               );

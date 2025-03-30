@@ -66,23 +66,15 @@ const Home: React.FC = () => {
             </Button>
           ) : isAdmin ? (
             <Button 
-              variant="outlined" 
+              variant="contained" 
               component={RouterLink} 
               to="/admin"
               size="large"
-              startIcon={<AdminPanelSettingsIcon />}
             >
-              Admin panel
+              Adminpanel
             </Button>
           ) : (
-            <Button 
-              variant="outlined" 
-              component={RouterLink} 
-              to="/profile"
-              size="large"
-            >
-              Min profil
-            </Button>
+            null
           )}
         </Stack>
       </Box>

@@ -20,7 +20,7 @@ const AdminPage: React.FC = () => {
         <Container maxWidth="lg">
             <Box sx={{ py: 4 }}>
                 <Typography variant="h3" component="h1" gutterBottom>
-                    Admin Panel
+                    Adminpanel
                 </Typography>
 
                 <Paper sx={{ mb: 4 }}>

@@ -8,7 +8,6 @@ import theme from './theme';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/admin/Dashboard';
-import Profile from './pages/user/Profile';
 import PageView from './pages/public/PageView';
 import PublicPages from './pages/PublicPages';
 import NotFound from './pages/NotFound';
@@ -48,13 +47,6 @@ function AppRoutes() {
         <Route path="/booking" element={<Layout><BookingPage /></Layout>} />
         
         {/* Protected routes */}
-        <Route path="/profile" element={
-          <Layout>
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          </Layout>
-        } />
         
         {/* Admin routes */}
         <Route path="/admin/*" element={
