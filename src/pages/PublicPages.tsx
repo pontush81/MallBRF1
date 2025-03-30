@@ -556,9 +556,7 @@ const PublicPages: React.FC = (): JSX.Element => {
         <Box sx={{ my: 4 }}>
           <Box ref={headerRef}>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" component="h1" gutterBottom>
-                Innehåll
-              </Typography>
+              {/* Tar bort Innehåll-rubriken helt */}
             </Box>
           </Box>
           

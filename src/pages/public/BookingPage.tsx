@@ -15,15 +15,25 @@ import {
   CircularProgress,
   Tooltip,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, isAfter, differenceInDays } from 'date-fns';
+import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { Person, Email, Check } from '@mui/icons-material';
+import { Person, Email, Check, ExpandMore } from '@mui/icons-material';
 import bookingService from '../../services/bookingService';
 import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
@@ -500,6 +510,167 @@ const BookingPage: React.FC = () => {
     );
   };
 
+  // Grupera bokningar efter månad
+  const groupBookingsByMonth = (bookings: Booking[]): Record<string, Booking[]> => {
+    const groupedBookings: Record<string, Booking[]> = {};
+    
+    bookings.forEach(booking => {
+      if (!booking.startDate) return;
+      
+      try {
+        const date = new Date(booking.startDate);
+        const month = format(date, 'yyyy-MM');
+        
+        if (!groupedBookings[month]) {
+          groupedBookings[month] = [];
+        }
+        
+        groupedBookings[month].push(booking);
+      } catch (error) {
+        console.error('Error formatting date:', error);
+      }
+    });
+    
+    return groupedBookings;
+  };
+  
+  // Sortera bokningar efter datum
+  const sortBookingsByDate = (bookings: Booking[]): Booking[] => {
+    return [...bookings].sort((a, b) => {
+      if (!a.startDate || !b.startDate) return 0;
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
+  };
+  
+  // Formatera månadsnamn
+  const formatMonthName = (monthKey: string): string => {
+    try {
+      const date = parseISO(monthKey + '-01');
+      return format(date, 'LLLL yyyy', { locale: sv });
+    } catch (error) {
+      return monthKey;
+    }
+  };
+  
+  // Kontrollera om en månad är i framtiden eller innevarande månad
+  const isCurrentOrFutureMonth = (monthKey: string): boolean => {
+    try {
+      const date = parseISO(monthKey + '-01');
+      return isThisMonth(date) || isFuture(date);
+    } catch (error) {
+      return false;
+    }
+  };
+  
+  // Rendering av bokningslistan
+  const renderBookingsList = () => {
+    if (loadingBookings) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 4 }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+    
+    if (existingBookings.length === 0) {
+      return (
+        <Alert severity="info" sx={{ mt: 4, mb: 4 }}>
+          Inga bokningar hittades.
+        </Alert>
+      );
+    }
+    
+    const sortedBookings = sortBookingsByDate(existingBookings);
+    const groupedBookings = groupBookingsByMonth(sortedBookings);
+    
+    // Sortera månadsnycklarna så att de senaste kommer först
+    const sortedMonthKeys = Object.keys(groupedBookings).sort().reverse();
+    
+    return (
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Aktuella bokningar
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 3 }}>
+          Här kan du se alla bokningar som är inplanerade. Tidigare månader är ihopfällda.
+        </Typography>
+        
+        {sortedMonthKeys.map(monthKey => {
+          const bookingsInMonth = groupedBookings[monthKey];
+          const isExpanded = isCurrentOrFutureMonth(monthKey);
+          const isPastMonth = !isExpanded;
+          
+          return (
+            <Accordion 
+              key={monthKey} 
+              defaultExpanded={isExpanded}
+              sx={{ 
+                mb: 2,
+                ...(isPastMonth && {
+                  '&:before': {
+                    opacity: 0.05,
+                  },
+                })
+              }}
+            >
+              <AccordionSummary 
+                expandIcon={<ExpandMore />}
+                sx={{
+                  ...(isPastMonth && {
+                    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+                  })
+                }}
+              >
+                <Typography sx={{ fontWeight: isExpanded ? 'bold' : 'normal' }}>
+                  {formatMonthName(monthKey)}
+                  <Chip 
+                    label={`${bookingsInMonth.length} bokning${bookingsInMonth.length !== 1 ? 'ar' : ''}`} 
+                    size="small" 
+                    sx={{ ml: 2 }}
+                    color={isExpanded ? "primary" : "default"}
+                    variant={isExpanded ? "filled" : "outlined"}
+                  />
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Ankomst</TableCell>
+                        <TableCell>Avresa</TableCell>
+                        <TableCell>Namn</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {bookingsInMonth.map(booking => (
+                        <TableRow key={booking.id}>
+                          <TableCell>
+                            {booking.startDate 
+                              ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
+                              : 'N/A'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {booking.endDate 
+                              ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
+                              : 'N/A'
+                            }
+                          </TableCell>
+                          <TableCell>{booking.name}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
+      </Box>
+    );
+  };
+
   // Visa olika innehåll beroende på aktivt steg
   const getStepContent = (step: number) => {
     switch (step) {
@@ -668,7 +839,7 @@ const BookingPage: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Boka boende
         </Typography>
-        
+         
         <Box sx={{ mt: 3, mb: 4 }}>
           <Stepper activeStep={activeStep}>
             {steps.map((label, index) => (
@@ -683,7 +854,7 @@ const BookingPage: React.FC = () => {
           <Grid item xs={12} md={7}>
             <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
               {getStepContent(activeStep)}
-              
+               
               {errorMessage && (
                 <Box sx={{ mt: 2 }}>
                   <Alert severity="error">{errorMessage}</Alert>
@@ -691,9 +862,13 @@ const BookingPage: React.FC = () => {
               )}
             </Paper>
           </Grid>
-          
-          
         </Grid>
+        
+        {/* Visa bokningslistan längst ner på sidan */}
+        <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2, mt: 4 }}>
+          <Divider sx={{ mb: 4 }} />
+          {renderBookingsList()}
+        </Paper>
       </Box>
     </Container>
   );
