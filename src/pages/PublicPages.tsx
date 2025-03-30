@@ -516,6 +516,21 @@ const PublicPages: React.FC = (): JSX.Element => {
     return `${API_BASE_URL}${file.path}`;
   };
 
+  // Add scroll event handler to close menu when scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      // Close the menu when scrolling
+      if (menuAnchorEl) {
+        setMenuAnchorEl(null);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [menuAnchorEl]);
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -682,57 +697,82 @@ const PublicPages: React.FC = (): JSX.Element => {
                       </Grid>
                     </Box>
                   )}
-                  
-                  {/* Visa dokument */}
-                  {page.files.filter(file => file.mimetype && !file.mimetype.startsWith('image/')).length > 0 && (
-                    <Box>
+
+                  {/* Dokument (PDF) */}
+                  {page.files.filter(file => file.mimetype && file.mimetype.includes('pdf')).length > 0 && (
+                    <Box sx={{ mb: 4 }}>
                       <Typography variant="h5" gutterBottom>
                         Dokument
                       </Typography>
-                      <Paper variant="outlined" sx={{ p: 0 }}>
+                      <Grid container spacing={1}>
                         {page.files
-                          .filter(file => file.mimetype && !file.mimetype.startsWith('image/'))
-                          .map((file, index, arr) => (
-                            <React.Fragment key={file.id || file.filename}>
-                              {index > 0 && <Divider />}
-                              <Box sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                p: 2,
-                                '&:hover': { bgcolor: 'action.hover' }
-                              }}>
-                                <Box sx={{ pr: 2 }}>
-                                  {file.mimetype === 'application/pdf' ? (
-                                    <PictureAsPdfIcon />
-                                  ) : (
-                                    <AttachFileIcon />
-                                  )}
-                                </Box>
+                          .filter(file => file.mimetype && file.mimetype.includes('pdf'))
+                          .map((file) => (
+                            <Grid item xs={12} md={6} key={file.id || file.filename}>
+                              <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                                <PictureAsPdfIcon color="error" sx={{ mr: 2 }} />
                                 <Box sx={{ flexGrow: 1 }}>
-                                  <Typography variant="subtitle1" gutterBottom>
-                                    {file.originalName}
-                                  </Typography>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {file.originalName}
-                                  </Typography>
-                                  <Typography variant="caption" display="block" color="text.secondary">
+                                  <Typography variant="body2" noWrap title={file.originalName}>
                                     {file.originalName}
                                   </Typography>
                                 </Box>
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  component="a" 
+                                <Button 
+                                  size="small" 
+                                  component="a"
                                   href={getFileUrl(file)}
-                                  download={file.originalName}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   startIcon={<FileDownloadIcon />}
                                 >
                                   Ladda ner
                                 </Button>
-                              </Box>
-                            </React.Fragment>
+                              </Paper>
+                            </Grid>
                           ))}
-                      </Paper>
+                      </Grid>
+                    </Box>
+                  )}
+
+                  {/* Övriga filer */}
+                  {page.files.filter(file => 
+                    file.mimetype && 
+                    !file.mimetype.startsWith('image/') && 
+                    !file.mimetype.includes('pdf')
+                  ).length > 0 && (
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h5" gutterBottom>
+                        Övriga filer
+                      </Typography>
+                      <Grid container spacing={1}>
+                        {page.files
+                          .filter(file => 
+                            file.mimetype && 
+                            !file.mimetype.startsWith('image/') && 
+                            !file.mimetype.includes('pdf')
+                          )
+                          .map((file) => (
+                            <Grid item xs={12} md={6} key={file.id || file.filename}>
+                              <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                                <AttachFileIcon sx={{ mr: 2 }} />
+                                <Box sx={{ flexGrow: 1 }}>
+                                  <Typography variant="body2" noWrap title={file.originalName}>
+                                    {file.originalName}
+                                  </Typography>
+                                </Box>
+                                <Button 
+                                  size="small" 
+                                  component="a"
+                                  href={getFileUrl(file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  startIcon={<FileDownloadIcon />}
+                                >
+                                  Ladda ner
+                                </Button>
+                              </Paper>
+                            </Grid>
+                          ))}
+                      </Grid>
                     </Box>
                   )}
                 </Box>
@@ -741,7 +781,6 @@ const PublicPages: React.FC = (): JSX.Element => {
           ))}
         </Box>
         
-        {/* Scroll-till-toppen knapp */}
         {showScrollTop && (
           <Fab
             color="primary"
