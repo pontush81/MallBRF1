@@ -10,25 +10,10 @@ import {
   Box,
   Alert,
   Link,
-  Divider,
-  ButtonGroup,
   CircularProgress
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
-
-// Förinställda konton för demo
-// (Vid användning av Firebase kommer dessa konton att skapas automatiskt i Firebase Auth)
-const PRESET_ACCOUNTS = {
-  user: {
-    email: 'user@example.com',
-    password: 'password123'
-  },
-  admin: {
-    email: 'admin@example.com',
-    password: 'admin123'
-  }
-};
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -75,13 +60,6 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Funktion för att fylla i demo-användarkonton
-  const fillDemoCredentials = (type: 'user' | 'admin') => {
-    const account = PRESET_ACCOUNTS[type];
-    setEmail(account.email);
-    setPassword(account.password);
   };
 
   return (
@@ -143,35 +121,7 @@ const Login: React.FC = () => {
                   Glömt lösenord?
                 </Link>
               </Grid>
-              <Grid item>
-                <Link href="/register" variant="body2">
-                  {"Har du inget konto? Registrera dig"}
-                </Link>
-              </Grid>
             </Grid>
-            
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Demo-konton
-              </Typography>
-            </Divider>
-            
-            <ButtonGroup variant="outlined" fullWidth>
-              <Button 
-                onClick={() => fillDemoCredentials('user')}
-                sx={{ py: 1 }}
-                disabled={loading}
-              >
-                Användare
-              </Button>
-              <Button 
-                onClick={() => fillDemoCredentials('admin')}
-                sx={{ py: 1 }}
-                disabled={loading}
-              >
-                Administratör
-              </Button>
-            </ButtonGroup>
           </Box>
         </Paper>
       </Box>
