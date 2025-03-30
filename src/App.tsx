@@ -58,11 +58,9 @@ function AppRoutes() {
         
         {/* Admin routes */}
         <Route path="/admin/*" element={
-          <Layout>
-            <ProtectedRoute adminOnly>
-              <Dashboard />
-            </ProtectedRoute>
-          </Layout>
+          <ProtectedRoute adminOnly>
+            <Dashboard />
+          </ProtectedRoute>
         } />
         
         {/* Fallback route */}
