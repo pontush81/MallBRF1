@@ -389,10 +389,17 @@ const BookingPage: React.FC = () => {
     fetchBookings();
   };
 
-  // Ny funktion för att rendera kalendern
-  const renderCalendar = () => {
+  // Ny funktion för att rendera kalendern med maxbredd för desktop
+  const renderCalendarWithMaxWidth = () => {
     return (
-      <Box sx={{ mt: 2, mb: 4 }}>
+      <Box 
+        sx={{ 
+          mt: 2, 
+          mb: 4,
+          mx: 'auto', // Center the calendar
+          maxWidth: { xs: '100%', sm: '100%', md: '600px', lg: '650px' }, // Limit width on larger screens
+        }}
+      >
         <Paper 
           elevation={3} 
           sx={{ 
@@ -905,7 +912,7 @@ const BookingPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                 <CircularProgress />
               </Box>
-            ) : renderCalendar()}
+            ) : renderCalendarWithMaxWidth()}
           </Grid>
           
           {/* Bokningsformulär - endast för inloggade */}
