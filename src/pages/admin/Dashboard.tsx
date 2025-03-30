@@ -28,7 +28,8 @@ import {
   Event as EventIcon,
   Menu as MenuIcon,
   AccountCircle,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  ExitToApp as ExitToAppIcon
 } from '@mui/icons-material';
 import { useNavigate, Route, Routes, useLocation } from 'react-router-dom';
 import { scroller } from 'react-scroll';
@@ -245,6 +246,32 @@ const Dashboard: React.FC = () => {
           />
         </ListItem>
         
+        {/* Lämna admin-länk */}
+        <ListItem 
+          component="div"
+          onClick={() => {
+            setMobileOpen(false);
+            navigate('/pages');
+          }}
+          sx={{
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            },
+            cursor: 'pointer'
+          }}
+        >
+          <ListItemText 
+            primary="LÄMNA ADMIN" 
+            primaryTypographyProps={{
+              variant: 'h6',
+              fontWeight: 'bold'
+            }}
+          />
+        </ListItem>
+        
         {/* Logga ut-knapp */}
         <ListItem 
           component="div"
@@ -396,11 +423,80 @@ const Dashboard: React.FC = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+            },
           }}
           open
         >
-          {permanentDrawer}
+          <Toolbar variant="dense" />
+          <Box sx={{ overflow: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {/* Admin title */}
+            <Box sx={{ p: 2, borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>
+              <Typography variant="h6" color="primary">
+                Admin Panel
+              </Typography>
+            </Box>
+            
+            {/* Nav items */}
+            <List component="nav" disablePadding>
+              <ListItemButton 
+                onClick={() => handleNavItemClick('dashboard')}
+                selected={selectedItem === 'dashboard'}
+              >
+                <ListItemIcon>
+                  <DashboardIcon color={selectedItem === 'dashboard' ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Översikt" />
+              </ListItemButton>
+              
+              <ListItemButton 
+                onClick={() => handleNavItemClick('pages')}
+                selected={selectedItem === 'pages'}
+              >
+                <ListItemIcon>
+                  <ArticleIcon color={selectedItem === 'pages' ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Hantera Sidor" />
+              </ListItemButton>
+              
+              <ListItemButton 
+                onClick={() => handleNavItemClick('bookings')}
+                selected={selectedItem === 'bookings'}
+              >
+                <ListItemIcon>
+                  <EventIcon color={selectedItem === 'bookings' ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Bokningar" />
+              </ListItemButton>
+              
+              <ListItemButton 
+                onClick={() => handleNavItemClick('users')}
+                selected={selectedItem === 'users'}
+              >
+                <ListItemIcon>
+                  <PeopleIcon color={selectedItem === 'users' ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Användare" />
+              </ListItemButton>
+              
+              {/* Lämna admin-länk */}
+              <ListItemButton 
+                onClick={() => navigate('/pages')}
+                sx={{ 
+                  mt: 'auto',  // Placera längst ner i menyn
+                  borderTop: '1px solid rgba(0, 0, 0, 0.12)'
+                }}
+              >
+                <ListItemIcon>
+                  <ExitToAppIcon />
+                </ListItemIcon>
+                <ListItemText primary="Lämna admin" />
+              </ListItemButton>
+            </List>
+          </Box>
         </Drawer>
       </Box>
       
