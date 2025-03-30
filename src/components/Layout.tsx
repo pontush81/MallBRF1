@@ -21,7 +21,10 @@ import {
   MenuItem,
   Divider,
   Collapse,
-  ListItemButton
+  ListItemButton,
+  Tooltip,
+  Fade,
+  Paper
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -30,7 +33,9 @@ import {
   Logout as LogoutIcon,
   Article as ArticleIcon,
   ExpandLess,
-  ExpandMore
+  ExpandMore,
+  Person as PersonIcon,
+  KeyboardArrowDown
 } from '@mui/icons-material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import pageService from '../services/pageService';
@@ -44,7 +49,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), {
+    noSsr: true,  // Förhindra server/client mismatch
+    defaultMatches: false  // Standard är desktop
+  });
   
   // State för sidomenyn på mobil
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -52,6 +60,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // State för att visa/dölja sidor i menyn
   const [pagesOpen, setPagesOpen] = useState(false);
   const [pages, setPages] = useState<Array<{id: string, title: string}>>([]);
+  
+  // State för desktop-menyn
+  const [pagesMenuAnchorEl, setPagesMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   
   // Funktion för att navigera till en sektion med react-scroll
   const navigateToSection = (sectionId: string) => {
@@ -121,18 +133,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setPagesOpen(!pagesOpen);
   };
   
-  const navItems = [
-    { label: 'Sidor', path: '/pages', icon: <ArticleIcon />, clickHandler: handlePagesClick, hasSubmenu: true },
-    { label: 'Boka', path: '/booking', icon: <EventIcon /> }
-  ];
+  // Hantering av desktop-menyn
+  const handlePagesMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setPagesMenuAnchorEl(event.currentTarget);
+  };
   
-  if (isLoggedIn) {
-    if (isAdmin) {
-      navItems.push({ label: 'Admin', path: '/admin', icon: <DashboardIcon /> });
-    }
-    navItems.push({ label: 'Profil', path: '/profile', icon: <AccountCircle /> });
-  }
+  const handlePagesMenuClose = () => {
+    setPagesMenuAnchorEl(null);
+  };
   
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+  
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
+
   // Komponent för drawer-innehållet
   const drawerContent = (
     <Box 
@@ -311,30 +328,194 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <>
-      <AppBar position="fixed">
+      <AppBar 
+        position="sticky" 
+        elevation={3}
+        sx={{ 
+          top: 0,
+          zIndex: theme.zIndex.drawer + 1,
+          backgroundColor: theme.palette.primary.main,
+        }}
+      >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2 }}
-            aria-label="öppna meny"
-          >
-            <MenuIcon />
-          </IconButton>
+          {isMobile ? (
+            /* Mobil vy - Hamburgermenyn */
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
+              aria-label="öppna meny"
+            >
+              <MenuIcon />
+            </IconButton>
+          ) : null}
           
           <Typography 
             variant="h6" 
             component={RouterLink} 
             to="/pages" 
             sx={{ 
-              flexGrow: 1, 
+              flexGrow: isMobile ? 1 : 0,
+              mr: isMobile ? 0 : 3,
               textDecoration: 'none', 
               color: 'white' 
             }}
           >
             Gulmåran
           </Typography>
+          
+          {/* Desktop-navigation */}
+          {!isMobile && (
+            <Box sx={{ display: 'flex', flexGrow: 1 }}>
+              {/* Pages dropdown menu */}
+              <Box>
+                <Button 
+                  color="inherit"
+                  onClick={handlePagesMenuOpen}
+                  aria-controls="pages-menu"
+                  aria-haspopup="true"
+                  endIcon={<KeyboardArrowDown />}
+                  sx={{ textTransform: 'none', fontSize: '1rem' }}
+                >
+                  Sidor
+                </Button>
+                <Menu
+                  id="pages-menu"
+                  anchorEl={pagesMenuAnchorEl}
+                  keepMounted
+                  open={Boolean(pagesMenuAnchorEl)}
+                  onClose={handlePagesMenuClose}
+                  TransitionComponent={Fade}
+                  PaperProps={{
+                    elevation: 3,
+                    sx: {
+                      maxHeight: '65vh',
+                      width: '220px',
+                      overflow: 'auto'
+                    }
+                  }}
+                >
+                  {pages.map(page => (
+                    <MenuItem 
+                      key={page.id}
+                      onClick={() => {
+                        navigateToSection(page.id);
+                        handlePagesMenuClose();
+                      }}
+                    >
+                      {page.title}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </Box>
+              
+              {/* Boka-länk */}
+              <Button 
+                color="inherit" 
+                component={RouterLink} 
+                to="/booking"
+                sx={{ textTransform: 'none', fontSize: '1rem' }}
+              >
+                Boka
+              </Button>
+              
+              {/* Admin-länk om användaren är admin */}
+              {isAdmin && (
+                <Button 
+                  color="inherit" 
+                  component={RouterLink} 
+                  to="/admin"
+                  sx={{ textTransform: 'none', fontSize: '1rem' }}
+                >
+                  Admin
+                </Button>
+              )}
+              
+              <Box sx={{ flexGrow: 1 }} />
+              
+              {/* Användarmenyn till höger */}
+              {isLoggedIn ? (
+                <Box>
+                  <Tooltip title={currentUser?.name || 'Profil'}>
+                    <Button
+                      color="inherit"
+                      onClick={handleUserMenuOpen}
+                      startIcon={<AccountCircle />}
+                      endIcon={<KeyboardArrowDown />}
+                      sx={{ textTransform: 'none', fontSize: '1rem' }}
+                    >
+                      {currentUser?.name || 'Profil'}
+                    </Button>
+                  </Tooltip>
+                  <Menu
+                    id="user-menu"
+                    anchorEl={userMenuAnchorEl}
+                    keepMounted
+                    open={Boolean(userMenuAnchorEl)}
+                    onClose={handleUserMenuClose}
+                    TransitionComponent={Fade}
+                    PaperProps={{
+                      elevation: 3,
+                      sx: { minWidth: '200px' }
+                    }}
+                  >
+                    <MenuItem 
+                      onClick={() => {
+                        navigate('/profile');
+                        handleUserMenuClose();
+                      }}
+                    >
+                      <ListItemIcon>
+                        <PersonIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Min profil</ListItemText>
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem 
+                      onClick={() => {
+                        handleLogout();
+                        handleUserMenuClose();
+                      }}
+                    >
+                      <ListItemIcon>
+                        <LogoutIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Logga ut</ListItemText>
+                    </MenuItem>
+                  </Menu>
+                </Box>
+              ) : (
+                <Box>
+                  <Button 
+                    color="inherit" 
+                    component={RouterLink} 
+                    to="/login"
+                    sx={{ textTransform: 'none', fontSize: '1rem', mr: 1 }}
+                  >
+                    Logga in
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    color="inherit" 
+                    component={RouterLink} 
+                    to="/register"
+                    sx={{ 
+                      textTransform: 'none', 
+                      fontSize: '1rem',
+                      border: '1px solid white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid white'
+                      }
+                    }}
+                  >
+                    Registrera
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          )}
         </Toolbar>
       </AppBar>
       
@@ -359,9 +540,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         {drawerContent}
       </Drawer>
-      
-      {/* Tomt Toolbar-element för att kompensera för fixed AppBar */}
-      <Toolbar />
       
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {children}
