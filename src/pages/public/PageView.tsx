@@ -205,6 +205,12 @@ const PageView: React.FC = () => {
     return file.url;
   };
 
+  // Hjälpfunktion för att öppna filen
+  const handleFileOpen = (file: FileInfo) => {
+    const url = getFileUrl(file);
+    window.open(url, '_blank');
+  };
+
   if (loading) {
     return (
       <Container maxWidth="md">
@@ -346,6 +352,7 @@ const PageView: React.FC = () => {
                             image={getFileUrl(file)}
                             alt={file.originalName}
                             sx={{ objectFit: 'cover' }}
+                            onClick={() => handleFileOpen(file)}
                           />
                           <CardContent sx={{ py: 1 }}>
                             <Typography variant="body2" noWrap title={file.originalName}>
@@ -400,11 +407,10 @@ const PageView: React.FC = () => {
                           <Button
                             variant="contained"
                             color="primary"
-                            href={getFileUrl(file)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            onClick={() => handleFileOpen(file)}
+                            startIcon={getFileIcon(file.mimetype)}
                           >
-                            Ladda ner
+                            Öppna
                           </Button>
                         </Box>
                       </React.Fragment>

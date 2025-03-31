@@ -561,6 +561,7 @@ router.post('/:id/upload', async (req, res) => {
       const { error: createBucketError } = await supabase.storage.createBucket('files', {
         public: true,
         fileSizeLimit: 52428800, // 50MB
+        allowedMimeTypes: ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
       });
       if (createBucketError) {
         console.error('Error creating bucket:', createBucketError);
@@ -655,6 +656,11 @@ router.get('/file/:pageId/:filename', async (req, res) => {
     const { pageId, filename } = req.params;
     const filePath = `pages/${pageId}/${filename}`;
 
+    // Sätt CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
     // Hämta filen från Supabase storage
     const { data: fileData, error } = await supabase.storage
       .from('files')
@@ -673,6 +679,7 @@ router.get('/file/:pageId/:filename', async (req, res) => {
     // Sätt rätt headers
     res.setHeader('Content-Type', fileMetadata?.mimetype || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
 
     // Skicka filen
     res.send(fileData);
