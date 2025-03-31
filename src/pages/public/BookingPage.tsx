@@ -623,6 +623,69 @@ const BookingPage: React.FC = () => {
     }, 0);
   };
   
+  // Beräkna intäkter för en bokning
+  const calculateRevenueForBooking = (booking: Booking): number => {
+    if (!booking.startDate || !booking.endDate) return 0;
+    
+    try {
+      const startDate = new Date(booking.startDate);
+      const endDate = new Date(booking.endDate);
+      
+      // Kontrollera att datumen är giltiga
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return 0;
+      }
+      
+      // Beräkna antal nätter
+      const totalNights = differenceInDays(endDate, startDate);
+      if (totalNights <= 0) return 0;
+      
+      let revenue = 0;
+      
+      // Definiera tennisveckorna (exempel - justera efter verkliga tennisveckor)
+      const tennisWeeks = [27, 28, 29]; // Justera dessa veckor efter behov
+      
+      // Gå igenom varje natt och beräkna priset baserat på säsong
+      const currentDate = new Date(startDate);
+      for (let i = 0; i < totalNights; i++) {
+        // Beräkna veckonummer (1-52)
+        const firstDayOfYear = new Date(currentDate.getFullYear(), 0, 1);
+        const pastDaysOfYear = (currentDate.getTime() - firstDayOfYear.getTime()) / 86400000;
+        const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        
+        // Pris baserat på säsong
+        if (week >= 24 && week <= 32) {
+          // Högsäsong
+          if (tennisWeeks.includes(week)) {
+            // Tennisveckor
+            revenue += 800; // 800 kr per dygn under tennisveckorna
+          } else {
+            // Vanlig högsäsong
+            revenue += 600; // 600 kr per dygn under högsäsong
+          }
+        } else {
+          // Lågsäsong - vecka 1-23 samt vecka 33-52
+          revenue += 400; // 400 kr per dygn under lågsäsong
+        }
+        
+        // Gå till nästa dag
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return revenue;
+    } catch (error) {
+      console.warn('Fel vid beräkning av intäkter för bokning:', booking.id);
+      return 0;
+    }
+  };
+  
+  // Beräkna intäkter för en månad baserat på säsongspriser
+  const calculateRevenueForMonth = (bookings: Booking[]): number => {
+    return bookings.reduce((total: number, booking: Booking) => {
+      return total + calculateRevenueForBooking(booking);
+    }, 0);
+  };
+  
   // Rendering av bokningslistan
   const renderBookingsList = () => {
     if (loadingBookings) {
@@ -758,6 +821,18 @@ const BookingPage: React.FC = () => {
                     color={isExpanded ? "primary" : "default"}
                     variant={isExpanded ? "filled" : "outlined"}
                   />
+                  <Chip 
+                    label={`${calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr`} 
+                    size="small" 
+                    sx={{ 
+                      ml: 1, 
+                      backgroundColor: isExpanded 
+                        ? 'rgba(255,255,255,0.3)' 
+                        : 'rgba(0,0,0,0.08)'
+                    }}
+                    color={isExpanded ? "primary" : "default"}
+                    variant={isExpanded ? "filled" : "outlined"}
+                  />
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
@@ -768,8 +843,10 @@ const BookingPage: React.FC = () => {
                         <TableCell>Ankomst</TableCell>
                         <TableCell>Avresa</TableCell>
                         <TableCell>Namn</TableCell>
+                        <TableCell align="center">Vecka</TableCell>
                         <TableCell align="center">Nätter</TableCell>
                         <TableCell align="center">Parkering</TableCell>
+                        <TableCell align="right">Intäkt</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -789,6 +866,38 @@ const BookingPage: React.FC = () => {
                           </TableCell>
                           <TableCell>{booking.name}</TableCell>
                           <TableCell align="center">
+                            {booking.startDate && (
+                              (() => {
+                                const date = new Date(booking.startDate);
+                                const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                                const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+                                const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                                
+                                let bgcolor = "transparent";
+                                if (week >= 24 && week <= 32) {
+                                  if ([27, 28, 29].includes(week)) {
+                                    bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
+                                  } else {
+                                    bgcolor = "rgba(0, 128, 255, 0.08)"; // High season
+                                  }
+                                } else {
+                                  bgcolor = "rgba(0, 0, 0, 0.03)"; // Low season
+                                }
+                                
+                                return (
+                                  <Chip 
+                                    size="small" 
+                                    label={`v.${week}`} 
+                                    sx={{ 
+                                      backgroundColor: bgcolor,
+                                      minWidth: "50px"
+                                    }}
+                                  />
+                                );
+                              })()
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
                             {booking.startDate && booking.endDate
                               ? differenceInDays(new Date(booking.endDate), new Date(booking.startDate))
                               : '-'
@@ -797,8 +906,26 @@ const BookingPage: React.FC = () => {
                           <TableCell align="center">
                             {renderParkingStatus(booking.parking)}
                           </TableCell>
+                          <TableCell align="right">
+                            {booking.startDate && booking.endDate
+                              ? `${calculateRevenueForBooking(booking).toLocaleString()} kr`
+                              : '-'
+                            }
+                          </TableCell>
                         </TableRow>
                       ))}
+                      <TableRow 
+                        sx={{ 
+                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                          '& td': { fontWeight: 'bold' } 
+                        }}
+                      >
+                        <TableCell colSpan={3}>Totalt för månaden</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell align="center">{calculateTotalNights(bookingsInMonth)}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell align="right">{calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -1080,6 +1207,40 @@ const BookingPage: React.FC = () => {
             <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, color: 'primary.main' }}>
               Aktuella bokningar
             </Typography>
+            
+            {/* Prisinfo */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid rgba(0, 0, 0, 0.12)' }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+                Priser (kr/dygn)
+              </Typography>
+              <Grid container spacing={1}>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
+                    <Typography variant="body2">
+                      Högsäsong (v. 24-32): 600 kr
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
+                    <Typography variant="body2">
+                      Tennisveckor (v. 27-29): 800 kr
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
+                    <Typography variant="body2">
+                      Lågsäsong (v. 1-23, 33-52): 400 kr
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+            
             {renderBookingsList()}
           </Paper>
         </Box>
