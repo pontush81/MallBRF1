@@ -944,11 +944,11 @@ const BookingPage: React.FC = () => {
           )}
           
           <Typography variant="h5" gutterBottom color="primary">
-            Tack för din bokning!
+            Bokning klar!
           </Typography>
           
           <Typography variant="body1" paragraph>
-            Vi har tagit emot din bokning och kommer att bekräfta den så snart som möjligt.
+            Din bokning har bekräftats.
           </Typography>
           
           <Button
