@@ -92,7 +92,8 @@ const corsOptions = {
       'https://www.gulmaran.com',
       'https://staging.gulmaran.com',
       'https://stage.gulmaran.com',
-      'https://www.stage.gulmaran.com'
+      'https://www.stage.gulmaran.com',
+      'https://mallbrf.vercel.app'
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)

@@ -42,6 +42,7 @@ import { Booking } from '../../types/Booking';
 import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
+import { API_BASE_URL } from '../../config';
 
 const BookingsList: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -173,12 +174,13 @@ const BookingsList: React.FC = () => {
   const handleBackup = async () => {
     setBackupLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/backup/send-backup`, {
+      const response = await fetch(`${API_BASE_URL}/backup/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-vercel-protection-bypass': 'true'
-        }
+        },
+        credentials: 'include'
       });
 
       if (!response.ok) {
