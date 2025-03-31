@@ -33,31 +33,12 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const origin = request.headers.get('origin');
-  console.log('POST request received with origin:', origin);
-
-  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
-    return new NextResponse(JSON.stringify({ error: 'Unauthorized origin' }), {
-      status: 403,
-      headers: {
-        'Vary': 'Origin',
-      },
-    });
-  }
-
   try {
     // Your backup logic here
     // ...
 
     return new NextResponse(JSON.stringify({ success: true }), {
       status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass',
-        'Access-Control-Allow-Credentials': 'true',
-        'Vary': 'Origin',
-      },
     });
   } catch (error) {
     console.error('Backup error:', error);
@@ -65,13 +46,6 @@ export async function POST(request: Request) {
       JSON.stringify({ error: 'Failed to create backup' }),
       {
         status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': origin,
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass',
-          'Access-Control-Allow-Credentials': 'true',
-          'Vary': 'Origin',
-        },
       }
     );
   }
