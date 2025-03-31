@@ -246,7 +246,7 @@ const BookingPage: React.FC = () => {
   useEffect(() => {
     const fetchApartmentInfo = async () => {
       try {
-        const page = await pageService.getPageBySlug('lagenhet-info');
+        const page = await pageService.getPageBySlug('gastlagenhet');
         // Tyst felhantering - gör inget om sidan inte hittas
       } catch (error) {
         // Tyst felhantering

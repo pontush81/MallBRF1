@@ -159,6 +159,8 @@ app.use('/api', (req, res, next) => {
     '/api/pages/visible',
     '/api/pages/published',
     '/api/pages/slug',
+    '/api/bookings/check-availability',
+    '/api/bookings',
     '/api/manifest.json',
     '/api/health'
   ];

@@ -32,6 +32,16 @@ const supabase = createClient(
     },
     db: {
       schema: 'public'
+    },
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, {
+          ...options,
+          agent: process.env.NODE_ENV !== 'production' ? 
+            new (require('https').Agent)({ rejectUnauthorized: false }) : 
+            undefined
+        });
+      }
     }
   }
 );

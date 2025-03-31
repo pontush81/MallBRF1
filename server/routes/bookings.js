@@ -66,14 +66,29 @@ const transformBookingData = (booking) => {
 
 // Helper function to transform booking data for database
 const transformBookingDataForDB = (booking) => {
+  // Ensure proper date format for Supabase
+  const startDate = booking.startDate ? new Date(booking.startDate).toISOString() : null;
+  const endDate = booking.endDate ? new Date(booking.endDate).toISOString() : null;
+  
+  console.log('Transforming dates:', {
+    input: {
+      startDate: booking.startDate,
+      endDate: booking.endDate
+    },
+    transformed: {
+      startdate: startDate,
+      enddate: endDate
+    }
+  });
+  
   return {
     name: booking.name,
     email: booking.email,
     phone: booking.phone,
-    startdate: booking.startDate,
-    enddate: booking.endDate,
+    startdate: startDate,
+    enddate: endDate,
     notes: booking.notes,
-    status: booking.status,
+    status: booking.status || 'pending',
     parkering: booking.parking === true || booking.parking === 'true' || booking.parking === 1
   };
 };
@@ -156,18 +171,66 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const bookingData = transformBookingDataForDB(req.body);
+    console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
+    
+    // Validate required fields
+    const requiredFields = ['name', 'email', 'startdate', 'enddate'];
+    const missingFields = requiredFields.filter(field => !bookingData[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return res.status(400).json({ 
+        error: 'Missing required fields', 
+        details: `Missing: ${missingFields.join(', ')}` 
+      });
+    }
+    
+    // Validate date formats
+    try {
+      new Date(bookingData.startdate);
+      new Date(bookingData.enddate);
+    } catch (err) {
+      console.error('Invalid date format:', { 
+        startdate: bookingData.startdate, 
+        enddate: bookingData.enddate 
+      });
+      return res.status(400).json({ 
+        error: 'Invalid date format', 
+        details: 'Dates must be in ISO format'
+      });
+    }
+    
+    console.log('Attempting database insert with validated data...');
     const { data, error } = await supabase
       .from('bookings')
       .insert([bookingData])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error creating booking:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
 
+    console.log('Successfully created booking, response:', data);
+    if (!data || data.length === 0) {
+      throw new Error('No data returned after successful insert');
+    }
+    
     const transformedBooking = transformBookingData(data[0]);
     res.status(201).json(transformedBooking);
   } catch (error) {
-    console.error('Error creating booking:', error);
-    res.status(500).json({ error: 'Failed to create booking' });
+    console.error('Error creating booking:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      details: error.details || 'No details available'
+    });
+    res.status(500).json({ error: 'Failed to create booking', details: error.message });
   }
 });
 
