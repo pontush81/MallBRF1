@@ -1,5 +1,5 @@
 import { User } from '../types/User';
-import { auth, db, googleProvider } from './firebase';
+import { auth, db, googleProvider, facebookProvider } from './firebase';
 import { 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -85,6 +85,57 @@ export const userService = {
       return user;
     } catch (error: any) {
       console.error('Error during Google login:', error.code, error.message);
+      if (error.customData) {
+        console.error('Error details:', error.customData);
+      }
+      throw error; // Rethrow to allow UI to handle it
+    }
+  },
+
+  async loginWithFacebook(): Promise<User | null> {
+    try {
+      console.log('Starting Facebook sign-in from origin:', window.location.origin);
+      
+      // Use popup for Facebook login
+      const result = await signInWithPopup(auth, facebookProvider);
+      console.log('Facebook sign-in successful, user:', result.user.email);
+      
+      const firebaseUser = result.user;
+      
+      // Check if user exists in Firestore
+      let user = await this.getUserById(firebaseUser.uid);
+      
+      if (user) {
+        console.log('User already exists in Firestore:', user);
+      } else {
+        console.log('Creating new user in Firestore for:', firebaseUser.email);
+        // If user doesn't exist in Firestore, create a new record
+        user = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || '',
+          role: 'user',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        };
+        
+        try {
+          // Save to Firestore
+          await setDoc(doc(db, 'users', firebaseUser.uid), user);
+          console.log('Successfully created user in Firestore');
+        } catch (error: any) {
+          console.error('Error creating user in Firestore:', error.code, error.message);
+          if (error.customData) {
+            console.error('Error details:', error.customData);
+          }
+          // Still return the user even if we couldn't save to Firestore
+        }
+      }
+      
+      return user;
+    } catch (error: any) {
+      console.error('Error during Facebook login:', error.code, error.message);
       if (error.customData) {
         console.error('Error details:', error.customData);
       }

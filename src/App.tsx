@@ -12,6 +12,8 @@ import PageView from './pages/public/PageView';
 import PublicPages from './pages/PublicPages';
 import NotFound from './pages/NotFound';
 import BookingPage from './pages/public/BookingPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import DataDeletion from './pages/DataDeletion';
 
 // Layout
 import Layout from './components/Layout';
@@ -45,6 +47,8 @@ function AppRoutes() {
         <Route path="/page/:id" element={<Layout><PageView /></Layout>} />
         <Route path="/pages" element={<Layout><PublicPages /></Layout>} />
         <Route path="/booking" element={<Layout><BookingPage /></Layout>} />
+        <Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
+        <Route path="/data-deletion" element={<Layout><DataDeletion /></Layout>} />
         
         {/* Protected routes */}
         

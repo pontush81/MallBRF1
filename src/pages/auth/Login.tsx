@@ -14,6 +14,7 @@ import {
   Divider
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
+import FacebookIcon from '@mui/icons-material/Facebook';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
 
@@ -23,6 +24,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
   
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
@@ -116,6 +118,34 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    try {
+      setError(null);
+      setFacebookLoading(true);
+      
+      const user = await userService.loginWithFacebook();
+      
+      if (user) {
+        console.log('Successfully logged in with Facebook, user:', user.email);
+        authLogin(user);
+        navigate('/pages');
+      } else {
+        setError('Kunde inte slutföra Facebook-inloggningen');
+      }
+    } catch (err: any) {
+      console.error('Facebook login error:', err);
+      const errorMessage = err.code === 'auth/popup-closed-by-user' 
+        ? 'Popup-fönstret stängdes. Försök igen.' 
+        : err.code === 'auth/popup-blocked'
+        ? 'Popup-fönstret blockerades av webbläsaren. Kontrollera dina inställningar.'
+        : 'Kunde inte slutföra Facebook-inloggningen: ' + (err.message || 'Okänt fel');
+      
+      setError(errorMessage);
+    } finally {
+      setFacebookLoading(false);
+    }
+  };
+
   return (
     <Container maxWidth="sm">
       <Box sx={{ my: 4 }}>
@@ -180,6 +210,18 @@ const Login: React.FC = () => {
               sx={{ mb: 2, py: 1.2 }}
             >
               {googleLoading ? <CircularProgress size={24} /> : 'Logga in med Google'}
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<FacebookIcon />}
+              onClick={handleFacebookSignIn}
+              disabled={facebookLoading}
+              sx={{ mb: 2, py: 1.2 }}
+              style={{ backgroundColor: '#1877F2', color: 'white', borderColor: '#1877F2' }}
+            >
+              {facebookLoading ? <CircularProgress size={24} /> : 'Logga in med Facebook'}
             </Button>
             
             <Grid container>
