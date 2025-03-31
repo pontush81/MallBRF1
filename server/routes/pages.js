@@ -649,6 +649,39 @@ router.post('/:id/upload', async (req, res) => {
   }
 });
 
+// Hämta en fil via proxy
+router.get('/file/:pageId/:filename', async (req, res) => {
+  try {
+    const { pageId, filename } = req.params;
+    const filePath = `pages/${pageId}/${filename}`;
+
+    // Hämta filen från Supabase storage
+    const { data: fileData, error } = await supabase.storage
+      .from('files')
+      .download(filePath);
+
+    if (error) {
+      console.error('Error downloading file:', error);
+      return res.status(404).json({ error: 'Filen kunde inte hittas' });
+    }
+
+    // Hämta filens metadata för att sätta rätt content-type
+    const { data: fileMetadata } = await supabase.storage
+      .from('files')
+      .getMetadata(filePath);
+
+    // Sätt rätt headers
+    res.setHeader('Content-Type', fileMetadata?.mimetype || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+    // Skicka filen
+    res.send(fileData);
+  } catch (error) {
+    console.error('Error in file download endpoint:', error);
+    res.status(500).json({ error: 'Ett oväntat fel uppstod' });
+  }
+});
+
 module.exports = { 
   router,
   setupFileUpload

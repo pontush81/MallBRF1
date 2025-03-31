@@ -8,6 +8,7 @@ const ALLOWED_ORIGINS = [
   'https://stage.gulmaran.com',  // Staging
   'https://www.stage.gulmaran.com', // Staging med www
   'http://localhost:3000',       // Lokal utveckling
+  'https://qhdgqevdmvkrwnzpwikz.supabase.co', // Supabase storage
 ];
 
 export function middleware(request: NextRequest) {

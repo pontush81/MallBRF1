@@ -195,6 +195,16 @@ const PageView: React.FC = () => {
     };
   };
 
+  // Hjälpfunktion för att få rätt fil-URL
+  const getFileUrl = (file: FileInfo) => {
+    // I utvecklingsmiljö, använd vår proxy
+    if (process.env.NODE_ENV === 'development') {
+      return `/api/pages/file/${id}/${file.filename}`;
+    }
+    // I produktion, använd Supabase URL direkt
+    return file.url;
+  };
+
   if (loading) {
     return (
       <Container maxWidth="md">
@@ -333,7 +343,7 @@ const PageView: React.FC = () => {
                           <CardMedia
                             component="img"
                             height="180"
-                            image={file.url}
+                            image={getFileUrl(file)}
                             alt={file.originalName}
                             sx={{ objectFit: 'cover' }}
                           />
@@ -346,7 +356,7 @@ const PageView: React.FC = () => {
                             <Button 
                               size="small" 
                               component="a"
-                              href={file.url}
+                              href={getFileUrl(file)}
                               target="_blank"
                               rel="noopener noreferrer"
                               startIcon={<ImageIcon />}
@@ -390,7 +400,7 @@ const PageView: React.FC = () => {
                           <Button
                             variant="contained"
                             color="primary"
-                            href={file.url}
+                            href={getFileUrl(file)}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
