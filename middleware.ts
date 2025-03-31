@@ -12,6 +12,11 @@ const ALLOWED_ORIGINS = [
   process.env.CORS_ORIGIN || 'http://localhost:3000'
 ].filter(Boolean);
 
+export const config = {
+  matcher: '/api/:path*',
+  runtime: 'edge',
+};
+
 export function middleware(request: NextRequest) {
   // Hämta origin från olika headers
   const origin = request.headers.get('origin');
@@ -43,9 +48,10 @@ export function middleware(request: NextRequest) {
         headers: {
           'Access-Control-Allow-Origin': allowedOrigin,
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass',
           'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Max-Age': '86400',
+          'Vary': 'Origin',
         },
       });
       console.log('Middleware - Sending CORS headers:', Object.fromEntries(response.headers.entries()));
@@ -64,15 +70,12 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', '*');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
     response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Vary', 'Origin');
     console.log('Middleware - Added CORS headers to response:', Object.fromEntries(response.headers.entries()));
     return response;
   }
 
   return NextResponse.next();
-}
-
-export const config = {
-  matcher: '/api/:path*',
-}; 
+} 
