@@ -599,6 +599,30 @@ const BookingPage: React.FC = () => {
     }
   };
   
+  // Beräkna totalt antal nätter för en månad
+  const calculateTotalNights = (bookings: Booking[]): number => {
+    return bookings.reduce((total, booking) => {
+      if (!booking.startDate || !booking.endDate) return total;
+      
+      try {
+        const startDate = new Date(booking.startDate);
+        const endDate = new Date(booking.endDate);
+        
+        // Kontrollera att datumen är giltiga
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return total;
+        }
+        
+        // Beräkna antal nätter (end date - start date)
+        const nights = differenceInDays(endDate, startDate);
+        return total + (nights > 0 ? nights : 0);
+      } catch (error) {
+        console.warn('Fel vid beräkning av nätter för bokning:', booking.id);
+        return total;
+      }
+    }, 0);
+  };
+  
   // Rendering av bokningslistan
   const renderBookingsList = () => {
     if (loadingBookings) {
@@ -712,6 +736,18 @@ const BookingPage: React.FC = () => {
                   {formatMonthName(monthKey)}
                   <Chip 
                     label={`${bookingsInMonth.length} bokning${bookingsInMonth.length !== 1 ? 'ar' : ''}`} 
+                    size="small" 
+                    sx={{ 
+                      ml: 1, 
+                      backgroundColor: isExpanded 
+                        ? 'rgba(255,255,255,0.3)' 
+                        : 'rgba(0,0,0,0.08)'
+                    }}
+                    color={isExpanded ? "primary" : "default"}
+                    variant={isExpanded ? "filled" : "outlined"}
+                  />
+                  <Chip 
+                    label={`${calculateTotalNights(bookingsInMonth)} nätter`} 
                     size="small" 
                     sx={{ 
                       ml: 1, 
