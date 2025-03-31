@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -26,6 +26,28 @@ const Login: React.FC = () => {
   
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
+
+  // Check for Google sign-in redirect result when component mounts
+  useEffect(() => {
+    console.log('Login component mounted, checking for Google redirect');
+    const checkGoogleRedirect = async () => {
+      try {
+        const user = await userService.handleGoogleRedirect();
+        if (user) {
+          console.log('Successfully logged in with Google redirect, user:', user.email);
+          authLogin(user);
+          navigate('/pages');
+        } else {
+          console.log('No Google redirect result found or login was not completed');
+        }
+      } catch (err: any) {
+        console.error('Error handling Google redirect:', err.code, err.message);
+        setError('Kunde inte slutföra Google-inloggningen: ' + (err.message || 'Okänt fel'));
+      }
+    };
+    
+    checkGoogleRedirect();
+  }, [authLogin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,31 +92,25 @@ const Login: React.FC = () => {
       setError(null);
       setGoogleLoading(true);
       
-      // Logga in med Google via userService
+      // Använd popup istället för redirect
       const user = await userService.loginWithGoogle();
       
       if (user) {
-        // Användaren är inloggad via Google, uppdatera kontexten
+        console.log('Successfully logged in with Google, user:', user.email);
         authLogin(user);
-        
-        // Navigera till sidlistan
         navigate('/pages');
       } else {
-        setError('Kunde inte logga in med Google');
+        setError('Kunde inte slutföra Google-inloggningen');
       }
     } catch (err: any) {
-      let errorMessage = 'Kunde inte logga in med Google';
-      
-      if (err.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Inloggning avbruten';
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        errorMessage = 'Inloggningsfönstret stängdes för snabbt, försök igen';
-      } else if (err.code === 'auth/popup-blocked') {
-        errorMessage = 'Popup-fönstret blockerades. Tillåt popup-fönster och försök igen';
-      }
+      console.error('Google login error:', err);
+      const errorMessage = err.code === 'auth/popup-closed-by-user' 
+        ? 'Popup-fönstret stängdes. Försök igen.' 
+        : err.code === 'auth/popup-blocked'
+        ? 'Popup-fönstret blockerades av webbläsaren. Kontrollera dina inställningar.'
+        : 'Kunde inte slutföra Google-inloggningen: ' + (err.message || 'Okänt fel');
       
       setError(errorMessage);
-      console.error('Google login error:', err);
     } finally {
       setGoogleLoading(false);
     }

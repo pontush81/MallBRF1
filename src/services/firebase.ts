@@ -37,6 +37,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Configure Google provider
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 // Set session persistence to LOCAL (will persist even after browser restart)
 setPersistence(auth, browserLocalPersistence)
   .catch((error) => {
