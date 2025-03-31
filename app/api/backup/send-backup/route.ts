@@ -35,33 +35,12 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const origin = request.headers.get('origin');
-  console.log('POST request received with origin:', origin);
-  console.log('Allowed origins:', ALLOWED_ORIGINS);
-  
-  // Kontrollera om origin finns i listan över tillåtna domäner
-  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
-    console.log('Origin not allowed, sending 403');
-    return new NextResponse(JSON.stringify({ error: 'Unauthorized origin' }), {
-      status: 403,
-    });
-  }
-
   try {
-    // Add CORS headers to the response
-    const headers = {
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
-
     // Your backup logic here
     // ...
 
-    console.log('Backup successful, sending response with CORS headers');
     return new NextResponse(JSON.stringify({ success: true }), {
       status: 200,
-      headers,
     });
   } catch (error) {
     console.error('Backup error:', error);
@@ -69,11 +48,6 @@ export async function POST(request: Request) {
       JSON.stringify({ error: 'Failed to create backup' }),
       {
         status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': origin,
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        },
       }
     );
   }
