@@ -215,7 +215,30 @@ const PageEditor: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // Validera filen innan uppladdning
+      if (file.size === 0) {
+        throw new Error('Filen är tom (0 bytes). Välj en annan fil.');
+      }
+
+      // Kontrollera filtyp
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(`Filtypen ${file.type} stöds inte. Endast bilder och PDF-filer är tillåtna.`);
+      }
+
+      // Kontrollera filstorlek (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error(`Filen är för stor (${(file.size / 1024 / 1024).toFixed(2)}MB). Max filstorlek är 10MB.`);
+      }
+
       console.log('Starting file upload for:', file.name);
+      console.log('File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
       const response = await pageService.uploadFile(id, file);
       console.log('Upload response:', response);
 

@@ -523,10 +523,76 @@ router.delete('/:id/files/:fileId', async (req, res) => {
   }
 });
 
+// Hämta en fil via proxy
+router.get('/file/:pageId/:filename', async (req, res) => {
+  try {
+    const { pageId, filename } = req.params;
+    const filePath = `pages/${pageId}/${filename}`;
+
+    console.log('Attempting to fetch file:', filePath);
+
+    // Sätt CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    // Först kontrollera om filen finns
+    const { data: fileExists, error: existsError } = await supabase.storage
+      .from('files')
+      .list(filePath.split('/').slice(0, -1).join('/'));
+
+    if (existsError) {
+      console.error('Error checking file existence:', existsError);
+      return res.status(404).json({ error: 'Filen kunde inte hittas' });
+    }
+
+    const file = fileExists.find(f => f.name === filePath.split('/').pop());
+    if (!file) {
+      console.error('File not found in bucket');
+      return res.status(404).json({ error: 'Filen kunde inte hittas' });
+    }
+
+    // Hämta filen från Supabase storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('files')
+      .download(filePath);
+
+    if (downloadError) {
+      console.error('Error downloading file:', downloadError);
+      return res.status(500).json({ error: 'Kunde inte ladda ner filen' });
+    }
+
+    // Hämta filens metadata för att sätta rätt content-type
+    const { data: fileMetadata } = await supabase.storage
+      .from('files')
+      .getMetadata(filePath);
+
+    // Sätt rätt headers
+    res.setHeader('Content-Type', fileMetadata?.mimetype || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    // Skicka filen
+    res.send(fileData);
+  } catch (error) {
+    console.error('Error in file download endpoint:', error);
+    res.status(500).json({ error: 'Ett oväntat fel uppstod' });
+  }
+});
+
 // Ladda upp en fil till en sida
 router.post('/:id/upload', async (req, res) => {
   try {
+    console.log('File upload request received', {
+      files: req.files ? Object.keys(req.files) : 'none',
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length']
+    });
+    
     if (!req.files || !req.files.file) {
+      console.error('No files were uploaded', {
+        body: req.body
+      });
       return res.status(400).json({ error: 'Ingen fil uppladdad' });
     }
 
@@ -537,16 +603,48 @@ router.post('/:id/upload', async (req, res) => {
     console.log('File details:', {
       name: file.name,
       size: file.size,
-      mimetype: file.mimetype
+      mimetype: file.mimetype,
+      encoding: file.encoding,
+      truncated: file.truncated,
+      md5: file.md5,
+      dataType: typeof file.data,
+      dataIsBuffer: Buffer.isBuffer(file.data),
+      dataLength: file.data ? (Buffer.isBuffer(file.data) ? file.data.length : 'unknown') : 'none'
     });
+
+    // Validera filstorlek
+    if (file.size === 0) {
+      console.error('File has zero size');
+      return res.status(400).json({ 
+        error: 'Kunde inte ladda upp filen', 
+        details: 'Filen är tom (0 bytes)' 
+      });
+    }
+
+    // Validera MIME-typ
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 
+      'application/pdf', 'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      console.error('Unsupported file type:', file.mimetype);
+      return res.status(400).json({ 
+        error: 'Kunde inte ladda upp filen', 
+        details: 'Filtypen stöds inte' 
+      });
+    }
 
     // Upload to Supabase Storage
     const fileExt = file.name.split('.').pop();
     const fileName = `${pageId}/${Date.now()}.${fileExt}`;
-    const filePath = `pages/${fileName}`;
+    let filePath = `pages/${fileName}`;  // Changed to let since we modify it
 
     console.log('Attempting to upload to Supabase storage...');
     console.log('Target path:', filePath);
+    console.log('File size:', file.size);
+    console.log('File type:', file.mimetype);
 
     // First, try to create the bucket if it doesn't exist
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
@@ -569,25 +667,57 @@ router.post('/:id/upload', async (req, res) => {
       }
     }
 
+    // Kontrollera om filen redan finns
+    const { data: existingFiles } = await supabase.storage
+      .from('files')
+      .list(`pages/${pageId}`);
+
+    if (existingFiles?.some(f => f.name === filePath.split('/').pop())) {
+      console.log('File already exists, generating new filename');
+      const newFileName = `${pageId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      filePath = `pages/${newFileName}`;
+    }
+
+    // Create a Buffer from the file data if it's not already a Buffer
+    const fileBuffer = Buffer.isBuffer(file.data) ? file.data : Buffer.from(file.data);
+
+    // Verify the buffer is not empty
+    if (fileBuffer.length === 0) {
+      console.error('File buffer is empty');
+      return res.status(400).json({ 
+        error: 'Kunde inte ladda upp filen', 
+        details: 'File data is empty' 
+      });
+    }
+
+    console.log('Uploading file buffer of size:', fileBuffer.length);
+
     // Upload the file
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('files')
-      .upload(filePath, file.data, {
+      .upload(filePath, fileBuffer, {
         contentType: file.mimetype,
         cacheControl: '3600',
-        upsert: false
+        upsert: true  // Changed to true to allow overwriting if needed
       });
 
     if (uploadError) {
       console.error('Supabase upload error details:', {
         statusCode: uploadError.statusCode,
         error: uploadError.error,
-        message: uploadError.message
+        message: uploadError.message,
+        filePath,
+        fileSize: fileBuffer.length,
+        mimeType: file.mimetype
       });
       throw uploadError;
     }
 
-    console.log('File uploaded successfully to Supabase');
+    if (!uploadData) {
+      throw new Error('Upload completed but no data returned from Supabase');
+    }
+
+    console.log('File uploaded successfully to Supabase:', uploadData);
 
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
@@ -614,7 +744,7 @@ router.post('/:id/upload', async (req, res) => {
     // Add new file to the array
     const newFile = {
       id: Date.now().toString(),
-      filename: fileName,
+      filename: filePath,
       originalName: file.name,
       mimetype: file.mimetype,
       url: publicUrl,
@@ -647,45 +777,6 @@ router.post('/:id/upload', async (req, res) => {
       error: 'Kunde inte ladda upp filen',
       details: error.message || 'Ett oväntat fel uppstod'
     });
-  }
-});
-
-// Hämta en fil via proxy
-router.get('/file/:pageId/:filename', async (req, res) => {
-  try {
-    const { pageId, filename } = req.params;
-    const filePath = `pages/${pageId}/${filename}`;
-
-    // Sätt CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    // Hämta filen från Supabase storage
-    const { data: fileData, error } = await supabase.storage
-      .from('files')
-      .download(filePath);
-
-    if (error) {
-      console.error('Error downloading file:', error);
-      return res.status(404).json({ error: 'Filen kunde inte hittas' });
-    }
-
-    // Hämta filens metadata för att sätta rätt content-type
-    const { data: fileMetadata } = await supabase.storage
-      .from('files')
-      .getMetadata(filePath);
-
-    // Sätt rätt headers
-    res.setHeader('Content-Type', fileMetadata?.mimetype || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-
-    // Skicka filen
-    res.send(fileData);
-  } catch (error) {
-    console.error('Error in file download endpoint:', error);
-    res.status(500).json({ error: 'Ett oväntat fel uppstod' });
   }
 });
 

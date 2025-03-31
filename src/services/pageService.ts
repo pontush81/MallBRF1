@@ -149,55 +149,82 @@ const pageService = {
   // Ladda upp en fil till en sida
   uploadFile: async (pageId: string, file: File) => {
     try {
-      console.log('Uploading file:', { filename: file.name, size: file.size, type: file.type });
+      console.log('Starting file upload process:', { 
+        filename: file.name, 
+        size: file.size, 
+        type: file.type,
+        pageId: pageId
+      });
       
+      // Validera filen först
+      if (file.size === 0) {
+        throw new Error('Filen är tom (0 bytes)');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       
-      // We create a custom fetch for file uploads since our apiRequest utility expects JSON
       const url = `/pages/${pageId}/upload`;
-      console.log(`Making POST request to: ${url}`);
       
-      const response = await fetch(`/api${url}`, {
+      // I utvecklingsmiljö, använd alltid localhost
+      // Vi bör inte göra cross-origin uppladdningar i utvecklingsmiljö
+      const apiBaseUrl = 'http://localhost:3002';
+      const fullUrl = `${apiBaseUrl}/api${url}`;
+      
+      console.log('Making upload request to:', fullUrl);
+      
+      // Använd vanlig fetch istället för apiRequest för formdata
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'x-vercel-protection-bypass': 'true'
         },
         body: formData,
-        credentials: 'omit'
+        credentials: 'include'
       });
 
+      console.log('Upload response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Kunde inte ladda upp filen' }));
-        throw new Error(errorData.error || 'Kunde inte ladda upp filen');
+        const errorText = await response.text();
+        console.error('Upload failed with status:', response.status, errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          // Om det inte är JSON, använd texten direkt
+          throw new Error(`Kunde inte ladda upp filen: ${response.status} ${errorText}`);
+        }
+        throw new Error(errorData.error || errorData.details || 'Kunde inte ladda upp filen');
+      }
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (!data.file) {
+        console.error('No file data in response:', data);
+        throw new Error('Servern returnerade inget fildata');
       }
 
-      // Försök avkoda JSON-svaret
-      let data;
-      try {
-        data = await response.json();
-        console.log('Raw file upload response:', data);
-      } catch (e) {
-        console.error('Failed to parse response JSON:', e);
-        throw new Error('Kunde inte tolka svaret från servern');
-      }
-
-      // Skapa ett säkert svarsobjekt med fallback-värden
-      return {
+      // Create response object with strict type checking
+      const result = {
         success: true,
         file: {
-          id: data?.file?.id || String(Date.now()),
-          filename: data?.file?.filename || file.name,
-          originalName: data?.file?.originalName || file.name,
-          mimetype: data?.file?.mimetype || file.type,
-          size: data?.file?.size || file.size,
-          url: (data?.file?.url || '').toString(), // Säkerställ att URL är en sträng
-          uploadedAt: data?.file?.uploadedAt || new Date().toISOString()
+          id: String(data.file.id || Date.now()),
+          filename: String(data.file.filename || file.name),
+          originalName: String(data.file.originalName || file.name),
+          mimetype: String(data.file.mimetype || file.type),
+          size: Number(data.file.size || file.size),
+          url: String(data.file.url || ''),
+          uploadedAt: String(data.file.uploadedAt || new Date().toISOString())
         }
       };
+
+      console.log('Upload completed successfully:', result);
+      return result;
     } catch (error) {
-      console.error('Fel vid uppladdning av fil:', error);
-      throw error;
+      console.error('File upload failed:', error);
+      throw new Error(`Kunde inte ladda upp filen: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
 

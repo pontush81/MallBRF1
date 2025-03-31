@@ -5,6 +5,7 @@ type RequestOptions = {
   headers?: Record<string, string>;
   body?: any;
   requiresAuth?: boolean;
+  isFormData?: boolean;
 };
 
 /**
@@ -14,11 +15,11 @@ type RequestOptions = {
  * @returns Promise with the parsed JSON response
  */
 export async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, requiresAuth = true } = options;
+  const { method = 'GET', body, requiresAuth = true, isFormData = false } = options;
   
   const headers = {
     'Accept': 'application/json',
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...(requiresAuth ? { 'x-vercel-protection-bypass': 'true' } : {}),
     ...(options.headers || {})
   };
@@ -30,9 +31,9 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
     const response = await fetch(url, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       mode: 'cors',
-      credentials: 'omit'
+      credentials: 'include'
     });
 
     console.log(`Response status: ${response.status}`);

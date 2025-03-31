@@ -16,6 +16,8 @@ import {
   CardMedia,
   CardContent,
   CardActions,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -26,6 +28,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import pageService from '../../services/pageService';
 import { Page, FileInfo } from '../../types/Page';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Komponentstilar för Markdown-innehåll
 const markdownStyles = {
@@ -121,11 +125,18 @@ const markdownStyles = {
 };
 
 const PageView: React.FC = () => {
+  // Test-loggning
+  console.log('=====================================');
+  console.log('PageView COMPONENT IS RENDERING');
+  console.log('=====================================');
+
   const { id } = useParams<{ id: string }>();
+  console.log('Page ID:', id);
   const navigate = useNavigate();
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<FileInfo | null>(null);
 
   useEffect(() => {
     const fetchPage = async () => {
@@ -161,6 +172,18 @@ const PageView: React.FC = () => {
     fetchPage();
   }, [id]);
 
+  useEffect(() => {
+    console.log('Page data:', page);
+    if (page?.files) {
+      console.log('Files:', page.files);
+    }
+  }, [page]);
+
+  useEffect(() => {
+    console.log('PageView rendered');
+    console.log('Current page data:', page);
+  }, [page]);
+
   const formatDate = (date: string | Date) => {
     const d = new Date(date);
     return d.toLocaleDateString('sv-SE', {
@@ -195,20 +218,48 @@ const PageView: React.FC = () => {
     };
   };
 
-  // Hjälpfunktion för att få rätt fil-URL
+  // Uppdatera getFileUrl funktionen
   const getFileUrl = (file: FileInfo) => {
-    // I utvecklingsmiljö, använd vår proxy
-    if (process.env.NODE_ENV === 'development') {
-      return `/api/pages/file/${id}/${file.filename}`;
+    console.log('Getting URL for file:', file);
+    // Använd den medföljande URL:en om den finns
+    if (file.url) {
+      console.log('Using provided URL:', file.url);
+      return file.url;
     }
-    // I produktion, använd Supabase URL direkt
-    return file.url;
+    // Fallback till konstruerad URL
+    const constructedUrl = `https://qhdgqevdmvkrwnzpwikz.supabase.co/storage/v1/object/public/files/pages/${file.filename}`;
+    console.log('Using constructed URL:', constructedUrl);
+    return constructedUrl;
   };
 
-  // Hjälpfunktion för att öppna filen
+  // Uppdatera filhanteringen
   const handleFileOpen = (file: FileInfo) => {
+    console.log('=====================================');
+    console.log('handleFileOpen called with file:', file);
+    console.log('File type:', file.mimetype);
+    console.log('File URL:', file.url);
+    console.log('=====================================');
+    
     const url = getFileUrl(file);
-    window.open(url, '_blank');
+    console.log('Final URL to be used:', url);
+    
+    if (file.mimetype.startsWith('image/')) {
+      console.log('Attempting to open image in dialog');
+      setSelectedImage(file);
+    } else {
+      console.log('Attempting to download file');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.originalName || file.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  // Hantera stängning av bildvisaren
+  const handleCloseImage = () => {
+    setSelectedImage(null);
   };
 
   if (loading) {
@@ -346,31 +397,73 @@ const PageView: React.FC = () => {
                     {images.map((file) => (
                       <Grid item xs={12} sm={6} md={4} key={file.id}>
                         <Card>
-                          <CardMedia
-                            component="img"
-                            height="180"
-                            image={getFileUrl(file)}
-                            alt={file.originalName}
-                            sx={{ objectFit: 'cover' }}
+                          <Box 
+                            sx={{ 
+                              position: 'relative',
+                              cursor: 'pointer',
+                              '&:hover .zoom-overlay': {
+                                opacity: 1,
+                              },
+                            }}
                             onClick={() => handleFileOpen(file)}
-                          />
-                          <CardContent sx={{ py: 1 }}>
-                            <Typography variant="body2" noWrap title={file.originalName}>
-                              {file.originalName}
-                            </Typography>
-                          </CardContent>
-                          <CardActions>
-                            <Button 
-                              size="small" 
-                              component="a"
-                              href={getFileUrl(file)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              startIcon={<ImageIcon />}
+                          >
+                            <CardMedia
+                              component="img"
+                              height="180"
+                              src={getFileUrl(file)}
+                              alt={file.originalName || 'Bild'}
+                              sx={{ objectFit: 'cover' }}
+                              onError={(e) => {
+                                console.error('Failed to load image:', getFileUrl(file));
+                                const imgElement = e.target as HTMLImageElement;
+                                imgElement.style.display = 'none';
+                                // Visa felmeddelande
+                                const parent = imgElement.parentElement;
+                                if (parent) {
+                                  const errorDiv = document.createElement('div');
+                                  errorDiv.style.height = '180px';
+                                  errorDiv.style.display = 'flex';
+                                  errorDiv.style.alignItems = 'center';
+                                  errorDiv.style.justifyContent = 'center';
+                                  errorDiv.style.backgroundColor = '#f5f5f5';
+                                  errorDiv.textContent = 'Kunde inte ladda bilden';
+                                  parent.appendChild(errorDiv);
+                                }
+                              }}
+                            />
+                            <Box
+                              className="zoom-overlay"
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: 'rgba(0,0,0,0.5)',
+                                opacity: 0,
+                                transition: 'opacity 0.2s',
+                              }}
                             >
-                              Öppna
+                              <ZoomInIcon sx={{ color: 'white', fontSize: 40 }} />
+                            </Box>
+                          </Box>
+                          <CardContent>
+                            <Typography variant="body2" noWrap>
+                              {file.originalName || file.filename}
+                            </Typography>
+                            <Button 
+                              fullWidth 
+                              variant="contained"
+                              onClick={() => handleFileOpen(file)}
+                              startIcon={<ZoomInIcon />}
+                              sx={{ mt: 1 }}
+                            >
+                              Visa bild
                             </Button>
-                          </CardActions>
+                          </CardContent>
                         </Card>
                       </Grid>
                     ))}
@@ -410,7 +503,7 @@ const PageView: React.FC = () => {
                             onClick={() => handleFileOpen(file)}
                             startIcon={getFileIcon(file.mimetype)}
                           >
-                            Öppna
+                            {file.mimetype === 'application/pdf' ? 'Ladda ner PDF' : 'Ladda ner'}
                           </Button>
                         </Box>
                       </React.Fragment>
@@ -422,6 +515,45 @@ const PageView: React.FC = () => {
           )}
         </Paper>
       </Box>
+
+      {/* Lägg till bildvisaren */}
+      <Dialog
+        open={!!selectedImage}
+        onClose={handleCloseImage}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
+          <IconButton
+            onClick={handleCloseImage}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: 'white',
+              bgcolor: 'rgba(0,0,0,0.5)',
+              '&:hover': {
+                bgcolor: 'rgba(0,0,0,0.7)',
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {selectedImage && (
+            <img
+              src={selectedImage.url}
+              alt={selectedImage.originalName || 'Bild'}
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                maxHeight: '90vh',
+                objectFit: 'contain',
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 };
