@@ -18,7 +18,7 @@
       "src": "/api/(.*)",
       "dest": "server/server.js",
       "headers": {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://www.gulmaran.com",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass",
         "Access-Control-Allow-Credentials": "true"
@@ -29,7 +29,7 @@
       "dest": "/manifest.json",
       "headers": {
         "Cache-Control": "public, max-age=0, must-revalidate",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://www.gulmaran.com",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass",
         "Access-Control-Allow-Credentials": "true"

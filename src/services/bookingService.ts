@@ -47,11 +47,13 @@ const bookingService = {
           'x-vercel-protection-bypass': 'true'
         },
         mode: 'cors',
-        credentials: 'include'
+        credentials: process.env.NODE_ENV === 'development' ? 'omit' : 'include'
       });
       console.log('Bokningsrespons status:', response.status);
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
         throw new Error(`Kunde inte hämta bokningar: ${response.status} ${response.statusText}`);
       }
 

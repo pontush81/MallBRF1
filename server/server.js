@@ -88,29 +88,27 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'http://localhost:3002',
-      'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
-      'https://mall-brf-1.vercel.app',
-      'https://mallbrf.vercel.app',
+      'https://gulmaran.com',
       'https://www.gulmaran.com',
-      'https://stage.gulmaran.com',
-      'https://www.stage.gulmaran.com'
+      'https://staging.gulmaran.com'
     ];
     
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.warn(`Blocked request from unauthorized origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With', 'x-vercel-protection-bypass'],
-  maxAge: 86400
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
 };
 
-// Apply CORS middleware first
 app.use(cors(corsOptions));
 
 // Serve static files from the build directory (måste vara före autentisering)

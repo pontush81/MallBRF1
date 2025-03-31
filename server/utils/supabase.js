@@ -6,84 +6,55 @@ if (process.env.NODE_ENV !== 'production') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-// Försök med olika miljövariabler
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Log environment variables (without exposing sensitive data)
+console.log('Initializing Supabase client with:');
+console.log('- URL:', process.env.SUPABASE_URL);
+console.log('- Service Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+console.log('- Anon Key length:', process.env.SUPABASE_ANON_KEY ? process.env.SUPABASE_ANON_KEY.length : 0);
 
-// Log configuration (without exposing sensitive data)
-console.log('Supabase Configuration:');
-console.log('- URL:', supabaseUrl);
-console.log('- Service Key length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
-console.log('- Anon Key length:', supabaseAnonKey ? supabaseAnonKey.length : 0);
-console.log('- Environment:', process.env.NODE_ENV);
-
-// Validate configuration
-if (!supabaseUrl || (!supabaseServiceKey && !supabaseAnonKey)) {
-  console.error('Missing required Supabase configuration');
-  console.error('- SUPABASE_URL:', !!supabaseUrl);
-  console.error('- SUPABASE_SERVICE_ROLE_KEY:', !!supabaseServiceKey);
-  console.error('- SUPABASE_ANON_KEY:', !!supabaseAnonKey);
-  process.exit(1);
+// Validate required environment variables
+if (!process.env.SUPABASE_URL) {
+  throw new Error('SUPABASE_URL is not set');
 }
 
-// Use service key if available, otherwise fall back to anon key
-const apiKey = supabaseServiceKey || supabaseAnonKey;
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
+}
 
-// Create Supabase client
-console.log('Configuring Supabase client...');
-console.log('Using key type:', supabaseServiceKey ? 'SERVICE_ROLE' : 'ANON');
-
-// Set options based on environment
-const options = {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'x-application-name': 'mallbrf-server'
+// Initialize Supabase client with service role key
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema: 'public'
     }
   }
-};
+);
 
-// Add SSL options for production
-if (process.env.NODE_ENV === 'production') {
-  options.db.ssl = { rejectUnauthorized: false };
-}
-
-const supabase = createClient(supabaseUrl, apiKey, options);
-
-// Test connection function
+// Test Supabase connection
 async function testSupabaseConnection() {
   try {
     console.log('Testing Supabase connection...');
-    const { data, error } = await supabase
-      .from('pages')
-      .select('count')
-      .limit(1);
-
+    const { data, error } = await supabase.from('bookings').select('count');
+    
     if (error) {
       console.error('Supabase connection test failed:', {
         message: error.message,
         code: error.code,
-        details: error.details,
-        hint: error.hint
+        details: error.details
       });
       return false;
     }
-
-    console.log('✅ Supabase connection successful');
+    
+    console.log('Supabase connection test successful');
     return true;
-  } catch (err) {
-    console.error('Connection error:', {
-      message: err.message,
-      code: err.code
-    });
+  } catch (error) {
+    console.error('Supabase connection test error:', error);
     return false;
   }
 }

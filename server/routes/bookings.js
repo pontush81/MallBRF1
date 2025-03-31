@@ -47,87 +47,73 @@ router.post('/check-availability', async (req, res) => {
   }
 });
 
+// Helper function to transform booking data
+const transformBookingData = (booking) => {
+  return {
+    id: booking.id,
+    name: booking.name,
+    email: booking.email,
+    phone: booking.phone,
+    startDate: booking.startdate,
+    endDate: booking.enddate,
+    notes: booking.notes,
+    status: booking.status,
+    parking: booking.parkering === true || booking.parkering === 'true' || booking.parkering === 1,
+    createdAt: booking.createdat,
+    updatedAt: booking.updatedat
+  };
+};
+
+// Helper function to transform booking data for database
+const transformBookingDataForDB = (booking) => {
+  return {
+    name: booking.name,
+    email: booking.email,
+    phone: booking.phone,
+    startdate: booking.startDate,
+    enddate: booking.endDate,
+    notes: booking.notes,
+    status: booking.status,
+    parkering: booking.parking === true || booking.parking === 'true' || booking.parking === 1
+  };
+};
+
 // Hämta alla bokningar
 router.get('/', async (req, res) => {
   try {
-    console.log('Hämtar alla bokningar');
+    console.log('Attempting to fetch all bookings...');
     console.log('Supabase URL:', process.env.SUPABASE_URL);
     console.log('Supabase Service Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
     
-    const { data, error } = await supabase
+    const { data: bookings, error } = await supabase
       .from('bookings')
       .select('*')
       .order('createdat', { ascending: false });
 
     if (error) {
-      console.error('Fel vid hämtning av bokningar:', {
+      console.error('Supabase error:', {
         message: error.message,
         code: error.code,
         details: error.details,
         hint: error.hint
       });
-      return res.status(500).json({ 
-        error: error.message,
-        details: error.details,
-        hint: error.hint
-      });
+      throw error;
     }
 
-    // Logga parkering-fälten för felsökning
-    if (data && data.length > 0) {
-      console.log('FELSÖKNING - Parkeringsvärden:');
-      data.forEach((booking, index) => {
-        console.log(`Bokning ${index + 1} (${booking.id}): parkering = ${booking.parkering} (typ: ${typeof booking.parkering})`);
-      });
-    }
-
-    // Mappa fältnamnen för frontend
-    const mappedData = data.map(booking => {
-      // Konvertera specifikt parkering-fältet
-      let parkingValue = null;
-      
-      // För true-värden
-      if (booking.parkering === true || booking.parkering === 'true' || booking.parkering === 't' || booking.parkering === 'yes' || booking.parkering === 'ja') {
-        parkingValue = true;
-      } 
-      // För false-värden
-      else if (booking.parkering === false || booking.parkering === 'false' || booking.parkering === 'f' || booking.parkering === 'no' || booking.parkering === 'nej') {
-        parkingValue = false;
-      }
-      
-      // Om databasen innehåller "Ja"/"Nej" som strängar
-      else if (typeof booking.parkering === 'string') {
-        const val = booking.parkering.toLowerCase().trim();
-        if (val === 'ja' || val === 'yes') {
-          parkingValue = true;
-        } else if (val === 'nej' || val === 'no') {
-          parkingValue = false;
-        }
-      }
-
-      const result = {
-        ...booking,
-        startDate: booking.startdate,
-        endDate: booking.enddate,
-        createdAt: booking.createdat,
-        parking: parkingValue
-      };
-      
-      console.log(`Bokning ${booking.id} - Konverterad: parkering=${booking.parkering} → parking=${result.parking}`);
-      
-      return result;
-    });
-
-    console.log(`Hittade ${mappedData.length} bokningar`);
-    res.json(mappedData);
+    console.log(`Successfully fetched ${bookings.length} bookings`);
+    const transformedBookings = bookings.map(transformBookingData);
+    res.json(transformedBookings);
   } catch (error) {
-    console.error('Serverfel vid hämtning av bokningar:', {
+    console.error('Error fetching bookings:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      code: error.code,
+      details: error.details
     });
     res.status(500).json({ 
-      error: 'Kunde inte hämta bokningar',
-      details: error.message
+      error: 'Failed to fetch bookings',
+      details: error.message,
+      code: error.code
     });
   }
 });
@@ -169,190 +155,39 @@ router.get('/:id', async (req, res) => {
 // Skapa en ny bokning
 router.post('/', async (req, res) => {
   try {
-    const bookingData = req.body;
-    console.log('Skapar ny bokning:', bookingData);
-
-    // Mappa frontend-fält till databasfält
-    const dbBookingData = {
-      name: bookingData.name,
-      email: bookingData.email,
-      phone: bookingData.phone,
-      startdate: bookingData.startDate,
-      enddate: bookingData.endDate,
-      notes: bookingData.notes,
-      status: bookingData.status || 'pending',
-      parkering: bookingData.parking || false
-    };
-
-    // Kontrollera tillgänglighet
-    const { data: existingBookings, error: availabilityError } = await supabase
-      .from('bookings')
-      .select('*')
-      .or(`and(startdate.lte.${dbBookingData.enddate},enddate.gte.${dbBookingData.startdate})`)
-      .neq('status', 'cancelled');
-
-    if (availabilityError) {
-      console.error('Fel vid kontroll av tillgänglighet:', availabilityError);
-      return res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet' });
-    }
-
-    if (existingBookings && existingBookings.length > 0) {
-      return res.status(409).json({ 
-        error: 'Det finns redan bokningar för detta datum',
-        overlappingBookings: existingBookings
-      });
-    }
-
+    const bookingData = transformBookingDataForDB(req.body);
     const { data, error } = await supabase
       .from('bookings')
-      .insert([dbBookingData])
-      .select()
-      .single();
+      .insert([bookingData])
+      .select();
 
-    if (error) {
-      console.error('Fel vid skapande av bokning:', error);
-      return res.status(500).json({ error: error.message });
-    }
+    if (error) throw error;
 
-    // Mappa svaret för frontend
-    const mappedData = {
-      ...data,
-      startDate: data.startdate,
-      endDate: data.enddate,
-      createdAt: data.createdat,
-      parking: data.parkering === true || data.parkering === 'true' || data.parkering === 't' ? true : 
-               data.parkering === false || data.parkering === 'false' || data.parkering === 'f' ? false : null
-    };
-
-    res.status(201).json(mappedData);
+    const transformedBooking = transformBookingData(data[0]);
+    res.status(201).json(transformedBooking);
   } catch (error) {
-    console.error('Serverfel vid skapande av bokning:', error);
-    res.status(500).json({ error: 'Kunde inte skapa bokningen' });
+    console.error('Error creating booking:', error);
+    res.status(500).json({ error: 'Failed to create booking' });
   }
 });
 
 // Uppdatera en bokning
 router.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const bookingData = req.body;
-    console.log('Uppdaterar bokning:', id, bookingData);
-
-    // Mappa frontend-fält till databasfält och ta bort fields som inte finns i databasen
-    const dbBookingData = {
-      name: bookingData.name,
-      email: bookingData.email,
-      phone: bookingData.phone,
-      startdate: bookingData.startDate,
-      enddate: bookingData.endDate,
-      notes: bookingData.notes,
-      parkering: bookingData.parking
-    };
-
-    // Add status only if provided
-    if (bookingData.status) {
-      dbBookingData.status = bookingData.status;
-    }
-
-    // Log the mapped booking data
-    console.log('DB Booking Data:', dbBookingData);
-
-    // Kontrollera tillgänglighet för uppdateringen
-    if (dbBookingData.startdate || dbBookingData.enddate) {
-      const { data: existingBookings, error: availabilityError } = await supabase
-        .from('bookings')
-        .select('*')
-        .neq('id', id)
-        .or(`and(startdate.lte.${dbBookingData.enddate || bookingData.endDate},enddate.gte.${dbBookingData.startdate || bookingData.startDate})`)
-        .neq('status', 'cancelled');
-
-      if (availabilityError) {
-        console.error('Fel vid kontroll av tillgänglighet:', availabilityError);
-        return res.status(500).json({ error: 'Kunde inte kontrollera tillgänglighet' });
-      }
-
-      if (existingBookings && existingBookings.length > 0) {
-        return res.status(409).json({ 
-          error: 'Det finns redan bokningar för detta datum',
-          overlappingBookings: existingBookings
-        });
-      }
-    }
-
-    // First, get the existing booking to keep fields we're not updating
-    const { data: existingBooking, error: fetchError } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (fetchError) {
-      console.error('Fel vid hämtning av existerande bokning:', fetchError);
-      return res.status(404).json({ error: 'Bokning hittades inte' });
-    }
-    
-    // Create update object - only include fields from dbBookingData that are actually changing
-    const updateData = {};
-    for (const [key, value] of Object.entries(dbBookingData)) {
-      // Only include fields that are different from existing data or explicitly provided
-      if (existingBooking[key] !== value || bookingData.hasOwnProperty(key === 'parkering' ? 'parking' : key)) {
-        updateData[key] = value;
-      }
-    }
-    
-    // Always add the updatedat timestamp
-    updateData.updatedat = new Date().toISOString();
-    
-    console.log('Final update data:', updateData);
-    
-    if (Object.keys(updateData).length === 0) {
-      console.log('No changes to update');
-      
-      // Return the existing booking even if no changes
-      const mappedData = {
-        ...existingBooking,
-        startDate: existingBooking.startdate,
-        endDate: existingBooking.enddate,
-        createdAt: existingBooking.createdat,
-        parking: existingBooking.parkering === true || existingBooking.parkering === 'true' || existingBooking.parkering === 't' ? true : 
-                existingBooking.parkering === false || existingBooking.parkering === 'false' || existingBooking.parkering === 'f' ? false : null
-      };
-      
-      return res.json(mappedData);
-    }
-    
-    // Make the update
+    const bookingData = transformBookingDataForDB(req.body);
     const { data, error } = await supabase
       .from('bookings')
-      .update(updateData)
-      .eq('id', id)
+      .update(bookingData)
+      .eq('id', req.params.id)
       .select();
 
-    if (error) {
-      console.error('Fel vid uppdatering av bokning:', error);
-      return res.status(500).json({ error: error.message });
-    }
+    if (error) throw error;
 
-    if (!data || data.length === 0) {
-      return res.status(404).json({ error: 'Bokning hittades inte' });
-    }
-
-    // Mappa svaret för frontend
-    const updatedBooking = data[0];
-    const mappedData = {
-      ...updatedBooking,
-      startDate: updatedBooking.startdate,
-      endDate: updatedBooking.enddate,
-      createdAt: updatedBooking.createdat,
-      parking: updatedBooking.parkering === true || updatedBooking.parkering === 'true' || updatedBooking.parkering === 't' ? true : 
-               updatedBooking.parkering === false || updatedBooking.parkering === 'false' || updatedBooking.parkering === 'f' ? false : null
-    };
-
-    console.log('Update successful');
-    res.json(mappedData);
+    const transformedBooking = transformBookingData(data[0]);
+    res.json(transformedBooking);
   } catch (error) {
-    console.error('Serverfel vid uppdatering av bokning:', error);
-    res.status(500).json({ error: 'Kunde inte uppdatera bokningen' });
+    console.error('Error updating booking:', error);
+    res.status(500).json({ error: 'Failed to update booking' });
   }
 });
 
