@@ -6,7 +6,6 @@ const getApiBaseUrl = () => {
   
   if (isDevelopment) {
     // In development, use the absolute URL to the API server
-    // This ensures we don't rely on proxy settings which can sometimes fail
     return 'http://localhost:3002/api';
   }
   

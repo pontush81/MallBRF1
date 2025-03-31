@@ -21,10 +21,8 @@ CREATE POLICY "Admin users can manage all pages" ON public.pages
   );
 
 -- Create policies for bookings table
-CREATE POLICY "Users can view their own bookings" ON public.bookings
-  FOR SELECT TO authenticated USING (
-    auth.jwt() ->> 'email' = email
-  );
+CREATE POLICY "Enable read access for all users" ON public.bookings
+  FOR SELECT USING (true);
 
 CREATE POLICY "Admin users can manage all bookings" ON public.bookings
   FOR ALL TO authenticated USING (
