@@ -14,33 +14,54 @@ const ALLOWED_ORIGINS = [
 
 export function middleware(request: NextRequest) {
   const origin = request.headers.get('origin');
-  console.log('Middleware - Request origin:', origin);
+  const referer = request.headers.get('referer');
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  
+  console.log('Middleware - Request details:', {
+    method: request.method,
+    url: request.url,
+    origin,
+    referer,
+    forwardedHost,
+    headers: Object.fromEntries(request.headers.entries())
+  });
   console.log('Middleware - Allowed origins:', ALLOWED_ORIGINS);
 
   // Hantera CORS för preflight requests
   if (request.method === 'OPTIONS') {
-    if (origin && ALLOWED_ORIGINS.includes(origin)) {
-      console.log('Middleware - Origin allowed, sending CORS headers');
-      return new NextResponse(null, {
+    const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : null;
+    console.log('Middleware - OPTIONS request, allowed origin:', allowedOrigin);
+
+    if (allowedOrigin) {
+      const response = new NextResponse(null, {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Origin': allowedOrigin,
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass',
+          'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Max-Age': '86400',
         },
       });
+      console.log('Middleware - Sending CORS headers:', Object.fromEntries(response.headers.entries()));
+      return response;
     }
+
     console.log('Middleware - Origin not allowed, sending 403');
     return new NextResponse(null, { status: 403 });
   }
 
   // För alla andra requests, lägg till CORS headers om origin är tillåten
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : null;
+  console.log('Middleware - Regular request, allowed origin:', allowedOrigin);
+
+  if (allowedOrigin) {
     const response = NextResponse.next();
-    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With, x-vercel-protection-bypass');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    console.log('Middleware - Added CORS headers to response:', Object.fromEntries(response.headers.entries()));
     return response;
   }
 
