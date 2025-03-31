@@ -795,140 +795,307 @@ const BookingPage: React.FC = () => {
                   },
                 }}
               >
-                <Typography sx={{ fontWeight: isExpanded ? 'bold' : 'normal' }}>
-                  {formatMonthName(monthKey)}
-                  <Chip 
-                    label={`${bookingsInMonth.length} bokning${bookingsInMonth.length !== 1 ? 'ar' : ''}`} 
-                    size="small" 
-                    sx={{ 
-                      ml: 1, 
-                      backgroundColor: isExpanded 
-                        ? 'rgba(255,255,255,0.3)' 
-                        : 'rgba(0,0,0,0.08)'
-                    }}
-                    color={isExpanded ? "primary" : "default"}
-                    variant={isExpanded ? "filled" : "outlined"}
-                  />
-                  <Chip 
-                    label={`${calculateTotalNights(bookingsInMonth)} nätter`} 
-                    size="small" 
-                    sx={{ 
-                      ml: 1, 
-                      backgroundColor: isExpanded 
-                        ? 'rgba(255,255,255,0.3)' 
-                        : 'rgba(0,0,0,0.08)'
-                    }}
-                    color={isExpanded ? "primary" : "default"}
-                    variant={isExpanded ? "filled" : "outlined"}
-                  />
-                  <Chip 
-                    label={`${calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr`} 
-                    size="small" 
-                    sx={{ 
-                      ml: 1, 
-                      backgroundColor: isExpanded 
-                        ? 'rgba(255,255,255,0.3)' 
-                        : 'rgba(0,0,0,0.08)'
-                    }}
-                    color={isExpanded ? "primary" : "default"}
-                    variant={isExpanded ? "filled" : "outlined"}
-                  />
-                </Typography>
+                <Box sx={{ width: '100%' }}>
+                  <Typography sx={{ fontWeight: isExpanded ? 'bold' : 'normal', mb: { xs: 1, sm: 0 } }}>
+                    {formatMonthName(monthKey)}
+                  </Typography>
+                  
+                  {/* Desktop chips */}
+                  <Box sx={{ 
+                    display: { xs: 'none', sm: 'flex' },
+                    flexWrap: 'wrap', 
+                    gap: 1,
+                    mt: { xs: 1, sm: 0 }
+                  }}>
+                    <Chip 
+                      label={`${bookingsInMonth.length} bokning${bookingsInMonth.length !== 1 ? 'ar' : ''}`} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: isExpanded 
+                          ? 'rgba(255,255,255,0.3)' 
+                          : 'rgba(0,0,0,0.08)'
+                      }}
+                      color={isExpanded ? "primary" : "default"}
+                      variant={isExpanded ? "filled" : "outlined"}
+                    />
+                    <Chip 
+                      label={`${calculateTotalNights(bookingsInMonth)} nätter`} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: isExpanded 
+                          ? 'rgba(255,255,255,0.3)' 
+                          : 'rgba(0,0,0,0.08)'
+                      }}
+                      color={isExpanded ? "primary" : "default"}
+                      variant={isExpanded ? "filled" : "outlined"}
+                    />
+                    <Chip 
+                      label={`${calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr`} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: isExpanded 
+                          ? 'rgba(255,255,255,0.3)' 
+                          : 'rgba(0,0,0,0.08)'
+                      }}
+                      color={isExpanded ? "primary" : "default"}
+                      variant={isExpanded ? "filled" : "outlined"}
+                    />
+                  </Box>
+                  
+                  {/* Mobile compact summary */}
+                  <Box sx={{ 
+                    display: { xs: 'flex', sm: 'none' },
+                    gap: 2,
+                    flexWrap: 'wrap',
+                    mt: 1,
+                    fontSize: '0.75rem'
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'medium', mr: 0.5 }}>
+                        {bookingsInMonth.length}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        bokn.
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'medium', mr: 0.5 }}>
+                        {calculateTotalNights(bookingsInMonth)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        nätter
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', mr: 0.5 }}>
+                        {calculateRevenueForMonth(bookingsInMonth).toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        kr
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Ankomst</TableCell>
-                        <TableCell>Avresa</TableCell>
-                        <TableCell>Namn</TableCell>
-                        <TableCell align="center">Vecka</TableCell>
-                        <TableCell align="center">Nätter</TableCell>
-                        <TableCell align="center">Parkering</TableCell>
-                        <TableCell align="right">Intäkt</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {bookingsInMonth.map(booking => (
-                        <TableRow key={booking.id}>
-                          <TableCell>
-                            {booking.startDate 
-                              ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
-                              : 'N/A'
-                            }
-                          </TableCell>
-                          <TableCell>
-                            {booking.endDate 
-                              ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
-                              : 'N/A'
-                            }
-                          </TableCell>
-                          <TableCell>{booking.name}</TableCell>
-                          <TableCell align="center">
-                            {booking.startDate && (
-                              (() => {
-                                const date = new Date(booking.startDate);
-                                const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-                                const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-                                const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-                                
-                                let bgcolor = "transparent";
-                                if (week >= 24 && week <= 32) {
-                                  if ([27, 28, 29].includes(week)) {
-                                    bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
-                                  } else {
-                                    bgcolor = "rgba(0, 128, 255, 0.08)"; // High season
-                                  }
-                                } else {
-                                  bgcolor = "rgba(0, 0, 0, 0.03)"; // Low season
-                                }
-                                
-                                return (
-                                  <Chip 
-                                    size="small" 
-                                    label={`v.${week}`} 
-                                    sx={{ 
-                                      backgroundColor: bgcolor,
-                                      minWidth: "50px"
-                                    }}
-                                  />
-                                );
-                              })()
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            {booking.startDate && booking.endDate
-                              ? differenceInDays(new Date(booking.endDate), new Date(booking.startDate))
-                              : '-'
-                            }
-                          </TableCell>
-                          <TableCell align="center">
-                            {renderParkingStatus(booking.parking)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {booking.startDate && booking.endDate
-                              ? `${calculateRevenueForBooking(booking).toLocaleString()} kr`
-                              : '-'
-                            }
-                          </TableCell>
+                {/* Desktop view - table */}
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                  <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
+                    <Table size="small" sx={{ minWidth: 800 }}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Ankomst</TableCell>
+                          <TableCell>Avresa</TableCell>
+                          <TableCell>Namn</TableCell>
+                          <TableCell align="center">Vecka</TableCell>
+                          <TableCell align="center">Nätter</TableCell>
+                          <TableCell align="center">Parkering</TableCell>
+                          <TableCell align="right">Intäkt</TableCell>
                         </TableRow>
-                      ))}
-                      <TableRow 
+                      </TableHead>
+                      <TableBody>
+                        {bookingsInMonth.map(booking => (
+                          <TableRow key={booking.id}>
+                            <TableCell>
+                              {booking.startDate 
+                                ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
+                                : 'N/A'
+                              }
+                            </TableCell>
+                            <TableCell>
+                              {booking.endDate 
+                                ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
+                                : 'N/A'
+                              }
+                            </TableCell>
+                            <TableCell>{booking.name}</TableCell>
+                            <TableCell align="center">
+                              {booking.startDate && (
+                                (() => {
+                                  const date = new Date(booking.startDate);
+                                  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                                  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+                                  const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                                  
+                                  let bgcolor = "transparent";
+                                  if (week >= 24 && week <= 32) {
+                                    if ([27, 28, 29].includes(week)) {
+                                      bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
+                                    } else {
+                                      bgcolor = "rgba(0, 128, 255, 0.08)"; // High season
+                                    }
+                                  } else {
+                                    bgcolor = "rgba(0, 0, 0, 0.03)"; // Low season
+                                  }
+                                  
+                                  return (
+                                    <Chip 
+                                      size="small" 
+                                      label={`v.${week}`} 
+                                      sx={{ 
+                                        backgroundColor: bgcolor,
+                                        minWidth: "50px"
+                                      }}
+                                    />
+                                  );
+                                })()
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              {booking.startDate && booking.endDate
+                                ? differenceInDays(new Date(booking.endDate), new Date(booking.startDate))
+                                : '-'
+                              }
+                            </TableCell>
+                            <TableCell align="center">
+                              {renderParkingStatus(booking.parking)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {booking.startDate && booking.endDate
+                                ? `${calculateRevenueForBooking(booking).toLocaleString()} kr`
+                                : '-'
+                              }
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow 
+                          sx={{ 
+                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                            '& td': { fontWeight: 'bold' } 
+                          }}
+                        >
+                          <TableCell colSpan={3}>Totalt för månaden</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell align="center">{calculateTotalNights(bookingsInMonth)}</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell align="right">{calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+                
+                {/* Mobile view - cards */}
+                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                  {bookingsInMonth.map(booking => {
+                    // Calculate week number
+                    const getWeekData = () => {
+                      if (!booking.startDate) return { week: 0, bgcolor: "transparent" };
+                      
+                      const date = new Date(booking.startDate);
+                      const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                      const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+                      const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                      
+                      let bgcolor = "transparent";
+                      if (week >= 24 && week <= 32) {
+                        if ([27, 28, 29].includes(week)) {
+                          bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
+                        } else {
+                          bgcolor = "rgba(0, 128, 255, 0.08)"; // High season
+                        }
+                      } else {
+                        bgcolor = "rgba(0, 0, 0, 0.03)"; // Low season
+                      }
+                      
+                      return { week, bgcolor };
+                    };
+                    
+                    const weekData = getWeekData();
+                    const nights = booking.startDate && booking.endDate 
+                      ? differenceInDays(new Date(booking.endDate), new Date(booking.startDate))
+                      : 0;
+                    
+                    return (
+                      <Paper
+                        key={booking.id}
                         sx={{ 
-                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                          '& td': { fontWeight: 'bold' } 
+                          p: 2, 
+                          mb: 2, 
+                          borderLeft: '4px solid',
+                          borderLeftColor: weekData.bgcolor,
                         }}
+                        variant="outlined"
                       >
-                        <TableCell colSpan={3}>Totalt för månaden</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell align="center">{calculateTotalNights(bookingsInMonth)}</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell align="right">{calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        <Grid container spacing={1}>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2">{booking.name}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Ankomst:
+                            </Typography>
+                            <Typography variant="body2">
+                              {booking.startDate 
+                                ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
+                                : 'N/A'
+                              }
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Avresa:
+                            </Typography>
+                            <Typography variant="body2">
+                              {booking.endDate 
+                                ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
+                                : 'N/A'
+                              }
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12}>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              mt: 1,
+                              pt: 1,
+                              borderTop: '1px solid rgba(0, 0, 0, 0.08)'
+                            }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Chip 
+                                  size="small" 
+                                  label={`v.${weekData.week}`} 
+                                  sx={{ 
+                                    backgroundColor: weekData.bgcolor,
+                                    minWidth: "40px",
+                                    mr: 1
+                                  }}
+                                />
+                                <Typography variant="body2">
+                                  {nights} {nights === 1 ? 'natt' : 'nätter'}
+                                </Typography>
+                              </Box>
+                              <Typography variant="subtitle2">
+                                {calculateRevenueForBooking(booking).toLocaleString()} kr
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    );
+                  })}
+                  
+                  {/* Mobile summary */}
+                  <Box 
+                    sx={{ 
+                      mt: 2, 
+                      p: 2, 
+                      bgcolor: 'rgba(0, 0, 0, 0.05)',
+                      borderRadius: 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="subtitle2">Totalt:</Typography>
+                      <Typography variant="body2">{calculateTotalNights(bookingsInMonth)} nätter</Typography>
+                    </Box>
+                    <Typography variant="subtitle1">
+                      {calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr
+                    </Typography>
+                  </Box>
+                </Box>
               </AccordionDetails>
             </Accordion>
           );
@@ -1213,32 +1380,111 @@ const BookingPage: React.FC = () => {
               <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
                 Priser (kr/dygn)
               </Typography>
-              <Grid container spacing={1}>
-                <Grid item xs={12} sm={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
-                    <Typography variant="body2">
-                      Högsäsong (v. 24-32): 600 kr
-                    </Typography>
-                  </Box>
+              
+              {/* Desktop view */}
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <Grid container spacing={1}>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mb: { xs: 1, sm: 0 },
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
+                      <Typography variant="body2">
+                        Högsäsong (v. 24-32): 600 kr
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mb: { xs: 1, sm: 0 },
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
+                      <Typography variant="body2">
+                        Tennisveckor (v. 27-29): 800 kr
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
+                      <Typography variant="body2">
+                        Lågsäsong (v. 1-23, 33-52): 400 kr
+                      </Typography>
+                    </Box>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
-                    <Typography variant="body2">
-                      Tennisveckor (v. 27-29): 800 kr
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
-                    <Typography variant="body2">
-                      Lågsäsong (v. 1-23, 33-52): 400 kr
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
+              </Box>
+              
+              {/* Mobile view */}
+              <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                <Table size="small" sx={{ mt: 1 }}>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell sx={{ border: 0, p: 1, pl: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Högsäsong</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ border: 0, p: 1 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>v. 24-32</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ border: 0, p: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>600 kr</Typography>
+                      </TableCell>
+                    </TableRow>
+                    
+                    <TableRow>
+                      <TableCell sx={{ border: 0, p: 1, pl: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', mr: 1, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Tennisveckor</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ border: 0, p: 1 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>v. 27-29</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ border: 0, p: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>800 kr</Typography>
+                      </TableCell>
+                    </TableRow>
+                    
+                    <TableRow>
+                      <TableCell sx={{ border: 0, p: 1, pl: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Lågsäsong</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ border: 0, p: 1 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>v. 1-23, 33-52</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ border: 0, p: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>400 kr</Typography>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Box>
             </Box>
             
             {renderBookingsList()}
