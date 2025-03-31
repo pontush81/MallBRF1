@@ -90,7 +90,9 @@ const corsOptions = {
       'http://localhost:3001',
       'https://gulmaran.com',
       'https://www.gulmaran.com',
-      'https://staging.gulmaran.com'
+      'https://staging.gulmaran.com',
+      'https://stage.gulmaran.com',
+      'https://www.stage.gulmaran.com'
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
