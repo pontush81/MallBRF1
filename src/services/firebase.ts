@@ -1,6 +1,6 @@
 // Firebase konfiguration
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -35,6 +35,7 @@ const app = initializeApp(firebaseConfig);
 
 // Exportera Firebase-tjänster för användning i applikationen
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 
 // Set session persistence to LOCAL (will persist even after browser restart)
 setPersistence(auth, browserLocalPersistence)

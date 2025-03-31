@@ -10,8 +10,10 @@ import {
   Box,
   Alert,
   Link,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
+import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
 
@@ -20,6 +22,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
@@ -59,6 +62,41 @@ const Login: React.FC = () => {
       console.error('Login error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setError(null);
+      setGoogleLoading(true);
+      
+      // Logga in med Google via userService
+      const user = await userService.loginWithGoogle();
+      
+      if (user) {
+        // Användaren är inloggad via Google, uppdatera kontexten
+        authLogin(user);
+        
+        // Navigera till sidlistan
+        navigate('/pages');
+      } else {
+        setError('Kunde inte logga in med Google');
+      }
+    } catch (err: any) {
+      let errorMessage = 'Kunde inte logga in med Google';
+      
+      if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Inloggning avbruten';
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Inloggningsfönstret stängdes för snabbt, försök igen';
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup-fönstret blockerades. Tillåt popup-fönster och försök igen';
+      }
+      
+      setError(errorMessage);
+      console.error('Google login error:', err);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -113,6 +151,19 @@ const Login: React.FC = () => {
               disabled={loading}
             >
               {loading ? <CircularProgress size={24} /> : 'Logga in'}
+            </Button>
+            
+            <Divider sx={{ my: 2 }}>eller</Divider>
+            
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<GoogleIcon />}
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              sx={{ mb: 2, py: 1.2 }}
+            >
+              {googleLoading ? <CircularProgress size={24} /> : 'Logga in med Google'}
             </Button>
             
             <Grid container>

@@ -1,10 +1,11 @@
 import { User } from '../types/User';
-import { auth, db } from './firebase';
+import { auth, db, googleProvider } from './firebase';
 import { 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  getAuth
+  getAuth,
+  signInWithPopup
 } from 'firebase/auth';
 import { 
   doc, 
@@ -34,6 +35,37 @@ export const userService = {
       return this.getUserById(firebaseUser.uid);
     } catch (error) {
       console.error('Error during login:', error);
+      return null;
+    }
+  },
+
+  async loginWithGoogle(): Promise<User | null> {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      
+      // Check if user exists in Firestore
+      let user = await this.getUserById(firebaseUser.uid);
+      
+      // If user doesn't exist in Firestore, create a new record
+      if (!user) {
+        user = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || '',
+          role: 'user',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        };
+        
+        // Save to Firestore
+        await setDoc(doc(db, 'users', firebaseUser.uid), user);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error during Google login:', error);
       return null;
     }
   },
