@@ -159,20 +159,23 @@ Vid problem, kontrollera:
 
 # MallBRF1
 
-## Deployment Status
-Last deployment: 2024-03-23
-
 ## About
-A web application for managing apartment bookings and information.
+
+A modern web application for managing apartment bookings and information, built with React and TypeScript. The application provides a robust platform for managing public pages, documents, and images.
 
 ## Features
-- User authentication with Firebase
-- Booking management
-- Page content management
-- Admin dashboard
-- Public pages for visitors
+
+* User authentication with Firebase
+* Dynamic page content management with Markdown support
+* Image and document management
+* Responsive design with Material-UI
+* Public and private page viewing
+* File upload and management
+* Image preview and zoom functionality
+* PDF and document handling
 
 ## Environment Setup
+
 The application requires the following environment variables:
 
 ### Firebase Configuration
@@ -192,78 +195,100 @@ REACT_APP_API_URL
 ```
 
 ## Development
+
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Set up environment variables in `.env.local`
 4. Start development server: `npm start`
 
 ## Production Build
+
 1. Build the application: `npm run build`
 2. Deploy to Vercel: Automatic deployment on push to main branch
 
 ## Testing
-- Run unit tests: `npm test`
-- Run E2E tests: `npm run cypress:open`
+
+* Run unit tests: `npm test`
+* Run E2E tests: `npm run cypress:open`
 
 ## API och CORS-konfiguration
 
 För att säkerställa att API-anrop fungerar korrekt, kontrollera följande:
 
 ### Frontend (Next.js)
-- [ ] Alla API-anrop använder relativa URL:er (`/api/...`) istället för absoluta URL:er
-- [ ] API-anrop inkluderar följande headers:
+
+* Alla API-anrop använder relativa URL:er (`/api/...`) istället för absoluta URL:er
+* API-anrop inkluderar följande headers:  
   ```javascript
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'x-vercel-protection-bypass': 'true'
+  headers: {  
+    'Accept': 'application/json',  
+    'Content-Type': 'application/json',  
+    'x-vercel-protection-bypass': 'true'  
   }
   ```
-- [ ] Fetch-anrop har rätt konfiguration:
+* Fetch-anrop har rätt konfiguration:  
   ```javascript
-  {
-    mode: 'cors',
-    credentials: 'include'
+  {  
+    mode: 'cors',  
+    credentials: 'include'  
   }
   ```
 
 ### Backend (Express)
-- [ ] CORS är korrekt konfigurerat med:
+
+* CORS är korrekt konfigurerat med:  
   ```javascript
-  app.use(cors({
-    origin: function(origin, callback) {
-      const allowedOrigins = [
-        'https://mallbrf.vercel.app',
-        'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',
-        'http://localhost:3000'
-      ];
-      callback(null, allowedOrigins.includes(origin));
-    },
-    credentials: true
+  app.use(cors({  
+    origin: function(origin, callback) {  
+      const allowedOrigins = [  
+        'https://mallbrf.vercel.app',  
+        'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',  
+        'http://localhost:3000'  
+      ];  
+      callback(null, allowedOrigins.includes(origin));  
+    },  
+    credentials: true  
   }));
   ```
-- [ ] API-rutter är definierade i rätt ordning:
-  1. Statiska filer (manifest.json, etc.)
-  2. API-endpoints
-  3. Catch-all route
+
+## Deployment
 
 ### Vercel Deployment
-- [ ] Environment variables är korrekt konfigurerade
-- [ ] CORS headers är tillåtna i Vercel's configuration
-- [ ] Verifiera att både frontend och backend är deployade till rätt branch
+
+1. Environment variables är korrekt konfigurerade
+2. CORS headers är tillåtna i Vercel's configuration
+3. Verifiera att både frontend och backend är deployade till rätt branch
 
 ### Felsökning
+
 Om problem uppstår:
+
 1. Kontrollera browser console för felmeddelanden
 2. Verifiera nätverksanrop i browser devtools
 3. Kontrollera Vercel logs för både frontend och backend
 4. Verifiera att alla headers är korrekt satta i både request och response
 
-### CORS-konfiguration
-- API:et har uppdaterats för att tillåta följande domäner:
-  - https://www.gulmaran.com
-  - https://stage.gulmaran.com
-  - https://www.stage.gulmaran.com
-  - https://mall-brf-1.vercel.app
-  - https://mallbrf.vercel.app
-  - Lokala utvecklingsmiljöer
+## CORS-konfiguration
+
+* API:et har uppdaterats för att tillåta följande domäner:  
+  * https://www.gulmaran.com  
+  * https://stage.gulmaran.com  
+  * https://www.stage.gulmaran.com  
+  * https://mall-brf-1.vercel.app  
+  * https://mallbrf.vercel.app  
+  * Lokala utvecklingsmiljöer
+
+## Support
+
+Vid problem, kontrollera:
+
+1. Vercel Status
+2. Supabase Status
+3. Deployment logs i Vercel dashboard
+
+## Säkerhet
+
+* Använd alltid HTTPS
+* Skydda dina API keys
+* Regelbunden backup av data
+* Följ security best practices för Node.js applikationer
