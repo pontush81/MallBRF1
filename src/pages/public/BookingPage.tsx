@@ -672,6 +672,11 @@ const BookingPage: React.FC = () => {
         currentDate.setDate(currentDate.getDate() + 1);
       }
       
+      // Lägg till parkeringsavgift om bokningen inkluderar parkering
+      if (booking.parking) {
+        revenue += totalNights * 75; // 75 kr per dygn för parkering
+      }
+      
       return revenue;
     } catch (error) {
       console.warn('Fel vid beräkning av intäkter för bokning:', booking.id);
@@ -829,17 +834,6 @@ const BookingPage: React.FC = () => {
                       color={isExpanded ? "primary" : "default"}
                       variant={isExpanded ? "filled" : "outlined"}
                     />
-                    <Chip 
-                      label={`${calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr`} 
-                      size="small" 
-                      sx={{ 
-                        backgroundColor: isExpanded 
-                          ? 'rgba(255,255,255,0.3)' 
-                          : 'rgba(0,0,0,0.08)'
-                      }}
-                      color={isExpanded ? "primary" : "default"}
-                      variant={isExpanded ? "filled" : "outlined"}
-                    />
                   </Box>
                   
                   {/* Mobile compact summary */}
@@ -864,14 +858,6 @@ const BookingPage: React.FC = () => {
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         nätter
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', mr: 0.5 }}>
-                        {calculateRevenueForMonth(bookingsInMonth).toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        kr
                       </Typography>
                     </Box>
                   </Box>
@@ -1382,53 +1368,90 @@ const BookingPage: React.FC = () => {
               </Typography>
               
               {/* Desktop view */}
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                <Grid container spacing={1}>
-                  <Grid item xs={12} sm={4}>
+              <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={3}>
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
-                      mb: { xs: 1, sm: 0 },
-                      px: 1,
-                      py: 0.5,
+                      height: '100%',
+                      px: 1.5,
+                      py: 1,
                       borderRadius: 1,
                       border: '1px solid rgba(0, 0, 0, 0.05)'
                     }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
-                      <Typography variant="body2">
-                        Högsäsong (v. 24-32): 600 kr
-                      </Typography>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
+                      <Box>
+                        <Typography variant="body2" noWrap>
+                          Högsäsong (v. 24-32)
+                        </Typography>
+                        <Typography variant="subtitle2">
+                          600 kr
+                        </Typography>
+                      </Box>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      mb: { xs: 1, sm: 0 },
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: 1,
-                      border: '1px solid rgba(0, 0, 0, 0.05)'
-                    }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
-                      <Typography variant="body2">
-                        Tennisveckor (v. 27-29): 800 kr
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={3}>
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center',
-                      px: 1,
-                      py: 0.5,
+                      height: '100%',
+                      px: 1.5,
+                      py: 1,
                       borderRadius: 1,
                       border: '1px solid rgba(0, 0, 0, 0.05)'
                     }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
-                      <Typography variant="body2">
-                        Lågsäsong (v. 1-23, 33-52): 400 kr
-                      </Typography>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
+                      <Box>
+                        <Typography variant="body2" noWrap>
+                          Tennisveckor (v. 27-29)
+                        </Typography>
+                        <Typography variant="subtitle2">
+                          800 kr
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      height: '100%',
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
+                      <Box>
+                        <Typography variant="body2" noWrap>
+                          Lågsäsong (v. 1-23, 33-52)
+                        </Typography>
+                        <Typography variant="subtitle2">
+                          400 kr
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      height: '100%',
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(76, 175, 80, 0.2)' }} />
+                      <Box>
+                        <Typography variant="body2" noWrap>
+                          Parkering
+                        </Typography>
+                        <Typography variant="subtitle2">
+                          75 kr/dygn
+                        </Typography>
+                      </Box>
                     </Box>
                   </Grid>
                 </Grid>
@@ -1480,6 +1503,21 @@ const BookingPage: React.FC = () => {
                       </TableCell>
                       <TableCell align="right" sx={{ border: 0, p: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>400 kr</Typography>
+                      </TableCell>
+                    </TableRow>
+                    
+                    <TableRow>
+                      <TableCell sx={{ border: 0, p: 1, pl: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', mr: 1, bgcolor: 'rgba(76, 175, 80, 0.2)' }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Parkering</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ border: 0, p: 1 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>per dygn</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ border: 0, p: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>75 kr</Typography>
                       </TableCell>
                     </TableRow>
                   </TableBody>
