@@ -7,7 +7,10 @@ import {
   getAuth,
   signInWithRedirect,
   getRedirectResult,
-  signInWithPopup
+  signInWithPopup,
+  AuthProvider,
+  UserCredential,
+  User as FirebaseUser
 } from 'firebase/auth';
 import { 
   doc, 
@@ -18,6 +21,13 @@ import {
   query,
   where
 } from 'firebase/firestore';
+
+// Interface för vitlistan
+interface Allowlist {
+  emails: string[];
+  domains: string[];
+  lastUpdated: string;
+}
 
 export const userService = {
   async getUserById(id: string): Promise<User | null> {
@@ -33,114 +43,144 @@ export const userService = {
 
   async login(email: string, password: string): Promise<User | null> {
     try {
+      // Check if the email is allowed to log in
+      if (!(await this.isUserAllowed(email))) {
+        console.error('Email not allowed to log in:', email);
+        throw new Error('Du har inte behörighet att logga in. Kontakta administratören.');
+      }
+      
       const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
       return this.getUserById(firebaseUser.uid);
     } catch (error) {
       console.error('Error during login:', error);
-      return null;
+      throw error; // Rethrow to allow UI to handle it
     }
   },
 
-  async loginWithGoogle(): Promise<User | null> {
+  // Hämta vitlistan från Firestore
+  async getAllowlist(): Promise<Allowlist> {
     try {
-      console.log('Starting Google sign-in from origin:', window.location.origin);
+      // Hämta dokument från Firestore
+      const allowlistDoc = await getDoc(doc(db, 'settings', 'allowlist'));
       
-      // Use popup instead of redirect for local development
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log('Google sign-in successful, user:', result.user.email);
+      if (allowlistDoc.exists()) {
+        return allowlistDoc.data() as Allowlist;
+      } else {
+        // Om vitlistan inte finns, returnera tom lista
+        return { emails: [], domains: [], lastUpdated: new Date().toISOString() };
+      }
+    } catch (error) {
+      console.error('Error fetching allowlist:', error);
+      // Vid fel, returnera tom lista
+      return { emails: [], domains: [], lastUpdated: new Date().toISOString() };
+    }
+  },
+
+  // Check if user is allowed to log in
+  async isUserAllowed(email: string): Promise<boolean> {
+    try {
+      // Hämta vitlistan från Firestore
+      const allowlist = await this.getAllowlist();
+      
+      // Om listorna är tomma, tillåt alla (standardbeteende)
+      if (allowlist.emails.length === 0 && allowlist.domains.length === 0) {
+        return true;
+      }
+
+      // Check if the email is in the allowlist
+      const emailLower = email.toLowerCase();
+      
+      // First check exact email matches
+      if (allowlist.emails.some(allowed => allowed.toLowerCase() === emailLower)) {
+        return true;
+      }
+      
+      // Then check domain matches
+      const domain = emailLower.split('@')[1];
+      if (domain && allowlist.domains.some(allowed => allowed.toLowerCase() === domain.toLowerCase())) {
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking if user is allowed:', error);
+      // Vid fel, tillåt användaren (för att undvika att låsa ute admin-användare)
+      return true;
+    }
+  },
+
+  // Generic function for social provider login
+  async loginWithSocialProvider(provider: AuthProvider, providerName: string): Promise<User | null> {
+    try {
+      console.log(`Starting ${providerName} sign-in from origin:`, window.location.origin);
+      
+      // Use popup for login
+      const result = await signInWithPopup(auth, provider);
+      console.log(`${providerName} sign-in successful, user:`, result.user.email);
       
       const firebaseUser = result.user;
       
-      // Check if user exists in Firestore
-      let user = await this.getUserById(firebaseUser.uid);
-      
-      if (user) {
-        console.log('User already exists in Firestore:', user);
-      } else {
-        console.log('Creating new user in Firestore for:', firebaseUser.email);
-        // If user doesn't exist in Firestore, create a new record
-        user = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          name: firebaseUser.displayName || '',
-          role: 'user',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        };
-        
-        try {
-          // Save to Firestore
-          await setDoc(doc(db, 'users', firebaseUser.uid), user);
-          console.log('Successfully created user in Firestore');
-        } catch (error: any) {
-          console.error('Error creating user in Firestore:', error.code, error.message);
-          if (error.customData) {
-            console.error('Error details:', error.customData);
-          }
-          // Still return the user even if we couldn't save to Firestore
-        }
+      // Check if the user is allowed to log in
+      if (firebaseUser.email && !(await this.isUserAllowed(firebaseUser.email))) {
+        console.error('User not allowed to log in:', firebaseUser.email);
+        await auth.signOut(); // Sign out the user from Firebase
+        throw new Error('Du har inte behörighet att logga in. Kontakta administratören.');
       }
       
-      return user;
+      // Get or create user in Firestore
+      return await this.getOrCreateUser(firebaseUser);
     } catch (error: any) {
-      console.error('Error during Google login:', error.code, error.message);
+      console.error(`Error during ${providerName} login:`, error.code, error.message);
       if (error.customData) {
         console.error('Error details:', error.customData);
       }
       throw error; // Rethrow to allow UI to handle it
     }
+  },
+
+  // Helper function to get or create a user in Firestore
+  async getOrCreateUser(firebaseUser: FirebaseUser): Promise<User | null> {
+    // Check if user exists in Firestore
+    let user = await this.getUserById(firebaseUser.uid);
+    
+    if (user) {
+      console.log('User already exists in Firestore:', user);
+    } else {
+      console.log('Creating new user in Firestore for:', firebaseUser.email);
+      // If user doesn't exist in Firestore, create a new record
+      user = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: firebaseUser.displayName || '',
+        role: 'user',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      try {
+        // Save to Firestore
+        await setDoc(doc(db, 'users', firebaseUser.uid), user);
+        console.log('Successfully created user in Firestore');
+      } catch (error: any) {
+        console.error('Error creating user in Firestore:', error.code, error.message);
+        if (error.customData) {
+          console.error('Error details:', error.customData);
+        }
+        // Still return the user even if we couldn't save to Firestore
+      }
+    }
+    
+    return user;
+  },
+
+  // Simplified provider-specific login methods
+  async loginWithGoogle(): Promise<User | null> {
+    return this.loginWithSocialProvider(googleProvider, 'Google');
   },
 
   async loginWithFacebook(): Promise<User | null> {
-    try {
-      console.log('Starting Facebook sign-in from origin:', window.location.origin);
-      
-      // Use popup for Facebook login
-      const result = await signInWithPopup(auth, facebookProvider);
-      console.log('Facebook sign-in successful, user:', result.user.email);
-      
-      const firebaseUser = result.user;
-      
-      // Check if user exists in Firestore
-      let user = await this.getUserById(firebaseUser.uid);
-      
-      if (user) {
-        console.log('User already exists in Firestore:', user);
-      } else {
-        console.log('Creating new user in Firestore for:', firebaseUser.email);
-        // If user doesn't exist in Firestore, create a new record
-        user = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          name: firebaseUser.displayName || '',
-          role: 'user',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        };
-        
-        try {
-          // Save to Firestore
-          await setDoc(doc(db, 'users', firebaseUser.uid), user);
-          console.log('Successfully created user in Firestore');
-        } catch (error: any) {
-          console.error('Error creating user in Firestore:', error.code, error.message);
-          if (error.customData) {
-            console.error('Error details:', error.customData);
-          }
-          // Still return the user even if we couldn't save to Firestore
-        }
-      }
-      
-      return user;
-    } catch (error: any) {
-      console.error('Error during Facebook login:', error.code, error.message);
-      if (error.customData) {
-        console.error('Error details:', error.customData);
-      }
-      throw error; // Rethrow to allow UI to handle it
-    }
+    return this.loginWithSocialProvider(facebookProvider, 'Facebook');
   },
 
   // This function should be called when the page loads to handle redirect result
@@ -162,38 +202,15 @@ export const userService = {
       console.log('Google redirect successful, user:', result.user.email);
       const firebaseUser = result.user;
       
-      // Check if user exists in Firestore
-      let user = await this.getUserById(firebaseUser.uid);
-      
-      if (user) {
-        console.log('User already exists in Firestore:', user);
-      } else {
-        console.log('Creating new user in Firestore for:', firebaseUser.email);
-        // If user doesn't exist in Firestore, create a new record
-        user = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          name: firebaseUser.displayName || '',
-          role: 'user',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        };
-        
-        try {
-          // Save to Firestore
-          await setDoc(doc(db, 'users', firebaseUser.uid), user);
-          console.log('Successfully created user in Firestore');
-        } catch (error: any) {
-          console.error('Error creating user in Firestore:', error.code, error.message);
-          if (error.customData) {
-            console.error('Error details:', error.customData);
-          }
-          // Still return the user even if we couldn't save to Firestore
-        }
+      // Check if the user is allowed to log in
+      if (firebaseUser.email && !(await this.isUserAllowed(firebaseUser.email))) {
+        console.error('User not allowed to log in:', firebaseUser.email);
+        await auth.signOut(); // Sign out the user from Firebase
+        throw new Error('Du har inte behörighet att logga in. Kontakta administratören.');
       }
       
-      return user;
+      // Get or create user
+      return await this.getOrCreateUser(firebaseUser);
     } catch (error: any) {
       console.error('Error handling Google redirect result:', error.code, error.message);
       if (error.customData) {
@@ -208,6 +225,12 @@ export const userService = {
 
   async register(email: string, password: string, name: string): Promise<User | null> {
     try {
+      // Check if the email is allowed to register
+      if (!(await this.isUserAllowed(email))) {
+        console.error('Email not allowed to register:', email);
+        throw new Error('Du har inte behörighet att registrera dig. Kontakta administratören.');
+      }
+      
       const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update display name
