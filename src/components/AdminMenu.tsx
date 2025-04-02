@@ -176,7 +176,7 @@ const AdminMenu: React.FC = () => {
               )}
             </CardContent>
             <Box sx={{ px: 2, pb: 2 }}>
-              <Button size="small" onClick={() => navigate('/admin/bookings')}>
+              <Button size="small" onClick={() => navigate('/booking')}>
                 Hantera bokningar
               </Button>
             </Box>

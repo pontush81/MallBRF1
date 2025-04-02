@@ -30,7 +30,6 @@ import { useNavigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import PagesList from './PagesList';
 import PageEditor from './PageEditor';
-import BookingsList from './BookingsList';
 import DashboardHome from './DashboardHome';
 import UsersList from './UsersList';
 
@@ -65,7 +64,7 @@ const Dashboard: React.FC = () => {
         navigate('/admin/pages');
         break;
       case 'bookings':
-        navigate('/admin/bookings');
+        navigate('/booking');  // Redirect to public booking page instead of admin/bookings
         break;
       case 'users':
         navigate('/admin/users');
@@ -303,7 +302,6 @@ const Dashboard: React.FC = () => {
             <Route path="/pages" element={<PagesList />} />
             <Route path="/pages/new" element={<PageEditor />} />
             <Route path="/pages/edit/:id" element={<PageEditor />} />
-            <Route path="/bookings" element={<BookingsList />} />
             <Route path="/users" element={<UsersList />} />
           </Routes>
         </Container>
