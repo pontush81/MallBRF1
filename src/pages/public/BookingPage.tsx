@@ -28,7 +28,14 @@ import {
   Chip,
   Link,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  Snackbar,
+  IconButton
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -37,11 +44,12 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { Person, Email, Check, ExpandMore, LockOutlined } from '@mui/icons-material';
+import { Person, Email, Check, ExpandMore, LockOutlined, Delete as DeleteIcon, Email as EmailIcon, Edit as EditIcon, Backup as BackupIcon } from '@mui/icons-material';
 import bookingService from '../../services/bookingService';
 import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../config';
 
 // Förenklade steg i bokningsprocessen
 const steps = ['Välj datum och dina uppgifter', 'Klar'];
@@ -82,21 +90,69 @@ const CustomPickersDay = ({
     <Tooltip 
       title={isBooked ? "Upptaget" : "Tillgängligt"} 
       arrow
+      placement="top"
     >
       <PickersDay
         {...other}
         selected={isSelected}
         sx={{
+          position: 'relative',
+          transition: 'background-color 0.2s, transform 0.1s',
+          fontWeight: isBooked ? 'bold' : 'normal',
+          
+          // Highlight selected days
+          ...(isSelected && {
+            backgroundColor: 'primary.main',
+            color: 'white',
+            fontWeight: 'bold',
+            transform: 'scale(1.05)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            '&:hover': {
+              backgroundColor: 'primary.dark',
+            },
+          }),
+          
+          // Style booked days 
           ...(isBooked && {
             backgroundColor: 'rgba(255, 0, 0, 0.1)',
+            color: 'error.main',
             '&:hover': {
               backgroundColor: 'rgba(255, 0, 0, 0.2)',
             },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: '3px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              backgroundColor: 'error.main',
+            },
             '&.Mui-selected': {
               backgroundColor: 'rgba(255, 0, 0, 0.3)',
+              color: 'white',
               '&:hover': {
                 backgroundColor: 'rgba(255, 0, 0, 0.4)',
               },
+            },
+          }),
+          
+          // Style days that are both selected and booked
+          ...(isSelected && isBooked && {
+            backgroundColor: 'error.main',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'error.dark',
+            },
+          }),
+          
+          // Add hover effect for available dates
+          ...(!isBooked && !isSelected && {
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
+              transform: 'scale(1.05)',
             },
           }),
         }}
@@ -135,8 +191,28 @@ const BookingPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Använd Authentication context
-  const { isLoggedIn, currentUser } = useAuth();
+  const { isLoggedIn, currentUser, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // Admin-specific state variables
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editParking, setEditParking] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
 
   // Hämta befintliga bokningar när komponenten laddas
   const fetchBookings = async () => {
@@ -410,6 +486,11 @@ const BookingPage: React.FC = () => {
           elevation={3} 
           sx={{ 
             p: 2,
+            borderRadius: 2,
+            background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid',
+            borderColor: 'divider',
             '& .MuiDateCalendar-root': {
               width: '100%',
               maxWidth: '100%',
@@ -478,6 +559,19 @@ const BookingPage: React.FC = () => {
                   fontSize: isMobile ? '0.75rem' : '0.875rem',
                   margin: '0',
                   padding: '0',
+                  borderRadius: '50%',
+                  fontWeight: 'medium',
+                  '&.Mui-selected': {
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    transition: 'background-color 0.2s, transform 0.1s',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
+                    }
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                  },
                   '&.Mui-disabled': {
                     color: theme.palette.text.disabled,
                     opacity: 0.5,
@@ -491,7 +585,8 @@ const BookingPage: React.FC = () => {
                   width: isMobile ? '28px' : '40px',
                   height: isMobile ? '28px' : '40px',
                   fontSize: isMobile ? '0.75rem' : '0.875rem',
-                  color: theme.palette.text.secondary,
+                  color: 'primary.main',
+                  fontWeight: 'bold',
                   margin: '0',
                   padding: '0',
                   textTransform: 'uppercase'
@@ -510,7 +605,8 @@ const BookingPage: React.FC = () => {
                 '& .MuiPickersCalendarHeader-label': {
                   textTransform: 'none',
                   fontSize: '1.25rem',
-                  fontWeight: 500,
+                  fontWeight: 'bold',
+                  color: 'primary.dark',
                   '&.MuiTypography-root': {
                     '&::first-letter': {
                       textTransform: 'uppercase'
@@ -528,6 +624,9 @@ const BookingPage: React.FC = () => {
                 '& .MuiPickersCalendarHeader-switchViewButton': {
                   display: 'none'
                 },
+                '& .MuiPickersArrowSwitcher-button': {
+                  color: 'primary.main',
+                },
                 '& .MuiPickersArrowSwitcher-spacer': {
                   width: isMobile ? '8px' : '16px'
                 },
@@ -537,7 +636,8 @@ const BookingPage: React.FC = () => {
                   fontSize: isMobile ? '0.7rem' : '0.75rem',
                   margin: '0',
                   padding: '0',
-                  color: theme.palette.text.secondary
+                  color: 'text.secondary',
+                  fontWeight: 'bold'
                 }
               }}
             />
@@ -695,273 +795,374 @@ const BookingPage: React.FC = () => {
   const renderBookingsList = () => {
     if (loadingBookings) {
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" my={4}>
           <CircularProgress />
         </Box>
       );
     }
-    
+
     if (existingBookings.length === 0) {
       return (
-        <Alert severity="info" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="info" sx={{ 
+          my: 4,
+          backgroundColor: 'info.lighter',
+          borderColor: 'info.light',
+          border: '1px solid',
+          borderRadius: 2
+        }}>
           Inga bokningar hittades.
         </Alert>
       );
     }
+
+    // Sortera och gruppera bokningar efter månad
+    const bookingsToShow = isAdmin && searchTerm 
+      ? filteredBookings
+      : existingBookings;
     
-    const sortedBookings = sortBookingsByDate(existingBookings);
-    const groupedBookings = groupBookingsByMonth(sortedBookings);
+    const groupedBookings = groupBookingsByMonth(bookingsToShow);
     
-    // Sortera månadsnycklarna så att aktuell månad kommer först, 
-    // sedan framtida månader i kronologisk ordning, 
-    // sedan tidigare månader i omvänd kronologisk ordning
-    const sortedMonthKeys = Object.keys(groupedBookings).sort((a, b) => {
-      const dateA = parseISO(a + '-01');
-      const dateB = parseISO(b + '-01');
-      const now = new Date();
-      const currentMonth = startOfMonth(now);
-      
-      // Om en månad är aktuell, prioritera den
-      if (a === format(currentMonth, 'yyyy-MM')) return -1;
-      if (b === format(currentMonth, 'yyyy-MM')) return 1;
-      
-      // Annars sortera framtida först, sedan tidigare
-      const aIsFuture = isAfter(dateA, currentMonth);
-      const bIsFuture = isAfter(dateB, currentMonth);
-      
-      if (aIsFuture && !bIsFuture) return -1;
-      if (!aIsFuture && bIsFuture) return 1;
-      
-      // För framtida månader, sortera i kronologisk ordning
-      if (aIsFuture && bIsFuture) {
-        return dateA.getTime() - dateB.getTime();
-      }
-      
-      // För tidigare månader, sortera i omvänd kronologisk ordning
-      return dateB.getTime() - dateA.getTime();
-    });
-    
+    // Sortera månader i kronologisk ordning
+    const sortedMonthKeys = Object.keys(groupedBookings).sort();
+
     return (
-      <Box sx={{ mt: 2, mb: 2 }}>
-        <Typography variant="body2" sx={{ mb: 3 }}>
-          Här kan du se alla bokningar som är inplanerade. Tidigare månader är ihopfällda.
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" component="h2" sx={{ 
+          mb: 3, 
+          fontWeight: 'bold',
+          color: 'text.primary',
+          display: 'flex',
+          alignItems: 'center',
+          '&::before': {
+            content: '""',
+            display: 'block',
+            width: 3,
+            height: 20,
+            backgroundColor: 'primary.main',
+            marginRight: 1.5,
+            borderRadius: 1
+          }
+        }}>
+          Bokningsstatus
         </Typography>
         
         {sortedMonthKeys.map(monthKey => {
           const bookingsInMonth = [...groupedBookings[monthKey]].sort((a, b) => {
-            if (!a.startDate || !b.startDate) return 0;
-            
-            const dateA = new Date(a.startDate);
-            const dateB = new Date(b.startDate);
-            const now = new Date();
-            
-            // Om båda bokningarna är i framtiden, visa den närmast i tiden först
-            if (dateA > now && dateB > now) {
-              return dateA.getTime() - dateB.getTime();
-            }
-            
-            // Om en är i framtiden, visa den först
-            if (dateA > now) return -1;
-            if (dateB > now) return 1;
-            
-            // Annars visa den senaste först
-            return dateB.getTime() - dateA.getTime();
+            return new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime();
           });
           
-          const isExpanded = isCurrentOrFutureMonth(monthKey);
-          const isPastMonth = !isExpanded;
+          // Kontrollera om detta är aktuell/framtida månad för att filtrera ut gamla
+          const currentOrFuture = isCurrentOrFutureMonth(monthKey);
+          if (!currentOrFuture) return null;
+          
+          const totalNights = calculateTotalNights(bookingsInMonth);
+          const totalRevenue = calculateRevenueForMonth(bookingsInMonth);
+          const isCurrentMonth = isThisMonth(new Date(monthKey));
           
           return (
-            <Accordion 
-              key={monthKey} 
-              defaultExpanded={isExpanded}
+            <Accordion
+              key={monthKey}
+              defaultExpanded={isCurrentMonth}
               sx={{ 
-                mb: 2,
-                '&.MuiAccordion-root': {
-                  borderRadius: 1,
-                  boxShadow: 1,
+                mb: 3,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                borderRadius: '8px !important',
+                '&:before': {
+                  display: 'none',
                 },
-                ...(isPastMonth && {
-                  opacity: 0.85,
-                  '& .MuiAccordionSummary-root': {
-                    backgroundColor: 'grey.300',
-                    color: 'text.primary'
-                  }
-                })
+                '&.Mui-expanded': {
+                  margin: '0 0 24px 0', // Explicit margin to prevent collapsing
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }
               }}
             >
-              <AccordionSummary 
+              <AccordionSummary
                 expandIcon={<ExpandMore />}
-                sx={{ 
-                  backgroundColor: isExpanded ? 'primary.light' : 'grey.300',
-                  color: isExpanded ? 'primary.contrastText' : 'text.primary',
-                  '&:hover': { 
-                    backgroundColor: isExpanded ? 'primary.main' : 'grey.400' 
-                  },
+                sx={{
+                  backgroundColor: isCurrentMonth ? 'primary.lighter' : 'background.default',
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  minHeight: '56px',
+                  '&.Mui-expanded': {
+                    minHeight: '56px',
+                    borderBottomColor: isCurrentMonth ? 'primary.light' : 'divider',
+                  }
                 }}
               >
-                <Box sx={{ width: '100%' }}>
-                  <Typography sx={{ fontWeight: isExpanded ? 'bold' : 'normal', mb: { xs: 1, sm: 0 } }}>
-                    {formatMonthName(monthKey)}
-                  </Typography>
-                  
-                  {/* Desktop chips */}
-                  <Box sx={{ 
-                    display: { xs: 'none', sm: 'flex' },
-                    flexWrap: 'wrap', 
-                    gap: 1,
-                    mt: { xs: 1, sm: 0 }
-                  }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  width: '100%', 
+                  alignItems: 'center' 
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="h6" sx={{ 
+                      color: isCurrentMonth ? 'primary.dark' : 'text.primary',
+                      fontWeight: isCurrentMonth ? 'bold' : 'medium',
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
+                      {formatMonthName(monthKey)}
+                    </Typography>
                     <Chip 
-                      label={`${bookingsInMonth.length} bokning${bookingsInMonth.length !== 1 ? 'ar' : ''}`} 
                       size="small" 
+                      label={`${bookingsInMonth.length} bokningar`} 
                       sx={{ 
-                        backgroundColor: isExpanded 
-                          ? 'rgba(255,255,255,0.3)' 
-                          : 'rgba(0,0,0,0.08)'
-                      }}
-                      color={isExpanded ? "primary" : "default"}
-                      variant={isExpanded ? "filled" : "outlined"}
-                    />
-                    <Chip 
-                      label={`${calculateTotalNights(bookingsInMonth)} nätter`} 
-                      size="small" 
-                      sx={{ 
-                        backgroundColor: isExpanded 
-                          ? 'rgba(255,255,255,0.3)' 
-                          : 'rgba(0,0,0,0.08)'
-                      }}
-                      color={isExpanded ? "primary" : "default"}
-                      variant={isExpanded ? "filled" : "outlined"}
+                        ml: 1,
+                        backgroundColor: isCurrentMonth ? 'primary.main' : 'action.selected',
+                        color: isCurrentMonth ? 'white' : 'text.primary'
+                      }} 
                     />
                   </Box>
                   
-                  {/* Mobile compact summary */}
-                  <Box sx={{ 
-                    display: { xs: 'flex', sm: 'none' },
-                    gap: 2,
-                    flexWrap: 'wrap',
-                    mt: 1,
-                    fontSize: '0.75rem'
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'medium', mr: 0.5 }}>
-                        {bookingsInMonth.length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        bokn.
-                      </Typography>
+                  {isAdmin && (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: 2, 
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      alignItems: 'center'
+                    }}>
+                      <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        bgcolor: 'rgba(0, 0, 0, 0.03)',
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 1
+                      }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                          Nätter:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                          {totalNights}
+                        </Typography>
+                      </Box>
+                      <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        bgcolor: 'rgba(76, 175, 80, 0.08)',
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 1
+                      }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                          Intäkt:
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 'bold', 
+                          color: isCurrentMonth ? 'primary.dark' : 'success.dark'
+                        }}>
+                          {totalRevenue.toLocaleString()} kr
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'medium', mr: 0.5 }}>
-                        {calculateTotalNights(bookingsInMonth)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        nätter
-                      </Typography>
-                    </Box>
-                  </Box>
+                  )}
                 </Box>
               </AccordionSummary>
-              <AccordionDetails>
-                {/* Desktop view - table */}
+              <AccordionDetails sx={{ bgcolor: 'background.paper', p: { xs: 1, sm: 2 } }}>
+                {/* Desktop view */}
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
-                    <Table size="small" sx={{ minWidth: 800 }}>
+                  <TableContainer>
+                    <Table size="medium">
                       <TableHead>
-                        <TableRow>
+                        <TableRow sx={{ 
+                          bgcolor: 'rgba(0, 0, 0, 0.02)', 
+                          '& th': { 
+                            fontWeight: 'bold', 
+                            color: 'text.primary' 
+                          } 
+                        }}>
+                          <TableCell>Gäst</TableCell>
                           <TableCell>Ankomst</TableCell>
                           <TableCell>Avresa</TableCell>
-                          <TableCell>Namn</TableCell>
                           <TableCell align="center">Vecka</TableCell>
                           <TableCell align="center">Nätter</TableCell>
                           <TableCell align="center">Parkering</TableCell>
-                          <TableCell align="right">Intäkt</TableCell>
+                          {isAdmin && (
+                            <>
+                              <TableCell align="right">Intäkt</TableCell>
+                              <TableCell align="right">Åtgärder</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {bookingsInMonth.map(booking => (
-                          <TableRow key={booking.id}>
-                            <TableCell>
-                              {booking.startDate 
-                                ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
-                                : 'N/A'
+                        {bookingsInMonth.map(booking => {
+                          // Calculate week number
+                          const getWeekData = () => {
+                            if (!booking.startDate) return { week: 0, bgcolor: "transparent" };
+                            
+                            const date = new Date(booking.startDate);
+                            const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                            const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+                            const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                            
+                            let bgcolor = "transparent";
+                            if (week >= 24 && week <= 32) {
+                              if ([27, 28, 29].includes(week)) {
+                                bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
+                              } else {
+                                bgcolor = "rgba(0, 128, 255, 0.08)"; // High season
                               }
-                            </TableCell>
-                            <TableCell>
-                              {booking.endDate 
-                                ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
-                                : 'N/A'
-                              }
-                            </TableCell>
-                            <TableCell>{booking.name}</TableCell>
-                            <TableCell align="center">
-                              {booking.startDate && (
-                                (() => {
-                                  const date = new Date(booking.startDate);
-                                  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-                                  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-                                  const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-                                  
-                                  let bgcolor = "transparent";
-                                  if (week >= 24 && week <= 32) {
-                                    if ([27, 28, 29].includes(week)) {
-                                      bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
-                                    } else {
-                                      bgcolor = "rgba(0, 128, 255, 0.08)"; // High season
-                                    }
-                                  } else {
-                                    bgcolor = "rgba(0, 0, 0, 0.03)"; // Low season
+                            } else {
+                              bgcolor = "rgba(0, 0, 0, 0.03)"; // Low season
+                            }
+                            
+                            return { week, bgcolor };
+                          };
+                          
+                          const weekData = getWeekData();
+                          const nights = calculateNights(booking);
+                          
+                          return (
+                            <TableRow 
+                              key={booking.id}
+                              sx={{ 
+                                '&:hover': { 
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                  '& .action-buttons': {
+                                    opacity: 1
                                   }
-                                  
-                                  return (
-                                    <Chip 
-                                      size="small" 
-                                      label={`v.${week}`} 
-                                      sx={{ 
-                                        backgroundColor: bgcolor,
-                                        minWidth: "50px"
-                                      }}
-                                    />
-                                  );
-                                })()
+                                },
+                                borderLeft: '4px solid',
+                                borderLeftColor: weekData.bgcolor === 'rgba(255, 0, 0, 0.08)' 
+                                  ? 'error.main' 
+                                  : weekData.bgcolor === 'rgba(0, 128, 255, 0.08)' 
+                                    ? 'primary.main' 
+                                    : 'text.disabled'
+                              }}
+                            >
+                              <TableCell>
+                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Typography variant="body1" component="div" sx={{ fontWeight: 'medium', mr: 1 }}>
+                                      {booking.name}
+                                    </Typography>
+                                    {isAdmin && (
+                                      <Tooltip title="Skicka e-post">
+                                        <IconButton
+                                          size="small"
+                                          color="primary"
+                                          onClick={() => handleEmailClick(booking.email || '')}
+                                          sx={{ p: 0.5 }}
+                                        >
+                                          <EmailIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    )}
+                                  </Box>
+                                  {isAdmin && (
+                                    <Typography variant="caption" color="text.secondary">
+                                      {booking.email}
+                                    </Typography>
+                                  )}
+                                  {booking.notes && (
+                                    <Tooltip title={booking.notes} placement="top-start">
+                                      <Typography 
+                                        variant="caption" 
+                                        color="text.secondary"
+                                        sx={{ 
+                                          display: 'block', 
+                                          mt: 0.5,
+                                          maxWidth: '200px',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          cursor: 'default',
+                                          '&:hover': { textDecoration: 'underline' },
+                                          fontStyle: 'italic'
+                                        }}
+                                      >
+                                        {booking.notes.substring(0, 30)}{booking.notes.length > 30 ? '...' : ''}
+                                      </Typography>
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                {booking.startDate 
+                                  ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
+                                  : 'N/A'
+                                }
+                              </TableCell>
+                              <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                {booking.endDate 
+                                  ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
+                                  : 'N/A'
+                                }
+                              </TableCell>
+                              <TableCell align="center">
+                                {booking.startDate && (
+                                  <Chip 
+                                    size="small" 
+                                    label={`v.${weekData.week}`} 
+                                    sx={{ 
+                                      backgroundColor: weekData.bgcolor,
+                                      fontWeight: 'medium',
+                                      minWidth: "50px"
+                                    }}
+                                  />
+                                )}
+                              </TableCell>
+                              <TableCell align="center" sx={{ fontWeight: 'medium' }}>{nights}</TableCell>
+                              <TableCell align="center">{renderParkingStatus(booking.parking)}</TableCell>
+                              {isAdmin && (
+                                <>
+                                  <TableCell align="right">
+                                    <Typography variant="body2" sx={{ 
+                                      fontWeight: 'medium', 
+                                      color: 'success.dark',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 0.5,
+                                      backgroundColor: 'rgba(76, 175, 80, 0.08)',
+                                      px: 1.5,
+                                      py: 0.5,
+                                      borderRadius: 1
+                                    }}>
+                                      {calculateRevenueForBooking(booking).toLocaleString()} kr
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <Box sx={{ 
+                                      display: 'flex', 
+                                      justifyContent: 'flex-end',
+                                      opacity: { sm: 0.7 },
+                                      transition: 'opacity 0.2s',
+                                      className: 'action-buttons'
+                                    }}>
+                                      <Tooltip title="Redigera bokning">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => handleEditClick(booking)}
+                                          sx={{ mr: 1 }}
+                                        >
+                                          <EditIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Radera bokning">
+                                        <IconButton
+                                          size="small"
+                                          color="error"
+                                          onClick={() => handleDeleteClick(booking)}
+                                        >
+                                          <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Box>
+                                  </TableCell>
+                                </>
                               )}
-                            </TableCell>
-                            <TableCell align="center">
-                              {booking.startDate && booking.endDate
-                                ? differenceInDays(new Date(booking.endDate), new Date(booking.startDate))
-                                : '-'
-                              }
-                            </TableCell>
-                            <TableCell align="center">
-                              {renderParkingStatus(booking.parking)}
-                            </TableCell>
-                            <TableCell align="right">
-                              {booking.startDate && booking.endDate
-                                ? `${calculateRevenueForBooking(booking).toLocaleString()} kr`
-                                : '-'
-                              }
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow 
-                          sx={{ 
-                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                            '& td': { fontWeight: 'bold' } 
-                          }}
-                        >
-                          <TableCell colSpan={3}>Totalt för månaden</TableCell>
-                          <TableCell></TableCell>
-                          <TableCell align="center">{calculateTotalNights(bookingsInMonth)}</TableCell>
-                          <TableCell></TableCell>
-                          <TableCell align="right">{calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr</TableCell>
-                        </TableRow>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>
                 </Box>
                 
-                {/* Mobile view - cards */}
+                {/* Mobile view */}
                 <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
                   {bookingsInMonth.map(booking => {
                     // Calculate week number
@@ -993,94 +1194,200 @@ const BookingPage: React.FC = () => {
                       : 0;
                     
                     return (
-                      <Paper
-                        key={booking.id}
+                      <Paper 
+                        key={booking.id} 
+                        elevation={0}
                         sx={{ 
-                          p: 2, 
+                          p: 2.5, 
                           mb: 2, 
-                          borderLeft: '4px solid',
-                          borderLeftColor: weekData.bgcolor,
+                          border: '1px solid', 
+                          borderColor: 'divider',
+                          borderRadius: 2,
+                          position: 'relative',
+                          overflow: 'hidden',
+                          transition: 'transform 0.2s, box-shadow 0.2s',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                          },
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            bottom: 0,
+                            width: '4px',
+                            backgroundColor: weekData.bgcolor === 'rgba(255, 0, 0, 0.08)' 
+                              ? 'error.main' 
+                              : weekData.bgcolor === 'rgba(0, 128, 255, 0.08)' 
+                                ? 'primary.main' 
+                                : 'text.disabled'
+                          }
                         }}
-                        variant="outlined"
                       >
-                        <Grid container spacing={1}>
+                        <Grid container spacing={1.5}>
                           <Grid item xs={12}>
-                            <Typography variant="subtitle2">{booking.name}</Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Typography variant="subtitle1" sx={{ mr: 1, fontWeight: 'medium' }}>{booking.name}</Typography>
+                                  {isAdmin && (
+                                    <IconButton
+                                      size="small"
+                                      color="primary"
+                                      onClick={() => handleEmailClick(booking.email || '')}
+                                      sx={{ p: 0.25 }}
+                                    >
+                                      <EmailIcon fontSize="small" />
+                                    </IconButton>
+                                  )}
+                                </Box>
+                                {isAdmin && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                    {booking.email}
+                                  </Typography>
+                                )}
+                                {/* Add notes display to mobile view */}
+                                {booking.notes && (
+                                  <Tooltip title={booking.notes}>
+                                    <Typography 
+                                      variant="caption" 
+                                      color="text.secondary"
+                                      sx={{ 
+                                        display: 'block', 
+                                        mt: 0.5,
+                                        maxWidth: '200px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        cursor: 'default',
+                                        '&:hover': { textDecoration: 'underline' },
+                                        fontStyle: 'italic'
+                                      }}
+                                    >
+                                      <strong>Kommentar:</strong> {booking.notes.substring(0, 25)}{booking.notes.length > 25 ? '...' : ''}
+                                    </Typography>
+                                  </Tooltip>
+                                )}
+                              </Box>
+                              {isAdmin && (
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Typography variant="body2" sx={{ 
+                                    fontWeight: 'medium', 
+                                    color: 'success.dark',
+                                    mr: 1.5,
+                                    backgroundColor: 'rgba(76, 175, 80, 0.08)',
+                                    px: 1.5,
+                                    py: 0.5,
+                                    borderRadius: 10,
+                                    fontSize: '0.75rem',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {calculateRevenueForBooking(booking).toLocaleString()} kr
+                                  </Typography>
+                                  <Box>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleEditClick(booking)}
+                                      sx={{ mr: 0.5 }}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => handleDeleteClick(booking)}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                              )}
+                            </Box>
                           </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Ankomst:
-                            </Typography>
-                            <Typography variant="body2">
-                              {booking.startDate 
-                                ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
-                                : 'N/A'
-                              }
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Avresa:
-                            </Typography>
-                            <Typography variant="body2">
-                              {booking.endDate 
-                                ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
-                                : 'N/A'
-                              }
-                            </Typography>
-                          </Grid>
+                          
                           <Grid item xs={12}>
                             <Box sx={{ 
                               display: 'flex', 
-                              justifyContent: 'space-between',
-                              mt: 1,
-                              pt: 1,
-                              borderTop: '1px solid rgba(0, 0, 0, 0.08)'
+                              flexWrap: 'wrap', 
+                              gap: 2, 
+                              mt: 1, 
+                              pt: 1.5,
+                              borderTop: '1px solid rgba(0, 0, 0, 0.06)'
                             }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                minWidth: '85px',
+                              }}>
+                                <Typography variant="caption" color="text.secondary">Ankomst</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                  {booking.startDate 
+                                    ? format(new Date(booking.startDate), 'E d MMM', { locale: sv })
+                                    : 'N/A'
+                                  }
+                                </Typography>
+                              </Box>
+                              
+                              <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                minWidth: '85px'
+                              }}>
+                                <Typography variant="caption" color="text.secondary">Avresa</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                  {booking.endDate 
+                                    ? format(new Date(booking.endDate), 'E d MMM', { locale: sv })
+                                    : 'N/A'
+                                  }
+                                </Typography>
+                              </Box>
+                              
+                              <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                minWidth: '50px'
+                              }}>
+                                <Typography variant="caption" color="text.secondary">Vecka</Typography>
                                 <Chip 
                                   size="small" 
                                   label={`v.${weekData.week}`} 
                                   sx={{ 
+                                    mt: 0.5,
                                     backgroundColor: weekData.bgcolor,
                                     minWidth: "40px",
-                                    mr: 1
+                                    height: '20px',
+                                    fontSize: '0.7rem'
                                   }}
                                 />
-                                <Typography variant="body2">
-                                  {nights} {nights === 1 ? 'natt' : 'nätter'}
-                                </Typography>
                               </Box>
-                              <Typography variant="subtitle2">
-                                {calculateRevenueForBooking(booking).toLocaleString()} kr
-                              </Typography>
+                              
+                              <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                minWidth: '50px'
+                              }}>
+                                <Typography variant="caption" color="text.secondary">Nätter</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 'medium', mt: 0.5 }}>{nights}</Typography>
+                              </Box>
+                              
+                              <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                minWidth: '70px' 
+                              }}>
+                                <Typography variant="caption" color="text.secondary">Parkering</Typography>
+                                <Box sx={{ mt: 0.5 }}>{renderParkingStatus(booking.parking)}</Box>
+                              </Box>
                             </Box>
                           </Grid>
                         </Grid>
                       </Paper>
                     );
                   })}
-                  
-                  {/* Mobile summary */}
-                  <Box 
-                    sx={{ 
-                      mt: 2, 
-                      p: 2, 
-                      bgcolor: 'rgba(0, 0, 0, 0.05)',
-                      borderRadius: 1,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="subtitle2">Totalt:</Typography>
-                      <Typography variant="body2">{calculateTotalNights(bookingsInMonth)} nätter</Typography>
-                    </Box>
-                    <Typography variant="subtitle1">
-                      {calculateRevenueForMonth(bookingsInMonth).toLocaleString()} kr
-                    </Typography>
-                  </Box>
                 </Box>
               </AccordionDetails>
             </Accordion>
@@ -1094,20 +1401,36 @@ const BookingPage: React.FC = () => {
   const renderBookingForm = () => {
     if (!isLoggedIn) {
       return (
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
+        <Paper 
+          elevation={2} 
+          sx={{ 
+            p: 3, 
+            borderRadius: 2, 
+            mb: 4, 
+            background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
+            border: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
           <Alert 
             severity="info" 
             icon={<LockOutlined />}
-            sx={{ mb: 3 }}
+            sx={{ 
+              mb: 3,
+              backgroundColor: 'rgba(3, 169, 244, 0.08)',
+              '.MuiAlert-icon': {
+                color: 'primary.main'
+              }
+            }}
           >
             Du måste vara inloggad för att kunna boka lägenheten.
           </Alert>
           
           <Box sx={{ textAlign: 'center', my: 2 }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
               Logga in för att boka
             </Typography>
-            <Typography variant="body1" paragraph>
+            <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
               För att boka lägenheten behöver du vara inloggad.
             </Typography>
             <Button
@@ -1115,7 +1438,16 @@ const BookingPage: React.FC = () => {
               color="primary"
               component={RouterLink}
               to="/login"
-              sx={{ mt: 1 }}
+              sx={{ 
+                mt: 1,
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4
+                }
+              }}
             >
               Logga in
             </Button>
@@ -1126,14 +1458,30 @@ const BookingPage: React.FC = () => {
     
     if (activeStep === 0) {
       return (
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Gör din bokning
-          </Typography>
+        <Paper 
+          elevation={2} 
+          sx={{ 
+            p: 3,
+            borderRadius: 2,
+            mb: 4,
+            background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+          }}
+        >
+          {/* Typography heading "Gör din bokning" removed */}
           
           {startDate && endDate && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0', mb: 3 }}>
-              <Typography variant="subtitle1" gutterBottom>
+            <Box sx={{ 
+              mt: 2, 
+              p: 2, 
+              bgcolor: 'primary.lighter', 
+              borderRadius: 1, 
+              border: '1px solid', 
+              borderColor: 'primary.light', 
+              mb: 3,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.dark' }}>
                 <strong>Bokningsöversikt:</strong>
               </Typography>
               <Typography variant="body2">
@@ -1148,8 +1496,13 @@ const BookingPage: React.FC = () => {
             </Box>
           )}
 
-          <Divider sx={{ my: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+          <Divider sx={{ 
+            my: 2,
+            "&::before, &::after": {
+              borderColor: "primary.light",
+            }
+          }}>
+            <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'medium' }}>
               Dina uppgifter
             </Typography>
           </Divider>
@@ -1166,7 +1519,14 @@ const BookingPage: React.FC = () => {
                 error={!!validationErrors.name}
                 helperText={validationErrors.name || ''}
                 InputProps={{
-                  startAdornment: <Person color="action" sx={{ mr: 1 }} />,
+                  startAdornment: <Person color="primary" sx={{ mr: 1 }} />,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
                 }}
               />
             </Grid>
@@ -1183,7 +1543,14 @@ const BookingPage: React.FC = () => {
                 error={!!validationErrors.email}
                 helperText={validationErrors.email || ''}
                 InputProps={{
-                  startAdornment: <Email color="action" sx={{ mr: 1 }} />,
+                  startAdornment: <Email color="primary" sx={{ mr: 1 }} />,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
                 }}
               />
             </Grid>
@@ -1198,6 +1565,13 @@ const BookingPage: React.FC = () => {
                 required
                 error={!!validationErrors.phone}
                 helperText={validationErrors.phone || ''}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
               />
             </Grid>
             
@@ -1210,20 +1584,40 @@ const BookingPage: React.FC = () => {
                 variant="outlined"
                 multiline
                 rows={4}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
               />
             </Grid>
             
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mt: 2,
+                p: 2,
+                bgcolor: 'success.lighter',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'success.light'
+              }}>
                 <FormControlLabel
                   control={
                     <Checkbox
                       checked={parking}
                       onChange={(e) => setParking(e.target.checked)}
-                      color="primary"
+                      color="success"
                     />
                   }
-                  label="Jag vill boka parkering"
+                  label={
+                    <Typography sx={{ color: 'success.dark', fontWeight: 'medium' }}>
+                      Jag vill boka parkering (75 kr/dygn)
+                    </Typography>
+                  }
                 />
               </Box>
             </Grid>
@@ -1236,6 +1630,15 @@ const BookingPage: React.FC = () => {
                   onClick={handleNext}
                   disabled={isLoading}
                   startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
+                  sx={{
+                    px: 4,
+                    py: 1.2,
+                    borderRadius: 2,
+                    boxShadow: 2,
+                    '&:hover': {
+                      boxShadow: 4
+                    }
+                  }}
                 >
                   Bekräfta bokning
                 </Button>
@@ -1245,25 +1648,52 @@ const BookingPage: React.FC = () => {
           
           {errorMessage && (
             <Box sx={{ mt: 2 }}>
-              <Alert severity="error">{errorMessage}</Alert>
+              <Alert severity="error" 
+                sx={{ 
+                  backgroundColor: 'error.lighter',
+                  borderColor: 'error.light',
+                  border: '1px solid'
+                }}
+              >
+                {errorMessage}
+              </Alert>
             </Box>
           )}
         </Paper>
       );
     } else {
       return (
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 2, textAlign: 'center', mb: 4 }}>
+        <Paper 
+          elevation={2} 
+          sx={{ 
+            p: 3, 
+            borderRadius: 2, 
+            textAlign: 'center', 
+            mb: 4,
+            background: 'linear-gradient(145deg, #e8f5e9, #f1f8e9)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+          }}
+        >
           {successMessage && (
-            <Alert severity="success" icon={<Check fontSize="inherit" />} sx={{ mb: 3 }}>
+            <Alert 
+              severity="success" 
+              icon={<Check fontSize="inherit" />} 
+              sx={{ 
+                mb: 3,
+                backgroundColor: 'rgba(76, 175, 80, 0.08)',
+                borderColor: 'success.light',
+                border: '1px solid'
+              }}
+            >
               {successMessage}
             </Alert>
           )}
           
-          <Typography variant="h5" gutterBottom color="primary">
+          <Typography variant="h5" gutterBottom sx={{ color: 'success.dark', fontWeight: 'bold' }}>
             Bokning klar!
           </Typography>
           
-          <Typography variant="body1" paragraph>
+          <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
             Din bokning har bekräftats.
           </Typography>
           
@@ -1271,7 +1701,16 @@ const BookingPage: React.FC = () => {
             variant="contained"
             color="primary"
             onClick={handleReset}
-            sx={{ mt: 2 }}
+            sx={{ 
+              mt: 2,
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              boxShadow: 2,
+              '&:hover': {
+                boxShadow: 4
+              }
+            }}
           >
             Gör en ny bokning
           </Button>
@@ -1308,15 +1747,396 @@ const BookingPage: React.FC = () => {
     return <Chip color="default" label="Ej angivet" size="small" />;
   };
 
+  // Admin functionality
+  
+  // Öppna dialog för att radera bokning
+  const handleDeleteClick = (booking: Booking) => {
+    setBookingToDelete(booking);
+    setDeleteDialogOpen(true);
+  };
+
+  // Stäng raderingsdialogrutan
+  const handleDeleteCancel = () => {
+    setBookingToDelete(null);
+    setDeleteDialogOpen(false);
+  };
+
+  // Bekräfta radering av bokning
+  const handleDeleteConfirm = async () => {
+    if (!bookingToDelete) return;
+    
+    try {
+      const success = await bookingService.deleteBooking(bookingToDelete.id);
+      
+      if (success) {
+        // Uppdatera listan
+        setExistingBookings(prevBookings => 
+          prevBookings.filter(b => b.id !== bookingToDelete.id)
+        );
+        
+        setSnackbarMessage('Bokningen har raderats');
+        setSnackbarSeverity('success');
+      } else {
+        setSnackbarMessage('Kunde inte radera bokningen');
+        setSnackbarSeverity('error');
+      }
+    } catch (error) {
+      setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      setBookingToDelete(null);
+      setDeleteDialogOpen(false);
+    }
+  };
+
+  // Stäng snackbaren
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+  
+  // Skicka e-post till gästen
+  const handleEmailClick = (email: string) => {
+    window.location.href = `mailto:${email}`;
+  };
+
+  // Hantera backup
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/backup/send-backup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Kunde inte skicka backup');
+      }
+
+      const data = await response.json();
+      setSnackbarMessage(`Backup skickad! ${data.bookingCount} bokningar exporterades.`);
+      setSnackbarSeverity('success');
+    } catch (error) {
+      console.error('Fel vid backup:', error);
+      setSnackbarMessage('Kunde inte skicka backup');
+      setSnackbarSeverity('error');
+    } finally {
+      setBackupLoading(false);
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleEditClick = (booking: Booking) => {
+    setBookingToEdit(booking);
+    // Populera formuläret med bokningsdata
+    setEditName(booking.name || '');
+    setEditEmail(booking.email || '');
+    setEditPhone(booking.phone || '');
+    setEditNotes(booking.notes || '');
+    setEditStartDate(booking.startDate || '');
+    setEditEndDate(booking.endDate || '');
+    setEditParking(booking.parking || false);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditCancel = () => {
+    setBookingToEdit(null);
+    setEditDialogOpen(false);
+  };
+
+  const handleEditConfirm = async () => {
+    if (!bookingToEdit) return;
+    
+    setEditLoading(true);
+    
+    try {
+      // Validera formuläret först
+      let valid = true;
+      const errors: Record<string, string> = {};
+      
+      if (!editName.trim()) {
+        errors.name = 'Namn måste anges';
+        valid = false;
+      }
+      
+      // Remove email validation requirement
+      // Email can now be empty or not formatted as an email
+      
+      if (!editStartDate || !editEndDate) {
+        errors.dates = 'Både ankomst- och avresedatum måste anges';
+        valid = false;
+      } else {
+        const startDateObj = new Date(editStartDate);
+        const endDateObj = new Date(editEndDate);
+        
+        if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+          errors.dates = 'Ogiltiga datum';
+          valid = false;
+        } else if (startDateObj >= endDateObj) {
+          errors.dates = 'Avresedatum måste vara efter ankomstdatum';
+          valid = false;
+        }
+      }
+      
+      if (!valid) {
+        // Visa fel
+        setSnackbarMessage(Object.values(errors)[0]);
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        setEditLoading(false);
+        return;
+      }
+      
+      // Skapa uppdaterat bokningsobjekt
+      const updatedBooking: Booking = {
+        ...bookingToEdit,
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        notes: editNotes,
+        startDate: editStartDate,
+        endDate: editEndDate,
+        parking: editParking
+      };
+      
+      // Skicka uppdatering till servern
+      const result = await bookingService.updateBooking(updatedBooking.id, updatedBooking);
+      
+      if (result) {
+        // Uppdatera lokalt state
+        setExistingBookings(prev => 
+          prev.map(b => b.id === updatedBooking.id ? updatedBooking : b)
+        );
+        
+        setSnackbarMessage('Bokningen har uppdaterats');
+        setSnackbarSeverity('success');
+        setEditDialogOpen(false);
+        
+        // Uppdatera filtrerade bokningar om de används (för admin)
+        setFilteredBookings(prev => 
+          prev.map(b => b.id === updatedBooking.id ? updatedBooking : b)
+        );
+      } else {
+        setSnackbarMessage('Kunde inte uppdatera bokningen');
+        setSnackbarSeverity('error');
+      }
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      setSnackbarMessage('Ett fel uppstod vid uppdatering av bokningen');
+      setSnackbarSeverity('error');
+    } finally {
+      setEditLoading(false);
+      setSnackbarOpen(true);
+    }
+  };
+
+  const calculateYearlyTotalRevenue = (): number => {
+    return existingBookings.reduce((total, booking) => {
+      return total + calculateRevenueForBooking(booking);
+    }, 0);
+  };
+
+  const calculateYearlyTotalNights = (): number => {
+    return existingBookings.reduce((total, booking) => {
+      return total + (calculateNights(booking) || 0);
+    }, 0);
+  };
+
+  const calculateNights = (booking: Booking): number => {
+    if (!booking.startDate || !booking.endDate) return 0;
+    
+    try {
+      const startDate = new Date(booking.startDate);
+      const endDate = new Date(booking.endDate);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return 0;
+      }
+      
+      const nights = differenceInDays(endDate, startDate);
+      return nights > 0 ? nights : 0;
+    } catch (error) {
+      console.warn('Error calculating nights for booking:', booking.id);
+      return 0;
+    }
+  };
+
+  // Uppdatera filtrerade bokningar när söktermen ändras
+  useEffect(() => {
+    if (isAdmin) {
+      const filtered = existingBookings.filter(booking => 
+        booking.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredBookings(filtered);
+    }
+  }, [searchTerm, existingBookings, isAdmin]);
+
+  // In the render method for the admin section at the appropriate place
+  const renderAdminControls = () => {
+    if (!isAdmin) return null;
+    
+    const currentYear = new Date().getFullYear();
+    
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Paper sx={{ 
+          p: 3,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+        }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 2,
+            pb: 2,
+            borderBottom: '1px solid',
+            borderColor: 'rgba(255,255,255,0.3)'
+          }}>
+            <Typography variant="h6" sx={{ 
+              color: 'primary.dark',
+              fontWeight: 'bold',
+            }}>
+              Bokningsöversikt {currentYear}
+            </Typography>
+            <Box>
+              <Tooltip title="Skicka backup-export">
+                <IconButton 
+                  onClick={handleBackup}
+                  disabled={backupLoading}
+                  color="primary"
+                  sx={{ 
+                    backgroundColor: 'rgba(255,255,255,0.5)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.8)'
+                    }
+                  }}
+                >
+                  {backupLoading ? <CircularProgress size={24} /> : <BackupIcon />}
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={3}>
+                <Paper sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  background: 'linear-gradient(145deg, #ffffff, #f0f4f8)'
+                }}>
+                  <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 'medium' }}>
+                    Antal bokade nätter
+                  </Typography>
+                  <Typography variant="h4" sx={{ 
+                    mt: 1,
+                    color: 'primary.dark',
+                    fontWeight: 'bold'
+                  }}>
+                    {calculateYearlyTotalNights()}
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  background: 'linear-gradient(145deg, #ffffff, #f0f4f8)'
+                }}>
+                  <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'medium' }}>
+                    Totala intäkter {currentYear}
+                  </Typography>
+                  <Typography variant="h4" sx={{ 
+                    mt: 1,
+                    color: 'success.dark',
+                    fontWeight: 'bold'
+                  }}>
+                    {calculateYearlyTotalRevenue().toLocaleString()} kr
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </Box>
+          
+          <TextField
+            label="Sök bokningar"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Sök på namn eller e-post"
+            sx={{ 
+              mb: 3,
+              backgroundColor: 'rgba(255,255,255,0.7)',
+              borderRadius: 1,
+              '& .MuiOutlinedInput-root': {
+                '&:hover fieldset': {
+                  borderColor: 'primary.main',
+                },
+              }
+            }}
+          />
+        </Paper>
+      </Box>
+    );
+  };
+
+  // Add back the booking list section at the bottom of the page
   return (
     <Container maxWidth="lg">
-      <Box sx={{ mb: 5, mt: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      {/* Admin controls rendered conditionally based on isAdmin - moved to top */}
+      {renderAdminControls()}
+      
+      <Box sx={{ 
+        mb: 5, 
+        mt: 3,
+        background: 'linear-gradient(to bottom, rgba(240,248,255,0.8), rgba(230,240,250,0.4))',
+        borderRadius: 3,
+        p: 3,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+      }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ 
+          color: 'primary.dark', 
+          fontWeight: 600,
+          borderBottom: '2px solid',
+          borderColor: 'primary.light',
+          pb: 1 
+        }}>
           Boka boende
         </Typography>
          
         <Box sx={{ mt: 3, mb: 4 }}>
-          <Stepper activeStep={activeStep}>
+          <Stepper 
+            activeStep={activeStep}
+            sx={{
+              '.MuiStepConnector-line': {
+                borderColor: 'primary.light'
+              },
+              '.MuiStepIcon-root': {
+                color: 'primary.light'
+              },
+              '.MuiStepIcon-root.Mui-active': {
+                color: 'primary.main'
+              },
+              '.MuiStepIcon-root.Mui-completed': {
+                color: 'success.main'
+              }
+            }}
+          >
             {steps.map((label, index) => (
               <Step key={label} completed={activeStep > index}>
                 <StepLabel>{label}</StepLabel>
@@ -1328,11 +2148,25 @@ const BookingPage: React.FC = () => {
         <Grid container spacing={4}>
           <Grid item xs={12}>
             {loadingBookings ? (
-              <Alert severity="info" icon={<CircularProgress size={24} />}>
+              <Alert severity="info" icon={<CircularProgress size={24} />} 
+                sx={{ 
+                  backgroundColor: 'info.lighter',
+                  border: '1px solid',
+                  borderColor: 'info.light',
+                  borderRadius: 2
+                }}
+              >
                 Laddar tillgänglighet...
               </Alert>
             ) : (
-              <Alert severity="info">
+              <Alert severity="info" 
+                sx={{ 
+                  backgroundColor: 'info.lighter',
+                  border: '1px solid',
+                  borderColor: 'info.light',
+                  borderRadius: 2
+                }}
+              >
                 Välj ditt ankomst- och avresedatum. Redan bokade datum visas i rött.
               </Alert>
             )}
@@ -1356,14 +2190,54 @@ const BookingPage: React.FC = () => {
         <Box sx={{ mt: 6, mb: 2 }}>
           <Divider sx={{ mb: 5 }} />
           
-          <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
-            <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, color: 'primary.main' }}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: { xs: 2, md: 4 }, 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%)'
+            }}
+          >
+            <Typography 
+              variant="h5" 
+              component="h2" 
+              gutterBottom 
+              sx={{ 
+                mb: 3, 
+                color: 'primary.dark',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                '&::before': {
+                  content: '""',
+                  display: 'block',
+                  width: 4,
+                  height: 24,
+                  backgroundColor: 'primary.main',
+                  marginRight: 2,
+                  borderRadius: 1
+                }
+              }}
+            >
               Aktuella bokningar
             </Typography>
             
             {/* Prisinfo */}
-            <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid rgba(0, 0, 0, 0.12)' }}>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+            <Box sx={{ 
+              mb: 3, 
+              p: 2, 
+              bgcolor: 'background.paper', 
+              borderRadius: 1, 
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ 
+                fontWeight: 'bold',
+                color: 'text.primary',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                pb: 1
+              }}>
                 Priser (kr/dygn)
               </Typography>
               
@@ -1378,14 +2252,20 @@ const BookingPage: React.FC = () => {
                       px: 1.5,
                       py: 1,
                       borderRadius: 1,
-                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                      border: '1px solid rgba(0, 0, 0, 0.05)',
+                      bgcolor: 'rgba(0, 128, 255, 0.05)',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+                        bgcolor: 'rgba(0, 128, 255, 0.08)'
+                      }
                     }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(0, 128, 255, 0.2)' }} />
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'primary.main' }} />
                       <Box>
                         <Typography variant="body2" noWrap>
                           Högsäsong (v. 24-32)
                         </Typography>
-                        <Typography variant="subtitle2">
+                        <Typography variant="subtitle2" sx={{ color: 'primary.dark', fontWeight: 'bold' }}>
                           600 kr
                         </Typography>
                       </Box>
@@ -1399,14 +2279,20 @@ const BookingPage: React.FC = () => {
                       px: 1.5,
                       py: 1,
                       borderRadius: 1,
-                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                      border: '1px solid rgba(0, 0, 0, 0.05)',
+                      bgcolor: 'rgba(255, 0, 0, 0.05)',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+                        bgcolor: 'rgba(255, 0, 0, 0.08)'
+                      }
                     }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(255, 0, 0, 0.2)' }} />
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'error.main' }} />
                       <Box>
                         <Typography variant="body2" noWrap>
                           Tennisveckor (v. 27-29)
                         </Typography>
-                        <Typography variant="subtitle2">
+                        <Typography variant="subtitle2" sx={{ color: 'error.dark', fontWeight: 'bold' }}>
                           800 kr
                         </Typography>
                       </Box>
@@ -1420,14 +2306,20 @@ const BookingPage: React.FC = () => {
                       px: 1.5,
                       py: 1,
                       borderRadius: 1,
-                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                      border: '1px solid rgba(0, 0, 0, 0.05)',
+                      bgcolor: 'rgba(100, 100, 100, 0.05)',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+                        bgcolor: 'rgba(100, 100, 100, 0.08)'
+                      }
                     }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(0, 0, 0, 0.1)' }} />
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'text.secondary' }} />
                       <Box>
                         <Typography variant="body2" noWrap>
                           Lågsäsong (v. 1-23, 33-52)
                         </Typography>
-                        <Typography variant="subtitle2">
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                           400 kr
                         </Typography>
                       </Box>
@@ -1441,14 +2333,20 @@ const BookingPage: React.FC = () => {
                       px: 1.5,
                       py: 1,
                       borderRadius: 1,
-                      border: '1px solid rgba(0, 0, 0, 0.05)'
+                      border: '1px solid rgba(0, 0, 0, 0.05)',
+                      bgcolor: 'rgba(76, 175, 80, 0.05)',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+                        bgcolor: 'rgba(76, 175, 80, 0.08)'
+                      }
                     }}>
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'rgba(76, 175, 80, 0.2)' }} />
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', mr: 1.5, bgcolor: 'success.main' }} />
                       <Box>
                         <Typography variant="body2" noWrap>
                           Parkering
                         </Typography>
-                        <Typography variant="subtitle2">
+                        <Typography variant="subtitle2" sx={{ color: 'success.dark', fontWeight: 'bold' }}>
                           75 kr/dygn
                         </Typography>
                       </Box>
@@ -1457,9 +2355,9 @@ const BookingPage: React.FC = () => {
                 </Grid>
               </Box>
               
-              {/* Mobile view */}
+              {/* Mobile view price table */}
               <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-                <Table size="small" sx={{ mt: 1 }}>
+                <Table size="small">
                   <TableBody>
                     <TableRow>
                       <TableCell sx={{ border: 0, p: 1, pl: 0 }}>
@@ -1529,6 +2427,269 @@ const BookingPage: React.FC = () => {
           </Paper>
         </Box>
       </Box>
+      
+      {/* Admin Dialogs */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'error.lighter', 
+          color: 'error.dark',
+          fontWeight: 'bold',
+          borderBottom: '1px solid',
+          borderColor: 'error.light'
+        }}>
+          Radera bokning
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <DialogContentText>
+            Är du säker på att du vill radera bokningen för {bookingToDelete?.name}?
+            Detta kan inte ångras.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={handleDeleteCancel} 
+            variant="outlined"
+            sx={{ 
+              borderRadius: 1,
+              color: 'text.primary',
+              borderColor: 'divider',
+              '&:hover': {
+                borderColor: 'text.primary',
+                backgroundColor: 'rgba(0,0,0,0.04)'
+              }
+            }}
+          >
+            Avbryt
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            variant="contained" 
+            color="error" 
+            autoFocus
+            sx={{ 
+              borderRadius: 1,
+              boxShadow: 2,
+              '&:hover': {
+                boxShadow: 4
+              }
+            }}
+          >
+            Radera
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={handleEditCancel}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.lighter', 
+          color: 'primary.dark',
+          fontWeight: 'bold',
+          borderBottom: '1px solid',
+          borderColor: 'primary.light'
+        }}>
+          Redigera bokning
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                label="Namn"
+                fullWidth
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="E-post"
+                fullWidth
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Telefon"
+                fullWidth
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Ankomstdatum"
+                fullWidth
+                type="date"
+                value={editStartDate ? editStartDate.substring(0, 10) : ''}
+                onChange={(e) => setEditStartDate(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Avresedatum"
+                fullWidth
+                type="date"
+                value={editEndDate ? editEndDate.substring(0, 10) : ''}
+                onChange={(e) => setEditEndDate(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Anteckningar"
+                fullWidth
+                multiline
+                rows={3}
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'success.lighter', 
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'success.light'
+              }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      checked={editParking}
+                      onChange={(e) => setEditParking(e.target.checked)}
+                      color="success"
+                    />
+                  }
+                  label={
+                    <Typography sx={{ color: 'success.dark' }}>
+                      Parkeringsplats önskas (75 kr/dygn)
+                    </Typography>
+                  }
+                />
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={handleEditCancel}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 1,
+              color: 'text.primary',
+              borderColor: 'divider',
+              '&:hover': {
+                borderColor: 'text.primary',
+                backgroundColor: 'rgba(0,0,0,0.04)'
+              }
+            }}
+          >
+            Avbryt
+          </Button>
+          <Button 
+            onClick={handleEditConfirm} 
+            variant="contained" 
+            color="primary"
+            disabled={editLoading}
+            sx={{ 
+              borderRadius: 1,
+              boxShadow: 2,
+              '&:hover': {
+                boxShadow: 4
+              }
+            }}
+          >
+            {editLoading ? <CircularProgress size={24} /> : "Spara"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ 
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            borderRadius: 2
+          }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
