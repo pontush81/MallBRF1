@@ -51,6 +51,7 @@ import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
+import { toast } from 'react-hot-toast';
 
 // Custom day component för kalendern
 const CustomPickersDay = ({
@@ -204,6 +205,7 @@ const BookingPage: React.FC = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   // Hämta befintliga bokningar när komponenten laddas
   const fetchBookings = async () => {
@@ -1145,32 +1147,40 @@ const BookingPage: React.FC = () => {
   const handleBackupClick = async () => {
     try {
       setBackupLoading(true);
-      const token = await auth.currentUser?.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/backup/send-backup`, {
+      setBackupError(null);
+      
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Du måste vara inloggad för att skapa backup');
+      }
+
+      const idToken = await user.getIdToken();
+      
+      const response = await fetch(`${API_BASE_URL}/backup/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${idToken}`,
           'x-vercel-protection-bypass': 'true'
         },
         credentials: 'include'
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setSnackbarMessage(`Backup skickad! ${data.bookingCount} bokningar exporterades.`);
-        setSnackbarSeverity('success');
-      } else {
-        setSnackbarMessage('Kunde inte skapa backup');
-        setSnackbarSeverity('error');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Kunde inte skapa backup');
       }
+
+      const data = await response.json();
+      console.log('Backup response:', data);
+      
+      toast.success('Backup skapad och skickad via e-post');
     } catch (error) {
       console.error('Error creating backup:', error);
-      setSnackbarMessage('Ett fel uppstod vid backup');
-      setSnackbarSeverity('error');
+      setBackupError(error instanceof Error ? error.message : 'Ett fel uppstod vid skapande av backup');
+      toast.error('Kunde inte skapa backup');
     } finally {
       setBackupLoading(false);
-      setSnackbarOpen(true);
     }
   };
 
