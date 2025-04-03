@@ -76,7 +76,7 @@ import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import BookingStatus from '../../components/BookingStatus';
 
 // Helper function to group bookings by month
@@ -1305,7 +1305,7 @@ const BookingPage: React.FC = () => {
       
       toast.success(`Backup skapad och skickad via e-post (${data.bookingCount} bokningar)`, {
         duration: 4000,
-        position: isMobile ? 'bottom-center' : 'top-right',
+        position: isMobile ? 'bottom-center' : 'top-right' as const,
         style: {
           background: '#4caf50',
           color: '#fff',
@@ -1322,7 +1322,7 @@ const BookingPage: React.FC = () => {
       setBackupError(errorMessage);
       toast.error(errorMessage, {
         duration: 4000,
-        position: isMobile ? 'bottom-center' : 'top-right',
+        position: isMobile ? 'bottom-center' : 'top-right' as const,
         style: {
           background: '#f44336',
           color: '#fff',
@@ -1926,6 +1926,9 @@ const BookingPage: React.FC = () => {
           </DialogActions>
         </Dialog>
       </Box>
+      
+      {/* Add the Toaster component with proper type for position */}
+      <Toaster position={isMobile ? "bottom-center" : "top-right" as const} />
     </Container>
   );
 };
