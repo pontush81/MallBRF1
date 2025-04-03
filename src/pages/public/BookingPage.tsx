@@ -122,7 +122,7 @@ const CustomPickersDay = ({
       const dayToCheck = new Date(other.day);
       dayToCheck.setHours(0, 0, 0, 0);
       
-      return dayToCheck >= bookingStart && dayToCheck <= bookingEnd;
+      return dayToCheck >= bookingStart && dayToCheck < bookingEnd;
     }
   );
 
@@ -153,27 +153,34 @@ const CustomPickersDay = ({
             }),
             
             ...(isBooked && {
-              backgroundColor: 'rgba(255, 0, 0, 0.1)',
+              backgroundColor: 'rgba(255, 0, 0, 0.15)',
               color: 'error.main',
+              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255, 0, 0, 0.07) 5px, rgba(255, 0, 0, 0.07) 10px)',
+              fontWeight: 'bold',
+              transform: 'scale(0.95)',
+              transition: 'all 0.2s ease',
+              border: '2px solid',
+              borderColor: 'error.light',
               '&:hover': {
                 backgroundColor: 'rgba(255, 0, 0, 0.2)',
+                transform: 'scale(1)',
+                cursor: 'not-allowed'
               },
               '&::after': {
                 content: '""',
                 position: 'absolute',
-                bottom: '3px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '4px',
-                height: '4px',
+                top: '2px',
+                right: '2px',
+                width: '6px',
+                height: '6px',
                 borderRadius: '50%',
                 backgroundColor: 'error.main',
               },
               '&.Mui-selected': {
-                backgroundColor: 'rgba(255, 0, 0, 0.3)',
+                backgroundColor: 'error.main',
                 color: 'white',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                  backgroundColor: 'error.dark',
                 },
               },
             }),
@@ -652,6 +659,20 @@ const BookingPage: React.FC = () => {
               }}
               displayWeekNumber
               disablePast
+              shouldDisableDate={(date) => {
+                return existingBookings.some(booking => {
+                  const bookingStart = new Date(booking.startDate);
+                  bookingStart.setHours(0, 0, 0, 0);
+                  
+                  const bookingEnd = new Date(booking.endDate);
+                  bookingEnd.setHours(0, 0, 0, 0);
+                  
+                  const dayToCheck = new Date(date);
+                  dayToCheck.setHours(0, 0, 0, 0);
+                  
+                  return dayToCheck >= bookingStart && dayToCheck < bookingEnd;
+                });
+              }}
               slots={{
                 day: (props) => (
                   <CustomPickersDay 

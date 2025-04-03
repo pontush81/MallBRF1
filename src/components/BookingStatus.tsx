@@ -269,6 +269,110 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
     );
   };
 
+  // Separate rendering function for mobile view
+  const renderMobileBookings = () => {
+    return guestData.map(guest => {
+      const weekNumber = parseInt(guest.week);
+      const bgcolor = getWeekStyle(weekNumber);
+      
+      return (
+        <Paper
+          key={`${guest.name}-${guest.arrival}`}
+          variant="outlined"
+          sx={{ 
+            mb: 2, 
+            p: 2,
+            borderLeft: '4px solid',
+            borderLeftColor: bgcolor === "transparent" ? 'grey.300' : bgcolor,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+          }}
+        >
+          <Grid container spacing={1}>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                  {guest.name}
+                </Typography>
+                {isAdmin && (
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {onEditClick && (
+                      <IconButton 
+                        size="small" 
+                        color="primary" 
+                        onClick={() => onEditClick(guest)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                    {onDeleteClick && (
+                      <IconButton 
+                        size="small" 
+                        color="error" 
+                        onClick={() => onDeleteClick(guest)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="text.secondary">
+                Ankomst:
+              </Typography>
+              <Typography variant="body2">
+                {guest.arrival}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="text.secondary">
+                Avresa:
+              </Typography>
+              <Typography variant="body2">
+                {guest.departure}
+              </Typography>
+            </Grid>
+            
+            {guest.notes && (
+              <Grid item xs={12}>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Anteckningar:
+                </Typography>
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  {guest.notes}
+                </Typography>
+              </Grid>
+            )}
+            
+            <Grid item xs={12}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mt: 1,
+                pt: 1,
+                borderTop: '1px solid rgba(0, 0, 0, 0.08)'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip 
+                    size="small" 
+                    label={`v.${weekNumber}`} 
+                    sx={{ 
+                      backgroundColor: bgcolor,
+                      minWidth: "40px"
+                    }}
+                  />
+                  {renderParkingStatus(guest.parking)}
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+      );
+    });
+  };
+
   return (
     <Accordion 
       defaultExpanded={defaultExpanded}
@@ -365,7 +469,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
         
         {/* Mobile view */}
         <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2 }}>
-          {guestData.map(guest => renderBookingItem(guest))}
+          {renderMobileBookings()}
           
           {/* Mobile summary */}
           <Box 
