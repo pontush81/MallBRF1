@@ -29,14 +29,22 @@ import {
   useMediaQuery,
   Tooltip,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   Delete as DeleteIcon,
   Email as EmailIcon,
   Backup as BackupIcon,
   ExpandMore as ExpandMoreIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Description as DescriptionIcon,
+  PictureAsPdf as PdfIcon,
+  InsertDriveFile as ExcelIcon,
+  KeyboardArrowDown as ArrowDownIcon
 } from '@mui/icons-material';
 import { Booking } from '../../types/Booking';
 import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths, differenceInDays } from 'date-fns';
@@ -46,6 +54,7 @@ import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import supabaseClient from '../../services/supabaseClient';
 
 const BookingsList: React.FC = () => {
   const { isAdmin, isLoggedIn } = useAuth();
@@ -78,6 +87,8 @@ const BookingsList: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   const [backupLoading, setBackupLoading] = useState(false);
+  const [hsbFormLoading, setHsbFormLoading] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -575,6 +586,103 @@ const BookingsList: React.FC = () => {
     }, 0);
   };
 
+  // Generate HSB form data
+  const generateHsbFormData = (bookings: Booking[]): Record<string, {bookings: Booking[], totalAmount: number}> => {
+    // Filter bookings with apartment rentals
+    const apartmentRentals = bookings.filter(booking => 
+      booking.startDate && booking.endDate && booking.notes?.toLowerCase().includes('lägenhet')
+    );
+    
+    // Group by apartment number/name if available
+    const rentalsByApartment: Record<string, {bookings: Booking[], totalAmount: number}> = {};
+    
+    apartmentRentals.forEach(booking => {
+      // Try to extract apartment number from notes or use name as fallback
+      const apartmentMatch = booking.notes?.match(/lgh\s*(\d+|[a-zA-Z]+)/i);
+      const apartmentKey = apartmentMatch ? apartmentMatch[1] : booking.name;
+      
+      if (!rentalsByApartment[apartmentKey]) {
+        rentalsByApartment[apartmentKey] = {
+          bookings: [],
+          totalAmount: 0
+        };
+      }
+      
+      const amount = calculateRevenueForBooking(booking);
+      rentalsByApartment[apartmentKey].bookings.push(booking);
+      rentalsByApartment[apartmentKey].totalAmount += amount;
+    });
+    
+    return rentalsByApartment;
+  };
+  
+  // Handle opening the format selection menu
+  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  // Handle closing the format selection menu
+  const handleHsbMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+  
+  // Handle HSB form generation with specific format
+  const handleCreateHsbForm = (formatType: 'excel' | 'pdf') => async () => {
+    setHsbFormLoading(true);
+    handleHsbMenuClose();
+    
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      
+      // Create URL with format parameter
+      const url = `${API_BASE_URL}/bookings/hsb-form?format=${formatType}`;
+      
+      // Get the file as blob
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Kunde inte skapa HSB-underlag');
+      }
+      
+      // Get file as blob and download it
+      const blob = await response.blob();
+      const url2 = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url2;
+      
+      // Get current date for filename
+      const today = new Date();
+      const dateStr = format(today, 'yyyy-MM-dd');
+      
+      // Set appropriate extension based on format
+      const extension = formatType === 'excel' ? 'xlsx' : 'pdf';
+      
+      a.download = `HSB-underlag-${dateStr}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      setSnackbarMessage('HSB-underlag har skapats och laddats ned');
+      setSnackbarSeverity('success');
+    } catch (error) {
+      console.error('Error creating HSB form:', error);
+      setSnackbarMessage(error instanceof Error ? error.message : 'Ett fel uppstod');
+      setSnackbarSeverity('error');
+    } finally {
+      setHsbFormLoading(false);
+      setSnackbarOpen(true);
+    }
+  };
+
   // Rendera bokning beroende på skärmstorlek
   const renderBookingItem = (booking: Booking) => {
     if (isMobile) {
@@ -799,13 +907,14 @@ const BookingsList: React.FC = () => {
             <Typography variant="h4" sx={{ fontSize: { xs: '1.8rem', sm: '2.125rem' }, mb: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}>
               Aktuella bokningar
             </Typography>
-            <Tooltip title={isMobile ? "Säkerhetskopiera alla bokningar" : ""}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
                 variant="contained"
-                color="primary"
-                startIcon={<BackupIcon />}
-                onClick={handleBackup}
-                disabled={backupLoading}
+                color="secondary"
+                startIcon={<DescriptionIcon />}
+                endIcon={<ArrowDownIcon />}
+                onClick={handleHsbMenuClick}
+                disabled={hsbFormLoading}
                 size="small"
                 sx={{ 
                   whiteSpace: 'nowrap',
@@ -814,11 +923,52 @@ const BookingsList: React.FC = () => {
                   minWidth: { xs: 'auto', sm: '180px' }
                 }}
               >
-                {backupLoading ? <CircularProgress size={20} /> : (
-                  isMobile ? 'Backup' : 'Säkerhetskopiera'
+                {hsbFormLoading ? <CircularProgress size={20} /> : (
+                  isMobile ? 'HSB' : 'Skapa underlag till HSB'
                 )}
               </Button>
-            </Tooltip>
+              
+              {/* Format Selection Menu */}
+              <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleHsbMenuClose}
+              >
+                <MenuItem onClick={handleCreateHsbForm('excel')}>
+                  <ListItemIcon>
+                    <ExcelIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="Excel (XLSX)" />
+                </MenuItem>
+                <MenuItem onClick={handleCreateHsbForm('pdf')}>
+                  <ListItemIcon>
+                    <PdfIcon color="error" />
+                  </ListItemIcon>
+                  <ListItemText primary="PDF" />
+                </MenuItem>
+              </Menu>
+              
+              <Tooltip title={isMobile ? "Säkerhetskopiera alla bokningar" : ""}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<BackupIcon />}
+                  onClick={handleBackup}
+                  disabled={backupLoading}
+                  size="small"
+                  sx={{ 
+                    whiteSpace: 'nowrap',
+                    minHeight: '44px',
+                    px: { xs: 1.5, sm: 3 },
+                    minWidth: { xs: 'auto', sm: '180px' }
+                  }}
+                >
+                  {backupLoading ? <CircularProgress size={20} /> : (
+                    isMobile ? 'Backup' : 'Säkerhetskopiera'
+                  )}
+                </Button>
+              </Tooltip>
+            </Box>
           </Box>
         </Grid>
 

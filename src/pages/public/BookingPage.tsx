@@ -35,7 +35,13 @@ import {
   IconButton,
   Card,
   CardContent,
-  Stack
+  Stack,
+  Radio,
+  RadioGroup,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -44,7 +50,26 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { Person, Email, Check, ExpandMore, LockOutlined, Delete as DeleteIcon, Email as EmailIcon, Edit as EditIcon, Backup as BackupIcon } from '@mui/icons-material';
+import { 
+  Person, 
+  Email, 
+  Check, 
+  ExpandMore, 
+  LockOutlined, 
+  Delete as DeleteIcon, 
+  Email as EmailIcon, 
+  Edit as EditIcon, 
+  Backup as BackupIcon, 
+  Description as DescriptionIcon,
+  CalendarToday as CalendarIcon,
+  Phone as PhoneIcon,
+  Info as InfoIcon,
+  Event as EventIcon,
+  EuroSymbol as PriceIcon,
+  PictureAsPdf as PdfIcon,
+  InsertDriveFile as ExcelIcon,
+  KeyboardArrowDown as ArrowDownIcon 
+} from '@mui/icons-material';
 import bookingService from '../../services/bookingService';
 import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
@@ -213,6 +238,7 @@ const BookingPage: React.FC = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [backupLoading, setBackupLoading] = useState(false);
+  const [hsbFormLoading, setHsbFormLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [editName, setEditName] = useState('');
@@ -226,6 +252,7 @@ const BookingPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [backupError, setBackupError] = useState<string | null>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
   // Hämta befintliga bokningar när komponenten laddas
   const fetchBookings = async () => {
@@ -1250,6 +1277,81 @@ const BookingPage: React.FC = () => {
     }
   };
 
+  // Handle opening the format selection menu
+  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  // Handle closing the format selection menu
+  const handleHsbMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+  
+  // Handle HSB form generation with specific format
+  const handleHsbFormClick = (formatType: 'excel' | 'pdf') => async () => {
+    setHsbFormLoading(true);
+    handleHsbMenuClose();
+    
+    try {
+      // Check if user is admin
+      if (!isAdmin) {
+        throw new Error('Du måste vara inloggad som admin för att skapa HSB-underlag');
+      }
+      
+      // Get token for API request
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error('Kunde inte hämta autentiseringstoken');
+      }
+      
+      // Make request to server to generate HSB form data with format parameter
+      const response = await fetch(`${API_BASE_URL}/bookings/hsb-form?format=${formatType}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'true'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Kunde inte skapa HSB-underlag');
+      }
+      
+      // Get file as blob and download it
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get current date for filename
+      const today = new Date();
+      const dateStr = format(today, 'yyyy-MM-dd');
+      
+      // Set appropriate extension based on format
+      const extension = formatType === 'excel' ? 'xlsx' : 'pdf';
+      
+      a.download = `HSB-underlag-${dateStr}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      
+      // Show success message
+      setSnackbarMessage('HSB-underlag har skapats och laddats ned');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error creating HSB form:', error);
+      setSnackbarMessage(error instanceof Error ? error.message : 'Ett fel uppstod');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setHsbFormLoading(false);
+    }
+  };
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ 
@@ -1317,8 +1419,46 @@ const BookingPage: React.FC = () => {
             mt: 4,
             borderTop: '1px solid',
             borderColor: 'divider',
-            pt: 4
+            pt: 4,
+            gap: 2
           }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleHsbMenuClick}
+              disabled={hsbFormLoading}
+              startIcon={hsbFormLoading ? <CircularProgress size={20} /> : <DescriptionIcon />}
+              endIcon={<ArrowDownIcon />}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                px: 3,
+                py: 1
+              }}
+            >
+              Skapa underlag till HSB
+            </Button>
+            
+            {/* Format Selection Menu */}
+            <Menu
+              anchorEl={menuAnchorEl}
+              open={Boolean(menuAnchorEl)}
+              onClose={handleHsbMenuClose}
+            >
+              <MenuItem onClick={handleHsbFormClick('excel')}>
+                <ListItemIcon>
+                  <ExcelIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Excel (XLSX)" />
+              </MenuItem>
+              <MenuItem onClick={handleHsbFormClick('pdf')}>
+                <ListItemIcon>
+                  <PdfIcon color="error" />
+                </ListItemIcon>
+                <ListItemText primary="PDF" />
+              </MenuItem>
+            </Menu>
+            
             <Button
               variant="outlined"
               color="primary"

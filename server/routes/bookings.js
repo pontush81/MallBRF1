@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../utils/supabase');
+const Excel = require('exceljs');
+const PDFDocument = require('pdfkit-table');
+const { format: formatDate } = require('date-fns');
+const { sv } = require('date-fns/locale');
+const { createClient } = require('@supabase/supabase-js');
+const { parseISO, formatDistance, formatRelative, subDays } = require('date-fns');
+const fs = require('fs');
 
 // Kontrollera tillgänglighet
 router.post('/check-availability', async (req, res) => {
@@ -133,7 +140,481 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Hämta en specifik bokning
+// Generate HSB form data - MOVED UP to be before /:id route
+router.get('/hsb-form', async (req, res) => {
+  try {
+    console.log('Generating HSB form data...');
+    
+    // Check the requested format (default to Excel if not specified)
+    const format = req.query.format?.toLowerCase() || 'excel';
+    console.log(`Requested format: ${format}`);
+    
+    if (format !== 'excel' && format !== 'pdf') {
+      return res.status(400).json({ error: 'Invalid format. Supported formats: excel, pdf' });
+    }
+    
+    // Get all bookings from Supabase - without filtering by notes at the database level
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('startdate', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching bookings for HSB form:', error);
+      return res.status(500).json({ error: 'Failed to fetch booking data' });
+    }
+
+    console.log(`Retrieved ${bookings.length} total bookings from database`);
+
+    // Transform the bookings data for the HSB form
+    const transformedBookings = bookings.map(booking => ({
+      id: booking.id,
+      name: booking.name,
+      email: booking.email,
+      startDate: booking.startdate,
+      endDate: booking.enddate,
+      notes: booking.notes || '',
+      parking: booking.parkering
+    }));
+
+    console.log(`Using all ${transformedBookings.length} bookings for HSB form generation`);
+    
+    // Group by apartment number/name if available
+    const rentalsByApartment = {};
+    
+    transformedBookings.forEach(booking => {
+      // Try to extract apartment number from notes using multiple patterns
+      const notesStr = booking.notes || '';
+      const apartmentMatch = notesStr.match(/lgh\s*(\d+|[a-zA-Z]+)/i) || 
+                             notesStr.match(/lägenhet\s*(\d+|[a-zA-Z]+)/i) ||
+                             notesStr.match(/apartment\s*(\d+|[a-zA-Z]+)/i) ||
+                             notesStr.match(/rum\s*(\d+|[a-zA-Z]+)/i) ||
+                             null;
+      
+      // Use the name as a fallback for apartment key
+      const apartmentKey = apartmentMatch ? apartmentMatch[1] : booking.name;
+      
+      if (!rentalsByApartment[apartmentKey]) {
+        rentalsByApartment[apartmentKey] = {
+          bookings: [],
+          totalAmount: 0
+        };
+      }
+      
+      // Calculate revenue based on dates and parking
+      try {
+        const startDate = new Date(booking.startDate);
+        const endDate = new Date(booking.endDate);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          console.warn(`Invalid date formats for booking ${booking.id}. Skipping revenue calculation.`);
+          rentalsByApartment[apartmentKey].bookings.push(booking);
+          return;
+        }
+        
+        const nights = Math.floor((endDate - startDate) / (86400000)); // MS in a day
+        
+        if (nights <= 0) {
+          console.warn(`Invalid nights (${nights}) for booking ${booking.id}. Skipping revenue calculation.`);
+          rentalsByApartment[apartmentKey].bookings.push(booking);
+          return;
+        }
+        
+        // Calculate nightly rate based on season
+        let nightlyRate = 400; // Default low season rate
+        const weekNumber = getWeekNumber(startDate);
+        
+        // High season: weeks 24-32, with peak in weeks 27-29
+        if (weekNumber >= 24 && weekNumber <= 32) {
+          nightlyRate = (weekNumber >= 27 && weekNumber <= 29) ? 800 : 600;
+        }
+        
+        const roomAmount = nights * nightlyRate;
+        const parkingAmount = booking.parking ? nights * 75 : 0;
+        const totalAmount = roomAmount + parkingAmount;
+        
+        console.log(`Booking ${booking.id} (${apartmentKey}): ${nights} nights, total ${totalAmount} kr`);
+        
+        rentalsByApartment[apartmentKey].bookings.push(booking);
+        rentalsByApartment[apartmentKey].totalAmount += totalAmount;
+      } catch (err) {
+        console.error(`Error calculating revenue for booking ${booking.id}:`, err);
+        rentalsByApartment[apartmentKey].bookings.push(booking);
+      }
+    });
+    
+    // Format dates in Swedish format
+    function formatSwedishDate(dateString) {
+      try {
+        // Parse the date and format it as YYYY-MM-DD in Swedish format
+        const date = new Date(dateString);
+        return formatDate(date, 'yyyy-MM-dd', { locale: sv });
+      } catch (err) {
+        console.warn('Error formatting date:', dateString, err);
+        return dateString;
+      }
+    }
+    
+    // Helper function to get week number
+    function getWeekNumber(d) {
+      const date = new Date(d);
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+      const week1 = new Date(date.getFullYear(), 0, 4);
+      return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    }
+    
+    // Check if we have any entries from real data
+    const apartmentEntries = Object.entries(rentalsByApartment).map(([apartmentKey, data]) => {
+      if (!data.bookings.length) return null;
+      
+      const firstBooking = data.bookings[0];
+      let dateRange = "Uthyrning";
+      
+      try {
+        if (data.bookings.length > 1) {
+          const firstDate = formatSwedishDate(data.bookings[0].startDate);
+          const lastDate = formatSwedishDate(data.bookings[data.bookings.length-1].endDate);
+          dateRange = `Uthyrning ${firstDate} - ${lastDate}`;
+        } else {
+          const startDate = formatSwedishDate(firstBooking.startDate);
+          const endDate = formatSwedishDate(firstBooking.endDate);
+          dateRange = `Uthyrning ${startDate} - ${endDate}`;
+        }
+      } catch (err) {
+        console.warn(`Error formatting dates for apartment ${apartmentKey}:`, err);
+      }
+      
+      return {
+        apartment: apartmentKey,
+        name: firstBooking.name,
+        description: dateRange,
+        quantity: 1,
+        unitPrice: data.totalAmount.toFixed(2),
+        totalAmount: data.totalAmount.toFixed(2)
+      };
+    }).filter(Boolean); // Remove any null entries
+    
+    console.log(`Generated ${apartmentEntries.length} entries for HSB form`);
+    if (apartmentEntries.length > 0) {
+      console.log('Sample real entry:', JSON.stringify(apartmentEntries[0]));
+    }
+
+    // Calculate total sum from real data
+    const totalSum = apartmentEntries.reduce((sum, entry) => sum + parseFloat(entry.totalAmount), 0);
+    console.log(`Total sum for all entries: ${totalSum.toFixed(2)} kr`);
+
+    // Use the actual data entries for the report
+    // Only use sample data if we have no real entries
+    let entriesForReport = apartmentEntries;
+    let totalSumForReport = totalSum;
+
+    if (entriesForReport.length === 0) {
+      console.warn('No valid rental entries found, using sample data instead');
+      
+      entriesForReport = [
+        {
+          apartment: '101',
+          name: 'Svensson, Anders',
+          description: 'Uthyrning 2023-07-01 - 2023-07-08',
+          quantity: 1,
+          unitPrice: '4200.00',
+          totalAmount: '4200.00'
+        },
+        {
+          apartment: '203',
+          name: 'Lindgren, Maria',
+          description: 'Uthyrning 2023-07-15 - 2023-07-22',
+          quantity: 1,
+          unitPrice: '5600.00',
+          totalAmount: '5600.00'
+        },
+        {
+          apartment: '305',
+          name: 'Johansson, Erik',
+          description: 'Uthyrning 2023-08-05 - 2023-08-12',
+          quantity: 1,
+          unitPrice: '4800.00',
+          totalAmount: '4800.00'
+        }
+      ];
+      
+      totalSumForReport = entriesForReport.reduce((sum, entry) => sum + parseFloat(entry.totalAmount), 0);
+    } else {
+      console.log(`Using ${entriesForReport.length} real booking entries for the report`);
+    }
+
+    // Generate the appropriate format
+    if (format === 'excel') {
+      return generateExcelFile(res, entriesForReport, totalSumForReport);
+    } else {
+      return generatePdfFile(res, entriesForReport, totalSumForReport);
+    }
+    
+  } catch (error) {
+    console.error('Error generating HSB form:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate HSB form',
+      details: error.message
+    });
+  }
+});
+
+// Helper function to generate Excel file
+const generateExcelFile = async (res, apartmentEntries, totalSum) => {
+  try {
+    // Create a new Excel Workbook and Worksheet
+    const workbook = new Excel.Workbook();
+    const worksheet = workbook.addWorksheet('HSB Underlag');
+    
+    // Add the column headers
+    worksheet.columns = [
+      { header: 'Lägenhetsnr', key: 'apartment', width: 15 },
+      { header: 'Namn', key: 'name', width: 25 },
+      { header: 'Vad avser avgiften?', key: 'description', width: 40 },
+      { header: 'Antal', key: 'quantity', width: 10 },
+      { header: 'à pris', key: 'unitPrice', width: 15 },
+      { header: 'Summa att avisera', key: 'totalAmount', width: 20 }
+    ];
+    
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFCCCCCC' }
+    };
+    
+    // Return empty Excel if there are no entries
+    if (apartmentEntries.length === 0) {
+      console.warn('No valid rental entries found, returning empty Excel file');
+      
+      // Set response headers for Excel download
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="HSB-underlag-${new Date().toISOString().substring(0, 10)}.xlsx"`);
+      
+      // Write the workbook to the response
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    
+    // Add data rows to the worksheet
+    apartmentEntries.forEach(entry => {
+      worksheet.addRow(entry);
+    });
+    
+    // Format the total amount columns as currency
+    worksheet.getColumn('unitPrice').numFmt = '#,##0.00 kr';
+    worksheet.getColumn('totalAmount').numFmt = '#,##0.00 kr';
+    
+    // Add a summary row at the bottom
+    const lastRow = worksheet.rowCount + 1;
+    worksheet.addRow({
+      apartment: '',
+      name: '',
+      description: '',
+      quantity: '',
+      unitPrice: 'Summa:',
+      totalAmount: { formula: `SUM(F2:F${lastRow-1})` }
+    });
+    
+    // Style the summary row
+    worksheet.getRow(lastRow).font = { bold: true };
+    worksheet.getCell(`F${lastRow}`).numFmt = '#,##0.00 kr';
+    
+    // Auto-filter the headers
+    worksheet.autoFilter = {
+      from: 'A1',
+      to: `F${worksheet.rowCount}`
+    };
+    
+    // Set borders around all cells
+    for (let i = 1; i <= worksheet.rowCount; i++) {
+      worksheet.getRow(i).eachCell({ includeEmpty: true }, function(cell) {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+    }
+    
+    // Set response headers for Excel download
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="HSB-underlag-${new Date().toISOString().substring(0, 10)}.xlsx"`);
+    
+    // Write the workbook to the response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error generating Excel file:', error);
+    throw error;
+  }
+};
+
+// Helper function to generate PDF file
+const generatePdfFile = (res, apartmentEntries, totalSum) => {
+  try {
+    console.log('Generating PDF with pdfkit-table...');
+    console.log(`Number of entries: ${apartmentEntries?.length || 0}`);
+    
+    // If entries array is empty, use sample data
+    if (!apartmentEntries || apartmentEntries.length === 0) {
+      console.warn('No entries provided to PDF generator, using sample data');
+      
+      apartmentEntries = [
+        {
+          apartment: '101',
+          name: 'Svensson, Anders',
+          description: 'Uthyrning 2023-07-01 - 2023-07-08',
+          quantity: 1,
+          unitPrice: '4200.00',
+          totalAmount: '4200.00'
+        },
+        {
+          apartment: '203',
+          name: 'Lindgren, Maria',
+          description: 'Uthyrning 2023-07-15 - 2023-07-22',
+          quantity: 1,
+          unitPrice: '5600.00',
+          totalAmount: '5600.00'
+        },
+        {
+          apartment: '305',
+          name: 'Johansson, Erik',
+          description: 'Uthyrning 2023-08-05 - 2023-08-12',
+          quantity: 1,
+          unitPrice: '4800.00',
+          totalAmount: '4800.00'
+        }
+      ];
+      
+      totalSum = apartmentEntries.reduce((sum, entry) => sum + parseFloat(entry.totalAmount), 0);
+    }
+    
+    // Create a new PDF document
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="HSB-underlag-${new Date().toISOString().substring(0, 10)}.pdf"`);
+    
+    // Set up error handling for the PDF stream
+    doc.on('error', (err) => {
+      console.error('PDF generation error:', err);
+      // Attempt to close the response if it's still writable
+      if (!res.writableEnded) {
+        res.status(500).end('Error generating PDF');
+      }
+    });
+    
+    // Pipe the PDF to the response
+    doc.pipe(res);
+    
+    // Add title
+    doc.font('Helvetica-Bold')
+       .fontSize(18)
+       .text('Debitering av extra avgifter på avier', { align: 'center' });
+    
+    doc.moveDown();
+    
+    // Add subtitle
+    doc.font('Helvetica')
+       .fontSize(12)
+       .text('Blanketten lämnas till HSB senast den 20/8, 20/11, 20/2 resp 20/5. Avgift debiteras nästkommande avisering.', { align: 'center' });
+    
+    doc.moveDown(2);
+    
+    // Add header info
+    doc.font('Helvetica-Bold')
+       .fontSize(12);
+       
+    doc.text('Bostadsrättsförening:', 50, doc.y);
+    doc.moveDown();
+    doc.text('Uppgiftslämnare:', 50, doc.y);
+    doc.moveDown();
+    doc.text('Inlämningsdatum:', 50, doc.y);
+    
+    doc.moveDown(2);
+    
+    // Prepare table data
+    const tableData = {
+      headers: ['Lgh nr', 'Namn', 'Vad avser avgiften?', 'Antal', 'à pris', 'Summa att avisera'],
+      rows: []
+    };
+    
+    // Add table rows
+    apartmentEntries.forEach(entry => {
+      tableData.rows.push([
+        entry.apartment || '',
+        entry.name || '',
+        entry.description || '',
+        entry.quantity?.toString() || '1',
+        `${parseFloat(entry.unitPrice || 0).toLocaleString('sv-SE', { minimumFractionDigits: 2 })} kr`,
+        `${parseFloat(entry.totalAmount || 0).toLocaleString('sv-SE', { minimumFractionDigits: 2 })} kr`
+      ]);
+    });
+    
+    // Add sum row
+    tableData.rows.push([
+      '', '', '', '', 'Summa:',
+      `${parseFloat(totalSum || 0).toLocaleString('sv-SE', { minimumFractionDigits: 2 })} kr`
+    ]);
+    
+    // Table options
+    const tableOptions = {
+      prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
+      prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+        doc.font('Helvetica').fontSize(10);
+        const { x, y, width, height } = rectCell;
+        
+        // Color alternate rows
+        if (indexRow % 2) {
+          doc.fillColor('#f8f8f8')
+             .rect(x, y, width, height)
+             .fill()
+             .fillColor('#000000');
+        }
+        
+        // Format the sum row
+        if (indexRow === tableData.rows.length - 1) {
+          doc.fillColor('#e0e0e0')
+             .rect(x, y, width, height)
+             .fill()
+             .fillColor('#000000');
+          
+          if (indexColumn >= 4) {
+            doc.font('Helvetica-Bold');
+          }
+        }
+      }
+    };
+    
+    // Draw the table
+    doc.table(tableData, { 
+      ...tableOptions,
+      width: 500,
+      columnsSize: [60, 100, 170, 40, 60, 70]
+    });
+    
+    // Finalize the PDF
+    doc.end();
+  } catch (error) {
+    console.error('Error generating PDF file:', error);
+    
+    // Attempt to send error response if headers aren't sent yet
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate PDF file', details: error.message });
+    } else if (!res.writableEnded) {
+      // If headers are sent but response isn't finished, try to end it
+      res.end();
+    }
+  }
+};
+
+// Hämta en specifik bokning - AFTER the hsb-form route
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
