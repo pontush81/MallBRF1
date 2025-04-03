@@ -50,6 +50,7 @@ import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
+import { auth } from '../../services/firebase';
 
 // Custom day component för kalendern
 const CustomPickersDay = ({
@@ -1144,11 +1145,12 @@ const BookingPage: React.FC = () => {
   const handleBackupClick = async () => {
     try {
       setBackupLoading(true);
+      const token = await auth.currentUser?.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/backup/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'x-vercel-protection-bypass': 'true'
         },
         credentials: 'include'
