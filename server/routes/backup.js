@@ -8,16 +8,19 @@ const { sv } = require('date-fns/locale');
 console.log('Backup route configuration:');
 console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('BACKUP_EMAIL:', process.env.BACKUP_EMAIL);
-console.log('EMAIL_PASSWORD length:', process.env.EMAIL_PASSWORD ? process.env.EMAIL_PASSWORD.length : 0);
+console.log('EMAIL_APP_PASSWORD length:', process.env.EMAIL_APP_PASSWORD ? process.env.EMAIL_APP_PASSWORD.length : 0);
 
-// Skapa en transporter för e-post
+// Konfigurera e-posttransporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: true,
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+    pass: process.env.EMAIL_APP_PASSWORD
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
