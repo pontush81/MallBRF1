@@ -12,6 +12,7 @@ import PageView from './pages/public/PageView';
 import PublicPages from './pages/PublicPages';
 import NotFound from './pages/NotFound';
 import BookingPage from './pages/public/BookingPage';
+import BookingStatusPage from './pages/public/BookingStatusPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import DataDeletion from './pages/DataDeletion';
 
@@ -47,6 +48,7 @@ function AppRoutes() {
         <Route path="/page/:id" element={<Layout><PageView /></Layout>} />
         <Route path="/pages" element={<Layout><PublicPages /></Layout>} />
         <Route path="/booking" element={<Layout><BookingPage /></Layout>} />
+        <Route path="/booking/status" element={<Layout><BookingStatusPage /></Layout>} />
         <Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
         <Route path="/data-deletion" element={<Layout><DataDeletion /></Layout>} />
         
