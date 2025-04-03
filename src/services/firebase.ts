@@ -1,6 +1,6 @@
 // Firebase konfiguration
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -37,10 +37,17 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const facebookProvider = new FacebookAuthProvider();
+export const microsoftProvider = new OAuthProvider('microsoft.com');
 
 // Configure Google provider
 googleProvider.setCustomParameters({
   prompt: 'select_account'
+});
+
+// Configure Microsoft provider
+microsoftProvider.setCustomParameters({
+  prompt: 'select_account',
+  tenant: 'common'
 });
 
 // Set session persistence to LOCAL (will persist even after browser restart)

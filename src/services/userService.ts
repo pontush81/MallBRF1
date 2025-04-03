@@ -1,5 +1,5 @@
 import { User } from '../types/User';
-import { auth, db, googleProvider, facebookProvider } from './firebase';
+import { auth, db, googleProvider, facebookProvider, microsoftProvider } from './firebase';
 import { 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -181,6 +181,10 @@ export const userService = {
 
   async loginWithFacebook(): Promise<User | null> {
     return this.loginWithSocialProvider(facebookProvider, 'Facebook');
+  },
+
+  async loginWithMicrosoft(): Promise<User | null> {
+    return this.loginWithSocialProvider(microsoftProvider, 'Microsoft');
   },
 
   // This function should be called when the page loads to handle redirect result
