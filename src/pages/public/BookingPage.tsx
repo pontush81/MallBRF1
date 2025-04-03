@@ -973,24 +973,38 @@ const BookingPage: React.FC = () => {
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} md={4}>
               <Box>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Statistik
                 </Typography>
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
-                    {yearlyBookings.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    bokningar
-                  </Typography>
-                </Box>
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
-                    {totalNights}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    nätter totalt
-                  </Typography>
+                <Box sx={{ 
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}>
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 1
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                      {yearlyBookings.length}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      bokningar
+                    </Typography>
+                  </Box>
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 1
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                      {totalNights}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      nätter totalt
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
             </Grid>
@@ -1218,22 +1232,6 @@ const BookingPage: React.FC = () => {
           }}>
             Boka boende
           </Typography>
-          
-          {isAdmin && (
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleBackupClick}
-              disabled={backupLoading}
-              startIcon={backupLoading ? <CircularProgress size={20} /> : <BackupIcon />}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none'
-              }}
-            >
-              Backup
-            </Button>
-          )}
         </Box>
 
         {renderPriceList()}
@@ -1268,6 +1266,33 @@ const BookingPage: React.FC = () => {
         </Grid>
 
         {renderBookingStatus()}
+
+        {isAdmin && (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end',
+            mt: 4,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            pt: 4
+          }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleBackupClick}
+              disabled={backupLoading}
+              startIcon={backupLoading ? <CircularProgress size={20} /> : <BackupIcon />}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                px: 3,
+                py: 1
+              }}
+            >
+              Skapa backup
+            </Button>
+          </Box>
+        )}
 
         <Snackbar
           open={snackbarOpen}
