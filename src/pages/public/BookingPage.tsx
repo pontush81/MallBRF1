@@ -1144,7 +1144,7 @@ const BookingPage: React.FC = () => {
   const handleBackupClick = async () => {
     try {
       setBackupLoading(true);
-      const response = await fetch(`${API_BASE_URL}/bookings/backup`, {
+      const response = await fetch(`${API_BASE_URL}/backup/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1153,7 +1153,8 @@ const BookingPage: React.FC = () => {
       });
 
       if (response.ok) {
-        setSnackbarMessage('Backup har skickats till din e-post');
+        const data = await response.json();
+        setSnackbarMessage(`Backup skickad! ${data.bookingCount} bokningar exporterades.`);
         setSnackbarSeverity('success');
       } else {
         setSnackbarMessage('Kunde inte skapa backup');

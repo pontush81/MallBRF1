@@ -178,7 +178,6 @@ const BookingsList: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
         },
         credentials: 'include'
       });

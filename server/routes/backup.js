@@ -10,17 +10,14 @@ console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('BACKUP_EMAIL:', process.env.BACKUP_EMAIL);
 console.log('EMAIL_PASSWORD length:', process.env.EMAIL_PASSWORD ? process.env.EMAIL_PASSWORD.length : 0);
 
-// Konfigurera e-posttransporter
+// Skapa en transporter för e-post
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD
-  },
-  tls: {
-    rejectUnauthorized: false
+    pass: process.env.EMAIL_PASSWORD
   }
 });
 
@@ -102,6 +99,12 @@ Skapad: ${format(new Date(booking.createdat), 'PPP', { locale: sv })}
     console.error('Fel vid backup:', error);
     res.status(500).json({ error: 'Kunde inte skicka backup', details: error.message });
   }
+});
+
+// Alias för /bookings/backup
+router.post('/bookings/backup', async (req, res) => {
+  // Anropa samma logik som /send-backup
+  return router.handle(req, res);
 });
 
 module.exports = {
