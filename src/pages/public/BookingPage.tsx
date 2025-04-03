@@ -1144,7 +1144,7 @@ const BookingPage: React.FC = () => {
   const handleBackupClick = async () => {
     try {
       setBackupLoading(true);
-      const response = await fetch(`${API_BASE_URL}/backup/send-backup`, {
+      const response = await fetch(`${API_BASE_URL}/api/backup/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
