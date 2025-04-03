@@ -54,7 +54,6 @@ import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import supabaseClient from '../../services/supabaseClient';
 
 const BookingsList: React.FC = () => {
   const { isAdmin, isLoggedIn } = useAuth();
