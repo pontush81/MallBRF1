@@ -1,15 +1,18 @@
 import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
   IconButton,
   Typography,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Button,
+  Box
 } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import DesktopMenu from './DesktopMenu';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderNavProps {
   pages: Array<{id: string, title: string}>;
@@ -29,6 +32,8 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
     noSsr: true,
     defaultMatches: false
   });
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
 
   return (
     <AppBar 
@@ -63,15 +68,31 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
         )}
 
         {isMobile ? (
-          /* Mobile view - Hamburger menu */
-          <IconButton
-            color="inherit"
-            edge="end"
-            onClick={onMenuToggle}
-            aria-label="öppna meny"
-          >
-            <MenuIcon />
-          </IconButton>
+          /* Mobile view - Login button and Hamburger menu */
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {!isLoggedIn && (
+              <Button
+                color="inherit"
+                onClick={() => navigate('/login')}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  minWidth: 'auto',
+                  px: 2
+                }}
+              >
+                Logga in
+              </Button>
+            )}
+            <IconButton
+              color="inherit"
+              edge="end"
+              onClick={onMenuToggle}
+              aria-label="öppna meny"
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
         ) : null}
       </Toolbar>
     </AppBar>
