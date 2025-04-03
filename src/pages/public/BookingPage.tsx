@@ -123,37 +123,41 @@ const CustomPickersDay = ({
 
   // Check booking status with 3 possible states: fully booked, checkout day, or available
   const checkBookingStatus = (day: Date): { isFullyBooked: boolean; isCheckoutDay: boolean } => {
-    const dayToCheck = new Date(day);
-    dayToCheck.setUTCHours(0, 0, 0, 0);
-    const checkTime = dayToCheck.getTime();
+    // Format the date to YYYY-MM-DD for simple string comparison
+    const formatDateStr = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
     
+    const dayStr = formatDateStr(day);
     let isFullyBooked = false;
     let isCheckoutDay = false;
     
     for (const booking of bookedDates) {
-      // Create normalized dates for comparison
-      const bookingStart = new Date(booking.startDate);
-      const bookingEnd = new Date(booking.endDate);
-      bookingStart.setUTCHours(0, 0, 0, 0);
-      bookingEnd.setUTCHours(0, 0, 0, 0);
+      // Simple string comparison with the date part only
+      const startDateStr = formatDateStr(new Date(booking.startDate));
+      const endDateStr = formatDateStr(new Date(booking.endDate));
       
-      const startTime = bookingStart.getTime();
-      const endTime = bookingEnd.getTime();
-      
-      // Check if it's a checkout day (matches exactly with a booking end date)
-      if (checkTime === endTime) {
+      // If this day is an end date, mark it as a checkout day
+      if (dayStr === endDateStr) {
         isCheckoutDay = true;
       }
       
-      // Check if it's a fully booked day (between start and end, but not on end date)
-      if (checkTime >= startTime && checkTime < endTime) {
+      // If this day is between start and end (exclusive of end date)
+      if (dayStr >= startDateStr && dayStr < endDateStr) {
         isFullyBooked = true;
       }
     }
     
-    // If the day is both a fully booked day AND a checkout day, prioritize the "fully booked" status
-    // This handles overlapping bookings where one booking's checkout is another booking's stay
-    return { isFullyBooked, isCheckoutDay: isCheckoutDay && !isFullyBooked };
+    // A day can't be both fully booked AND a checkout day in our model
+    // If we get a conflict (overlapping bookings), prioritize "fully booked"
+    if (isFullyBooked) {
+      isCheckoutDay = false;
+    }
+    
+    return { isFullyBooked, isCheckoutDay };
   };
   
   const bookingStatus = checkBookingStatus(other.day);
@@ -220,16 +224,16 @@ const CustomPickersDay = ({
             }),
             
             ...(isCheckoutDay && {
-              backgroundColor: 'rgba(255, 153, 0, 0.1)',
+              backgroundColor: 'rgba(255, 153, 0, 0.25)',
               color: 'warning.dark',
               border: '2px dashed',
-              borderColor: 'warning.main',
-              backgroundImage: 'linear-gradient(135deg, rgba(255, 153, 0, 0.05) 25%, transparent 25%, transparent 50%, rgba(255, 153, 0, 0.05) 50%, rgba(255, 153, 0, 0.05) 75%, transparent 75%, transparent)',
-              backgroundSize: '10px 10px',
+              borderColor: 'warning.dark',
+              backgroundImage: 'linear-gradient(45deg, rgba(255, 153, 0, 0.2) 25%, transparent 25%, transparent 50%, rgba(255, 153, 0, 0.2) 50%, rgba(255, 153, 0, 0.2) 75%, transparent 75%, transparent)',
+              backgroundSize: '8px 8px',
               transform: 'scale(1)',
               transition: 'all 0.2s ease',
               '&:hover': {
-                backgroundColor: 'rgba(255, 153, 0, 0.2)',
+                backgroundColor: 'rgba(255, 153, 0, 0.35)',
                 transform: 'scale(1.05)',
               },
               '&::after': {
@@ -237,10 +241,10 @@ const CustomPickersDay = ({
                 position: 'absolute',
                 top: '2px',
                 right: '2px',
-                width: '6px',
-                height: '6px',
+                width: '8px',
+                height: '8px',
                 borderRadius: '50%',
-                backgroundColor: 'warning.main',
+                backgroundColor: 'warning.dark',
               },
               '&.Mui-selected': {
                 backgroundColor: 'warning.main',
@@ -741,30 +745,33 @@ const BookingPage: React.FC = () => {
               displayWeekNumber
               disablePast
               shouldDisableDate={(date) => {
-                // Create a function to check if a date is fully booked
-                const dayToCheck = new Date(date);
-                dayToCheck.setUTCHours(0, 0, 0, 0);
-                const checkTime = dayToCheck.getTime();
+                // Format date to YYYY-MM-DD for simple comparison
+                const formatDateStr = (date: Date) => {
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`;
+                };
                 
-                // Check through all bookings to see if this date is fully booked
+                const dayStr = formatDateStr(date);
+                
+                // Check each booking
                 for (const booking of existingBookings) {
-                  const bookingStart = new Date(booking.startDate);
-                  const bookingEnd = new Date(booking.endDate);
+                  const startDateStr = formatDateStr(new Date(booking.startDate));
+                  const endDateStr = formatDateStr(new Date(booking.endDate));
                   
-                  bookingStart.setUTCHours(0, 0, 0, 0);
-                  bookingEnd.setUTCHours(0, 0, 0, 0);
+                  // Don't disable checkout days
+                  if (dayStr === endDateStr) {
+                    continue;
+                  }
                   
-                  const startTime = bookingStart.getTime();
-                  const endTime = bookingEnd.getTime();
-                  
-                  // Only disable dates that are fully booked (not checkout days)
-                  // This check matches our isFullyBooked check in the CustomPickersDay
-                  if (checkTime >= startTime && checkTime < endTime) {
-                    return true; // Date is fully booked, so disable it
+                  // Disable days that are between start and end date (exclusive of end date)
+                  if (dayStr >= startDateStr && dayStr < endDateStr) {
+                    return true; // Disable this date
                   }
                 }
                 
-                return false; // Date is either available or a checkout day, so don't disable it
+                return false; // Don't disable this date
               }}
               slots={{
                 day: (props) => (
