@@ -92,18 +92,6 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
         </Button>
       )}
       
-      {/* Admin link if user is admin */}
-      {isAdmin && (
-        <Button 
-          color="inherit" 
-          component={RouterLink} 
-          to="/admin"
-          sx={{ textTransform: 'none', fontSize: '1rem' }}
-        >
-          Admin
-        </Button>
-      )}
-      
       <Box sx={{ flexGrow: 1 }} />
       
       {/* User menu on the right */}

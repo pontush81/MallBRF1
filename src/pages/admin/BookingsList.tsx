@@ -44,13 +44,29 @@ import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const BookingsList: React.FC = () => {
+  const { isAdmin, isLoggedIn } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  
+  // Kontrollera admin-behörighet
+  useEffect(() => {
+    if (!isLoggedIn || !isAdmin) {
+      navigate('/login');
+    }
+  }, [isLoggedIn, isAdmin, navigate]);
+
+  // Om användaren inte är admin, visa ingenting
+  if (!isLoggedIn || !isAdmin) {
+    return null;
+  }
   
   // Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -729,23 +745,27 @@ const BookingsList: React.FC = () => {
         </TableCell>
         <TableCell align="right">
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <IconButton 
-              color="primary" 
-              size="small" 
-              onClick={() => handleEditClick(booking)}
-              aria-label="Redigera bokning"
-              sx={{ mr: 1 }}
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton 
-              color="error" 
-              size="small" 
-              onClick={() => handleDeleteClick(booking)}
-              aria-label="Ta bort bokning"
-            >
-              <DeleteIcon />
-            </IconButton>
+            {isAdmin && (
+              <>
+                <IconButton 
+                  color="primary" 
+                  size="small" 
+                  onClick={() => handleEditClick(booking)}
+                  aria-label="Redigera bokning"
+                  sx={{ mr: 1 }}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton 
+                  color="error" 
+                  size="small" 
+                  onClick={() => handleDeleteClick(booking)}
+                  aria-label="Ta bort bokning"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </>
+            )}
           </Box>
         </TableCell>
       </TableRow>

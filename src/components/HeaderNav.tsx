@@ -33,7 +33,7 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
     defaultMatches: false
   });
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isAdmin } = useAuth();
 
   return (
     <AppBar 
@@ -58,6 +58,26 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
         >
           Gulmåran
         </Typography>
+        
+        {/* Admin länk som alltid visas för admin-användare */}
+        {isAdmin && (
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/admin"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 'bold',
+              bgcolor: 'rgba(255, 255, 255, 0.15)',
+              mr: 2,
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.25)'
+              }
+            }}
+          >
+            Admin
+          </Button>
+        )}
         
         {/* Desktop navigation - Show only when auth has loaded */}
         {!isMobile && isAuthLoaded && (

@@ -107,67 +107,69 @@ const CustomPickersDay = ({
       arrow
       placement="top"
     >
-      <PickersDay
-        {...other}
-        selected={isSelected}
-        sx={{
-          position: 'relative',
-          transition: 'all 0.2s ease',
-          fontWeight: isBooked ? 'bold' : 'normal',
-          
-          ...(isSelected && {
-            backgroundColor: 'primary.main',
-            color: 'white',
-            fontWeight: 'bold',
-            transform: 'scale(1.05)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            '&:hover': {
-              backgroundColor: 'primary.dark',
-            },
-          }),
-          
-          ...(isBooked && {
-            backgroundColor: 'rgba(255, 0, 0, 0.1)',
-            color: 'error.main',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 0, 0, 0.2)',
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: '3px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '4px',
-              height: '4px',
-              borderRadius: '50%',
+      <span>
+        <PickersDay
+          {...other}
+          selected={isSelected}
+          sx={{
+            position: 'relative',
+            transition: 'all 0.2s ease',
+            fontWeight: isBooked ? 'bold' : 'normal',
+            
+            ...(isSelected && {
+              backgroundColor: 'primary.main',
+              color: 'white',
+              fontWeight: 'bold',
+              transform: 'scale(1.05)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              '&:hover': {
+                backgroundColor: 'primary.dark',
+              },
+            }),
+            
+            ...(isBooked && {
+              backgroundColor: 'rgba(255, 0, 0, 0.1)',
+              color: 'error.main',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 0, 0, 0.2)',
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: '3px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                backgroundColor: 'error.main',
+              },
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255, 0, 0, 0.3)',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                },
+              },
+            }),
+            
+            ...(isSelected && isBooked && {
               backgroundColor: 'error.main',
-            },
-            '&.Mui-selected': {
-              backgroundColor: 'rgba(255, 0, 0, 0.3)',
               color: 'white',
               '&:hover': {
-                backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                backgroundColor: 'error.dark',
               },
-            },
-          }),
-          
-          ...(isSelected && isBooked && {
-            backgroundColor: 'error.main',
-            color: 'white',
-            '&:hover': {
-              backgroundColor: 'error.dark',
-            },
-          }),
-          
-          ...(!isBooked && !isSelected && {
-            '&:hover': {
-              backgroundColor: 'rgba(25, 118, 210, 0.08)',
-              transform: 'scale(1.05)',
-            },
-          }),
-        }}
-      />
+            }),
+            
+            ...(!isBooked && !isSelected && {
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                transform: 'scale(1.05)',
+              },
+            }),
+          }}
+        />
+      </span>
     </Tooltip>
   );
 };
@@ -1133,6 +1135,7 @@ const BookingPage: React.FC = () => {
             const week = Math.ceil((startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / 86400000 / 7);
             
             return {
+              id: booking.id,
               name: booking.name,
               arrival: format(new Date(booking.startDate), 'E d MMM', { locale: sv }),
               departure: format(new Date(booking.endDate), 'E d MMM', { locale: sv }),
@@ -1160,6 +1163,21 @@ const BookingPage: React.FC = () => {
               guestData={guestData}
               defaultExpanded={false}
               isCurrentOrFutureMonth={isCurrentOrFutureMonth}
+              isAdmin={isAdmin}
+              onEditClick={(guest) => {
+                // Hitta originalbokningen baserat på guest.id
+                const booking = bookings.find(b => b.id === guest.id);
+                if (booking) {
+                  handleEditClick(booking);
+                }
+              }}
+              onDeleteClick={(guest) => {
+                // Hitta originalbokningen baserat på guest.id
+                const booking = bookings.find(b => b.id === guest.id);
+                if (booking) {
+                  handleDeleteClick(booking);
+                }
+              }}
             />
           );
         })}
@@ -1325,6 +1343,359 @@ const BookingPage: React.FC = () => {
           onClose={() => setSnackbarOpen(false)}
           message={snackbarMessage}
         />
+
+        {/* Raderingsdialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            bgcolor: 'error.lighter', 
+            color: 'error.dark',
+            fontWeight: 'bold',
+            borderBottom: '1px solid',
+            borderColor: 'error.light'
+          }}>
+            Radera bokning
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <DialogContentText>
+              Är du säker på att du vill radera denna bokning?
+              Detta kan inte ångras.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button 
+              onClick={() => setDeleteDialogOpen(false)} 
+              variant="outlined"
+              sx={{ 
+                borderRadius: 1,
+                color: 'text.primary',
+                borderColor: 'divider',
+                '&:hover': {
+                  borderColor: 'text.primary',
+                  backgroundColor: 'rgba(0,0,0,0.04)'
+                }
+              }}
+            >
+              Avbryt
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!bookingToDelete) return;
+                
+                try {
+                  const success = await bookingService.deleteBooking(bookingToDelete.id);
+                  
+                  if (success) {
+                    // Uppdatera lokalt state
+                    setExistingBookings(prev => 
+                      prev.filter(b => b.id !== bookingToDelete.id)
+                    );
+                    
+                    setSnackbarMessage('Bokningen har raderats');
+                    setSnackbarSeverity('success');
+                    setSnackbarOpen(true);
+                  } else {
+                    setSnackbarMessage('Kunde inte radera bokningen');
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                  }
+                } catch (error) {
+                  console.error('Error deleting booking:', error);
+                  setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
+                  setSnackbarSeverity('error');
+                  setSnackbarOpen(true);
+                } finally {
+                  setDeleteDialogOpen(false);
+                }
+              }} 
+              variant="contained" 
+              color="error" 
+              autoFocus
+              sx={{ 
+                borderRadius: 1,
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4
+                }
+              }}
+            >
+              Radera
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
+        {/* Redigeringsdialog */}
+        <Dialog 
+          open={editDialogOpen} 
+          onClose={() => setEditDialogOpen(false)}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            bgcolor: 'primary.lighter', 
+            color: 'primary.dark',
+            fontWeight: 'bold',
+            borderBottom: '1px solid',
+            borderColor: 'primary.light'
+          }}>
+            Redigera bokning
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Namn"
+                  fullWidth
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="E-post"
+                  fullWidth
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Telefon"
+                  fullWidth
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Ankomstdatum"
+                  fullWidth
+                  type="date"
+                  value={editStartDate ? editStartDate.substring(0, 10) : ''}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Avresedatum"
+                  fullWidth
+                  type="date"
+                  value={editEndDate ? editEndDate.substring(0, 10) : ''}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Anteckningar"
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Box sx={{ 
+                  p: 2, 
+                  bgcolor: 'success.lighter', 
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'success.light'
+                }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={editParking}
+                        onChange={(e) => setEditParking(e.target.checked)}
+                        color="success"
+                      />
+                    }
+                    label={
+                      <Typography sx={{ color: 'success.dark' }}>
+                        Parkeringsplats önskas (75 kr/dygn)
+                      </Typography>
+                    }
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button 
+              onClick={() => setEditDialogOpen(false)}
+              variant="outlined"
+              sx={{ 
+                borderRadius: 1,
+                color: 'text.primary',
+                borderColor: 'divider',
+                '&:hover': {
+                  borderColor: 'text.primary',
+                  backgroundColor: 'rgba(0,0,0,0.04)'
+                }
+              }}
+            >
+              Avbryt
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!bookingToEdit) return;
+                
+                setEditLoading(true);
+                
+                try {
+                  // Validera formuläret först
+                  let valid = true;
+                  const errors: Record<string, string> = {};
+                  
+                  if (!editName.trim()) {
+                    errors.name = 'Namn måste anges';
+                    valid = false;
+                  }
+                  
+                  if (!editStartDate || !editEndDate) {
+                    errors.dates = 'Både ankomst- och avresedatum måste anges';
+                    valid = false;
+                  } else {
+                    const startDateObj = new Date(editStartDate);
+                    const endDateObj = new Date(editEndDate);
+                    
+                    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+                      errors.dates = 'Ogiltiga datum';
+                      valid = false;
+                    } else if (startDateObj >= endDateObj) {
+                      errors.dates = 'Avresedatum måste vara efter ankomstdatum';
+                      valid = false;
+                    }
+                  }
+                  
+                  if (!valid) {
+                    // Visa fel
+                    setSnackbarMessage(Object.values(errors)[0]);
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    setEditLoading(false);
+                    return;
+                  }
+                  
+                  // Skapa uppdaterat bokningsobjekt
+                  const updatedBooking: Booking = {
+                    ...bookingToEdit,
+                    name: editName,
+                    email: editEmail,
+                    phone: editPhone,
+                    notes: editNotes,
+                    startDate: editStartDate,
+                    endDate: editEndDate,
+                    parking: editParking
+                  };
+                  
+                  // Skicka uppdatering till servern
+                  const result = await bookingService.updateBooking(updatedBooking.id, updatedBooking);
+                  
+                  if (result) {
+                    // Uppdatera lokalt state
+                    setExistingBookings(prev => 
+                      prev.map(b => b.id === updatedBooking.id ? updatedBooking : b)
+                    );
+                    
+                    setSnackbarMessage('Bokningen har uppdaterats');
+                    setSnackbarSeverity('success');
+                    setEditDialogOpen(false);
+                    
+                    // Uppdatera bokningslistan
+                    fetchBookings();
+                  } else {
+                    setSnackbarMessage('Kunde inte uppdatera bokningen');
+                    setSnackbarSeverity('error');
+                  }
+                } catch (error) {
+                  console.error('Error updating booking:', error);
+                  setSnackbarMessage('Ett fel uppstod vid uppdatering av bokningen');
+                  setSnackbarSeverity('error');
+                } finally {
+                  setEditLoading(false);
+                  setSnackbarOpen(true);
+                }
+              }} 
+              variant="contained" 
+              color="primary"
+              disabled={editLoading}
+              sx={{ 
+                borderRadius: 1,
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4
+                }
+              }}
+            >
+              {editLoading ? <CircularProgress size={24} /> : "Spara"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Container>
   );

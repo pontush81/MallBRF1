@@ -16,10 +16,27 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon, LocalParking } from '@mui/icons-material';
+import { 
+  ExpandMore as ExpandMoreIcon, 
+  LocalParking,
+  Edit as EditIcon,
+  Delete as DeleteIcon 
+} from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+
+interface GuestData {
+  name: string;
+  arrival: string;
+  departure: string;
+  week: string;
+  notes?: string;
+  parking?: boolean;
+  id?: string; // Lägg till id för att identifiera bokningen vid redigering/radering
+}
 
 interface BookingStatusProps {
   month: string;
@@ -28,16 +45,12 @@ interface BookingStatusProps {
   nights: number;
   revenue: number;
   parkingRevenue: number;
-  guestData: Array<{
-    name: string;
-    arrival: string;
-    departure: string;
-    week: string;
-    notes?: string;
-    parking?: boolean;
-  }>;
+  guestData: GuestData[];
   defaultExpanded?: boolean;
   isCurrentOrFutureMonth?: boolean;
+  isAdmin?: boolean; // Ny prop för att kontrollera admin-status
+  onEditClick?: (guest: GuestData) => void; // Ny prop för att hantera redigeringsklick
+  onDeleteClick?: (guest: GuestData) => void; // Ny prop för att hantera raderingsklick
 }
 
 const BookingStatus: React.FC<BookingStatusProps> = ({
@@ -50,6 +63,9 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
   guestData,
   defaultExpanded = false,
   isCurrentOrFutureMonth = false,
+  isAdmin = false,
+  onEditClick,
+  onDeleteClick,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -86,36 +102,54 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
     );
   };
 
-  const renderBookingItem = (guest: BookingStatusProps['guestData'][0]) => {
+  const renderBookingItem = (guest: GuestData) => {
+    // Extract week number from the string
     const weekNumber = parseInt(guest.week);
     const bgcolor = getWeekStyle(weekNumber);
 
-    // Mobile view with cards
+    // Mobile view with card
     if (isMobile) {
       return (
         <Paper
           key={`${guest.name}-${guest.arrival}`}
-          sx={{ 
-            p: 2, 
-            mb: 2, 
-            borderLeft: '4px solid',
-            borderLeftColor: bgcolor,
-          }}
           variant="outlined"
+          sx={{ 
+            mb: 2, 
+            p: 2,
+            borderLeft: '4px solid',
+            borderLeftColor: bgcolor === "transparent" ? 'grey.300' : bgcolor,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+          }}
         >
           <Grid container spacing={1}>
             <Grid item xs={12}>
-              <Typography variant="subtitle2">{guest.name}</Typography>
-              {guest.notes && (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 0.5 }}>
-                    Kommentar:
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                    {guest.notes}
-                  </Typography>
-                </>
-              )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                  {guest.name}
+                </Typography>
+                {isAdmin && (
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {onEditClick && (
+                      <IconButton 
+                        size="small" 
+                        color="primary" 
+                        onClick={() => onEditClick(guest)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                    {onDeleteClick && (
+                      <IconButton 
+                        size="small" 
+                        color="error" 
+                        onClick={() => onDeleteClick(guest)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
+                )}
+              </Box>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="text.secondary">
@@ -133,6 +167,18 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                 {guest.departure}
               </Typography>
             </Grid>
+            
+            {guest.notes && (
+              <Grid item xs={12}>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Anteckningar:
+                </Typography>
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  {guest.notes}
+                </Typography>
+              </Grid>
+            )}
+            
             <Grid item xs={12}>
               <Box sx={{ 
                 display: 'flex', 
@@ -179,13 +225,46 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
         <TableCell align="center">
           {renderParkingStatus(guest.parking)}
         </TableCell>
-        {guest.notes && (
-          <TableCell>
+        <TableCell>
+          {guest.notes && (
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
               {guest.notes}
             </Typography>
-          </TableCell>
-        )}
+          )}
+        </TableCell>
+        {/* Kolumnen för åtgärder */}
+        <TableCell align="center">
+          {isAdmin && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+              {onEditClick && (
+                <Tooltip title="Redigera bokning">
+                  <span>
+                    <IconButton 
+                      size="small" 
+                      color="primary" 
+                      onClick={() => onEditClick(guest)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
+              {onDeleteClick && (
+                <Tooltip title="Radera bokning">
+                  <span>
+                    <IconButton 
+                      size="small" 
+                      color="error" 
+                      onClick={() => onDeleteClick(guest)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
+            </Box>
+          )}
+        </TableCell>
       </TableRow>
     );
   };
@@ -242,12 +321,12 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
           />
         </Typography>
       </AccordionSummary>
-      <AccordionDetails>
-        {/* Desktop view with table */}
+      <AccordionDetails sx={{ p: 0 }}>
+        {/* Desktop view */}
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
           <TableContainer>
             <Table size="small">
-              <TableHead>
+              <TableHead sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
                 <TableRow>
                   <TableCell>Namn</TableCell>
                   <TableCell>Ankomst</TableCell>
@@ -255,66 +334,64 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                   <TableCell align="center">Vecka</TableCell>
                   <TableCell align="center">Parkering</TableCell>
                   <TableCell>Anteckningar</TableCell>
+                  <TableCell align="center">Åtgärder</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {guestData.map(guest => renderBookingItem(guest))}
-                <TableRow 
-                  sx={{ 
-                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                    '& td': { fontWeight: 'bold' } 
-                  }}
-                >
-                  <TableCell colSpan={3}>Totalt för månaden</TableCell>
-                  <TableCell align="center">{nights} nätter</TableCell>
-                  <TableCell align="center">
-                    {parkingRevenue > 0 ? `${parkingRevenue.toLocaleString()} kr` : '-'}
-                  </TableCell>
-                  <TableCell align="right">{revenue.toLocaleString()} kr</TableCell>
-                </TableRow>
               </TableBody>
             </Table>
           </TableContainer>
-        </Box>
-
-        {/* Mobile view with cards */}
-        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-          {guestData.map(guest => renderBookingItem(guest))}
-          <Paper
+          
+          {/* Desktop summary */}
+          <Box 
             sx={{ 
-              p: 2,
-              backgroundColor: 'rgba(0, 0, 0, 0.05)',
-              mt: 2
+              p: 2, 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper'
             }}
           >
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Totalt antal nätter
+            <Typography variant="subtitle1">
+              Totalt: {nights} nätter (varav parkering: {parkingRevenue > 0 ? `${Math.round(parkingRevenue / 75)} nätter` : '0'})
+            </Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              {revenue.toLocaleString()} kr {parkingRevenue > 0 && `(varav parkering: ${parkingRevenue.toLocaleString()} kr)`}
+            </Typography>
+          </Box>
+        </Box>
+        
+        {/* Mobile view */}
+        <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2 }}>
+          {guestData.map(guest => renderBookingItem(guest))}
+          
+          {/* Mobile summary */}
+          <Box 
+            sx={{ 
+              mt: 2, 
+              p: 2, 
+              bgcolor: 'rgba(0, 0, 0, 0.05)',
+              borderRadius: 1,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle2">Totalt:</Typography>
+              <Typography variant="body2">{nights} nätter</Typography>
+              {parkingRevenue > 0 && (
+                <Typography variant="body2" color="success.main">
+                  {Math.round(parkingRevenue / 75)} p-nätter ({parkingRevenue.toLocaleString()} kr)
                 </Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {nights}
-                </Typography>
-              </Grid>
-              <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Total intäkt
-                </Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {revenue.toLocaleString()} kr
-                </Typography>
-                {parkingRevenue > 0 && (
-                  <Typography variant="body2" sx={{ 
-                    color: 'text.secondary',
-                    fontSize: '0.75rem',
-                    mt: 0.5
-                  }}>
-                    varav parkering: {parkingRevenue.toLocaleString()} kr
-                  </Typography>
-                )}
-              </Grid>
-            </Grid>
-          </Paper>
+              )}
+            </Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              {revenue.toLocaleString()} kr
+            </Typography>
+          </Box>
         </Box>
       </AccordionDetails>
     </Accordion>

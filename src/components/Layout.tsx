@@ -66,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         navigateToSection={navigateToSection}
       />
       
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: { xs: 10, sm: 6, md: 4 } }}>
         {children}
       </Container>
     </>
