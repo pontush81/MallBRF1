@@ -119,8 +119,8 @@ const CustomPickersDay = ({
     
     // Check each booking - only days from start date to day before end date are considered booked
     for (const booking of bookedDates) {
-      const startDateStr = formatDateStr(new Date(booking.startDate));
-      const endDateStr = formatDateStr(new Date(booking.endDate));
+      const startDateStr = formatDateStr(new Date(booking.startDate || booking.startdate));
+      const endDateStr = formatDateStr(new Date(booking.endDate || booking.enddate));
       
       // If day is >= start date and < end date, it's booked
       if (dayStr >= startDateStr && dayStr < endDateStr) {
@@ -474,16 +474,56 @@ const BookingPage: React.FC = () => {
       normalizedStartDate.setUTCHours(0, 0, 0, 0);
       normalizedEndDate.setUTCHours(0, 0, 0, 0);
       
+      // Kontrollera både:
+      // 1. Om någon bokning börjar samma dag som vår bokning slutar
+      // 2. Om någon bokning slutar samma dag som vår bokning börjar
+      
+      // Fall 1: En bokning börjar samma dag som vår bokning slutar
+      const anotherBookingStartsOnOurEndDate = existingBookings.some(booking => {
+        const bookingStartDate = new Date(booking.startDate || booking.startdate);
+        bookingStartDate.setUTCHours(0, 0, 0, 0);
+        return bookingStartDate.getTime() === normalizedEndDate.getTime();
+      });
+      
+      // Fall 2: En bokning slutar samma dag som vår bokning börjar
+      const anotherBookingEndsOnOurStartDate = existingBookings.some(booking => {
+        const bookingEndDate = new Date(booking.endDate || booking.enddate);
+        bookingEndDate.setUTCHours(0, 0, 0, 0);
+        return bookingEndDate.getTime() === normalizedStartDate.getTime();
+      });
+      
+      // Bestäm start- och slutdatum för tillgänglighetskontrollen baserat på ovanstående
+      let startDateForCheck = normalizedStartDate;
+      let endDateForCheck = normalizedEndDate;
+      
+      // Om en bokning slutar samma dag som vår börjar, justera startdatumet för kontrollen
+      if (anotherBookingEndsOnOurStartDate) {
+        const dayAfter = new Date(normalizedStartDate);
+        dayAfter.setDate(dayAfter.getDate() + 1);
+        startDateForCheck = dayAfter;
+      }
+      
+      // Om en bokning börjar samma dag som vår slutar, justera slutdatumet för kontrollen
+      if (anotherBookingStartsOnOurEndDate) {
+        const dayBefore = new Date(normalizedEndDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        endDateForCheck = dayBefore;
+      }
+      
+      // Kontrollera tillgänglighet med de justerade datumen
       const availabilityCheck = await bookingService.checkAvailability(
-        normalizedStartDate.toISOString(), 
-        normalizedEndDate.toISOString()
+        startDateForCheck.toISOString(), 
+        endDateForCheck.toISOString()
       );
       
+      // Om tillgänglighetskontrollen misslyckas med de justerade datumen,
+      // betyder det att det finns en faktisk överlappning (inte bara start/slut på samma dag)
       if (!availabilityCheck.available) {
         setErrorMessage('De valda datumen är inte längre tillgängliga. Vänligen välj andra datum.');
         return;
       }
       
+      // Använd de ursprungliga datumen för själva bokningen
       const booking = await bookingService.createBooking({
         name,
         email,
@@ -495,12 +535,56 @@ const BookingPage: React.FC = () => {
       });
       
       if (booking) {
-        setSuccessMessage('Din bokning har bekräftats!');
+        // Formatera datumen för visning i toast-meddelandet
+        const formattedStartDate = format(normalizedStartDate, 'd MMM', { locale: sv });
+        const formattedEndDate = format(normalizedEndDate, 'd MMM', { locale: sv });
+        const nights = differenceInDays(normalizedEndDate, normalizedStartDate);
+        
+        // Visa ett snyggt toast-meddelande för bekräftelse
+        toast.success(
+          `Din bokning ${formattedStartDate} - ${formattedEndDate} (${nights} nätter) är bekräftad!`, 
+          {
+            duration: 5000,
+            position: isMobile ? 'bottom-center' : 'top-right',
+            style: {
+              background: '#4caf50',
+              color: '#fff',
+              borderRadius: '8px',
+              padding: '16px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              maxWidth: '400px'
+            },
+            icon: '🎉'
+          }
+        );
+        
+        // Återställ formuläret
+        setSuccessMessage('');
+        setStartDate(null);
+        setEndDate(null);
+        setNotes('');
+        setParking(false);
+        
+        // Uppdatera bokningslistan
         await fetchBookings();
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
       setErrorMessage('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
+      
+      // Visa ett toast-meddelande för felet
+      toast.error('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.', {
+        duration: 4000,
+        position: isMobile ? 'bottom-center' : 'top-right',
+        style: {
+          background: '#f44336',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          maxWidth: '400px'
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -685,7 +769,12 @@ const BookingPage: React.FC = () => {
             <DateCalendar
               value={startDate}
               onChange={(newDate) => {
-                if (newDate) updateDateRange(newDate);
+                if (newDate) {
+                  // Create a new date object to avoid timezone issues
+                  const date = new Date(newDate);
+                  date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+                  updateDateRange(date);
+                }
               }}
               displayWeekNumber
               disablePast
@@ -700,12 +789,12 @@ const BookingPage: React.FC = () => {
                 
                 const dayStr = formatDateStr(date);
                 
-                // Check each booking - only mark days as booked from start date to day before end date
+                // Check each booking - only days from start date to day before end date are considered booked
                 for (const booking of existingBookings) {
-                  const startDateStr = formatDateStr(new Date(booking.startDate));
-                  const endDateStr = formatDateStr(new Date(booking.endDate));
+                  const startDateStr = formatDateStr(new Date(booking.startDate || booking.startdate));
+                  const endDateStr = formatDateStr(new Date(booking.endDate || booking.enddate));
                   
-                  // If this day is between start date (inclusive) and end date (exclusive), it's booked
+                  // If day is >= start date and < end date, it's booked
                   if (dayStr >= startDateStr && dayStr < endDateStr) {
                     return true; // Disable this date
                   }
@@ -846,6 +935,47 @@ const BookingPage: React.FC = () => {
   const handleDeleteClick = (booking: Booking) => {
     setBookingToDelete(booking);
     setDeleteDialogOpen(true);
+  };
+
+  // Hjälpfunktion för att hantera bokningsradering
+  const handleBookingDeleted = async () => {
+    if (!bookingToDelete) return;
+    
+    try {
+      const success = await bookingService.deleteBooking(bookingToDelete.id);
+      
+      if (success) {
+        // Uppdatera lokalt state med immuterbar metod
+        setExistingBookings(prev => 
+          prev.filter(b => b.id !== bookingToDelete.id)
+        );
+        
+        // Stäng dialogen först
+        setDeleteDialogOpen(false);
+        
+        // Visa meddelande
+        setSnackbarMessage('Bokningen har raderats');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        
+        // Kort timeout innan vi uppdaterar bokningslistan
+        // Detta ger tid för UI att hantera scrollposition
+        setTimeout(() => {
+          fetchBookings();
+        }, 300);
+      } else {
+        setSnackbarMessage('Kunde inte radera bokningen');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        setDeleteDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      setDeleteDialogOpen(false);
+    }
   };
 
   // Rendera prislistan
@@ -1441,6 +1571,20 @@ const BookingPage: React.FC = () => {
     }
   };
 
+  // Add a function to format the date range display
+  const formatDateRange = () => {
+    if (!startDate) return null;
+    
+    const startFormatted = format(startDate, 'd MMMM', { locale: sv });
+    if (!endDate) {
+      return `Valt datum: ${startFormatted}`;
+    }
+    
+    const endFormatted = format(endDate, 'd MMMM', { locale: sv });
+    const nights = differenceInDays(endDate, startDate);
+    return `Valt datum: ${startFormatted} - ${endFormatted} (${nights} nätter)`;
+  };
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ 
@@ -1491,7 +1635,25 @@ const BookingPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                 <CircularProgress />
               </Box>
-            ) : renderCalendarWithMaxWidth()}
+            ) : (
+              <>
+                {startDate && (
+                  <Box sx={{ 
+                    mb: 2, 
+                    p: 2, 
+                    bgcolor: 'primary.lighter',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'primary.light'
+                  }}>
+                    <Typography variant="h6" sx={{ color: 'primary.dark' }}>
+                      {formatDateRange()}
+                    </Typography>
+                  </Box>
+                )}
+                {renderCalendarWithMaxWidth()}
+              </>
+            )}
           </Grid>
           
           <Grid item xs={12}>
@@ -1618,35 +1780,7 @@ const BookingPage: React.FC = () => {
               Avbryt
             </Button>
             <Button 
-              onClick={async () => {
-                if (!bookingToDelete) return;
-                
-                try {
-                  const success = await bookingService.deleteBooking(bookingToDelete.id);
-                  
-                  if (success) {
-                    // Uppdatera lokalt state
-                    setExistingBookings(prev => 
-                      prev.filter(b => b.id !== bookingToDelete.id)
-                    );
-                    
-                    setSnackbarMessage('Bokningen har raderats');
-                    setSnackbarSeverity('success');
-                    setSnackbarOpen(true);
-                  } else {
-                    setSnackbarMessage('Kunde inte radera bokningen');
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                  }
-                } catch (error) {
-                  console.error('Error deleting booking:', error);
-                  setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
-                  setSnackbarSeverity('error');
-                  setSnackbarOpen(true);
-                } finally {
-                  setDeleteDialogOpen(false);
-                }
-              }} 
+              onClick={handleBookingDeleted} 
               variant="contained" 
               color="error" 
               autoFocus
