@@ -8,7 +8,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
 import bookingService from '../../services/bookingService';
@@ -172,9 +172,21 @@ const BookingStatusPage: React.FC = () => {
                 arrival: booking.startDate ? format(new Date(booking.startDate), 'E d MMM', { locale: sv }) : 'N/A',
                 departure: booking.endDate ? format(new Date(booking.endDate), 'E d MMM', { locale: sv }) : 'N/A',
                 week: week.toString(),
-                notes: booking.notes
+                notes: booking.notes,
+                parking: booking.parking
               };
             });
+
+            const totalNights = calculateTotalNights(monthBookings);
+            const totalRevenue = calculateRevenueForMonth(monthBookings);
+            
+            const parkingRevenue = monthBookings.reduce((sum, booking) => {
+              if (!booking.parking) return sum;
+              const start = new Date(booking.startDate || '');
+              const end = new Date(booking.endDate || '');
+              const nights = differenceInDays(end, start);
+              return sum + (nights * 75);
+            }, 0);
 
             return (
               <BookingStatus
@@ -182,8 +194,9 @@ const BookingStatusPage: React.FC = () => {
                 month={monthName}
                 year={year}
                 bookings={monthBookings.length}
-                nights={calculateTotalNights(monthBookings)}
-                revenue={calculateRevenueForMonth(monthBookings)}
+                nights={totalNights}
+                revenue={totalRevenue}
+                parkingRevenue={parkingRevenue}
                 guestData={guestData}
               />
             );

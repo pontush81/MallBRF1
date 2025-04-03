@@ -52,6 +52,24 @@ import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { toast } from 'react-hot-toast';
+import BookingStatus from '../../components/BookingStatus';
+
+// Helper function to group bookings by month
+const groupBookingsByMonth = (bookings: Booking[]) => {
+  return bookings.reduce((acc: Record<string, Booking[]>, booking) => {
+    if (!booking.startDate) return acc;
+    
+    const date = new Date(booking.startDate);
+    const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    
+    if (!acc[monthKey]) {
+      acc[monthKey] = [];
+    }
+    
+    acc[monthKey].push(booking);
+    return acc;
+  }, {});
+};
 
 // Custom day component för kalendern
 const CustomPickersDay = ({
@@ -883,48 +901,127 @@ const BookingPage: React.FC = () => {
 
   // Rendera bokningsstatus
   const renderBookingStatus = () => {
-    // Sortera bokningar i kronologisk ordning först
-    const sortedBookings = [...existingBookings].sort((a, b) => {
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-    });
-
-    // Gruppera sorterade bokningar efter månad
-    const groupedBookings = sortedBookings.reduce((acc, booking) => {
-      const date = new Date(booking.startDate);
-      const monthYear = format(date, 'MMMM yyyy', { locale: sv });
-      if (!acc[monthYear]) {
-        acc[monthYear] = [];
-      }
-      acc[monthYear].push(booking);
-      return acc;
-    }, {} as Record<string, Booking[]>);
-
-    // Sortera månader i kronologisk ordning baserat på faktiska datum
+    const groupedBookings = groupBookingsByMonth(existingBookings);
     const sortedMonths = Object.keys(groupedBookings).sort((a, b) => {
-      const [monthA, yearA] = a.split(' ');
-      const [monthB, yearB] = b.split(' ');
-      
-      // Konvertera svenska månadsnamn till nummer (1-12)
-      const getMonthNumber = (monthName: string): number => {
-        const months: { [key: string]: number } = {
-          'januari': 1, 'februari': 2, 'mars': 3, 'april': 4,
-          'maj': 5, 'juni': 6, 'juli': 7, 'augusti': 8,
-          'september': 9, 'oktober': 10, 'november': 11, 'december': 12
-        };
-        return months[monthName.toLowerCase()] || 0;
-      };
-
-      const monthNumA = getMonthNumber(monthA);
-      const monthNumB = getMonthNumber(monthB);
-      
-      const dateA = new Date(parseInt(yearA), monthNumA - 1, 1);
-      const dateB = new Date(parseInt(yearB), monthNumB - 1, 1);
-      
-      return dateA.getTime() - dateB.getTime();
+      const [yearA, monthA] = a.split('-').map(Number);
+      const [yearB, monthB] = b.split('-').map(Number);
+      return yearA - yearB || monthA - monthB;
     });
+
+    // Calculate yearly summary for admin
+    const renderYearlySummary = () => {
+      if (!isAdmin) return null;
+
+      const currentYear = new Date().getFullYear();
+      const yearlyBookings = existingBookings.filter(booking => {
+        const bookingYear = new Date(booking.startDate).getFullYear();
+        return bookingYear === currentYear;
+      });
+
+      const totalNights = yearlyBookings.reduce((sum, booking) => {
+        const start = new Date(booking.startDate);
+        const end = new Date(booking.endDate);
+        return sum + differenceInDays(end, start);
+      }, 0);
+
+      const totalRevenue = yearlyBookings.reduce((sum, booking) => {
+        const start = new Date(booking.startDate);
+        const end = new Date(booking.endDate);
+        const nights = differenceInDays(end, start);
+        const weekNumber = parseInt(format(start, 'w'));
+        
+        let nightlyRate = 400;
+        if (weekNumber >= 24 && weekNumber <= 32) {
+          nightlyRate = weekNumber >= 27 && weekNumber <= 29 ? 800 : 600;
+        }
+        
+        const parkingFee = booking.parking ? nights * 75 : 0;
+        return sum + (nights * nightlyRate) + parkingFee;
+      }, 0);
+
+      const parkingRevenue = yearlyBookings.reduce((sum, booking) => {
+        if (!booking.parking) return sum;
+        const start = new Date(booking.startDate);
+        const end = new Date(booking.endDate);
+        const nights = differenceInDays(end, start);
+        return sum + (nights * 75);
+      }, 0);
+
+      return (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            mb: 4,
+            background: 'linear-gradient(135deg, #f5f9ff 0%, #eef6ff 100%)',
+            border: '1px solid',
+            borderColor: 'primary.light',
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h5" sx={{ 
+            mb: 3,
+            color: 'primary.main',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            Årssummering {currentYear}
+          </Typography>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Antal bokningar
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  {yearlyBookings.length}
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Totalt antal nätter
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  {totalNights}
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Intäkt parkering
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                  {parkingRevenue.toLocaleString()} kr
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Total intäkt
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                  {totalRevenue.toLocaleString()} kr
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+      );
+    };
 
     return (
       <Box sx={{ mt: 4 }}>
+        {renderYearlySummary()}
+        
         <Typography variant="h5" component="h2" sx={{ 
           color: 'primary.main', 
           fontWeight: 600,
@@ -945,7 +1042,9 @@ const BookingPage: React.FC = () => {
         </Typography>
 
         {sortedMonths.map(monthYear => {
+          const [year, month] = monthYear.split('-');
           const bookings = groupedBookings[monthYear];
+          const monthName = format(new Date(Number(year), Number(month) - 1), 'LLLL', { locale: sv });
           const totalNights = bookings.reduce((sum, booking) => {
             const start = new Date(booking.startDate);
             const end = new Date(booking.endDate);
@@ -967,177 +1066,47 @@ const BookingPage: React.FC = () => {
             return sum + (nights * nightlyRate) + parkingFee;
           }, 0);
 
-          return (
-            <Accordion
-              key={monthYear}
-              defaultExpanded={true}
-              sx={{
-                mb: 2,
-                backgroundColor: 'background.paper',
-                '&:before': { display: 'none' },
-                boxShadow: 'none',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '8px !important',
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                  backgroundColor: 'grey.50'
-                }}
-              >
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  width: '100%', 
-                  mr: 2,
-                  flexWrap: { xs: 'wrap', sm: 'nowrap' },
-                  gap: { xs: 1, sm: 0 }
-                }}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    flexWrap: { xs: 'wrap', sm: 'nowrap' },
-                    gap: 1
-                  }}>
-                    <Typography variant="h6" sx={{ textTransform: 'capitalize' }}>
-                      {monthYear}
-                    </Typography>
-                    <Chip 
-                      label={`${bookings.length} bokningar`}
-                      size="small"
-                    />
-                  </Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    gap: 3,
-                    flexWrap: { xs: 'wrap', sm: 'nowrap' },
-                    width: { xs: '100%', sm: 'auto' }
-                  }}>
-                    <Typography variant="body1">
-                      Nätter: <strong>{totalNights}</strong>
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: 'success.main' }}>
-                      Intäkt: <strong>{totalRevenue} kr</strong>
-                    </Typography>
-                  </Box>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                  width: '100%'
-                }}>
-                  {bookings.map((booking) => {
-                    const start = new Date(booking.startDate);
-                    const end = new Date(booking.endDate);
-                    const nights = differenceInDays(end, start);
-                    const weekNumber = parseInt(format(start, 'w'));
-                    
-                    let nightlyRate = 400;
-                    if (weekNumber >= 24 && weekNumber <= 32) {
-                      nightlyRate = weekNumber >= 27 && weekNumber <= 29 ? 800 : 600;
-                    }
-                    
-                    const parkingFee = booking.parking ? nights * 75 : 0;
-                    const totalFee = (nights * nightlyRate) + parkingFee;
+          const parkingRevenue = bookings.reduce((sum, booking) => {
+            if (!booking.parking) return sum;
+            const start = new Date(booking.startDate);
+            const end = new Date(booking.endDate);
+            const nights = differenceInDays(end, start);
+            return sum + (nights * 75);
+          }, 0);
 
-                    return (
-                      <Paper
-                        key={booking.id}
-                        elevation={0}
-                        sx={{
-                          p: 2,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          '&:hover': {
-                            backgroundColor: 'grey.50'
-                          }
-                        }}
-                      >
-                        <Grid container spacing={2} alignItems="center">
-                          <Grid item xs={12} sm={4}>
-                            <Box>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                {booking.name}
-                              </Typography>
-                              {booking.notes && (
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontStyle: 'italic' }}>
-                                  {booking.notes}
-                                </Typography>
-                              )}
-                            </Box>
-                          </Grid>
-                          <Grid item xs={6} sm={2}>
-                            <Typography variant="body2" color="text.secondary">
-                              Ankomst
-                            </Typography>
-                            <Typography variant="body1">
-                              {format(start, 'E d MMM', { locale: sv })}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6} sm={2}>
-                            <Typography variant="body2" color="text.secondary">
-                              Avresa
-                            </Typography>
-                            <Typography variant="body1">
-                              {format(end, 'E d MMM', { locale: sv })}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={4} sm={1}>
-                            <Chip 
-                              label={`v.${weekNumber}`}
-                              size="small"
-                              color={weekNumber >= 27 && weekNumber <= 29 ? 'error' : weekNumber >= 24 && weekNumber <= 32 ? 'primary' : 'default'}
-                              sx={{ minWidth: 60 }}
-                            />
-                          </Grid>
-                          <Grid item xs={4} sm={1}>
-                            <Typography variant="body2" align="center">
-                              {nights} {nights === 1 ? 'natt' : 'nätter'}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={4} sm={1}>
-                            <Box display="flex" justifyContent="center">
-                              <Chip
-                                label={booking.parking ? 'P' : '-'}
-                                size="small"
-                                color={booking.parking ? 'success' : 'default'}
-                                variant={booking.parking ? 'filled' : 'outlined'}
-                              />
-                            </Box>
-                          </Grid>
-                          <Grid item xs={8} sm={1}>
-                            <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'success.main', textAlign: { xs: 'left', sm: 'right' } }}>
-                              {totalFee} kr
-                            </Typography>
-                          </Grid>
-                          {isAdmin && (
-                            <Grid item xs={4} sm={1}>
-                              <Box display="flex" justifyContent={{ xs: 'flex-end', sm: 'flex-end' }} gap={1}>
-                                <IconButton size="small" onClick={() => handleEditClick(booking)}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" color="error" onClick={() => handleDeleteClick(booking)}>
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </Grid>
-                          )}
-                        </Grid>
-                      </Paper>
-                    );
-                  })}
-                </Box>
-              </AccordionDetails>
-            </Accordion>
+          const guestData = bookings.map(booking => {
+            const startDate = new Date(booking.startDate);
+            const week = Math.ceil((startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / 86400000 / 7);
+            
+            return {
+              name: booking.name,
+              arrival: format(new Date(booking.startDate), 'E d MMM', { locale: sv }),
+              departure: format(new Date(booking.endDate), 'E d MMM', { locale: sv }),
+              week: week.toString(),
+              notes: booking.notes,
+              parking: booking.parking
+            };
+          });
+
+          // Check if this is current or future month
+          const now = new Date();
+          const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const bookingMonth = new Date(Number(year), Number(month) - 1, 1);
+          const isCurrentOrFutureMonth = bookingMonth.getTime() >= currentMonth.getTime();
+
+          return (
+            <BookingStatus
+              key={monthYear}
+              month={monthName}
+              year={year}
+              bookings={bookings.length}
+              nights={totalNights}
+              revenue={totalRevenue}
+              parkingRevenue={parkingRevenue}
+              guestData={guestData}
+              defaultExpanded={false}
+              isCurrentOrFutureMonth={isCurrentOrFutureMonth}
+            />
           );
         })}
       </Box>
