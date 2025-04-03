@@ -1197,11 +1197,36 @@ const BookingPage: React.FC = () => {
       const data = await response.json();
       console.log('Backup response:', data);
       
-      toast.success('Backup skapad och skickad via e-post');
+      toast.success(`Backup skapad och skickad via e-post (${data.bookingCount} bokningar)`, {
+        duration: 4000,
+        position: isMobile ? 'bottom-center' : 'top-right',
+        style: {
+          background: '#4caf50',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          maxWidth: isMobile ? '90%' : '400px',
+          textAlign: 'center'
+        },
+      });
     } catch (error) {
       console.error('Error creating backup:', error);
-      setBackupError(error instanceof Error ? error.message : 'Ett fel uppstod vid skapande av backup');
-      toast.error('Kunde inte skapa backup');
+      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid skapande av backup';
+      setBackupError(errorMessage);
+      toast.error(errorMessage, {
+        duration: 4000,
+        position: isMobile ? 'bottom-center' : 'top-right',
+        style: {
+          background: '#f44336',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          maxWidth: isMobile ? '90%' : '400px',
+          textAlign: 'center'
+        },
+      });
     } finally {
       setBackupLoading(false);
     }
