@@ -924,7 +924,7 @@ const BookingPage: React.FC = () => {
         return sum + differenceInDays(end, start);
       }, 0);
 
-      const totalRevenue = yearlyBookings.reduce((sum, booking) => {
+      const apartmentRevenue = yearlyBookings.reduce((sum, booking) => {
         const start = new Date(booking.startDate);
         const end = new Date(booking.endDate);
         const nights = differenceInDays(end, start);
@@ -935,8 +935,7 @@ const BookingPage: React.FC = () => {
           nightlyRate = weekNumber >= 27 && weekNumber <= 29 ? 800 : 600;
         }
         
-        const parkingFee = booking.parking ? nights * 75 : 0;
-        return sum + (nights * nightlyRate) + parkingFee;
+        return sum + (nights * nightlyRate);
       }, 0);
 
       const parkingRevenue = yearlyBookings.reduce((sum, booking) => {
@@ -946,6 +945,8 @@ const BookingPage: React.FC = () => {
         const nights = differenceInDays(end, start);
         return sum + (nights * 75);
       }, 0);
+
+      const totalRevenue = apartmentRevenue + parkingRevenue;
 
       return (
         <Paper
@@ -970,47 +971,86 @@ const BookingPage: React.FC = () => {
           </Typography>
           
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <Box>
                 <Typography variant="body2" color="text.secondary">
-                  Antal bokningar
+                  Statistik
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                  {yearlyBookings.length}
-                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
+                    {yearlyBookings.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    bokningar
+                  </Typography>
+                </Box>
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
+                    {totalNights}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    nätter totalt
+                  </Typography>
+                </Box>
               </Box>
             </Grid>
             
-            <Grid item xs={12} sm={6} md={3}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Totalt antal nätter
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                  {totalNights}
-                </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Intäkt parkering
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                  {parkingRevenue.toLocaleString()} kr
-                </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Total intäkt
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                  {totalRevenue.toLocaleString()} kr
-                </Typography>
+            <Grid item xs={12} sm={6} md={8}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Intäkter
+              </Typography>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'background.paper', 
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'baseline',
+                      mb: 1
+                    }}>
+                      <Typography variant="body1" color="text.secondary">
+                        Lägenhet
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'medium' }}>
+                        {apartmentRevenue.toLocaleString()} kr
+                      </Typography>
+                    </Box>
+                    {parkingRevenue > 0 && (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'baseline',
+                        mb: 1
+                      }}>
+                        <Typography variant="body1" color="text.secondary">
+                          Parkering
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 'medium', color: 'success.main' }}>
+                          {parkingRevenue.toLocaleString()} kr
+                        </Typography>
+                      </Box>
+                    )}
+                    <Divider sx={{ my: 2 }} />
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'baseline'
+                    }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                        Totalt
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                        {totalRevenue.toLocaleString()} kr
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
               </Box>
             </Grid>
           </Grid>
