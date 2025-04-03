@@ -148,11 +148,12 @@ const CustomPickersDay = ({
       // Check if it's a fully booked day (between start and end, but not on end date)
       if (checkTime >= startTime && checkTime < endTime) {
         isFullyBooked = true;
-        break; // If it's fully booked, no need to check further
       }
     }
     
-    return { isFullyBooked, isCheckoutDay };
+    // If the day is both a fully booked day AND a checkout day, prioritize the "fully booked" status
+    // This handles overlapping bookings where one booking's checkout is another booking's stay
+    return { isFullyBooked, isCheckoutDay: isCheckoutDay && !isFullyBooked };
   };
   
   const bookingStatus = checkBookingStatus(other.day);
@@ -735,51 +736,35 @@ const BookingPage: React.FC = () => {
             <DateCalendar
               value={startDate}
               onChange={(newDate) => {
-                if (newDate) {
-                  // Normalize the selected date to midnight UTC
-                  const normalizedDate = new Date(newDate);
-                  normalizedDate.setUTCHours(0, 0, 0, 0);
-                  
-                  if (!startDate) {
-                    setStartDate(normalizedDate);
-                  } else if (!endDate) {
-                    // Compare timestamps for reliable comparison
-                    if (normalizedDate.getTime() < startDate.getTime()) {
-                      setEndDate(new Date(startDate));
-                      setStartDate(normalizedDate);
-                    } else {
-                      setEndDate(normalizedDate);
-                    }
-                  } else {
-                    setStartDate(normalizedDate);
-                    setEndDate(null);
-                  }
-                }
+                if (newDate) updateDateRange(newDate);
               }}
               displayWeekNumber
               disablePast
               shouldDisableDate={(date) => {
-                // We should only disable a date if it's fully booked (not just a checkout day)
-                return existingBookings.some(booking => {
-                  // Ensure we're working with UTC dates
+                // Create a function to check if a date is fully booked
+                const dayToCheck = new Date(date);
+                dayToCheck.setUTCHours(0, 0, 0, 0);
+                const checkTime = dayToCheck.getTime();
+                
+                // Check through all bookings to see if this date is fully booked
+                for (const booking of existingBookings) {
                   const bookingStart = new Date(booking.startDate);
                   const bookingEnd = new Date(booking.endDate);
-                  const dayToCheck = new Date(date);
                   
-                  // Normalize all dates to midnight UTC
                   bookingStart.setUTCHours(0, 0, 0, 0);
                   bookingEnd.setUTCHours(0, 0, 0, 0);
-                  dayToCheck.setUTCHours(0, 0, 0, 0);
                   
-                  // Convert to timestamps for reliable comparison
                   const startTime = bookingStart.getTime();
                   const endTime = bookingEnd.getTime();
-                  const checkTime = dayToCheck.getTime();
                   
-                  // Only disable if the day is within a booking period (excluding checkout dates)
-                  // This allows booking on checkout days for new check-ins
-                  return checkTime >= startTime && checkTime < endTime;
-                });
+                  // Only disable dates that are fully booked (not checkout days)
+                  // This check matches our isFullyBooked check in the CustomPickersDay
+                  if (checkTime >= startTime && checkTime < endTime) {
+                    return true; // Date is fully booked, so disable it
+                  }
+                }
+                
+                return false; // Date is either available or a checkout day, so don't disable it
               }}
               slots={{
                 day: (props) => (
@@ -1478,6 +1463,34 @@ const BookingPage: React.FC = () => {
       setSnackbarOpen(true);
     } finally {
       setHsbFormLoading(false);
+    }
+  };
+
+  // Helper to update the date range with proper normalization
+  const updateDateRange = (newDate: Date | null) => {
+    if (!newDate) return;
+    
+    // Normalize the selected date to midnight UTC
+    const normalizedDate = new Date(newDate);
+    normalizedDate.setUTCHours(0, 0, 0, 0);
+    
+    if (!startDate) {
+      // First date selection - this is the start date
+      setStartDate(normalizedDate);
+    } else if (!endDate) {
+      // Second date selection - determine if it's before or after start date
+      if (normalizedDate.getTime() < startDate.getTime()) {
+        // If selected date is earlier than start date, swap them
+        setEndDate(new Date(startDate));
+        setStartDate(normalizedDate);
+      } else {
+        // Normal case - end date is after start date
+        setEndDate(normalizedDate);
+      }
+    } else {
+      // Both dates were already selected - start over with just a start date
+      setStartDate(normalizedDate);
+      setEndDate(null);
     }
   };
 
