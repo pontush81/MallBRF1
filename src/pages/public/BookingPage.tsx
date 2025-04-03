@@ -1148,6 +1148,8 @@ const BookingPage: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'x-vercel-protection-bypass': 'true'
         },
         credentials: 'include'
       });
