@@ -106,29 +106,62 @@ const CustomPickersDay = ({
   bookedDates?: Booking[];
 }) => {
   const isSelected = selectedDays.some(
-    (date) => date && other.day && date.getDate() === other.day.getDate() &&
-    date.getMonth() === other.day.getMonth() &&
-    date.getFullYear() === other.day.getFullYear()
-  );
-
-  const isBooked = bookedDates.some(
-    (booking) => {
-      const bookingStart = new Date(booking.startDate);
-      bookingStart.setHours(0, 0, 0, 0);
+    (date) => {
+      if (!date || !other.day) return false;
       
-      const bookingEnd = new Date(booking.endDate);
-      bookingEnd.setHours(0, 0, 0, 0);
-      
+      // Normalize both dates to midnight UTC
+      const selectedDate = new Date(date);
       const dayToCheck = new Date(other.day);
-      dayToCheck.setHours(0, 0, 0, 0);
       
-      return dayToCheck >= bookingStart && dayToCheck < bookingEnd;
+      selectedDate.setUTCHours(0, 0, 0, 0);
+      dayToCheck.setUTCHours(0, 0, 0, 0);
+      
+      // Compare timestamps for reliable comparison
+      return selectedDate.getTime() === dayToCheck.getTime();
     }
   );
 
+  // Check booking status with 3 possible states: fully booked, checkout day, or available
+  const checkBookingStatus = (day: Date): { isFullyBooked: boolean; isCheckoutDay: boolean } => {
+    const dayToCheck = new Date(day);
+    dayToCheck.setUTCHours(0, 0, 0, 0);
+    const checkTime = dayToCheck.getTime();
+    
+    let isFullyBooked = false;
+    let isCheckoutDay = false;
+    
+    for (const booking of bookedDates) {
+      // Create normalized dates for comparison
+      const bookingStart = new Date(booking.startDate);
+      const bookingEnd = new Date(booking.endDate);
+      bookingStart.setUTCHours(0, 0, 0, 0);
+      bookingEnd.setUTCHours(0, 0, 0, 0);
+      
+      const startTime = bookingStart.getTime();
+      const endTime = bookingEnd.getTime();
+      
+      // Check if it's a checkout day (matches exactly with a booking end date)
+      if (checkTime === endTime) {
+        isCheckoutDay = true;
+      }
+      
+      // Check if it's a fully booked day (between start and end, but not on end date)
+      if (checkTime >= startTime && checkTime < endTime) {
+        isFullyBooked = true;
+        break; // If it's fully booked, no need to check further
+      }
+    }
+    
+    return { isFullyBooked, isCheckoutDay };
+  };
+  
+  const bookingStatus = checkBookingStatus(other.day);
+  const isFullyBooked = bookingStatus.isFullyBooked;
+  const isCheckoutDay = bookingStatus.isCheckoutDay && !isFullyBooked;
+
   return (
     <Tooltip 
-      title={isBooked ? "Upptaget" : "Tillgängligt"} 
+      title={isFullyBooked ? "Upptaget" : isCheckoutDay ? "Utcheckning/incheckning möjlig" : "Tillgängligt"} 
       arrow
       placement="top"
     >
@@ -139,7 +172,7 @@ const CustomPickersDay = ({
           sx={{
             position: 'relative',
             transition: 'all 0.2s ease',
-            fontWeight: isBooked ? 'bold' : 'normal',
+            fontWeight: (isFullyBooked || isCheckoutDay) ? 'bold' : 'normal',
             
             ...(isSelected && {
               backgroundColor: 'primary.main',
@@ -152,7 +185,7 @@ const CustomPickersDay = ({
               },
             }),
             
-            ...(isBooked && {
+            ...(isFullyBooked && {
               backgroundColor: 'rgba(255, 0, 0, 0.15)',
               color: 'error.main',
               backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255, 0, 0, 0.07) 5px, rgba(255, 0, 0, 0.07) 10px)',
@@ -185,7 +218,39 @@ const CustomPickersDay = ({
               },
             }),
             
-            ...(isSelected && isBooked && {
+            ...(isCheckoutDay && {
+              backgroundColor: 'rgba(255, 153, 0, 0.1)',
+              color: 'warning.dark',
+              border: '2px dashed',
+              borderColor: 'warning.main',
+              backgroundImage: 'linear-gradient(135deg, rgba(255, 153, 0, 0.05) 25%, transparent 25%, transparent 50%, rgba(255, 153, 0, 0.05) 50%, rgba(255, 153, 0, 0.05) 75%, transparent 75%, transparent)',
+              backgroundSize: '10px 10px',
+              transform: 'scale(1)',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 153, 0, 0.2)',
+                transform: 'scale(1.05)',
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: 'warning.main',
+              },
+              '&.Mui-selected': {
+                backgroundColor: 'warning.main',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'warning.dark',
+                },
+              },
+            }),
+            
+            ...(isSelected && isFullyBooked && {
               backgroundColor: 'error.main',
               color: 'white',
               '&:hover': {
@@ -193,7 +258,15 @@ const CustomPickersDay = ({
               },
             }),
             
-            ...(!isBooked && !isSelected && {
+            ...(isSelected && isCheckoutDay && {
+              backgroundColor: 'warning.main',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'warning.dark',
+              },
+            }),
+            
+            ...(!isFullyBooked && !isCheckoutDay && !isSelected && {
               '&:hover': {
                 backgroundColor: 'rgba(25, 118, 210, 0.08)',
                 transform: 'scale(1.05)',
@@ -274,11 +347,26 @@ const BookingPage: React.FC = () => {
         return;
       }
       
-      const normalizedBookings = bookings.map(booking => ({
-        ...booking,
-        startDate: booking.startDate || booking.startdate,
-        endDate: booking.endDate || booking.enddate,
-      }));
+      // Standardize booking date fields and ensure we handle UTC dates consistently
+      const normalizedBookings = bookings.map(booking => {
+        // Get start and end dates with consistent naming
+        const startDate = booking.startDate || booking.startdate;
+        const endDate = booking.endDate || booking.enddate;
+        
+        // Ensure dates are in proper ISO format for consistent handling
+        const normalizedStartDate = startDate ? new Date(startDate) : null;
+        const normalizedEndDate = endDate ? new Date(endDate) : null;
+        
+        // Set to midnight UTC if valid dates
+        if (normalizedStartDate) normalizedStartDate.setUTCHours(0, 0, 0, 0);
+        if (normalizedEndDate) normalizedEndDate.setUTCHours(0, 0, 0, 0);
+        
+        return {
+          ...booking,
+          startDate: normalizedStartDate ? normalizedStartDate.toISOString() : startDate,
+          endDate: normalizedEndDate ? normalizedEndDate.toISOString() : endDate,
+        };
+      });
       
       setExistingBookings(normalizedBookings);
       
@@ -430,9 +518,15 @@ const BookingPage: React.FC = () => {
     setErrorMessage('');
     
     try {
+      // Normalize dates to midnight UTC for consistent handling
+      const normalizedStartDate = new Date(startDate);
+      const normalizedEndDate = new Date(endDate);
+      normalizedStartDate.setUTCHours(0, 0, 0, 0);
+      normalizedEndDate.setUTCHours(0, 0, 0, 0);
+      
       const availabilityCheck = await bookingService.checkAvailability(
-        startDate.toISOString(), 
-        endDate.toISOString()
+        normalizedStartDate.toISOString(), 
+        normalizedEndDate.toISOString()
       );
       
       if (!availabilityCheck.available) {
@@ -443,8 +537,8 @@ const BookingPage: React.FC = () => {
       const booking = await bookingService.createBooking({
         name,
         email,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: normalizedStartDate.toISOString(),
+        endDate: normalizedEndDate.toISOString(),
         notes: notes,
         phone: phone,
         parking: parking
@@ -642,17 +736,22 @@ const BookingPage: React.FC = () => {
               value={startDate}
               onChange={(newDate) => {
                 if (newDate) {
+                  // Normalize the selected date to midnight UTC
+                  const normalizedDate = new Date(newDate);
+                  normalizedDate.setUTCHours(0, 0, 0, 0);
+                  
                   if (!startDate) {
-                    setStartDate(newDate);
+                    setStartDate(normalizedDate);
                   } else if (!endDate) {
-                    if (newDate < startDate) {
-                      setEndDate(startDate);
-                      setStartDate(newDate);
+                    // Compare timestamps for reliable comparison
+                    if (normalizedDate.getTime() < startDate.getTime()) {
+                      setEndDate(new Date(startDate));
+                      setStartDate(normalizedDate);
                     } else {
-                      setEndDate(newDate);
+                      setEndDate(normalizedDate);
                     }
                   } else {
-                    setStartDate(newDate);
+                    setStartDate(normalizedDate);
                     setEndDate(null);
                   }
                 }
@@ -660,17 +759,26 @@ const BookingPage: React.FC = () => {
               displayWeekNumber
               disablePast
               shouldDisableDate={(date) => {
+                // We should only disable a date if it's fully booked (not just a checkout day)
                 return existingBookings.some(booking => {
+                  // Ensure we're working with UTC dates
                   const bookingStart = new Date(booking.startDate);
-                  bookingStart.setHours(0, 0, 0, 0);
-                  
                   const bookingEnd = new Date(booking.endDate);
-                  bookingEnd.setHours(0, 0, 0, 0);
-                  
                   const dayToCheck = new Date(date);
-                  dayToCheck.setHours(0, 0, 0, 0);
                   
-                  return dayToCheck >= bookingStart && dayToCheck < bookingEnd;
+                  // Normalize all dates to midnight UTC
+                  bookingStart.setUTCHours(0, 0, 0, 0);
+                  bookingEnd.setUTCHours(0, 0, 0, 0);
+                  dayToCheck.setUTCHours(0, 0, 0, 0);
+                  
+                  // Convert to timestamps for reliable comparison
+                  const startTime = bookingStart.getTime();
+                  const endTime = bookingEnd.getTime();
+                  const checkTime = dayToCheck.getTime();
+                  
+                  // Only disable if the day is within a booking period (excluding checkout dates)
+                  // This allows booking on checkout days for new check-ins
+                  return checkTime >= startTime && checkTime < endTime;
                 });
               }}
               slots={{
