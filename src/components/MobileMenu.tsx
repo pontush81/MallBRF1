@@ -212,7 +212,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
   return (
     <Drawer
-      anchor="left"
+      anchor="right"
       open={isOpen}
       onClose={onClose}
       variant="temporary"

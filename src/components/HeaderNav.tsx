@@ -41,26 +41,12 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
       }}
     >
       <Toolbar>
-        {isMobile ? (
-          /* Mobile view - Hamburger menu */
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={onMenuToggle}
-            sx={{ mr: 2 }}
-            aria-label="öppna meny"
-          >
-            <MenuIcon />
-          </IconButton>
-        ) : null}
-        
         <Typography 
           variant="h6" 
           component={RouterLink} 
           to="/pages" 
           sx={{ 
-            flexGrow: isMobile ? 1 : 0,
-            mr: isMobile ? 0 : 3,
+            flexGrow: 1,
             textDecoration: 'none', 
             color: 'white' 
           }}
@@ -75,6 +61,18 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
             navigateToSection={navigateToSection} 
           />
         )}
+
+        {isMobile ? (
+          /* Mobile view - Hamburger menu */
+          <IconButton
+            color="inherit"
+            edge="end"
+            onClick={onMenuToggle}
+            aria-label="öppna meny"
+          >
+            <MenuIcon />
+          </IconButton>
+        ) : null}
       </Toolbar>
     </AppBar>
   );
