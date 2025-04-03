@@ -105,25 +105,9 @@ const CustomPickersDay = ({
   selectedDays?: Date[];
   bookedDates?: Booking[];
 }) => {
-  const isSelected = selectedDays.some(
-    (date) => {
-      if (!date || !other.day) return false;
-      
-      // Normalize both dates to midnight UTC
-      const selectedDate = new Date(date);
-      const dayToCheck = new Date(other.day);
-      
-      selectedDate.setUTCHours(0, 0, 0, 0);
-      dayToCheck.setUTCHours(0, 0, 0, 0);
-      
-      // Compare timestamps for reliable comparison
-      return selectedDate.getTime() === dayToCheck.getTime();
-    }
-  );
-
-  // Check booking status with 3 possible states: fully booked, checkout day, or available
-  const checkBookingStatus = (day: Date): { isFullyBooked: boolean; isCheckoutDay: boolean } => {
-    // Format the date to YYYY-MM-DD for simple string comparison
+  // Check booking status - simplified to only check if a day is booked
+  const isDateBooked = (day: Date) => {
+    // Format date to YYYY-MM-DD for simple comparison
     const formatDateStr = (date: Date) => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -132,41 +116,42 @@ const CustomPickersDay = ({
     };
     
     const dayStr = formatDateStr(day);
-    let isFullyBooked = false;
-    let isCheckoutDay = false;
     
+    // Check each booking - only days from start date to day before end date are considered booked
     for (const booking of bookedDates) {
-      // Simple string comparison with the date part only
       const startDateStr = formatDateStr(new Date(booking.startDate));
       const endDateStr = formatDateStr(new Date(booking.endDate));
       
-      // If this day is an end date, mark it as a checkout day
-      if (dayStr === endDateStr) {
-        isCheckoutDay = true;
-      }
-      
-      // If this day is between start and end (exclusive of end date)
+      // If day is >= start date and < end date, it's booked
       if (dayStr >= startDateStr && dayStr < endDateStr) {
-        isFullyBooked = true;
+        return true;
       }
     }
     
-    // A day can't be both fully booked AND a checkout day in our model
-    // If we get a conflict (overlapping bookings), prioritize "fully booked"
-    if (isFullyBooked) {
-      isCheckoutDay = false;
-    }
-    
-    return { isFullyBooked, isCheckoutDay };
+    return false;
   };
+
+  const isSelected = selectedDays.some(
+    (date) => {
+      if (!date || !other.day) return false;
+      
+      // Normalize both dates to midnight for comparison
+      const selectedDate = new Date(date);
+      const dayToCheck = new Date(other.day);
+      
+      selectedDate.setHours(0, 0, 0, 0);
+      dayToCheck.setHours(0, 0, 0, 0);
+      
+      // Compare timestamps for reliable comparison
+      return selectedDate.getTime() === dayToCheck.getTime();
+    }
+  );
   
-  const bookingStatus = checkBookingStatus(other.day);
-  const isFullyBooked = bookingStatus.isFullyBooked;
-  const isCheckoutDay = bookingStatus.isCheckoutDay && !isFullyBooked;
+  const isBooked = isDateBooked(other.day);
 
   return (
     <Tooltip 
-      title={isFullyBooked ? "Upptaget" : isCheckoutDay ? "Utcheckning/incheckning möjlig" : "Tillgängligt"} 
+      title={isBooked ? "Upptaget" : "Tillgängligt"} 
       arrow
       placement="top"
     >
@@ -177,7 +162,7 @@ const CustomPickersDay = ({
           sx={{
             position: 'relative',
             transition: 'all 0.2s ease',
-            fontWeight: (isFullyBooked || isCheckoutDay) ? 'bold' : 'normal',
+            fontWeight: isBooked ? 'bold' : 'normal',
             
             ...(isSelected && {
               backgroundColor: 'primary.main',
@@ -190,7 +175,7 @@ const CustomPickersDay = ({
               },
             }),
             
-            ...(isFullyBooked && {
+            ...(isBooked && {
               backgroundColor: 'rgba(255, 0, 0, 0.15)',
               color: 'error.main',
               backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255, 0, 0, 0.07) 5px, rgba(255, 0, 0, 0.07) 10px)',
@@ -223,39 +208,7 @@ const CustomPickersDay = ({
               },
             }),
             
-            ...(isCheckoutDay && {
-              backgroundColor: 'rgba(255, 153, 0, 0.25)',
-              color: 'warning.dark',
-              border: '2px dashed',
-              borderColor: 'warning.dark',
-              backgroundImage: 'linear-gradient(45deg, rgba(255, 153, 0, 0.2) 25%, transparent 25%, transparent 50%, rgba(255, 153, 0, 0.2) 50%, rgba(255, 153, 0, 0.2) 75%, transparent 75%, transparent)',
-              backgroundSize: '8px 8px',
-              transform: 'scale(1)',
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 153, 0, 0.35)',
-                transform: 'scale(1.05)',
-              },
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: 'warning.dark',
-              },
-              '&.Mui-selected': {
-                backgroundColor: 'warning.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'warning.dark',
-                },
-              },
-            }),
-            
-            ...(isSelected && isFullyBooked && {
+            ...(isSelected && isBooked && {
               backgroundColor: 'error.main',
               color: 'white',
               '&:hover': {
@@ -263,15 +216,7 @@ const CustomPickersDay = ({
               },
             }),
             
-            ...(isSelected && isCheckoutDay && {
-              backgroundColor: 'warning.main',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'warning.dark',
-              },
-            }),
-            
-            ...(!isFullyBooked && !isCheckoutDay && !isSelected && {
+            ...(!isBooked && !isSelected && {
               '&:hover': {
                 backgroundColor: 'rgba(25, 118, 210, 0.08)',
                 transform: 'scale(1.05)',
@@ -755,23 +700,18 @@ const BookingPage: React.FC = () => {
                 
                 const dayStr = formatDateStr(date);
                 
-                // Check each booking
+                // Check each booking - only mark days as booked from start date to day before end date
                 for (const booking of existingBookings) {
                   const startDateStr = formatDateStr(new Date(booking.startDate));
                   const endDateStr = formatDateStr(new Date(booking.endDate));
                   
-                  // Don't disable checkout days
-                  if (dayStr === endDateStr) {
-                    continue;
-                  }
-                  
-                  // Disable days that are between start and end date (exclusive of end date)
+                  // If this day is between start date (inclusive) and end date (exclusive), it's booked
                   if (dayStr >= startDateStr && dayStr < endDateStr) {
                     return true; // Disable this date
                   }
                 }
                 
-                return false; // Don't disable this date
+                return false; // Date is available
               }}
               slots={{
                 day: (props) => (
