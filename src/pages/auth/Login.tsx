@@ -10,7 +10,6 @@ import {
   CircularProgress
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
-import FacebookIcon from '@mui/icons-material/Facebook';
 import MicrosoftIcon from '@mui/icons-material/Window';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
@@ -18,7 +17,6 @@ import { userService } from '../../services/userService';
 const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [facebookLoading, setFacebookLoading] = useState(false);
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
   
   const navigate = useNavigate();
@@ -72,34 +70,6 @@ const Login: React.FC = () => {
       setError(errorMessage);
     } finally {
       setGoogleLoading(false);
-    }
-  };
-
-  const handleFacebookSignIn = async () => {
-    try {
-      setError(null);
-      setFacebookLoading(true);
-      
-      const user = await userService.loginWithFacebook();
-      
-      if (user) {
-        console.log('Successfully logged in with Facebook, user:', user.email);
-        authLogin(user);
-        navigate('/pages');
-      } else {
-        setError('Kunde inte slutföra Facebook-inloggningen');
-      }
-    } catch (err: any) {
-      console.error('Facebook login error:', err);
-      const errorMessage = err.code === 'auth/popup-closed-by-user' 
-        ? 'Popup-fönstret stängdes. Försök igen.' 
-        : err.code === 'auth/popup-blocked'
-        ? 'Popup-fönstret blockerades av webbläsaren. Kontrollera dina inställningar.'
-        : 'Kunde inte slutföra Facebook-inloggningen: ' + (err.message || 'Okänt fel');
-      
-      setError(errorMessage);
-    } finally {
-      setFacebookLoading(false);
     }
   };
 
@@ -167,25 +137,6 @@ const Login: React.FC = () => {
               style={{ backgroundColor: '#2F2F2F', color: 'white', borderColor: '#2F2F2F' }}
             >
               {microsoftLoading ? <CircularProgress size={24} /> : 'Logga in med Microsoft'}
-            </Button>
-            
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<FacebookIcon />}
-              disabled={true}
-              sx={{ 
-                mb: 2, 
-                py: 1.2,
-                opacity: 0.7,
-                '&.Mui-disabled': {
-                  backgroundColor: '#1877F2',
-                  color: 'white',
-                  borderColor: '#1877F2'
-                }
-              }}
-            >
-              Logga in med Facebook (Kommer snart)
             </Button>
           </Box>
         </Paper>

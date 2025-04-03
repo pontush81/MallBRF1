@@ -1,6 +1,6 @@
 // Firebase konfiguration
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, OAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -36,7 +36,6 @@ const app = initializeApp(firebaseConfig);
 // Exportera Firebase-tjänster för användning i applikationen
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
-export const facebookProvider = new FacebookAuthProvider();
 export const microsoftProvider = new OAuthProvider('microsoft.com');
 
 // Configure Google provider
