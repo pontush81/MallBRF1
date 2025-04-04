@@ -2,8 +2,33 @@ const express = require('express');
 const router = express.Router();
 const admin = require('../service/firebase-admin');
 
+// Middleware to verify Firebase ID token
+const verifyToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Ingen giltig autentiseringstoken' });
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    
+    // Check if user is admin
+    const userRecord = await admin.auth().getUser(decodedToken.uid);
+    if (!userRecord.customClaims || !userRecord.customClaims.admin) {
+      return res.status(403).json({ error: 'Endast administratörer kan utföra denna åtgärd' });
+    }
+    
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(401).json({ error: 'Ogiltig autentiseringstoken' });
+  }
+};
+
 // Delete user from Firebase Auth
-router.delete('/:uid', async (req, res) => {
+router.delete('/:uid', verifyToken, async (req, res) => {
   try {
     const { uid } = req.params;
     if (!uid) {

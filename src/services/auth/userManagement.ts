@@ -152,10 +152,21 @@ export const deleteUser = async (uid: string) => {
     // Delete user document from Firestore
     await deleteDoc(doc(db, 'users', uid));
     
+    // Get current user's ID token
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Ingen inloggad användare');
+    }
+    const idToken = await currentUser.getIdToken();
+    
     // Delete user from Firebase Auth through our server endpoint
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
     await axios.delete(`${apiUrl}/api/users/${uid}`, {
-      withCredentials: true
+      withCredentials: true,
+      headers: {
+        'Authorization': `Bearer ${idToken}`
+      }
     });
     
     return true;
