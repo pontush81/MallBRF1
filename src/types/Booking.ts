@@ -12,4 +12,26 @@ export interface Booking {
   notes?: string;
   phone?: string;
   parking?: boolean;   // Om parkering har bokats
+}
+
+// Interface for guest booking data
+export interface GuestData {
+  name: string;
+  arrival: string;
+  departure: string;
+  week: string;
+  notes?: string;
+  parking?: boolean;
+  id?: string; // ID to identify the booking for editing/deletion
+}
+
+// Interface for booking summary
+export interface BookingSummary {
+  month: string;
+  year: string;
+  bookings: number;
+  nights: number;
+  revenue: number;
+  parkingRevenue: number;
+  guestData: GuestData[];
 } 
