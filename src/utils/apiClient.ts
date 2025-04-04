@@ -76,6 +76,53 @@ export async function withFallback<T>(
     return await request();
   } catch (error) {
     console.error('Using fallback data due to API error:', error);
+    
+    // Visa tydligt meddelande för användaren
+    if (typeof window !== 'undefined') {
+      // Undvik att visa flera meddelanden
+      const existingAlert = document.getElementById('fallback-alert');
+      if (!existingAlert) {
+        // Skapa alert element
+        const alertEl = document.createElement('div');
+        alertEl.id = 'fallback-alert';
+        alertEl.style.position = 'fixed';
+        alertEl.style.top = '10px';
+        alertEl.style.left = '50%';
+        alertEl.style.transform = 'translateX(-50%)';
+        alertEl.style.backgroundColor = '#f8d7da';
+        alertEl.style.color = '#721c24';
+        alertEl.style.padding = '10px 20px';
+        alertEl.style.borderRadius = '4px';
+        alertEl.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        alertEl.style.zIndex = '9999';
+        alertEl.innerHTML = 'Servern kunde inte nås. Du ser nu tillfälligt innehåll. <a href="javascript:location.reload()">Ladda om sidan</a> för att försöka igen.';
+        
+        // Lägg till stängknapp
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.marginLeft = '10px';
+        closeBtn.style.border = 'none';
+        closeBtn.style.background = 'none';
+        closeBtn.style.fontSize = '20px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.onclick = () => {
+          document.body.removeChild(alertEl);
+        };
+        
+        alertEl.appendChild(closeBtn);
+        
+        // Lägg till på sidan
+        document.body.appendChild(alertEl);
+        
+        // Auto-ta bort efter 10 sekunder
+        setTimeout(() => {
+          if (document.body.contains(alertEl)) {
+            document.body.removeChild(alertEl);
+          }
+        }, 10000);
+      }
+    }
+    
     return fallbackData;
   }
 } 

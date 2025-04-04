@@ -3,89 +3,202 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  User as FirebaseUser
+  User as FirebaseUser,
+  GoogleAuthProvider,
+  OAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, microsoftProvider } from '../firebase';
 import { isUserAllowed } from './allowlist';
-import { getOrCreateUser } from './userManagement';
 import { User } from '../../types/User';
+import { getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { sendNewUserNotification } from './settings';
 
-// Generic function for social provider login
-export async function loginWithSocialProvider(
-  provider: AuthProvider, 
-  providerName: string
-): Promise<User | null> {
+// Generisk funktion för inloggning med social tjänst
+export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAuthProvider): Promise<User> {
   try {
-    console.log(`Starting ${providerName} sign-in from origin:`, window.location.origin);
-    
-    // Use popup for login
+    // Försök logga in med den valda providern
     const result = await signInWithPopup(auth, provider);
-    console.log(`${providerName} sign-in successful, user:`, result.user.email);
+    const user = result.user;
     
-    const firebaseUser = result.user;
-    
-    // Check if the user is allowed to log in
-    if (firebaseUser.email && !(await isUserAllowed(firebaseUser.email))) {
-      console.error('User not allowed to log in:', firebaseUser.email);
-      await auth.signOut(); // Sign out the user from Firebase
-      throw new Error('Du har inte behörighet att logga in. Kontakta administratören.');
+    // Kontrollera att användaren har en e-postadress
+    if (!user.email) {
+      // Logga ut om e-postadressen saknas
+      await auth.signOut();
+      throw new Error('E-postadress saknas från ditt konto. Vi behöver en e-postadress för att verifiera ditt medlemskap.');
     }
     
-    // Get or create user in Firestore
-    return await getOrCreateUser(firebaseUser);
-  } catch (error: any) {
-    console.error(`Error during ${providerName} login:`, error.code, error.message);
-    if (error.customData) {
-      console.error('Error details:', error.customData);
+    // Kontrollera om användaren finns i Firestore
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const isAllowed = await isUserAllowed(user.email);
+    
+    if (userDoc.exists()) {
+      // Uppdatera befintlig användare
+      const userData = userDoc.data() as User;
+      
+      // Om användaren finns men inte är aktiv
+      if (!userData.isActive) {
+        // Aktivera användaren om e-postadressen är på tillåtna listan
+        if (isAllowed) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            isActive: true,
+            pendingApproval: false,
+            lastLogin: new Date().toISOString()
+          });
+          
+          return {
+            ...userData,
+            isActive: true,
+            pendingApproval: false,
+            lastLogin: new Date().toISOString()
+          };
+        } else {
+          // Om användaren inte är aktiv och inte på listan, logga ut
+          await auth.signOut();
+          throw new Error('Ditt konto väntar på godkännande. Du kommer få tillgång när ditt konto har godkänts.');
+        }
+      }
+      
+      // Uppdatera senaste inloggningstiden
+      await updateDoc(doc(db, 'users', user.uid), {
+        lastLogin: new Date().toISOString()
+      });
+      
+      return {
+        ...userData,
+        lastLogin: new Date().toISOString()
+      };
+      
+    } else {
+      // Skapa ny användare
+      const newUser: User = {
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || '',
+        role: 'user',
+        isActive: isAllowed,
+        pendingApproval: !isAllowed,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), newUser);
+      
+      // Om användaren inte finns på listan, skicka notifikation och logga ut
+      if (!isAllowed) {
+        // Skicka notifikation till admin
+        await sendNewUserNotification(newUser);
+        
+        // Logga ut
+        await auth.signOut();
+        throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
+      }
+      
+      return newUser;
     }
-    throw error; // Rethrow to allow UI to handle it
+    
+  } catch (error) {
+    console.error('Error signing in with social provider:', error);
+    throw error;
   }
 }
 
-// Provider-specific login methods
-export async function loginWithGoogle(): Promise<User | null> {
-  return loginWithSocialProvider(googleProvider, 'Google');
+// Logga in med Google
+export async function loginWithGoogle(): Promise<User> {
+  const provider = new GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+  return loginWithSocialProvider(provider);
 }
 
-export async function loginWithMicrosoft(): Promise<User | null> {
-  return loginWithSocialProvider(microsoftProvider, 'Microsoft');
+// Logga in med Microsoft
+export async function loginWithMicrosoft(): Promise<User> {
+  const provider = new OAuthProvider('microsoft.com');
+  provider.addScope('user.read');
+  provider.setCustomParameters({
+    prompt: 'consent'
+  });
+  return loginWithSocialProvider(provider);
 }
 
-// Handle redirect result (for backward compatibility)
+// Hantera omdirigering från OAuth-flödet (för avancerade scenarier)
 export async function handleGoogleRedirect(): Promise<User | null> {
   try {
-    console.log('Checking for Google redirect result...');
-    console.log('Current URL:', window.location.href);
-    
-    // Get the result of the redirect operation
+    // Använd getRedirectResult som är rätt metod för att hantera omdirigeringar
     const result = await getRedirectResult(auth);
     
-    // If no redirect result (user just loaded the page normally), return null
     if (!result) {
       console.log('No redirect result found');
       return null;
     }
     
-    console.log('Google redirect successful, user:', result.user.email);
-    const firebaseUser = result.user;
+    const user = result.user;
     
-    // Check if the user is allowed to log in
-    if (firebaseUser.email && !(await isUserAllowed(firebaseUser.email))) {
-      console.error('User not allowed to log in:', firebaseUser.email);
-      await auth.signOut(); // Sign out the user from Firebase
-      throw new Error('Du har inte behörighet att logga in. Kontakta administratören.');
+    // Kontrollera att användaren har en e-postadress
+    if (!user.email) {
+      await auth.signOut();
+      throw new Error('E-postadress saknas från ditt konto. Vi behöver en e-postadress för att verifiera ditt medlemskap.');
     }
     
-    // Get or create user
-    return await getOrCreateUser(firebaseUser);
-  } catch (error: any) {
-    console.error('Error handling Google redirect result:', error.code, error.message);
-    if (error.customData) {
-      console.error('Error details:', error.customData);
+    // Återanvänd samma logik som i loginWithSocialProvider
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const isAllowed = await isUserAllowed(user.email);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User;
+      
+      if (!userData.isActive) {
+        if (isAllowed) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            isActive: true,
+            pendingApproval: false,
+            lastLogin: new Date().toISOString()
+          });
+          
+          return {
+            ...userData,
+            isActive: true,
+            pendingApproval: false,
+            lastLogin: new Date().toISOString()
+          };
+        } else {
+          await auth.signOut();
+          throw new Error('Ditt konto väntar på godkännande. Du kommer få tillgång när ditt konto har godkänts.');
+        }
+      }
+      
+      await updateDoc(doc(db, 'users', user.uid), {
+        lastLogin: new Date().toISOString()
+      });
+      
+      return {
+        ...userData,
+        lastLogin: new Date().toISOString()
+      };
+    } else {
+      const newUser: User = {
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || '',
+        role: 'user',
+        isActive: isAllowed,
+        pendingApproval: !isAllowed,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), newUser);
+      
+      if (!isAllowed) {
+        await sendNewUserNotification(newUser);
+        await auth.signOut();
+        throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
+      }
+      
+      return newUser;
     }
-    if (error.code === 'auth/operation-not-supported-in-this-environment') {
-      console.error('This operation is not supported in this environment. Make sure your domain is authorized.');
-    }
+  } catch (error) {
+    console.error('Error handling redirect:', error);
     return null;
   }
 } 

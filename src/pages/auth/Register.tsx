@@ -1,192 +1,292 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
-  Container, 
-  Typography, 
-  TextField, 
+  Box, 
   Button, 
-  Grid, 
+  TextField,
+  Typography, 
+  Container, 
   Paper, 
-  Box,
-  Alert,
+  Divider,
+  Grid,
   Link,
-  CircularProgress
+  InputAdornment,
+  IconButton,
+  Alert,
+  AlertTitle,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
-import { useAuth } from '../../context/AuthContext';
+import { 
+  Google as GoogleIcon, 
+  Microsoft as MicrosoftIcon,
+  Visibility,
+  VisibilityOff
+} from '@mui/icons-material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { userService } from '../../services/userService';
+import { useAuth } from '../../context/AuthContext';
+import Logo from '../../components/Logo';
 
 const Register: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: ''
-  });
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   
-  const navigate = useNavigate();
-  const { login } = useAuth();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const validateForm = () => {
-    if (!formData.email || !formData.password || !formData.name) {
-      setError('Alla fält måste fyllas i');
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Lösenorden matchar inte');
-      return false;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Lösenordet måste vara minst 6 tecken');
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setPendingApproval(false);
     
-    if (!validateForm()) return;
+    if (!name || !email || !password) {
+      setError('Vänligen fyll i alla fält');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Lösenordet måste vara minst 6 tecken');
+      return;
+    }
     
     try {
-      setError(null);
       setLoading(true);
-      
-      // Skapa användaren med Firebase via userService
-      const newUser = await userService.register(
-        formData.email,
-        formData.password,
-        formData.name
-      );
-      
-      if (newUser) {
-        // Användaren är nu registrerad och inloggad via Firebase
-        login(newUser);
+      const user = await userService.register(email, password, name);
+      if (user) {
+        login(user);
         navigate('/pages');
-      } else {
-        setError('Kunde inte skapa kontot. Försök igen.');
       }
     } catch (err: any) {
-      const errorMessage = 
-        err.code === 'auth/email-already-in-use' 
-          ? 'E-postadressen används redan av ett annat konto' 
-          : err.code === 'auth/invalid-email' 
-          ? 'Ogiltig e-postadress'
-          : err.code === 'auth/weak-password'
-          ? 'Lösenordet är för svagt'
-          : 'Kunde inte skapa kontot. Försök igen.';
-      
-      setError(errorMessage);
-      console.error('Registration error:', err);
+      console.error('Register error:', err);
+      handleAuthError(err);
     } finally {
       setLoading(false);
     }
   };
-
+  
+  const handleGoogleSignUp = async () => {
+    setError(null);
+    setPendingApproval(false);
+    try {
+      setLoading(true);
+      const user = await userService.loginWithGoogle();
+      if (user) {
+        login(user);
+        navigate('/pages');
+      }
+    } catch (err: any) {
+      console.error('Google register error:', err);
+      handleAuthError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleMicrosoftSignUp = async () => {
+    setError(null);
+    setPendingApproval(false);
+    try {
+      setLoading(true);
+      const user = await userService.loginWithMicrosoft();
+      if (user) {
+        login(user);
+        navigate('/pages');
+      }
+    } catch (err: any) {
+      console.error('Microsoft register error:', err);
+      handleAuthError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleAuthError = (err: any) => {
+    let errorMessage = 'Ett fel uppstod vid registrering';
+    
+    // Check if the error message indicates pending approval
+    if (err.message && err.message.includes('väntar på godkännande')) {
+      setPendingApproval(true);
+      return;
+    }
+    
+    // Handle different Firebase auth error codes
+    if (err.code) {
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'E-postadressen används redan';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Ogiltig e-postadress';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Lösenordet är för svagt';
+          break;
+        default:
+          errorMessage = err.message || errorMessage;
+      }
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    setError(errorMessage);
+  };
+  
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" component="h1" align="center" gutterBottom>
-            Registrera nytt konto
+    <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: { xs: 2, sm: 4 },
+          borderRadius: 2
+        }}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          mb: 4
+        }}>
+          <Logo size={isMobile ? 70 : 100} />
+          <Typography variant="h5" component="h1" sx={{ mt: 2 }}>
+            Registrera
           </Typography>
-          
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            )}
+        </Box>
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+        
+        {pendingApproval && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            <AlertTitle>Ansökan mottagen</AlertTitle>
+            Tack för din ansökan! Ditt konto har skapats men behöver godkännas av en administratör innan du kan logga in.
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Du kommer att kunna logga in så snart ditt konto har godkänts.
+            </Typography>
+          </Alert>
+        )}
+        
+        {!pendingApproval && (
+          <>
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="name"
+                label="Namn"
+                name="name"
+                autoComplete="name"
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="E-post"
+                name="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label="Lösenord"
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+              
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+                disabled={loading}
+              >
+                Registrera
+              </Button>
+            </Box>
             
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="name"
-              label="Namn"
-              name="name"
-              autoComplete="name"
-              autoFocus
-              value={formData.name}
-              onChange={handleChange}
-              disabled={loading}
-            />
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                eller
+              </Typography>
+            </Divider>
             
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="E-postadress"
-              name="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-              disabled={loading}
-            />
-            
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Lösenord"
-              type="password"
-              id="password"
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={handleChange}
-              disabled={loading}
-            />
-            
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="confirmPassword"
-              label="Bekräfta lösenord"
-              type="password"
-              id="confirmPassword"
-              autoComplete="new-password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              disabled={loading}
-            />
-            
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.2 }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Registrera'}
-            </Button>
-            
-            <Grid container justifyContent="flex-end">
-              <Grid item>
-                <Link href="/login" variant="body2">
-                  Har du redan ett konto? Logga in
-                </Link>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<GoogleIcon />}
+                  onClick={handleGoogleSignUp}
+                  disabled={loading}
+                  sx={{ py: 1 }}
+                >
+                  Google
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<MicrosoftIcon />}
+                  onClick={handleMicrosoftSignUp}
+                  disabled={loading}
+                  sx={{ py: 1 }}
+                >
+                  Microsoft
+                </Button>
               </Grid>
             </Grid>
-          </Box>
-        </Paper>
-      </Box>
+          </>
+        )}
+        
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="body2">
+            Har du redan ett konto?{' '}
+            <Link component={RouterLink} to="/login">
+              Logga in
+            </Link>
+          </Typography>
+        </Box>
+      </Paper>
     </Container>
   );
 };
 
-export default Register; 
+export default Register;

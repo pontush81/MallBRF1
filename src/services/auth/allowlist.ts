@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 // Interface for the allowlist
@@ -8,53 +8,101 @@ export interface Allowlist {
   lastUpdated: string;
 }
 
-// Get the allowlist from Firestore
+const ALLOWLIST_ID = 'email_allowlist';
+
+/**
+ * Hämta listan av tillåtna e-postadresser och domäner
+ */
 export async function getAllowlist(): Promise<Allowlist> {
   try {
-    const allowlistDoc = await getDoc(doc(db, 'settings', 'allowlist'));
+    const allowlistDoc = await getDoc(doc(db, 'settings', ALLOWLIST_ID));
     
     if (allowlistDoc.exists()) {
-      return allowlistDoc.data() as Allowlist;
+      const data = allowlistDoc.data() as Allowlist;
+      return {
+        emails: data.emails || [],
+        domains: data.domains || [],
+        lastUpdated: data.lastUpdated || new Date().toISOString()
+      };
     } else {
-      // If the allowlist doesn't exist, return empty list
-      return { emails: [], domains: [], lastUpdated: new Date().toISOString() };
+      // Om listan inte finns, skapa en tom lista
+      const newAllowlist: Allowlist = {
+        emails: [],
+        domains: [],
+        lastUpdated: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'settings', ALLOWLIST_ID), newAllowlist);
+      return newAllowlist;
     }
   } catch (error) {
     console.error('Error fetching allowlist:', error);
-    // On error, return empty list
-    return { emails: [], domains: [], lastUpdated: new Date().toISOString() };
+    return {
+      emails: [],
+      domains: [],
+      lastUpdated: new Date().toISOString()
+    };
   }
 }
 
-// Check if user is allowed to log in
+/**
+ * Kontrollera om en e-postadress finns i listan av tillåtna användare
+ */
 export async function isUserAllowed(email: string): Promise<boolean> {
   try {
-    // Get the allowlist from Firestore
+    if (!email) return false;
+    
     const allowlist = await getAllowlist();
     
-    // If lists are empty, allow all (default behavior)
-    if (allowlist.emails.length === 0 && allowlist.domains.length === 0) {
-      return true;
-    }
-
-    // Check if the email is in the allowlist
-    const emailLower = email.toLowerCase();
+    // Normalisera e-postadressen för jämförelse
+    const normalizedEmail = email.toLowerCase().trim();
     
-    // First check exact email matches
-    if (allowlist.emails.some(allowed => allowed.toLowerCase() === emailLower)) {
+    // Kontrollera om e-postadressen finns direkt i listan
+    if (allowlist.emails.some(allowedEmail => 
+      allowedEmail.toLowerCase().trim() === normalizedEmail
+    )) {
       return true;
     }
     
-    // Then check domain matches
-    const domain = emailLower.split('@')[1];
-    if (domain && allowlist.domains.some(allowed => allowed.toLowerCase() === domain.toLowerCase())) {
+    // Kontrollera om domänen finns i listan
+    const domain = normalizedEmail.split('@')[1];
+    if (domain && allowlist.domains.some(allowedDomain => 
+      allowedDomain.toLowerCase().trim() === domain.toLowerCase().trim()
+    )) {
       return true;
     }
     
     return false;
   } catch (error) {
     console.error('Error checking if user is allowed:', error);
-    // On error, allow the user (to avoid locking out admin users)
-    return true;
+    return false;
+  }
+}
+
+/**
+ * Uppdatera listan av tillåtna e-postadresser och domäner
+ */
+export async function updateAllowlist(allowlist: Allowlist): Promise<void> {
+  try {
+    // Validera e-postadresser och domäner
+    const validEmails = allowlist.emails.filter(email => 
+      email && email.includes('@') && email.includes('.')
+    );
+    
+    const validDomains = allowlist.domains.filter(domain => 
+      domain && domain.includes('.')
+    );
+    
+    // Spara den uppdaterade listan till Firestore
+    const updatedAllowlist: Allowlist = {
+      emails: validEmails,
+      domains: validDomains,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'settings', ALLOWLIST_ID), updatedAllowlist);
+    console.log('Allowlist updated successfully');
+  } catch (error) {
+    console.error('Error updating allowlist:', error);
+    throw error;
   }
 } 

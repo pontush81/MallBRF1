@@ -24,7 +24,9 @@ import {
   Article as ArticleIcon,
   Event as EventIcon,
   ExitToApp as ExitToAppIcon,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Security as SecurityIcon,
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { useNavigate, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -32,6 +34,8 @@ import PagesList from './PagesList';
 import PageEditor from './PageEditor';
 import DashboardHome from './DashboardHome';
 import UsersList from './UsersList';
+import AllowlistManager from './AllowlistManager';
+import NotificationSettings from './NotificationSettings';
 
 // Huvudkomponent för admin-dashboarden med navigering via tabs
 const Dashboard: React.FC = () => {
@@ -50,6 +54,10 @@ const Dashboard: React.FC = () => {
       return 'users';
     } else if (path.includes('/admin/bookings')) {
       return 'bookings';
+    } else if (path.includes('/admin/allowlist')) {
+      return 'allowlist';
+    } else if (path.includes('/admin/notifications')) {
+      return 'notifications';
     } else {
       return 'dashboard';
     }
@@ -68,6 +76,12 @@ const Dashboard: React.FC = () => {
         break;
       case 'users':
         navigate('/admin/users');
+        break;
+      case 'allowlist':
+        navigate('/admin/allowlist');
+        break;
+      case 'notifications':
+        navigate('/admin/notifications');
         break;
     }
     
@@ -89,45 +103,49 @@ const Dashboard: React.FC = () => {
       {/* Top App Bar */}
       <AppBar
         position="fixed"
-        sx={{
-          boxShadow: 0,
-          borderBottom: 'none',
-          userSelect: 'none',
-          WebkitUserSelect: 'none'
+        color="primary"
+        sx={{ 
+          zIndex: theme.zIndex.drawer + 1,
+          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
         }}
-        onContextMenu={(e) => e.preventDefault()}
       >
-        <Toolbar variant="dense" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {isMobile && (
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                edge="start"
-                onClick={toggleDrawer}
-                sx={{ mr: 2 }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
-            <Typography variant="h6" noWrap component="div">
-              {selectedItem === 'dashboard' && 'Översikt'}
-              {selectedItem === 'pages' && 'Hantera Sidor'}
-              {selectedItem === 'bookings' && 'Bokningar'}
-              {selectedItem === 'users' && 'Användare'}
-            </Typography>
-          </Box>
-          
-          {/* Lämna admin-knapp */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button 
-              color="inherit" 
-              startIcon={<ExitToAppIcon />}
-              onClick={() => navigate('/pages')}
+        <Toolbar>
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={toggleDrawer}
+              sx={{ mr: 2 }}
             >
-              {isMobile ? '' : 'Lämna admin'}
-            </Button>
-          </Box>
+              <MenuIcon />
+            </IconButton>
+          )}
+          
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate('/admin')}
+          >
+            {selectedItem === 'dashboard' && 'Översikt'}
+            {selectedItem === 'pages' && 'Hantera Sidor'}
+            {selectedItem === 'bookings' && 'Bokningar'}
+            {selectedItem === 'users' && 'Användare'}
+            {selectedItem === 'allowlist' && 'Tillåtna användare'}
+            {selectedItem === 'notifications' && 'Notifikationer'}
+          </Typography>
+          
+          <Button 
+            color="inherit"
+            startIcon={<ExitToAppIcon />}
+            onClick={() => navigate('/pages')}
+          >
+            {isMobile ? '' : 'Lämna admin'}
+          </Button>
         </Toolbar>
         
         {/* Navigation Tabs - endast på desktop */}
@@ -194,6 +212,36 @@ const Dashboard: React.FC = () => {
                   <PeopleIcon sx={{ mr: 1 }} />
                   Användare
                 </Button>
+                
+                <Button 
+                  color="inherit"
+                  onClick={() => handleNavItemClick('allowlist')}
+                  sx={{ 
+                    py: 1.5, 
+                    px: 2,
+                    borderBottom: selectedItem === 'allowlist' ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    opacity: selectedItem === 'allowlist' ? 1 : 0.8
+                  }}
+                >
+                  <SecurityIcon sx={{ mr: 1 }} />
+                  Tillåtna användare
+                </Button>
+                
+                <Button 
+                  color="inherit"
+                  onClick={() => handleNavItemClick('notifications')}
+                  sx={{ 
+                    py: 1.5, 
+                    px: 2,
+                    borderBottom: selectedItem === 'notifications' ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    opacity: selectedItem === 'notifications' ? 1 : 0.8
+                  }}
+                >
+                  <NotificationsIcon sx={{ mr: 1 }} />
+                  Notifikationer
+                </Button>
               </Box>
             </Container>
           </Box>
@@ -213,96 +261,197 @@ const Dashboard: React.FC = () => {
             boxSizing: 'border-box',
           },
         }}
+        ModalProps={{
+          keepMounted: true, // Bättre prestanda vid öppning/stängning
+        }}
       >
-        <Box sx={{ py: 2, px: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            Admin
-          </Typography>
+        <Box sx={{ 
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <Box sx={{ 
+            height: '56px', // Samma höjd som AppBar
+            display: 'flex',
+            alignItems: 'center',
+            px: 2,
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Typography variant="h6" component="div">
+              Admin
+            </Typography>
+          </Box>
+          
+          <List sx={{ flex: 1, pt: 0 }}>
+            <ListItem 
+              button 
+              selected={selectedItem === 'dashboard'}
+              onClick={() => handleNavItemClick('dashboard')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <DashboardIcon />
+              </ListItemIcon>
+              <ListItemText primary="Översikt" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              selected={selectedItem === 'pages'}
+              onClick={() => handleNavItemClick('pages')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <ArticleIcon />
+              </ListItemIcon>
+              <ListItemText primary="Hantera sidor" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              selected={selectedItem === 'bookings'}
+              onClick={() => handleNavItemClick('bookings')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <EventIcon />
+              </ListItemIcon>
+              <ListItemText primary="Bokningar" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              selected={selectedItem === 'users'}
+              onClick={() => handleNavItemClick('users')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <PeopleIcon />
+              </ListItemIcon>
+              <ListItemText primary="Användare" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              selected={selectedItem === 'allowlist'}
+              onClick={() => handleNavItemClick('allowlist')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <SecurityIcon />
+              </ListItemIcon>
+              <ListItemText primary="Tillåtna användare" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              selected={selectedItem === 'notifications'}
+              onClick={() => handleNavItemClick('notifications')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <NotificationsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Notifikationer" />
+            </ListItem>
+          </List>
+          
+          <Divider />
+          
+          <List>
+            <ListItem 
+              button 
+              onClick={() => {
+                navigate('/pages');
+                setDrawerOpen(false);
+              }}
+              sx={{ minHeight: '56px' }}
+            >
+              <ListItemIcon>
+                <ExitToAppIcon />
+              </ListItemIcon>
+              <ListItemText primary="Lämna admin" />
+            </ListItem>
+          </List>
         </Box>
-        <Divider />
-        <List>
-          <ListItem 
-            button 
-            selected={selectedItem === 'dashboard'}
-            onClick={() => handleNavItemClick('dashboard')}
-            sx={{ minHeight: '56px' }} // Touch-friendly size
-          >
-            <ListItemIcon>
-              <DashboardIcon />
-            </ListItemIcon>
-            <ListItemText primary="Översikt" />
-          </ListItem>
-          
-          <ListItem 
-            button 
-            selected={selectedItem === 'pages'}
-            onClick={() => handleNavItemClick('pages')}
-            sx={{ minHeight: '56px' }} // Touch-friendly size
-          >
-            <ListItemIcon>
-              <ArticleIcon />
-            </ListItemIcon>
-            <ListItemText primary="Hantera sidor" />
-          </ListItem>
-          
-          <ListItem 
-            button 
-            selected={selectedItem === 'bookings'}
-            onClick={() => handleNavItemClick('bookings')}
-            sx={{ minHeight: '56px' }} // Touch-friendly size
-          >
-            <ListItemIcon>
-              <EventIcon />
-            </ListItemIcon>
-            <ListItemText primary="Bokningar" />
-          </ListItem>
-          
-          <ListItem 
-            button 
-            selected={selectedItem === 'users'}
-            onClick={() => handleNavItemClick('users')}
-            sx={{ minHeight: '56px' }} // Touch-friendly size
-          >
-            <ListItemIcon>
-              <PeopleIcon />
-            </ListItemIcon>
-            <ListItemText primary="Användare" />
-          </ListItem>
-        </List>
-        <Divider />
-        <List>
-          <ListItem 
-            button 
-            onClick={() => navigate('/pages')}
-            sx={{ minHeight: '56px' }} // Touch-friendly size
-          >
-            <ListItemIcon>
-              <ExitToAppIcon />
-            </ListItemIcon>
-            <ListItemText primary="Lämna admin" />
-          </ListItem>
-        </List>
       </Drawer>
       
       {/* Main content */}
-      <Box
-        component="main"
+      <Box 
+        component="main" 
         sx={{ 
           flexGrow: 1, 
-          p: { xs: 2, md: 3 }, 
-          pt: { xs: 1, md: 2 },
+          pt: isMobile ? '56px' : '104px', 
           minHeight: '100vh',
-          bgcolor: '#f5f5f5',
-          mt: isMobile ? 7 : 11 // Anpassa marginal baserat på skärmstorlek
+          backgroundColor: '#f5f5f5',
+          width: '100%'
         }}
       >
-        <Container maxWidth="xl" sx={{ mt: { xs: 1, md: 2 }, mb: 4 }}>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="/pages" element={<PagesList />} />
             <Route path="/pages/new" element={<PageEditor />} />
-            <Route path="/pages/edit/:id" element={<PageEditor />} />
+            <Route path="/pages/:id" element={<PageEditor />} />
             <Route path="/users" element={<UsersList />} />
+            <Route path="/allowlist" element={<AllowlistManager />} />
+            <Route path="/notifications" element={<NotificationSettings />} />
           </Routes>
         </Container>
       </Box>

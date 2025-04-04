@@ -1,146 +1,277 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
-  Container, 
-  Typography, 
+  Box, 
   Button, 
+  TextField,
+  Typography, 
+  Container, 
   Paper, 
-  Box,
+  Divider,
+  Grid,
+  Link,
+  InputAdornment,
+  IconButton,
   Alert,
-  CircularProgress
+  AlertTitle,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
-import GoogleIcon from '@mui/icons-material/Google';
-import MicrosoftIcon from '@mui/icons-material/Window';
-import { useAuth } from '../../context/AuthContext';
+import { 
+  Google as GoogleIcon, 
+  Microsoft as MicrosoftIcon,
+  Visibility,
+  VisibilityOff
+} from '@mui/icons-material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { userService } from '../../services/userService';
+import { useAuth } from '../../context/AuthContext';
+import Logo from '../../components/Logo';
 
 const Login: React.FC = () => {
-  const [error, setError] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
-  
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const { login: authLogin } = useAuth();
-
-  // Check for Google sign-in redirect result when component mounts
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
+  
+  // Redirect if already logged in
   useEffect(() => {
-    console.log('Login component mounted, checking for Google redirect');
-    const checkGoogleRedirect = async () => {
-      try {
-        const user = await userService.handleGoogleRedirect();
-        if (user) {
-          console.log('Successfully logged in with Google redirect, user:', user.email);
-          authLogin(user);
-          navigate('/pages');
-        } else {
-          console.log('No Google redirect result found or login was not completed');
-        }
-      } catch (err: any) {
-        console.error('Error handling Google redirect:', err.code, err.message);
-        setError('Kunde inte slutföra Google-inloggningen: ' + (err.message || 'Okänt fel'));
-      }
-    };
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (isLoggedIn) {
+      navigate('/pages');
+    }
+  }, [navigate]);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setPendingApproval(false);
     
-    checkGoogleRedirect();
-  }, [authLogin, navigate]);
-
-  const handleGoogleSignIn = async () => {
+    if (!email || !password) {
+      setError('Ange e-post och lösenord');
+      return;
+    }
+    
     try {
-      setError(null);
-      setGoogleLoading(true);
-      
-      // Använd popup istället för redirect
-      const user = await userService.loginWithGoogle();
-      
+      setLoading(true);
+      const user = await userService.login(email, password);
       if (user) {
-        console.log('Successfully logged in with Google, user:', user.email);
-        authLogin(user);
+        login(user);
         navigate('/pages');
-      } else {
-        setError('Kunde inte slutföra Google-inloggningen');
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      handleAuthError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setPendingApproval(false);
+    try {
+      setLoading(true);
+      const user = await userService.loginWithGoogle();
+      if (user) {
+        login(user);
+        navigate('/pages');
       }
     } catch (err: any) {
       console.error('Google login error:', err);
-      const errorMessage = err.code === 'auth/popup-closed-by-user' 
-        ? 'Popup-fönstret stängdes. Försök igen.' 
-        : err.code === 'auth/popup-blocked'
-        ? 'Popup-fönstret blockerades av webbläsaren. Kontrollera dina inställningar.'
-        : 'Kunde inte slutföra Google-inloggningen: ' + (err.message || 'Okänt fel');
-      
-      setError(errorMessage);
+      handleAuthError(err);
     } finally {
-      setGoogleLoading(false);
+      setLoading(false);
     }
   };
-
-  const handleMicrosoftSignIn = async () => {
+  
+  const handleMicrosoftLogin = async () => {
+    setError(null);
+    setPendingApproval(false);
     try {
-      setError(null);
-      setMicrosoftLoading(true);
-      
+      setLoading(true);
       const user = await userService.loginWithMicrosoft();
-      
       if (user) {
-        console.log('Successfully logged in with Microsoft, user:', user.email);
-        authLogin(user);
+        login(user);
         navigate('/pages');
-      } else {
-        setError('Kunde inte slutföra Microsoft-inloggningen');
       }
     } catch (err: any) {
       console.error('Microsoft login error:', err);
-      const errorMessage = err.code === 'auth/popup-closed-by-user' 
-        ? 'Popup-fönstret stängdes. Försök igen.' 
-        : err.code === 'auth/popup-blocked'
-        ? 'Popup-fönstret blockerades av webbläsaren. Kontrollera dina inställningar.'
-        : 'Kunde inte slutföra Microsoft-inloggningen: ' + (err.message || 'Okänt fel');
-      
-      setError(errorMessage);
+      handleAuthError(err);
     } finally {
-      setMicrosoftLoading(false);
+      setLoading(false);
     }
   };
-
+  
+  const handleAuthError = (err: any) => {
+    let errorMessage = 'Ett fel uppstod vid inloggning';
+    
+    // Check if the error message indicates pending approval
+    if (err.message && err.message.includes('väntar på godkännande')) {
+      setPendingApproval(true);
+      return;
+    }
+    
+    // Handle different Firebase auth error codes
+    if (err.code) {
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          errorMessage = 'Fel e-post eller lösenord';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'För många misslyckade inloggningsförsök. Försök igen senare.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Ogiltig e-postadress';
+          break;
+        default:
+          errorMessage = err.message || errorMessage;
+      }
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    setError(errorMessage);
+  };
+  
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" component="h1" align="center" gutterBottom>
+    <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: { xs: 2, sm: 4 },
+          borderRadius: 2
+        }}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          mb: 4
+        }}>
+          <Logo size={isMobile ? 70 : 100} />
+          <Typography variant="h5" component="h1" sx={{ mt: 2 }}>
             Logga in
           </Typography>
+        </Box>
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+        
+        {pendingApproval && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <AlertTitle>Väntar på godkännande</AlertTitle>
+            Ditt konto väntar på godkännande från administratören. Du kommer få tillgång när ditt konto har godkänts.
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Om du tror att detta är ett misstag, vänligen kontakta administratören.
+            </Typography>
+          </Alert>
+        )}
+        
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="E-post"
+            name="email"
+            autoComplete="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Lösenord"
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
           
-          <Box component="form" noValidate sx={{ mt: 3 }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            )}
-            
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
+          >
+            Logga in
+          </Button>
+        </Box>
+        
+        <Divider sx={{ my: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            eller
+          </Typography>
+        </Divider>
+        
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
             <Button
               fullWidth
               variant="outlined"
               startIcon={<GoogleIcon />}
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-              sx={{ mb: 2, py: 1.2 }}
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              sx={{ py: 1 }}
             >
-              {googleLoading ? <CircularProgress size={24} /> : 'Logga in med Google'}
+              Google
             </Button>
-            
+          </Grid>
+          <Grid item xs={12} sm={6}>
             <Button
               fullWidth
               variant="outlined"
               startIcon={<MicrosoftIcon />}
-              onClick={handleMicrosoftSignIn}
-              disabled={microsoftLoading}
-              sx={{ mb: 2, py: 1.2 }}
-              style={{ backgroundColor: '#2F2F2F', color: 'white', borderColor: '#2F2F2F' }}
+              onClick={handleMicrosoftLogin}
+              disabled={loading}
+              sx={{ py: 1 }}
             >
-              {microsoftLoading ? <CircularProgress size={24} /> : 'Logga in med Microsoft'}
+              Microsoft
             </Button>
-          </Box>
-        </Paper>
-      </Box>
+          </Grid>
+        </Grid>
+        
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="body2">
+            Har du inget konto?{' '}
+            <Link component={RouterLink} to="/register">
+              Registrera dig
+            </Link>
+          </Typography>
+        </Box>
+      </Paper>
     </Container>
   );
 };

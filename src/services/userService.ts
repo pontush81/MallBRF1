@@ -4,14 +4,17 @@ import {
   login, 
   register, 
   getAllUsers, 
-  syncAuthUsersWithFirestore 
+  syncAuthUsersWithFirestore,
+  updateUserStatus,
+  deleteUser
 } from './auth/userManagement';
 import { 
   loginWithGoogle, 
   loginWithMicrosoft, 
   handleGoogleRedirect 
 } from './auth/socialAuth';
-import { getAllowlist, isUserAllowed } from './auth/allowlist';
+import { getAllowlist, isUserAllowed, updateAllowlist } from './auth/allowlist';
+import { getNotificationSettings, updateNotificationSettings, sendNewUserNotification } from './auth/settings';
 
 // Export all auth methods together as a single userService object
 export const userService = {
@@ -21,6 +24,8 @@ export const userService = {
   register,
   getAllUsers,
   syncAuthUsersWithFirestore,
+  updateUserStatus,
+  deleteUser,
   
   // Social auth functions
   loginWithGoogle,
@@ -29,5 +34,11 @@ export const userService = {
   
   // Allowlist functions
   getAllowlist,
-  isUserAllowed
+  isUserAllowed,
+  updateAllowlist,
+  
+  // Notification settings functions
+  getNotificationSettings,
+  updateNotificationSettings,
+  sendNewUserNotification
 }; 

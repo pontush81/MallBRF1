@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types/User';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -9,105 +9,98 @@ export {};
 
 // Typer för context
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-  logout: () => Promise<void>;
-  login: (user: User) => void;
+  currentUser: User | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
-  currentUser: User | null;
+  login: (user: User) => void;
+  logout: () => Promise<boolean>;
 }
 
 // Skapa context
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  error: null,
-  logout: async () => {},
-  login: () => {},
+  currentUser: null,
   isLoggedIn: false,
   isAdmin: false,
-  currentUser: null
+  login: () => {},
+  logout: async () => false,
 });
 
 // Context provider
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Computed properties
-  const isLoggedIn = !!user;
-  const isAdmin = user?.role === 'admin';
-  const currentUser = user;
-
+  // Initialize state from localStorage
   useEffect(() => {
-    // Listen to Firebase Auth state changes
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const userData = await userService.getUserById(firebaseUser.uid);
-          setUser(userData || {
-            id: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            role: 'user',
-            name: firebaseUser.displayName || undefined
-          });
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setError('Failed to fetch user data');
-        }
-      } else {
-        // No Firebase user, try to restore from localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            setUser(JSON.parse(storedUser));
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-            localStorage.removeItem('user');
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
+    // Check if user is already logged in from localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setCurrentUser(parsedUser);
+        setIsLoggedIn(true);
+        setIsAdmin(parsedUser.role === 'admin');
+      } catch (error) {
+        // If parsing fails, clear localStorage
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isLoggedIn');
       }
-      setLoading(false);
-    });
-
-    // Cleanup subscription
-    return () => unsubscribe();
+    }
+    
+    setLoading(false);
   }, []);
+  
+  const login = (user: User) => {
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+    setIsAdmin(user.role === 'admin');
+    
+    // Save to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem('isLoggedIn', 'true');
+  };
 
   const logout = async () => {
     try {
-      await signOut(auth);
-      localStorage.removeItem('user');
-      setUser(null);
+      setLoading(true);
+      await auth.signOut();
+      
+      // Clear storage
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('isLoggedIn');
+      
+      // Update state
+      setCurrentUser(null);
+      setIsLoggedIn(false);
+      setIsAdmin(false);
+      
+      // Add small delay before completing logout to avoid ResizeObserver errors
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      setLoading(false);
+      return true;
     } catch (error) {
       console.error('Error during logout:', error);
-      setError('Failed to logout');
+      setLoading(false);
+      return false;
     }
   };
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+  // Value object to provide through context
+  const value = {
+    currentUser,
+    isLoggedIn,
+    isAdmin,
+    login,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      error, 
-      logout, 
-      login,
-      isLoggedIn,
-      isAdmin,
-      currentUser
-    }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

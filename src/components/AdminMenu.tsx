@@ -21,6 +21,7 @@ import {
   Article as PageIcon,
   Event as BookingIcon,
   People as PeopleIcon,
+  Security as SecurityIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -33,7 +34,8 @@ const AdminMenu: React.FC = () => {
     totalPages: 10,
     totalBookings: 6,
     totalUsers: 0,
-    bookingsByYear: {} as Record<string, number>
+    bookingsByYear: {} as Record<string, number>,
+    allowlistItems: 0
   });
   const [loading, setLoading] = useState(true);
   const [refreshingUsers, setRefreshingUsers] = useState(false);
@@ -50,7 +52,8 @@ const AdminMenu: React.FC = () => {
       // Fetch all data
       await Promise.all([
         fetchBookingStats(),
-        fetchUserStats()
+        fetchUserStats(),
+        fetchAllowlistStats()
       ]);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -104,6 +107,20 @@ const AdminMenu: React.FC = () => {
     }
   };
 
+  const fetchAllowlistStats = async () => {
+    try {
+      const allowlist = await userService.getAllowlist();
+      const totalItems = allowlist.emails.length + allowlist.domains.length;
+      
+      setStats(prevStats => ({
+        ...prevStats,
+        allowlistItems: totalItems
+      }));
+    } catch (error) {
+      console.error('Fel vid hämtning av allowlist-statistik:', error);
+    }
+  };
+
   const handleRefreshUserCount = () => {
     setRefreshingUsers(true);
     fetchUserStats().finally(() => setRefreshingUsers(false));
@@ -118,7 +135,7 @@ const AdminMenu: React.FC = () => {
       {/* Statistik-kort */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {/* Sidor card */}
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card elevation={2}>
             <CardHeader
               avatar={
@@ -141,7 +158,7 @@ const AdminMenu: React.FC = () => {
         </Grid>
         
         {/* Bokningar card */}
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card elevation={2}>
             <CardHeader
               avatar={
@@ -184,7 +201,7 @@ const AdminMenu: React.FC = () => {
         </Grid>
         
         {/* Användare card */}
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card elevation={2}>
             <CardHeader
               avatar={
@@ -223,6 +240,40 @@ const AdminMenu: React.FC = () => {
             <Box sx={{ px: 2, pb: 2 }}>
               <Button size="small" onClick={() => navigate('/admin/users')}>
                 Hantera användare
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+        
+        {/* Tillåtna användare kort */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={2}>
+            <CardHeader
+              avatar={
+                <Avatar sx={{ bgcolor: 'info.main', width: 40, height: 40 }}>
+                  <SecurityIcon fontSize="small" />
+                </Avatar>
+              }
+              title="Tillåtna användare"
+              sx={{ pb: 0 }}
+            />
+            <CardContent sx={{ pt: 1, pb: 1 }}>
+              <Typography variant="h4">
+                {loading ? 
+                  <CircularProgress size={20} /> : 
+                  stats.allowlistItems
+                }
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {stats.allowlistItems === 0 && !loading ? 
+                  "Alla användare tillåts logga in" : 
+                  "Begränsad åtkomst aktiverad"
+                }
+              </Typography>
+            </CardContent>
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Button size="small" onClick={() => navigate('/admin/allowlist')}>
+                Hantera tillåtna användare
               </Button>
             </Box>
           </Card>
