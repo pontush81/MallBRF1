@@ -258,7 +258,10 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
-// Routes
+// CORS for API routes
+app.use('/api', cors(corsOptions));
+
+// API Routes - These must be defined BEFORE the catch-all handler
 app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/backup', backupRouter);
@@ -268,6 +271,12 @@ app.use('/api/users', usersRouter);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Special handler for API 404s - must be after API routes but before the catch-all
+app.use('/api/*', (req, res) => {
+  console.log(`API 404: ${req.method} ${req.path}`);
+  res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Säkerställ att uploads-mappen finns - but only in development
@@ -312,30 +321,30 @@ async function testDatabaseConnection() {
   }
 }
 
-// Handle root route - serve the frontend application
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
-});
-
-// Handle 404 errors for static files
-app.use((req, res, next) => {
-  // Om det är en statisk fil, försök hitta den i build-mappen
-  if (req.path.includes('.')) {
-    const filePath = path.join(__dirname, '../build', req.path);
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      console.log(`404 for static file: ${req.path}`);
-      res.status(404).send('Not found');
-    }
-  } else {
-    // För alla andra routes, skicka index.html
-    res.sendFile(path.join(__dirname, '../build/index.html'));
-  }
-});
-
 // Start the server
 const startServer = () => {
+  // Handle root route - serve the frontend application
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../build/index.html'));
+  });
+  
+  // Handle 404 errors for static files
+  app.use((req, res, next) => {
+    // Om det är en statisk fil, försök hitta den i build-mappen
+    if (req.path.includes('.')) {
+      const filePath = path.join(__dirname, '../build', req.path);
+      if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+      } else {
+        console.log(`404 for static file: ${req.path}`);
+        res.status(404).send('Not found');
+      }
+    } else {
+      // För alla andra routes, skicka index.html
+      res.sendFile(path.join(__dirname, '../build/index.html'));
+    }
+  });
+
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
