@@ -12,7 +12,7 @@ import { format, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
 import bookingService from '../../services/bookingService';
-import BookingStatus from '../../components/BookingStatus';
+import BookingStatus from '../../components/booking/BookingStatus';
 
 const BookingStatusPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);

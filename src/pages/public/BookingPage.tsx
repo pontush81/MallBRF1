@@ -77,7 +77,7 @@ import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { toast, Toaster } from 'react-hot-toast';
-import BookingStatus from '../../components/BookingStatus';
+import BookingStatus from '../../components/booking/BookingStatus';
 
 // Helper function to group bookings by month
 const groupBookingsByMonth = (bookings: Booking[]) => {
