@@ -111,8 +111,13 @@ const Register: React.FC = () => {
     let errorMessage = 'Ett fel uppstod vid registrering';
     
     // Check if the error message indicates pending approval
-    if (err.message && err.message.includes('väntar på godkännande')) {
+    if (err.message && (
+      err.message.includes('väntar på godkännande') || 
+      err.message.includes('behöver godkännas') ||
+      err.message.includes('tagits emot')
+    )) {
       setPendingApproval(true);
+      setError(null); // Clear any existing error
       return;
     }
     
@@ -166,11 +171,11 @@ const Register: React.FC = () => {
         )}
         
         {pendingApproval && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            <AlertTitle>Ansökan mottagen</AlertTitle>
-            Tack för din ansökan! Ditt konto har skapats men behöver godkännas av en administratör innan du kan logga in.
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <AlertTitle>Registrering mottagen</AlertTitle>
+            Din registrering har tagits emot och väntar på godkännande. Du kommer att kunna logga in så snart ditt konto har godkänts av en administratör.
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Du kommer att kunna logga in så snart ditt konto har godkänts.
+              Vi kommer att meddela dig via e-post när ditt konto är aktiverat.
             </Typography>
           </Alert>
         )}

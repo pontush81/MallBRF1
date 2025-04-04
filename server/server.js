@@ -45,6 +45,11 @@ console.log('- Anon Key length:', process.env.SUPABASE_ANON_KEY ? process.env.SU
 console.log('- Environment:', process.env.NODE_ENV);
 console.log('- SSL Verify:', process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? 'Disabled' : 'Enabled');
 
+console.log('\nEmail Configuration:');
+console.log('- EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Missing');
+console.log('- EMAIL_APP_PASSWORD:', process.env.EMAIL_APP_PASSWORD ? 'Set' : 'Missing');
+console.log('- BACKUP_EMAIL:', process.env.BACKUP_EMAIL ? 'Set' : 'Missing');
+
 // Ensure SSL certificate validation is disabled in production
 if (process.env.NODE_ENV === 'production') {
   console.log('Running in production mode - SSL certificate validation is disabled');
@@ -52,11 +57,18 @@ if (process.env.NODE_ENV === 'production') {
   process.env.PGSSLMODE = 'no-verify';
   
   // Validate required environment variables in production
-  if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
+  const missingVars = [];
+  
+  if (!process.env.SUPABASE_URL) missingVars.push('SUPABASE_URL');
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY) 
+    missingVars.push('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY');
+  if (!process.env.EMAIL_USER) missingVars.push('EMAIL_USER');
+  if (!process.env.EMAIL_APP_PASSWORD) missingVars.push('EMAIL_APP_PASSWORD');
+  if (!process.env.BACKUP_EMAIL) missingVars.push('BACKUP_EMAIL');
+  
+  if (missingVars.length > 0) {
     console.error('Missing required environment variables in production:');
-    console.error('- SUPABASE_URL:', !!process.env.SUPABASE_URL);
-    console.error('- SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    console.error('- SUPABASE_ANON_KEY:', !!process.env.SUPABASE_ANON_KEY);
+    missingVars.forEach(variable => console.error(`- ${variable}`));
     process.exit(1);
   }
 } else {
@@ -78,6 +90,8 @@ const bookingsModule = require('./routes/bookings');
 const bookingsRouter = bookingsModule.router;
 const backupModule = require('./routes/backup');
 const backupRouter = backupModule.router;
+const notificationsModule = require('./routes/notifications');
+const notificationsRouter = notificationsModule.router;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -272,6 +286,7 @@ app.get('/api/test', (req, res) => {
 app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/backup', backupRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

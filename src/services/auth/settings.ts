@@ -41,23 +41,27 @@ export async function updateNotificationSettings(settings: NotificationSettings)
 // Send email notification for new user registration
 export async function sendNewUserNotification(user: any): Promise<boolean> {
   try {
+    console.log('Försöker skicka notifikation om ny användare:', user.email);
     const settings = await getNotificationSettings();
     
-    // If notifications are disabled or no email is set, skip sending
-    if (!settings.newUserNotifications || !settings.notificationEmail) {
-      console.log('New user notifications are disabled or no notification email is set');
-      return false;
-    }
+    console.log('Notifikationsinställningar:', {
+      enabled: settings.newUserNotifications,
+      email: settings.notificationEmail
+    });
+    
+    // Även om notifikationer är avstängda i admin-inställningarna, skicka ändå ett mail
+    // med null som e-postadress, vilket får servern att använda BACKUP_EMAIL
+    const targetEmail = settings.newUserNotifications ? settings.notificationEmail : null;
     
     // Since we're in a client environment, we need to use a server endpoint to send emails
+    console.log('Skickar notifikation till server...');
     const response = await fetch('/api/notifications/new-user', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-vercel-protection-bypass': 'true'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        email: settings.notificationEmail,
+        email: targetEmail,
         user: {
           name: user.name || 'Ny användare',
           email: user.email,
@@ -66,11 +70,14 @@ export async function sendNewUserNotification(user: any): Promise<boolean> {
       })
     });
     
+    const responseData = await response.json();
+    console.log('Server response:', responseData);
+    
     if (!response.ok) {
       throw new Error(`Failed to send notification: ${response.statusText}`);
     }
     
-    console.log('New user notification sent successfully');
+    console.log('Notifikation skickad framgångsrikt');
     return true;
   } catch (error) {
     console.error('Error sending new user notification:', error);

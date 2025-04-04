@@ -31,17 +31,45 @@ transporter.verify((error, success) => {
   }
 });
 
+// Testa e-postkonfigurationen
+router.get('/test', async (req, res) => {
+  try {
+    const testMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER, // Skicka till samma adress som avsändaren
+      subject: 'Test av e-postkonfiguration',
+      text: 'Detta är ett testmeddelande för att verifiera e-postkonfigurationen.'
+    };
+
+    console.log('Skickar testmail till:', testMailOptions.to);
+    await transporter.sendMail(testMailOptions);
+    
+    res.json({ success: true, message: 'Testmail skickat framgångsrikt' });
+  } catch (error) {
+    console.error('Fel vid skickande av testmail:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Kunde inte skicka testmail: ' + error.message 
+    });
+  }
+});
+
 // Skicka notifikation om ny användarregistrering
 router.post('/new-user', async (req, res) => {
   try {
     const { email, user } = req.body;
     
-    if (!email || !user || !user.email) {
+    // Använd den medföljande email-adressen eller BACKUP_EMAIL som fallback
+    const targetEmail = email || process.env.BACKUP_EMAIL;
+    
+    if (!targetEmail || !user || !user.email) {
       return res.status(400).json({ 
         success: false, 
         error: 'Ogiltiga parametrar. E-postadress och användarinfo krävs.' 
       });
     }
+    
+    console.log('Använder email:', targetEmail);
     
     // Formatera datum
     const createdDate = user.createdAt 
@@ -51,7 +79,7 @@ router.post('/new-user', async (req, res) => {
     // Skapa e-postmeddelandet
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: email,
+      to: targetEmail,
       subject: 'Ny användarregistrering väntar på godkännande',
       text: `
 En ny användare har registrerat sig och väntar på godkännande:
