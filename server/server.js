@@ -92,6 +92,7 @@ const backupModule = require('./routes/backup');
 const backupRouter = backupModule.router;
 const notificationsModule = require('./routes/notifications');
 const notificationsRouter = notificationsModule.router;
+const usersRouter = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -287,6 +288,7 @@ app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/users', usersRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

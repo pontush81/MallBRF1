@@ -22,6 +22,7 @@ import { User } from '../../types/User';
 import { auth, db } from '../firebase';
 import { isUserAllowed } from './allowlist';
 import { sendNewUserNotification } from './settings';
+import axios from 'axios';
 
 export async function getUserById(userId: string): Promise<User | null> {
   try {
@@ -146,21 +147,20 @@ export async function updateUserStatus(
   }
 }
 
-export async function deleteUser(userId: string): Promise<boolean> {
+export const deleteUser = async (uid: string) => {
   try {
-    // Delete from Firestore
-    await deleteDoc(doc(db, 'users', userId));
+    // Delete user document from Firestore
+    await deleteDoc(doc(db, 'users', uid));
     
-    // Note: Deleting from Auth requires admin SDK or custom auth endpoints
-    // This is a simplified version for client-side
-    console.warn('User deleted from Firestore, but not from Auth. Auth deletion requires server-side code.');
+    // Delete user from Firebase Auth through our server endpoint
+    await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${uid}`);
     
     return true;
   } catch (error) {
     console.error('Error deleting user:', error);
     throw error;
   }
-}
+};
 
 export async function syncAuthUsersWithFirestore(): Promise<void> {
   try {
