@@ -84,4 +84,40 @@ export async function sendNewUserNotification(user: any): Promise<boolean> {
     console.error('Error sending new user notification:', error);
     return false;
   }
+}
+
+// Send email notification to user when their account has been approved
+export async function sendUserApprovalNotification(user: any): Promise<boolean> {
+  try {
+    console.log('Försöker skicka godkännandenotifikation till användare:', user.email);
+    
+    // Since we're in a client environment, we need to use a server endpoint to send emails
+    console.log('Skickar godkännandenotifikation till server...');
+    const response = await fetch('/api/notifications/user-approved', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-vercel-protection-bypass': 'true'
+      },
+      body: JSON.stringify({
+        user: {
+          name: user.name || '',
+          email: user.email
+        }
+      })
+    });
+    
+    const responseData = await response.json();
+    console.log('Server response:', responseData);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to send approval notification: ${response.statusText}`);
+    }
+    
+    console.log('Godkännandenotifikation skickad framgångsrikt');
+    return true;
+  } catch (error) {
+    console.error('Error sending user approval notification:', error);
+    return false;
+  }
 } 

@@ -35,6 +35,7 @@ import { sv } from 'date-fns/locale';
 import { User } from '../../types/User';
 import { userService } from '../../services/userService';
 import { Allowlist } from '../../services/auth/allowlist';
+import { sendUserApprovalNotification } from '../../services/auth/settings';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -165,6 +166,9 @@ const UsersList: React.FC = () => {
       if (!isInAllowlist(user.email)) {
         await addUserToAllowlist(user.email);
       }
+      
+      // Skicka e-post-notifikation till användaren
+      await sendUserApprovalNotification(user);
       
       // Ladda om användarlistan för att få uppdaterad status
       await fetchUsers();
