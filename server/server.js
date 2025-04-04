@@ -258,9 +258,6 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
-// CORS for API routes
-app.use('/api', cors(corsOptions));
-
 // API Routes - These must be defined BEFORE the catch-all handler
 app.use('/api/pages', pagesRouter);
 app.use('/api/bookings', bookingsRouter);
