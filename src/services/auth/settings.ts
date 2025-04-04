@@ -58,7 +58,8 @@ export async function sendNewUserNotification(user: any): Promise<boolean> {
     const response = await fetch('/api/notifications/new-user', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-vercel-protection-bypass': 'true'
       },
       body: JSON.stringify({
         email: targetEmail,
