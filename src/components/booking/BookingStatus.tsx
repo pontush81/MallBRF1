@@ -53,51 +53,101 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const renderTableView = () => (
-    <TableContainer>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Namn</TableCell>
-            <TableCell>Ankomst</TableCell>
-            <TableCell>Avresa</TableCell>
-            <TableCell align="center">Vecka</TableCell>
-            <TableCell align="center">Parkering</TableCell>
-            <TableCell>Anteckningar</TableCell>
-            {isAdmin && <TableCell align="center">Åtgärder</TableCell>}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {guestData.map((guest) => (
-            <BookingDetails
-              key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
-              guest={guest}
-              isAdmin={isAdmin}
-              onEditClick={onEditClick}
-              onDeleteClick={onDeleteClick}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Namn</TableCell>
+              <TableCell>Ankomst</TableCell>
+              <TableCell>Avresa</TableCell>
+              <TableCell align="center">Vecka</TableCell>
+              <TableCell align="center">Parkering</TableCell>
+              <TableCell>Anteckningar</TableCell>
+              {isAdmin && <TableCell align="center">Åtgärder</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {guestData.map((guest) => (
+              <BookingDetails
+                key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
+                guest={guest}
+                isAdmin={isAdmin}
+                onEditClick={onEditClick}
+                onDeleteClick={onDeleteClick}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      
+      {/* Desktop summary (återställd från originalversionen) */}
+      <Box 
+        sx={{ 
+          p: 2, 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper'
+        }}
+      >
+        <Typography variant="subtitle1">
+          Totalt: {nights} {getPlural(nights, 'natt', 'nätter')}
+          {parkingRevenue > 0 && ` (varav ${Math.round(parkingRevenue / 75)} p-nätter)`}
+        </Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+          {formatCurrency(revenue)}
+          {parkingRevenue > 0 && ` (varav parkering: ${formatCurrency(parkingRevenue)})`}
+        </Typography>
+      </Box>
+    </>
   );
 
   const renderMobileView = () => (
-    <Box>
-      {guestData.map((guest) => (
-        <BookingDetails
-          key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
-          guest={guest}
-          isAdmin={isAdmin}
-          onEditClick={onEditClick}
-          onDeleteClick={onDeleteClick}
-        />
-      ))}
-    </Box>
+    <>
+      <Box>
+        {guestData.map((guest) => (
+          <BookingDetails
+            key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
+            guest={guest}
+            isAdmin={isAdmin}
+            onEditClick={onEditClick}
+            onDeleteClick={onDeleteClick}
+          />
+        ))}
+      </Box>
+      
+      {/* Mobile summary (återställd från originalversionen) */}
+      <Box 
+        sx={{ 
+          mt: 2, 
+          p: 2, 
+          bgcolor: 'rgba(0, 0, 0, 0.05)',
+          borderRadius: 1,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <Box>
+          <Typography variant="subtitle2">Totalt:</Typography>
+          <Typography variant="body2">{nights} {getPlural(nights, 'natt', 'nätter')}</Typography>
+          {parkingRevenue > 0 && (
+            <Typography variant="body2" color="success.main">
+              {Math.round(parkingRevenue / 75)} p-nätter ({formatCurrency(parkingRevenue)})
+            </Typography>
+          )}
+        </Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+          {formatCurrency(revenue)}
+        </Typography>
+      </Box>
+    </>
   );
 
   const bookingText = getPlural(bookings, 'bokning', 'bokningar');
   const nightText = getPlural(nights, 'natt', 'nätter');
-  const totalRevenue = revenue + parkingRevenue;
 
   return (
     <Accordion defaultExpanded={defaultExpanded} sx={{ mb: 2 }}>
@@ -127,7 +177,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
               {nights} {nightText}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {formatCurrency(totalRevenue)}
+              {formatCurrency(revenue)}
             </Typography>
           </Box>
         </Box>
