@@ -13,11 +13,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     const currentUser = auth.currentUser;
     
     if (!currentUser) {
+      console.error('No logged in user found');
       throw new Error('Ingen inloggad användare');
     }
     
     // Get fresh ID token
     const idToken = await currentUser.getIdToken(true);
+    console.log('Got fresh ID token');
     
     const headers = {
       'Accept': 'application/json',
@@ -27,7 +29,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       ...options.headers
     };
     
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    console.log('Making API request to:', `${API_BASE_URL}/api${path}`);
+    console.log('With headers:', headers);
+    
+    const response = await fetch(`${API_BASE_URL}/api${path}`, {
       ...options,
       headers,
       credentials: 'include'
@@ -35,6 +40,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
+      console.error('API Request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
       throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
     }
     

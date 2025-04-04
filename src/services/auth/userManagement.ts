@@ -149,14 +149,19 @@ export async function updateUserStatus(
 
 export const deleteUser = async (uid: string) => {
   try {
+    console.log('Starting user deletion process for:', uid);
+    
     // Delete user document from Firestore
+    console.log('Deleting user document from Firestore');
     await deleteDoc(doc(db, 'users', uid));
     
     // Delete user from Firebase Auth through our server endpoint
+    console.log('Deleting user from Firebase Auth');
     await apiRequest(`/users/${uid}`, {
       method: 'DELETE'
     });
     
+    console.log('User deletion completed successfully');
     return true;
   } catch (error) {
     console.error('Error deleting user:', error);
