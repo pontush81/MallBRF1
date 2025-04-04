@@ -117,7 +117,10 @@ export async function getAllUsers(): Promise<User[]> {
     const usersCollection = collection(db, 'users');
     const userDocs = await getDocs(usersCollection);
     
-    return userDocs.docs.map(doc => doc.data() as User);
+    return userDocs.docs.map(doc => ({
+      ...doc.data(),
+      id: doc.id
+    } as User));
   } catch (error) {
     console.error('Error fetching users:', error);
     throw error;
