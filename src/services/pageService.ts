@@ -166,9 +166,8 @@ const pageService = {
       
       const url = `/pages/${pageId}/upload`;
       
-      // I utvecklingsmiljö, använd alltid localhost
-      // Vi bör inte göra cross-origin uppladdningar i utvecklingsmiljö
-      const apiBaseUrl = 'http://localhost:3002';
+      // Använd window.location.origin istället för hårdkodad localhost
+      const apiBaseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3002' : window.location.origin;
       const fullUrl = `${apiBaseUrl}/api${url}`;
       
       console.log('Making upload request to:', fullUrl);

@@ -153,7 +153,7 @@ export const deleteUser = async (uid: string) => {
     await deleteDoc(doc(db, 'users', uid));
     
     // Delete user from Firebase Auth through our server endpoint
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
     await axios.delete(`${apiUrl}/api/users/${uid}`, {
       withCredentials: true
     });
