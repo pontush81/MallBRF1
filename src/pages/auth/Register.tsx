@@ -171,7 +171,16 @@ const Register: React.FC = () => {
         )}
         
         {pendingApproval && (
-          <Alert severity="info" sx={{ mb: 3 }}>
+          <Alert 
+            severity="info" 
+            sx={{ 
+              mb: 3,
+              backgroundColor: 'info.lighter',
+              border: '1px solid',
+              borderColor: 'info.light',
+              borderRadius: 2
+            }}
+          >
             <AlertTitle>Registrering mottagen</AlertTitle>
             Din registrering har tagits emot och väntar på godkännande. Du kommer att kunna logga in så snart ditt konto har godkänts av en administratör.
             <Typography variant="body2" sx={{ mt: 1 }}>
