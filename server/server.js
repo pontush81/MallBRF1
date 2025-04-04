@@ -116,7 +116,7 @@ app.use(fileUpload({
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://stage.gulmaran.com', 'https://gulmaran.com']
+    ? ['https://stage.gulmaran.com', 'https://www.stage.gulmaran.com', 'https://gulmaran.com']
     : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
