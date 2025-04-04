@@ -114,39 +114,14 @@ app.use(fileUpload({
 }));
 
 // CORS configuration
-const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'https://gulmaran.com',
-      'https://www.gulmaran.com',
-      'https://staging.gulmaran.com',
-      'https://stage.gulmaran.com',
-      'https://www.stage.gulmaran.com',
-      'https://mallbrf.vercel.app'
-    ];
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn('Blocked request from unauthorized origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass'],
-  exposedHeaders: ['Content-Type', 'Authorization'],
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://stage.gulmaran.com', 'https://gulmaran.com']
+    : 'http://localhost:3000',
   credentials: true,
-  maxAge: 86400
-};
-
-app.use(cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Request logging middleware
 app.use((req, res, next) => {

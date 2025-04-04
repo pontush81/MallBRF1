@@ -10,6 +10,8 @@ console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('BACKUP_EMAIL:', process.env.BACKUP_EMAIL);
 console.log('EMAIL_APP_PASSWORD length:', process.env.EMAIL_APP_PASSWORD ? process.env.EMAIL_APP_PASSWORD.length : 0);
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 // Konfigurera e-posttransporter
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -32,6 +34,26 @@ transporter.verify((error, success) => {
     console.log('E-postkonfiguration är korrekt');
   }
 });
+
+// Modify the email sending function
+const sendEmail = async (options) => {
+  if (isDevelopment) {
+    console.log('Development environment - Backup notification would have been sent:', {
+      to: options.to,
+      subject: options.subject,
+      // Exclude sensitive content from logs
+    });
+    return;
+  }
+  
+  // Existing email sending code for production
+  try {
+    await transporter.sendMail(options);
+  } catch (error) {
+    console.error('Backup notification error:', error);
+    throw error;
+  }
+};
 
 // Hämta alla bokningar och skicka som backup
 router.post('/send-backup', async (req, res) => {
@@ -90,7 +112,7 @@ Skapad: ${format(new Date(booking.createdat), 'PPP', { locale: sv })}
     console.log('Till:', mailOptions.to);
 
     // Skicka e-postmeddelandet
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     console.log('E-post skickad framgångsrikt!');
 
     res.json({ 

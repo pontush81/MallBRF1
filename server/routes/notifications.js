@@ -4,6 +4,8 @@ const nodemailer = require('nodemailer');
 const { format } = require('date-fns');
 const { sv } = require('date-fns/locale');
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 console.log('Notification route configuration:');
 console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('EMAIL_APP_PASSWORD length:', process.env.EMAIL_APP_PASSWORD ? process.env.EMAIL_APP_PASSWORD.length : 0);
@@ -124,7 +126,7 @@ Logga in på adminpanelen för att godkänna eller neka användaren.
     console.log('Från:', mailOptions.from);
     console.log('Till:', mailOptions.to);
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     
     console.log('Notifikation skickad framgångsrikt');
     return res.status(200).json({ success: true });
@@ -207,7 +209,7 @@ Administrationen
     console.log('Från:', mailOptions.from);
     console.log('Till:', mailOptions.to);
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     
     console.log('Godkännandenotifikation skickad framgångsrikt');
     return res.status(200).json({ success: true });
@@ -219,6 +221,38 @@ Administrationen
     });
   }
 });
+
+const sendEmail = async (options) => {
+  if (isDevelopment) {
+    console.log('Development environment - Email would have been sent:', {
+      to: options.to,
+      subject: options.subject,
+      // Exclude sensitive content from logs
+    });
+    return;
+  }
+  
+  // Existing email sending code for production
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+    
+    await transporter.sendMail(options);
+  } catch (error) {
+    console.error('Email sending error:', error);
+    throw error;
+  }
+};
 
 module.exports = {
   router

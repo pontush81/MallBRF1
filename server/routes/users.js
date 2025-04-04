@@ -6,11 +6,23 @@ const admin = require('../service/firebase-admin');
 router.delete('/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
+    if (!uid) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    console.log('Attempting to delete user:', uid);
     await admin.auth().deleteUser(uid);
+    console.log('User deleted successfully:', uid);
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Failed to delete user' });
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(500).json({ 
+      error: 'Failed to delete user',
+      details: error.message 
+    });
   }
 });
 
