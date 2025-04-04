@@ -13,12 +13,22 @@ const verifyToken = async (req, res, next) => {
     const idToken = authHeader.split('Bearer ')[1];
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     
-    // Check if user is admin
-    const userRecord = await admin.auth().getUser(decodedToken.uid);
-    if (!userRecord.customClaims || !userRecord.customClaims.admin) {
+    console.log('Decoded token:', decodedToken);
+    
+    // Check if user is admin - accept both formats:
+    // 1. customClaims.admin = true
+    // 2. role = 'admin' in token payload
+    const isAdmin = 
+      (decodedToken.role === 'admin') || 
+      (decodedToken.customClaims && decodedToken.customClaims.admin) ||
+      (decodedToken.admin === true);
+    
+    if (!isAdmin) {
+      console.log('User is not admin:', decodedToken.uid, 'role:', decodedToken.role);
       return res.status(403).json({ error: 'Endast administratörer kan utföra denna åtgärd' });
     }
     
+    console.log('Admin user verified:', decodedToken.uid);
     req.user = decodedToken;
     next();
   } catch (error) {
