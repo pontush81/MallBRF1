@@ -53,6 +53,12 @@ export async function isUserAllowed(email: string): Promise<boolean> {
     
     const allowlist = await getAllowlist();
     
+    // Om allowlist är tom (inga e-postadresser och inga domäner) ska alla nekas
+    // om whitelist-funktionen är aktiv
+    if (allowlist.emails.length === 0 && allowlist.domains.length === 0) {
+      return false; // Inga domäner eller e-post tillåts när listan är tom
+    }
+    
     // Normalisera e-postadressen för jämförelse
     const normalizedEmail = email.toLowerCase().trim();
     
@@ -66,7 +72,7 @@ export async function isUserAllowed(email: string): Promise<boolean> {
     // Kontrollera om domänen finns i listan
     const domain = normalizedEmail.split('@')[1];
     if (domain && allowlist.domains.some(allowedDomain => 
-      allowedDomain.toLowerCase().trim() === domain.toLowerCase().trim()
+      domain.toLowerCase().trim() === allowedDomain.toLowerCase().trim()
     )) {
       return true;
     }
