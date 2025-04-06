@@ -10,7 +10,12 @@ const getApiBaseUrl = () => {
     return 'http://localhost:3002/api';
   }
   
-  // In production, use relative path (handled by Vercel)
+  // In production, use the current origin
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+  
+  // Fallback for SSR
   return '/api';
 };
 
