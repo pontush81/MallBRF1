@@ -2,15 +2,11 @@ import React, { useState } from 'react';
 import { 
   Box, 
   Button, 
-  TextField,
   Typography, 
   Container, 
   Paper, 
-  Divider,
   Grid,
   Link,
-  InputAdornment,
-  IconButton,
   Alert,
   AlertTitle,
   useTheme,
@@ -18,9 +14,7 @@ import {
 } from '@mui/material';
 import { 
   Google as GoogleIcon, 
-  Microsoft as MicrosoftIcon,
-  Visibility,
-  VisibilityOff
+  Microsoft as MicrosoftIcon
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { userService } from '../../services/userService';
@@ -33,43 +27,9 @@ const Register: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setPendingApproval(false);
-    
-    if (!name || !email || !password) {
-      setError('Vänligen fyll i alla fält');
-      return;
-    }
-    
-    if (password.length < 6) {
-      setError('Lösenordet måste vara minst 6 tecken');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const user = await userService.register(email, password, name);
-      if (user) {
-        login(user);
-        navigate('/pages');
-      }
-    } catch (err: any) {
-      console.error('Register error:', err);
-      handleAuthError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
   
   const handleGoogleSignUp = async () => {
     setError(null);
@@ -130,9 +90,6 @@ const Register: React.FC = () => {
         case 'auth/invalid-email':
           errorMessage = 'Ogiltig e-postadress';
           break;
-        case 'auth/weak-password':
-          errorMessage = 'Lösenordet är för svagt';
-          break;
         default:
           errorMessage = err.message || errorMessage;
       }
@@ -191,75 +148,9 @@ const Register: React.FC = () => {
         
         {!pendingApproval && (
           <>
-            <Box component="form" onSubmit={handleSubmit} noValidate>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="name"
-                label="Namn"
-                name="name"
-                autoComplete="name"
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="E-post"
-                name="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Lösenord"
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-              
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-                disabled={loading}
-              >
-                Registrera
-              </Button>
-            </Box>
-            
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                eller
-              </Typography>
-            </Divider>
+            <Typography variant="body1" align="center" sx={{ mb: 3 }}>
+              Registrera dig med ditt sociala konto:
+            </Typography>
             
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
