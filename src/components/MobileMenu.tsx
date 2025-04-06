@@ -70,33 +70,35 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         px: 4
       }}>
         {/* List all available pages in main menu */}
-        {pages.map(page => (
-          <ListItem
-            key={page.id}
-            component="div"
-            onClick={() => {
-              navigateToSection(page.id);
-              onClose();
-            }}
-            sx={{
-              py: 2,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-              },
-              cursor: 'pointer'
-            }}
-          >
-            <ListItemText 
-              primary={page.title}
-              primaryTypographyProps={{
-                variant: 'h6',
-                fontWeight: 'bold'
+        {[...pages]
+          .sort((a, b) => a.title.localeCompare(b.title, 'sv'))
+          .map(page => (
+            <ListItem
+              key={page.id}
+              component="div"
+              onClick={() => {
+                navigateToSection(page.id);
+                onClose();
               }}
-            />
-          </ListItem>
-        ))}
+              sx={{
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                },
+                cursor: 'pointer'
+              }}
+            >
+              <ListItemText 
+                primary={page.title}
+                primaryTypographyProps={{
+                  variant: 'h6',
+                  fontWeight: 'bold'
+                }}
+              />
+            </ListItem>
+          ))}
         
         {/* Booking link only for logged in users */}
         {isLoggedIn && (

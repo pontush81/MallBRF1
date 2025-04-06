@@ -66,17 +66,19 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
             }
           }}
         >
-          {pages.map(page => (
-            <MenuItem 
-              key={page.id}
-              onClick={() => {
-                navigateToSection(page.id);
-                handlePagesMenuClose();
-              }}
-            >
-              {page.title}
-            </MenuItem>
-          ))}
+          {[...pages]
+            .sort((a, b) => a.title.localeCompare(b.title, 'sv'))
+            .map(page => (
+              <MenuItem 
+                key={page.id}
+                onClick={() => {
+                  navigateToSection(page.id);
+                  handlePagesMenuClose();
+                }}
+              >
+                {page.title}
+              </MenuItem>
+            ))}
         </Menu>
       </Box>
       
