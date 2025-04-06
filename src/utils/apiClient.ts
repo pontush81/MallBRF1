@@ -96,7 +96,7 @@ export async function withFallback<T>(
         alertEl.style.borderRadius = '4px';
         alertEl.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
         alertEl.style.zIndex = '9999';
-        alertEl.innerHTML = 'Servern kunde inte nås. Du ser nu tillfälligt innehåll. <a href="javascript:location.reload()">Ladda om sidan</a> för att försöka igen.';
+        alertEl.innerHTML = 'Sidan kunde inte laddas. <a href="javascript:location.reload()">Ladda om sidan</a> för att försöka igen.';
         
         // Lägg till stängknapp
         const closeBtn = document.createElement('button');

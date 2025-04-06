@@ -6,7 +6,7 @@ const FALLBACK_PAGES = [
   {
     id: "fallback-1",
     title: "Bokning",
-    content: "# Bokning\n\nHär kan du boka föreningens lokaler.\n\n**OBS!** Det kan hända att du ser fallback-innehåll eftersom servern tillfälligt inte kunde nås. Prova att ladda om sidan för att se aktuell information.",
+    content: "# Bokning\n\n**OBS!** Sidan kunde inte laddas. Prova att ladda om sidan.",
     slug: "bokning",
     isPublished: true,
     show: true,
@@ -17,7 +17,7 @@ const FALLBACK_PAGES = [
   {
     id: "fallback-2",
     title: "Information",
-    content: "# Information\n\nViktig information om föreningen.\n\n**OBS!** Det kan hända att du ser fallback-innehåll eftersom servern tillfälligt inte kunde nås. Prova att ladda om sidan för att se aktuell information.",
+    content: "# Information\n\n**OBS!** Sidan kunde inte laddas. Prova att ladda om sidan.",
     slug: "information",
     isPublished: true,
     show: true,
@@ -28,7 +28,7 @@ const FALLBACK_PAGES = [
   {
     id: "fallback-3",
     title: "Välkomstsida",
-    content: "# Välkommen\n\nDetta är vår välkomstsida.\n\n**OBS!** Det kan hända att du ser fallback-innehåll eftersom servern tillfälligt inte kunde nås. Prova att ladda om sidan för att se aktuell information.",
+    content: "# Välkommen\n\n**OBS!** Sidan kunde inte laddas. Prova att ladda om sidan.",
     slug: "valkomstsida",
     isPublished: true,
     show: true,
@@ -46,7 +46,7 @@ const FALLBACK_PAGES_BY_SLUG = {
   "lagenhet-info": {
     id: "fallback-4",
     title: "Lägenhetsinformation",
-    content: "# Lägenhetsinformation\n\nInformation om föreningens lägenheter.",
+    content: "# Lägenhetsinformation\n\n**OBS!** Sidan kunde inte laddas. Prova att ladda om sidan.",
     slug: "lagenhet-info",
     isPublished: true,
     show: true,
