@@ -159,136 +159,205 @@ Vid problem, kontrollera:
 
 # MallBRF1
 
-## About
+## Om Projektet
 
-A modern web application for managing apartment bookings and information, built with React and TypeScript. The application provides a robust platform for managing public pages, documents, and images.
+MallBRF1 är en modern webbapplikation för bostadsrättsföreningar, byggd med React, TypeScript och Node.js. Applikationen erbjuder en robust plattform för att hantera bokningar, dokument och information för bostadsrättsföreningar.
 
-## Features
+### Huvudfunktioner
+- **Bokningshantering**
+  - Kalenderintegration med FullCalendar
+  - Bokning av gemensamma utrymmen
+  - Hantering av bokningsregler och tidsgränser
 
-* User authentication with Firebase
-* Dynamic page content management with Markdown support
-* Image and document management
-* Responsive design with Material-UI
-* Public and private page viewing
-* File upload and management
-* Image preview and zoom functionality
-* PDF and document handling
+- **Dokumenthantering**
+  - Uppladdning och hantering av dokument
+  - Versionering av dokument
+  - Säker lagring i Supabase
 
-## Environment Setup
+- **Innehållshantering**
+  - Markdown-stöd för sidor och dokument
+  - Publika och privata sidor
+  - Bildhantering med förhandsgranskning
 
-The application requires the following environment variables:
+- **Användarhantering**
+  - Firebase Authentication
+  - Rollbaserad åtkomstkontroll
+  - Användarprofiler och behörigheter
 
-### Firebase Configuration
+## Teknisk Stack
+
+### Frontend
+- React 18 med TypeScript
+- Material-UI (MUI) för användargränssnitt
+- React Router för navigation
+- Firebase för autentisering
+- FullCalendar för bokningshantering
+- React Markdown för innehållshantering
+
+### Backend
+- Node.js/Express
+- Supabase för databas och lagring
+- Firebase Admin SDK
+- Nodemailer för e-posthantering
+
+### Deployment & Infrastruktur
+- Vercel för frontend och API
+- Supabase för databas och filhantering
+- Firebase för autentisering och realtidsfunktioner
+
+## Projektstruktur
+
 ```
-REACT_APP_FIREBASE_API_KEY
-REACT_APP_FIREBASE_AUTH_DOMAIN
-REACT_APP_FIREBASE_PROJECT_ID
-REACT_APP_FIREBASE_STORAGE_BUCKET
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID
-REACT_APP_FIREBASE_APP_ID
-REACT_APP_FIREBASE_MEASUREMENT_ID
+mallbrf1/
+├── app/                    # Next.js API routes
+├── src/                    # Frontend React-kod
+│   ├── components/        # Återanvändbara komponenter
+│   ├── pages/            # Sidspecifika komponenter
+│   ├── services/         # API-tjänster
+│   ├── context/          # React Context providers
+│   ├── hooks/            # Custom React hooks
+│   ├── utils/            # Hjälpfunktioner
+│   └── types/            # TypeScript typer
+├── server/               # Backend Node.js/Express
+│   ├── routes/          # API endpoints
+│   ├── service/         # Affärslogik
+│   ├── scripts/         # Hjälpscript
+│   └── sql/             # Databasscript
+└── public/              # Statiska filer
 ```
 
-### API Configuration
-```
-REACT_APP_API_URL
-```
+## Installation och Utveckling
 
-## Development
+### Förutsättningar
+- Node.js 18 eller senare
+- Git
+- Ett Supabase-konto
+- Ett Firebase-konto
+- Ett Vercel-konto (för deployment)
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Set up environment variables in `.env.local`
-4. Start development server: `npm start`
+### Lokal Utveckling
 
-## Production Build
+1. Klona repot:
+   ```bash
+   git clone https://github.com/pontush81/MallBRF1.git
+   cd MallBRF1
+   ```
 
-1. Build the application: `npm run build`
-2. Deploy to Vercel: Automatic deployment on push to main branch
+2. Installera beroenden:
+   ```bash
+   npm install
+   cd server && npm install
+   ```
 
-## Testing
+3. Konfigurera miljövariabler:
+   - Kopiera `.env.example` till `.env.local` i root-mappen
+   - Kopiera `server/.env.example` till `server/.env`
+   - Fyll i alla nödvändiga miljövariabler
 
-* Run unit tests: `npm test`
-* Run E2E tests: `npm run cypress:open`
-
-## API och CORS-konfiguration
-
-För att säkerställa att API-anrop fungerar korrekt, kontrollera följande:
-
-### Frontend (Next.js)
-
-* Alla API-anrop använder relativa URL:er (`/api/...`) istället för absoluta URL:er
-* API-anrop inkluderar följande headers:  
-  ```javascript
-  headers: {  
-    'Accept': 'application/json',  
-    'Content-Type': 'application/json',  
-    'x-vercel-protection-bypass': 'true'  
-  }
-  ```
-* Fetch-anrop har rätt konfiguration:  
-  ```javascript
-  {  
-    mode: 'cors',  
-    credentials: 'include'  
-  }
-  ```
-
-### Backend (Express)
-
-* CORS är korrekt konfigurerat med:  
-  ```javascript
-  app.use(cors({  
-    origin: function(origin, callback) {  
-      const allowedOrigins = [  
-        'https://mallbrf.vercel.app',  
-        'https://mall-brf-1-git-development-pontush81s-projects.vercel.app',  
-        'http://localhost:3000'  
-      ];  
-      callback(null, allowedOrigins.includes(origin));  
-    },  
-    credentials: true  
-  }));
-  ```
+4. Starta utvecklingsservern:
+   ```bash
+   # Terminal 1 - Frontend
+   npm start
+   
+   # Terminal 2 - Backend
+   npm run server
+   ```
 
 ## Deployment
 
 ### Vercel Deployment
 
-1. Environment variables är korrekt konfigurerade
-2. CORS headers är tillåtna i Vercel's configuration
-3. Verifiera att både frontend och backend är deployade till rätt branch
+1. Pusha ändringar till `main` eller `development` branch
+2. Vercel kommer automatiskt att deploya applikationen
 
-### Felsökning
+### Miljövariabler
 
-Om problem uppstår:
+#### Frontend (.env.local)
+```
+REACT_APP_FIREBASE_API_KEY=
+REACT_APP_FIREBASE_AUTH_DOMAIN=
+REACT_APP_FIREBASE_PROJECT_ID=
+REACT_APP_FIREBASE_STORAGE_BUCKET=
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=
+REACT_APP_FIREBASE_APP_ID=
+REACT_APP_FIREBASE_MEASUREMENT_ID=
+REACT_APP_API_URL=
+```
 
-1. Kontrollera browser console för felmeddelanden
-2. Verifiera nätverksanrop i browser devtools
-3. Kontrollera Vercel logs för både frontend och backend
-4. Verifiera att alla headers är korrekt satta i både request och response
+#### Backend (server/.env)
+```
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+FIREBASE_PROJECT_ID=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_CLIENT_EMAIL=
+```
 
-## CORS-konfiguration
+## Testing
 
-* API:et har uppdaterats för att tillåta följande domäner:  
-  * https://www.gulmaran.com  
-  * https://stage.gulmaran.com  
-  * https://www.stage.gulmaran.com  
-  * https://mall-brf-1.vercel.app  
-  * https://mallbrf.vercel.app  
-  * Lokala utvecklingsmiljöer
+### Frontend Testing
+```bash
+# Kör enhetstester
+npm test
 
-## Support
+# Kör E2E-tester med Cypress
+npm run cypress:open
+```
 
-Vid problem, kontrollera:
+### Backend Testing
+```bash
+cd server
+npm test
+```
 
-1. Vercel Status
-2. Supabase Status
-3. Deployment logs i Vercel dashboard
+## Backup och Underhåll
+
+### Databasbackup
+```bash
+# Kör backup manuellt
+npm run backup
+
+# Schemalagd backup
+npm run backup:scheduler
+```
 
 ## Säkerhet
 
-* Använd alltid HTTPS
-* Skydda dina API keys
-* Regelbunden backup av data
-* Följ security best practices för Node.js applikationer
+- Alla API-anrop använder HTTPS
+- Row Level Security (RLS) i Supabase
+- Firebase Authentication för användarhantering
+- Säker filhantering med signerade URLs
+- Regelbundna säkerhetsuppdateringar
+
+## Support och Felsökning
+
+### Vanliga Problem
+
+1. **CORS-fel**
+   - Kontrollera att CORS är korrekt konfigurerat i `server/server.js`
+   - Verifiera att domänen finns i `allowedOrigins`
+
+2. **Autentiseringsfel**
+   - Kontrollera Firebase-konfigurationen
+   - Verifiera att användaren har rätt behörigheter
+
+3. **Databasanslutningsfel**
+   - Kontrollera Supabase-anslutningen
+   - Verifiera miljövariabler
+
+### Resurser
+- [Vercel Status](https://status.vercel.com)
+- [Supabase Status](https://status.supabase.com)
+- [Firebase Status](https://status.firebase.google.com)
+
+## Versionering
+
+Projektet använder semantisk versionering:
+- `main`: Produktionsversion
+- `development`: Utvecklingsversion
+- Feature branches skapas från `development`
+
+## Licens
+
+Privat - Alla rättigheter förbehållna
