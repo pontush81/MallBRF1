@@ -5,10 +5,9 @@ const getApiBaseUrl = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   if (isDevelopment) {
-    // In development, use the development server
-    return process.env.REACT_APP_API_URL ? 
-      `${process.env.REACT_APP_API_URL}/api` : 
-      'http://localhost:3002/api';
+    // I utveckling, använd alltid lokal server
+    console.log('Använder lokal API-server');
+    return 'http://localhost:3002/api';
   }
   
   // In production, use relative path (handled by Vercel)

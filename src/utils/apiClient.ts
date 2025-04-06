@@ -20,11 +20,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
   const headers = {
     'Accept': 'application/json',
     ...(!isFormData && { 'Content-Type': 'application/json' }),
-    ...(requiresAuth ? { 'x-vercel-protection-bypass': 'true' } : {}),
+    'x-vercel-protection-bypass': 'true',
     ...(options.headers || {})
   };
 
   const url = `${API_BASE_URL}${endpoint}`;
+  console.log(`API_BASE_URL is: ${API_BASE_URL}`);
   console.log(`Making ${method} request to: ${url}`);
 
   try {

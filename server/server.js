@@ -120,7 +120,7 @@ app.use(cors({
     : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-vercel-protection-bypass', 'Origin', 'Accept', 'X-Requested-With']
 }));
 
 // Request logging middleware
@@ -141,7 +141,8 @@ app.use('/api', (req, res, next) => {
   console.log('API Request:', {
     path: req.path,
     method: req.method,
-    origin: req.headers.origin
+    origin: req.headers.origin,
+    headers: req.headers
   });
 
   // Undanta vissa endpoints från autentisering
@@ -162,7 +163,8 @@ app.use('/api', (req, res, next) => {
   }
 
   // Kontrollera om det är en publik endpoint
-  if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
+  const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.startsWith(endpoint));
+  if (isPublicEndpoint) {
     console.log('Public endpoint matched:', req.path);
     return next();
   }
