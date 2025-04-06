@@ -71,7 +71,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </>
       )}
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: { xs: 10, sm: 6, md: 4 } }}>
+      <Container maxWidth="lg" sx={{ 
+        mt: 4, 
+        mb: { xs: 10, sm: 6, md: 4 },
+        px: { xs: 0.5, sm: 2, md: 3 } // Reduce padding on mobile
+      }}>
         {children}
       </Container>
     </>
