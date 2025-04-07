@@ -2,7 +2,7 @@ import { Page } from '../types/Page';
 import { apiRequest, withFallback } from '../utils/apiClient';
 
 // Fallback data for when API requests fail
-const FALLBACK_PAGES = [
+export const FALLBACK_PAGES = [
   {
     id: "fallback-1",
     title: "Bokning",

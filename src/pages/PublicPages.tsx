@@ -23,7 +23,8 @@ import {
   Drawer,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  CircularProgress
 } from '@mui/material';
 import { 
   Image as ImageIcon,
@@ -31,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import pageService from '../services/pageService';
+import pageService, { FALLBACK_PAGES } from '../services/pageService';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -49,6 +50,10 @@ const PublicPages: React.FC = (): JSX.Element => {
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const BATCH_SIZE = 3; // Number of pages to load initially
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
   const [stickyNav, setStickyNav] = useState(false);
@@ -72,22 +77,66 @@ const PublicPages: React.FC = (): JSX.Element => {
   };
 
   useEffect(() => {
-    const fetchPages = async () => {
-      try {
-        setLoading(true);
-        // Använd getVisiblePages för att endast hämta publicerade sidor markerade för visning
-        const visiblePages = await pageService.getVisiblePages();
-        setPages(visiblePages);
-      } catch (err) {
-        console.error('Kunde inte hämta sidor:', err);
-        setError('Kunde inte ladda sidorna. Försök igen senare.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPages();
+    loadInitialPages();
   }, []);
+
+  const loadInitialPages = async () => {
+    try {
+      const allPages = await pageService.getVisiblePages();
+      // Initially show only the first batch
+      setPages(allPages.slice(0, BATCH_SIZE));
+      setHasMore(allPages.length > BATCH_SIZE);
+      setInitialLoadComplete(true);
+    } catch (err) {
+      setError('Ett fel uppstod vid laddning av sidorna');
+      setPages(FALLBACK_PAGES.slice(0, BATCH_SIZE));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMorePages = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    try {
+      setLoadingMore(true);
+      const allPages = await pageService.getVisiblePages();
+      const currentCount = pages.length;
+      const nextBatch = allPages.slice(currentCount, currentCount + BATCH_SIZE);
+      
+      if (nextBatch.length > 0) {
+        setPages(prev => [...prev, ...nextBatch]);
+        setHasMore(currentCount + nextBatch.length < allPages.length);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error('Error loading more pages:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Add intersection observer for infinite scroll
+  useEffect(() => {
+    if (!initialLoadComplete || loadingMore || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMorePages();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const sentinel = document.getElementById('load-more-sentinel');
+    if (sentinel) {
+      observer.observe(sentinel);
+    }
+
+    return () => observer.disconnect();
+  }, [initialLoadComplete, loadingMore, hasMore]);
 
   // Funktion för att formatera datum
   const formatDate = (date: string | Date) => {
@@ -732,6 +781,19 @@ const PublicPages: React.FC = (): JSX.Element => {
               </Paper>
             </Element>
           ))}
+
+          {/* Loading indicator for more content */}
+          {hasMore && (
+            <Box id="load-more-sentinel" sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              {loadingMore ? (
+                <CircularProgress size={24} />
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Scrolla för att ladda mer innehåll
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
         
         {showScrollTop && (
