@@ -16,16 +16,14 @@ import { useAuth } from '../context/AuthContext';
 
 interface HeaderNavProps {
   pages: Array<{id: string, title: string}>;
-  navigateToSection: (sectionId: string) => void;
   onMenuToggle: () => void;
   isAuthLoaded: boolean;
 }
 
 const HeaderNav: React.FC<HeaderNavProps> = ({ 
   pages, 
-  navigateToSection, 
-  onMenuToggle,
-  isAuthLoaded
+  onMenuToggle, 
+  isAuthLoaded 
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), {
@@ -34,6 +32,19 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
   });
   const navigate = useNavigate();
   const { isLoggedIn, isAdmin } = useAuth();
+
+  // Hantera klick på en sida
+  const handlePageClick = (pageId: string) => {
+    // Kontrollera om vi är på en annan sida än /pages
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/pages') {
+      // Om vi är på en annan sida, navigera till /pages med hash
+      navigate(`/pages#${pageId}`);
+    } else {
+      // Om vi redan är på /pages-sidan, använd bara hash
+      window.location.hash = pageId;
+    }
+  };
 
   return (
     <AppBar 
@@ -83,8 +94,34 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
         {!isMobile && isAuthLoaded && (
           <DesktopMenu 
             pages={pages} 
-            navigateToSection={navigateToSection} 
+            navigateToSection={handlePageClick} 
           />
+        )}
+
+        {/* Visa BOKA-knappen endast i desktop-vy */}
+        {!isMobile && isLoggedIn && (
+          <Button
+            component="button"
+            onClick={() => {
+              navigate('/booking');
+              window.scrollTo(0, 0);
+            }}
+            sx={{
+              color: 'white',
+              textAlign: 'center',
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              lineHeight: 1.5,
+              letterSpacing: '0.00938em',
+              textTransform: 'uppercase',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                textDecoration: 'none',
+              },
+            }}
+          >
+            BOKA
+          </Button>
         )}
 
         {isMobile ? (

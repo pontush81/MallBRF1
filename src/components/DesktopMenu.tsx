@@ -35,6 +35,28 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
     logout();
     navigate('/login');
   };
+
+  const handlePageNavigation = (pageId: string) => {
+    // Stäng menyn först
+    handlePagesMenuClose();
+    
+    // Kontrollera om vi redan är på /pages-sidan innan navigering
+    const currentPath = window.location.pathname;
+    if (currentPath === '/pages') {
+      // Vi är redan på rätt sida, använd direkt scrollning 
+      const element = document.getElementById(pageId);
+      if (element) {
+        const yOffset = -80;
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+      // Uppdatera URL utan att ladda om sidan
+      window.history.pushState(null, '', `#${pageId}`);
+    } else {
+      // Navigera till /pages med hash
+      navigateToSection(pageId);
+    }
+  };
   
   return (
     <Box sx={{ display: 'flex', flexGrow: 1 }}>
@@ -71,10 +93,7 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
             .map(page => (
               <MenuItem 
                 key={page.id}
-                onClick={() => {
-                  navigateToSection(page.id);
-                  handlePagesMenuClose();
-                }}
+                onClick={() => handlePageNavigation(page.id)}
               >
                 {page.title}
               </MenuItem>
@@ -86,8 +105,10 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
       {isLoggedIn && (
         <Button 
           color="inherit" 
-          component={RouterLink} 
-          to="/booking"
+          onClick={() => {
+            navigate('/booking');
+            window.scrollTo(0, 0);
+          }}
           sx={{ textTransform: 'none', fontSize: '1rem' }}
         >
           Boka
@@ -112,8 +133,10 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
         <Box>
           <Button 
             color="inherit" 
-            component={RouterLink} 
-            to="/login"
+            onClick={() => {
+              navigate('/login');
+              window.scrollTo(0, 0);
+            }}
             sx={{ textTransform: 'none', fontSize: '1rem' }}
           >
             Logga in

@@ -1,26 +1,41 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 
-// Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import Dashboard from './pages/admin/Dashboard';
-import PageView from './pages/public/PageView';
-import PublicPages from './pages/PublicPages';
-import NotFound from './pages/NotFound';
-import BookingPage from './pages/public/BookingPage';
-import BookingStatusPage from './pages/public/BookingStatusPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import DataDeletion from './pages/DataDeletion';
-
-// Layout
+// Static imports
+import LandingPage from './pages/LandingPage';
 import Layout from './components/Layout';
-
-// Auth Context
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PageProvider } from './context/PageContext';
+import ScrollToTop from './components/ScrollToTop';
+
+// Lazy loaded components
+const Login = React.lazy(() => import('./pages/auth/Login'));
+const Register = React.lazy(() => import('./pages/auth/Register'));
+const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
+const PageView = React.lazy(() => import('./pages/public/PageView'));
+const PublicPages = React.lazy(() => import('./pages/PublicPages'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
+const BookingPage = React.lazy(() => import('./pages/public/BookingPage'));
+const BookingStatusPage = React.lazy(() => import('./pages/public/BookingStatusPage'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const DataDeletion = React.lazy(() => import('./pages/DataDeletion'));
+
+// Loading component
+const LoadingFallback = () => (
+  <Layout>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh' 
+    }}>
+      <div className="loading-spinner">Laddar...</div>
+    </div>
+  </Layout>
+);
 
 // Protected route component
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
@@ -40,29 +55,68 @@ const ProtectedRoute = ({ children, adminOnly = false }: { children: React.React
 function AppRoutes() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Navigate to="/pages" replace />} />
-        <Route path="/login" element={<Layout><Login /></Layout>} />
-        <Route path="/register" element={<Layout><Register /></Layout>} />
-        <Route path="/page/:id" element={<Layout><PageView /></Layout>} />
-        <Route path="/pages" element={<Layout><PublicPages /></Layout>} />
-        <Route path="/booking" element={<Layout><BookingPage /></Layout>} />
-        <Route path="/booking/status" element={<Layout><BookingStatusPage /></Layout>} />
-        <Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
-        <Route path="/data-deletion" element={<Layout><DataDeletion /></Layout>} />
+        {/* Static landing page */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* Public routes with lazy loading */}
+        <Route path="/login" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><Login /></Layout>
+          </Suspense>
+        } />
+        <Route path="/register" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><Register /></Layout>
+          </Suspense>
+        } />
+        <Route path="/page/:id" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><PageView /></Layout>
+          </Suspense>
+        } />
+        <Route path="/pages" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><PublicPages /></Layout>
+          </Suspense>
+        } />
+        <Route path="/booking" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><BookingPage /></Layout>
+          </Suspense>
+        } />
+        <Route path="/booking/status" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><BookingStatusPage /></Layout>
+          </Suspense>
+        } />
+        <Route path="/privacy-policy" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><PrivacyPolicy /></Layout>
+          </Suspense>
+        } />
+        <Route path="/data-deletion" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><DataDeletion /></Layout>
+          </Suspense>
+        } />
         
         {/* Protected routes */}
-        
-        {/* Admin routes */}
         <Route path="/admin/*" element={
           <ProtectedRoute adminOnly>
-            <Dashboard />
+            <Suspense fallback={<LoadingFallback />}>
+              <Dashboard />
+            </Suspense>
           </ProtectedRoute>
         } />
         
         {/* Fallback route */}
-        <Route path="*" element={<Layout><NotFound /></Layout>} />
+        <Route path="*" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><NotFound /></Layout>
+          </Suspense>
+        } />
       </Routes>
     </Router>
   );
@@ -73,7 +127,9 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <AppRoutes />
+        <PageProvider>
+          <AppRoutes />
+        </PageProvider>
       </AuthProvider>
     </ThemeProvider>
   );
