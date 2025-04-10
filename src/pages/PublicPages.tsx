@@ -275,7 +275,12 @@ const PublicPages: React.FC = (): JSX.Element => {
                         ul: ({node, ...props}) => <ul {...props} style={markdownStyles.ul} />,
                         ol: ({node, ...props}) => <ol {...props} style={markdownStyles.ol} />,
                         li: ({node, ...props}) => <li {...props} style={markdownStyles.li} />,
-                        a: ({node, ...props}) => <a {...props} style={markdownStyles.a} target="_blank" rel="noopener noreferrer" />,
+                        a: ({node, href, ...props}) => {
+                          const isExternal = href?.startsWith('http') || href?.startsWith('https');
+                          return isExternal ? 
+                            <a {...props} href={href} style={markdownStyles.a} target="_blank" rel="noopener noreferrer" /> :
+                            <a {...props} href={href} style={markdownStyles.a} />;
+                        },
                         img: ({node, ...props}) => <img {...props} style={markdownStyles.img} alt="" />,
                         blockquote: ({node, ...props}) => <blockquote {...props} style={markdownStyles.blockquote} />,
                       }}
