@@ -61,10 +61,14 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
           variant="h6" 
           component={RouterLink} 
           to="/pages" 
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           sx={{ 
             flexGrow: 1,
             textDecoration: 'none', 
-            color: 'white' 
+            color: 'white',
+            cursor: 'pointer'
           }}
         >
           Gulmåran
