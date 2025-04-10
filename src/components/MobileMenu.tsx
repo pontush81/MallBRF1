@@ -15,14 +15,12 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   pages: Array<{id: string, title: string}>;
-  navigateToSection: (sectionId: string) => void;
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ 
   isOpen, 
   onClose, 
-  pages, 
-  navigateToSection 
+  pages 
 }) => {
   const { isLoggedIn, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +30,32 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     logout();
     onClose();
     navigate('/login');
+  };
+  
+  const handlePageClick = (pageId: string) => {
+    // Stäng menyn först
+    onClose();
+    
+    // Kontrollera om vi är på en annan sida än /pages
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/pages') {
+      // Om vi är på en annan sida, navigera till /pages med hash
+      navigate(`/pages#${pageId}`);
+    } else {
+      // Om vi redan är på /pages-sidan
+      // Uppdatera URL utan att ladda om sidan
+      window.history.pushState(null, '', `#${pageId}`);
+      
+      // Scrolla direkt till elementet med bättre offset
+      setTimeout(() => {
+        const element = document.getElementById(pageId);
+        if (element) {
+          const yOffset = -70; // Mindre offset för att visa rubriken bättre
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
+    }
   };
 
   const drawerContent = (
@@ -70,33 +94,32 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         px: 4
       }}>
         {/* List all available pages in main menu */}
-        {pages.map(page => (
-          <ListItem
-            key={page.id}
-            component="div"
-            onClick={() => {
-              navigateToSection(page.id);
-              onClose();
-            }}
-            sx={{
-              py: 2,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-              },
-              cursor: 'pointer'
-            }}
-          >
-            <ListItemText 
-              primary={page.title}
-              primaryTypographyProps={{
-                variant: 'h6',
-                fontWeight: 'bold'
+        {[...pages]
+          .sort((a, b) => a.title.localeCompare(b.title, 'sv'))
+          .map(page => (
+            <ListItem
+              key={page.id}
+              component="div"
+              onClick={() => handlePageClick(page.id)}
+              sx={{
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                },
+                cursor: 'pointer'
               }}
-            />
-          </ListItem>
-        ))}
+            >
+              <ListItemText 
+                primary={page.title}
+                primaryTypographyProps={{
+                  variant: 'h6',
+                  fontWeight: 'bold'
+                }}
+              />
+            </ListItem>
+          ))}
         
         {/* Booking link only for logged in users */}
         {isLoggedIn && (
@@ -105,6 +128,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             onClick={() => {
               onClose();
               navigate('/booking');
+              window.scrollTo(0, 0);
             }}
             sx={{
               py: 2,

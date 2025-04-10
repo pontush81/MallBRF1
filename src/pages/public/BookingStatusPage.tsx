@@ -8,7 +8,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, getISOWeek, isValid } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
 import bookingService from '../../services/bookingService';
@@ -29,6 +29,7 @@ const BookingStatusPage: React.FC = () => {
     try {
       setLoading(true);
       const fetchedBookings = await bookingService.getAllBookings();
+      console.log('Fetched bookings from API:', fetchedBookings);
       setBookings(fetchedBookings);
     } catch (err) {
       setError('Kunde inte hämta bokningar');
@@ -116,11 +117,14 @@ const BookingStatusPage: React.FC = () => {
   }
 
   const groupedBookings = groupBookingsByMonth(bookings);
+  console.log('Grouped bookings by month:', groupedBookings);
+  
   const sortedMonthKeys = Object.keys(groupedBookings).sort((a, b) => {
     const [yearA, monthA] = a.split('-').map(Number);
     const [yearB, monthB] = b.split('-').map(Number);
     return yearB - yearA || monthB - monthA;
   });
+  console.log('Sorted month keys:', sortedMonthKeys);
 
   return (
     <Container 
@@ -163,17 +167,47 @@ const BookingStatusPage: React.FC = () => {
             const monthBookings = groupedBookings[monthKey];
             const monthName = format(new Date(Number(year), Number(month) - 1), 'LLLL', { locale: sv });
             
-            const guestData = monthBookings.map(booking => {
-              const startDate = new Date(booking.startDate || '');
-              const week = Math.ceil((startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / 86400000 / 7);
+            // Sort monthly bookings by arrival date in chronological order
+            const sortedMonthBookings = [...monthBookings].sort((a, b) => {
+              const dateA = new Date(a.startDate || '');
+              const dateB = new Date(b.startDate || '');
+              console.log(`Sorting bookings: ${a.name} (${a.startDate}, ${dateA}) vs ${b.name} (${b.startDate}, ${dateB})`);
+              return dateA.getTime() - dateB.getTime();
+            });
+            
+            console.log('Sorted month bookings for', monthName, year, ':', sortedMonthBookings);
+            
+            // Create guestData directly from sortedMonthBookings to maintain sort order
+            const guestData = sortedMonthBookings.map(booking => {
+              // Use standardized date format for consistency
+              const startDateStr = booking.startDate || booking.startdate || '';
+              const endDateStr = booking.endDate || booking.enddate || '';
+              
+              // Log for debugging
+              console.log(`Creating GuestData for ${booking.name}:`, {
+                original: { 
+                  startDate: booking.startDate, 
+                  startdate: booking.startdate,
+                  endDate: booking.endDate,
+                  enddate: booking.enddate
+                },
+                using: { startDateStr, endDateStr }
+              });
+              
+              const startDate = new Date(startDateStr);
+              // Use getISOWeek for proper ISO week calculation (Swedish standard)
+              const week = isValid(startDate) ? getISOWeek(startDate) : 0;
               
               return {
+                id: booking.id,
                 name: booking.name,
-                arrival: booking.startDate ? format(new Date(booking.startDate), 'E d MMM', { locale: sv }) : 'N/A',
-                departure: booking.endDate ? format(new Date(booking.endDate), 'E d MMM', { locale: sv }) : 'N/A',
-                week: week.toString(),
+                arrival: startDateStr ? format(new Date(startDateStr), 'E d MMM', { locale: sv }) : 'N/A',
+                departure: endDateStr ? format(new Date(endDateStr), 'E d MMM', { locale: sv }) : 'N/A',
+                week: `v.${week}`,
                 notes: booking.notes,
-                parking: booking.parking
+                parking: booking.parking,
+                startDateRaw: startDateStr,
+                endDateRaw: endDateStr
               };
             });
 

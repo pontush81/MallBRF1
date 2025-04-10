@@ -1,0 +1,13 @@
+name: Keep Vercel Site Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # Runs every 10 minutes (UTC)
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  ping-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Vercel site
+        run: curl -s https://mallbrf1.vercel.app > /dev/null 

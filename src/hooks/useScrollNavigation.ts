@@ -6,13 +6,15 @@ interface ScrollNavigationOptions {
   scrollOffset?: number;
   scrollDuration?: number;
   scrollDelay?: number;
+  pages?: Array<{ id: string; title: string }>;
 }
 
 export function useScrollNavigation(options: ScrollNavigationOptions = {}) {
   const {
     scrollOffset = -70,
     scrollDuration = 500,
-    scrollDelay = 50
+    scrollDelay = 50,
+    pages = []
   } = options;
   
   const navigate = useNavigate();
@@ -20,42 +22,71 @@ export function useScrollNavigation(options: ScrollNavigationOptions = {}) {
   const [showScrollTop, setShowScrollTop] = useState(false);
   
   // Navigate to a section with react-scroll
-  const navigateToSection = (sectionId: string) => {
+  const navigateToSection = async (sectionId: string) => {
     if (location.pathname === '/pages') {
-      // If already on /pages, update URL hash and scroll manually
+      // Om redan på /pages, uppdatera URL hash och scrolla manuellt
       window.history.pushState(null, '', `#${sectionId}`);
       
-      // Short timeout to ensure DOM has updated
-      setTimeout(() => {
+      // Kontrollera om sidan finns i pages
+      const targetPage = pages.find(page => page.id === sectionId);
+      if (!targetPage) {
+        console.error('Sidan hittades inte:', sectionId);
+        return;
+      }
+
+      // Vänta på att elementet ska finnas i DOM:en
+      const waitForElement = (elementId: string, maxAttempts = 50): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          let attempts = 0;
+          
+          const checkElement = () => {
+            attempts++;
+            const element = document.getElementById(elementId);
+            
+            if (element) {
+              resolve();
+            } else if (attempts >= maxAttempts) {
+              reject(new Error(`Element ${elementId} not found after ${maxAttempts} attempts`));
+            } else {
+              setTimeout(checkElement, 100);
+            }
+          };
+          
+          checkElement();
+        });
+      };
+
+      try {
+        // Vänta på att elementet ska finnas
+        await waitForElement(sectionId);
+        
+        // Scrolla till elementet
         scroller.scrollTo(sectionId, {
           duration: scrollDuration,
           delay: 0,
           smooth: 'easeInOutQuart',
           offset: scrollOffset,
         });
-      }, scrollDelay);
+      } catch (error) {
+        console.error('Kunde inte hitta målelementet:', error);
+      }
     } else {
-      // If not on /pages, navigate there first with hash
+      // Om inte på /pages, navigera dit först med hash
       navigate(`/pages#${sectionId}`);
     }
   };
   
   // Handle initial hash in URL
   useEffect(() => {
-    if (location.pathname === '/pages' && location.hash) {
+    if (location.pathname === '/pages' && location.hash && pages.length > 0) {
       const sectionId = location.hash.substring(1); // Remove #
       
       // Use react-scroll with timeout
       setTimeout(() => {
-        scroller.scrollTo(sectionId, {
-          duration: scrollDuration,
-          delay: 0,
-          smooth: 'easeInOutQuart',
-          offset: scrollOffset,
-        });
+        navigateToSection(sectionId);
       }, 300);
     }
-  }, [location.pathname, location.hash, scrollDuration, scrollOffset]);
+  }, [location.pathname, location.hash, pages]);
   
   // Track scroll position for "scroll to top" button
   useEffect(() => {

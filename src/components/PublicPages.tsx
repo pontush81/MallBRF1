@@ -79,7 +79,7 @@ const PublicPages: React.FC = () => {
         {
           id: "fallback-1",
           title: "Välkomstsida",
-          content: "# Välkommen\n\nDetta är vår välkomstsida.",
+          content: "# Välkommen\n\n**OBS!** Sidan kunde inte laddas. Prova att ladda om sidan.",
           slug: "valkomstsida",
           isPublished: true,
           show: true,
@@ -90,7 +90,7 @@ const PublicPages: React.FC = () => {
         {
           id: "fallback-2",
           title: "Information",
-          content: "# Information\n\nViktig information om föreningen.",
+          content: "# Information\n\n**OBS!** Sidan kunde inte laddas. Prova att ladda om sidan.",
           slug: "information",
           isPublished: true,
           show: true,

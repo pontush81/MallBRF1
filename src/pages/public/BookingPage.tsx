@@ -643,11 +643,11 @@ const BookingPage: React.FC = () => {
           background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 2
+          borderRadius: { xs: 1, sm: 2 }
         }}
       >
-        <CardContent>
-          <Grid container spacing={3}>
+        <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
             <Grid item xs={12}>
               <Stack spacing={2}>
                 <TextField
@@ -754,10 +754,10 @@ const BookingPage: React.FC = () => {
           background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 2
+          borderRadius: { xs: 1, sm: 2 }
         }}
       >
-        <CardContent>
+        <CardContent sx={{ px: { xs: 0.5, sm: 2 }, py: { xs: 1, sm: 2 } }}>
           <LocalizationProvider 
             dateAdapter={AdapterDateFns} 
             adapterLocale={sv}
@@ -986,17 +986,21 @@ const BookingPage: React.FC = () => {
           Priser (kr/dygn)
         </Typography>
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+        {/* Force 2 columns on mobile, full width with minimal spacing */}
+        <Grid container spacing={1}>
+          {/* First row */}
+          <Grid item xs={6} sm={6} md={3}>
             <Paper
               elevation={0}
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 backgroundColor: 'rgba(25, 118, 210, 0.05)',
                 border: '1px solid',
                 borderColor: 'primary.light',
                 borderRadius: 2,
-                height: '100%'
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -1009,26 +1013,35 @@ const BookingPage: React.FC = () => {
                     mr: 1
                   }}
                 />
-                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    fontWeight: 'medium', 
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: 'inherit' },
+                    lineHeight: { xs: 1.2, sm: 1.4 }
+                  }}
+                >
                   Högsäsong (v. 24-32)
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mt: 'auto' }}>
                 600 kr
               </Typography>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Paper
               elevation={0}
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 backgroundColor: 'rgba(244, 67, 54, 0.05)',
                 border: '1px solid',
                 borderColor: 'error.light',
                 borderRadius: 2,
-                height: '100%'
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -1041,26 +1054,36 @@ const BookingPage: React.FC = () => {
                     mr: 1
                   }}
                 />
-                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    fontWeight: 'medium', 
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: 'inherit' },
+                    lineHeight: { xs: 1.2, sm: 1.4 }
+                  }}
+                >
                   Tennisveckor (v. 27-29)
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ color: 'error.main', fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{ color: 'error.main', fontWeight: 'bold', mt: 'auto' }}>
                 800 kr
               </Typography>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          {/* Second row */}
+          <Grid item xs={6} sm={6} md={3}>
             <Paper
               elevation={0}
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 backgroundColor: 'rgba(158, 158, 158, 0.05)',
                 border: '1px solid',
                 borderColor: 'grey.300',
                 borderRadius: 2,
-                height: '100%'
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -1073,26 +1096,35 @@ const BookingPage: React.FC = () => {
                     mr: 1
                   }}
                 />
-                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    fontWeight: 'medium', 
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: 'inherit' },
+                    lineHeight: { xs: 1.2, sm: 1.4 }
+                  }}
+                >
                   Lågsäsong (v. 1-23, 33-52)
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mt: 'auto' }}>
                 400 kr
               </Typography>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Paper
               elevation={0}
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 backgroundColor: 'rgba(76, 175, 80, 0.05)',
                 border: '1px solid',
                 borderColor: 'success.light',
                 borderRadius: 2,
-                height: '100%'
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -1105,11 +1137,18 @@ const BookingPage: React.FC = () => {
                     mr: 1
                   }}
                 />
-                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    fontWeight: 'medium', 
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: 'inherit' },
+                    lineHeight: { xs: 1.2, sm: 1.4 }
+                  }}
+                >
                   Parkering
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{ color: 'success.main', fontWeight: 'bold', mt: 'auto' }}>
                 75 kr/dygn
               </Typography>
             </Paper>
@@ -1586,13 +1625,18 @@ const BookingPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        px: { xs: 0.5, sm: 2 } // Reduce padding on small screens
+      }}
+    >
       <Box sx={{ 
         mb: 5, 
-        mt: 3,
+        mt: 2,
         background: 'linear-gradient(to bottom, rgba(240,248,255,0.8), rgba(230,240,250,0.4))',
-        borderRadius: 3,
-        p: 3,
+        borderRadius: { xs: 1, sm: 2 },
+        p: { xs: 1.5, sm: 2, md: 3 }, // Even smaller padding on xs screens
         boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
       }}>
         <Box sx={{ 

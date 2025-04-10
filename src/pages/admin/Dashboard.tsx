@@ -448,7 +448,7 @@ const Dashboard: React.FC = () => {
             <Route path="/" element={<DashboardHome />} />
             <Route path="/pages" element={<PagesList />} />
             <Route path="/pages/new" element={<PageEditor />} />
-            <Route path="/pages/:id" element={<PageEditor />} />
+            <Route path="/pages/edit/:id" element={<PageEditor />} />
             <Route path="/users" element={<UsersList />} />
             <Route path="/allowlist" element={<AllowlistManager />} />
             <Route path="/notifications" element={<NotificationSettings />} />

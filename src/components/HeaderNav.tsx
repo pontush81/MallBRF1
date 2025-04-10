@@ -16,16 +16,14 @@ import { useAuth } from '../context/AuthContext';
 
 interface HeaderNavProps {
   pages: Array<{id: string, title: string}>;
-  navigateToSection: (sectionId: string) => void;
   onMenuToggle: () => void;
   isAuthLoaded: boolean;
 }
 
 const HeaderNav: React.FC<HeaderNavProps> = ({ 
   pages, 
-  navigateToSection, 
-  onMenuToggle,
-  isAuthLoaded
+  onMenuToggle, 
+  isAuthLoaded 
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), {
@@ -34,6 +32,19 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
   });
   const navigate = useNavigate();
   const { isLoggedIn, isAdmin } = useAuth();
+
+  // Hantera klick på en sida
+  const handlePageClick = (pageId: string) => {
+    // Kontrollera om vi är på en annan sida än /pages
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/pages') {
+      // Om vi är på en annan sida, navigera till /pages med hash
+      navigate(`/pages#${pageId}`);
+    } else {
+      // Om vi redan är på /pages-sidan, använd bara hash
+      window.location.hash = pageId;
+    }
+  };
 
   return (
     <AppBar 
@@ -50,10 +61,14 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
           variant="h6" 
           component={RouterLink} 
           to="/pages" 
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           sx={{ 
             flexGrow: 1,
             textDecoration: 'none', 
-            color: 'white' 
+            color: 'white',
+            cursor: 'pointer'
           }}
         >
           Gulmåran
@@ -83,7 +98,7 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
         {!isMobile && isAuthLoaded && (
           <DesktopMenu 
             pages={pages} 
-            navigateToSection={navigateToSection} 
+            navigateToSection={handlePageClick} 
           />
         )}
 

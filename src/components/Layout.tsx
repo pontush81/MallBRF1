@@ -2,7 +2,6 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { Container, Box } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import pageService from '../services/pageService';
-import { useScrollNavigation } from '../hooks/useScrollNavigation';
 import HeaderNav from './HeaderNav';
 import MobileMenu from './MobileMenu';
 import { useLocation } from 'react-router-dom';
@@ -42,9 +41,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsAuthLoaded(true);
   }, []);
 
-  // Scroll navigation hook
-  const { navigateToSection } = useScrollNavigation();
-
   // Handlers
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
@@ -57,7 +53,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <>
           <HeaderNav 
             pages={pages}
-            navigateToSection={navigateToSection}
             onMenuToggle={handleDrawerToggle}
             isAuthLoaded={isAuthLoaded}
           />
@@ -66,12 +61,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             isOpen={drawerOpen}
             onClose={handleDrawerToggle}
             pages={pages}
-            navigateToSection={navigateToSection}
           />
         </>
       )}
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: { xs: 10, sm: 6, md: 4 } }}>
+      <Container maxWidth="lg" sx={{ 
+        mt: 4, 
+        mb: { xs: 10, sm: 6, md: 4 },
+        px: { xs: 0.5, sm: 2, md: 3 } // Reduce padding on mobile
+      }}>
         {children}
       </Container>
     </>

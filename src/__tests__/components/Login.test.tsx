@@ -25,19 +25,19 @@ describe('Login Component', () => {
     });
   });
 
-  it('should render login form', () => {
+  it('should render social login buttons', () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
     
-    expect(screen.getByLabelText(/e-postadress/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/lösenord/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /logga in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /google/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /microsoft/i })).toBeInTheDocument();
+    expect(screen.getByText(/logga in med ditt sociala konto/i)).toBeInTheDocument();
   });
 
-  it('should handle successful login', async () => {
+  it('should handle successful Google login', async () => {
     const mockUser = {
       id: '123',
       email: 'test@example.com',
@@ -45,7 +45,7 @@ describe('Login Component', () => {
       role: 'user'
     };
 
-    (userService.login as jest.Mock).mockResolvedValue(mockUser);
+    (userService.loginWithGoogle as jest.Mock).mockResolvedValue(mockUser);
     const mockAuthLogin = jest.fn();
     (useAuth as jest.Mock).mockReturnValue({
       login: mockAuthLogin,
@@ -59,27 +59,49 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByLabelText(/e-postadress/i), {
-      target: { value: 'test@example.com' }
-    });
-    fireEvent.change(screen.getByLabelText(/lösenord/i), {
-      target: { value: 'password123' }
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /logga in/i }));
+    fireEvent.click(screen.getByRole('button', { name: /google/i }));
 
     await waitFor(() => {
-      expect(userService.login).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123'
-      );
+      expect(userService.loginWithGoogle).toHaveBeenCalled();
+      expect(mockAuthLogin).toHaveBeenCalledWith(mockUser);
+      expect(mockNavigate).toHaveBeenCalledWith('/pages');
+    });
+  });
+
+  it('should handle successful Microsoft login', async () => {
+    const mockUser = {
+      id: '456',
+      email: 'test@example.com',
+      name: 'Test User',
+      role: 'user'
+    };
+
+    (userService.loginWithMicrosoft as jest.Mock).mockResolvedValue(mockUser);
+    const mockAuthLogin = jest.fn();
+    (useAuth as jest.Mock).mockReturnValue({
+      login: mockAuthLogin,
+      isLoggedIn: false,
+      loading: false
+    });
+
+    render(
+      <BrowserRouter>
+        <Login />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /microsoft/i }));
+
+    await waitFor(() => {
+      expect(userService.loginWithMicrosoft).toHaveBeenCalled();
       expect(mockAuthLogin).toHaveBeenCalledWith(mockUser);
       expect(mockNavigate).toHaveBeenCalledWith('/pages');
     });
   });
 
   it('should handle login error', async () => {
-    (userService.login as jest.Mock).mockResolvedValue(null);
+    const mockError = new Error('Authentication failed');
+    (userService.loginWithGoogle as jest.Mock).mockRejectedValue(mockError);
 
     render(
       <BrowserRouter>
@@ -87,44 +109,10 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByLabelText(/e-postadress/i), {
-      target: { value: 'test@example.com' }
-    });
-    fireEvent.change(screen.getByLabelText(/lösenord/i), {
-      target: { value: 'wrongpassword' }
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /logga in/i }));
+    fireEvent.click(screen.getByRole('button', { name: /google/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/felaktig e-post eller lösenord/i)).toBeInTheDocument();
+      expect(screen.getByText(/authentication failed/i)).toBeInTheDocument();
     });
-  });
-
-  it('should validate required fields', async () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /logga in/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/vänligen fyll i både e-post och lösenord/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should fill demo user credentials', () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /användare/i }));
-
-    expect(screen.getByLabelText(/e-postadress/i)).toHaveValue('user@example.com');
-    expect(screen.getByLabelText(/lösenord/i)).toHaveValue('password123');
   });
 }); 
