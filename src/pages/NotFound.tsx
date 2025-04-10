@@ -43,7 +43,7 @@ const NotFound: React.FC = () => {
               variant="contained" 
               color="primary" 
               component={RouterLink} 
-              to="/"
+              to="/pages"
             >
               Gå till startsidan
             </Button>

@@ -98,32 +98,6 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
           />
         )}
 
-        {/* Visa BOKA-knappen endast i desktop-vy */}
-        {!isMobile && isLoggedIn && (
-          <Button
-            component="button"
-            onClick={() => {
-              navigate('/booking');
-              window.scrollTo(0, 0);
-            }}
-            sx={{
-              color: 'white',
-              textAlign: 'center',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              lineHeight: 1.5,
-              letterSpacing: '0.00938em',
-              textTransform: 'uppercase',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                textDecoration: 'none',
-              },
-            }}
-          >
-            BOKA
-          </Button>
-        )}
-
         {isMobile ? (
           /* Mobile view - Login button and Hamburger menu */
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -5,7 +5,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 
 // Static imports
-import LandingPage from './pages/LandingPage';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PageProvider } from './context/PageContext';
@@ -57,8 +56,8 @@ function AppRoutes() {
     <Router>
       <ScrollToTop />
       <Routes>
-        {/* Static landing page */}
-        <Route path="/" element={<LandingPage />} />
+        {/* Redirect root to pages */}
+        <Route path="/" element={<Navigate to="/pages" replace />} />
         
         {/* Public routes with lazy loading */}
         <Route path="/login" element={

@@ -35,7 +35,7 @@ const NavigationBar: React.FC<NavigationBarProps> = () => {
         <Typography 
           variant="h6" 
           component={RouterLink} 
-          to="/" 
+          to="/pages" 
           sx={{ 
             flexGrow: 1, 
             textDecoration: 'none', 

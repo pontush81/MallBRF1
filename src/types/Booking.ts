@@ -23,6 +23,8 @@ export interface GuestData {
   notes?: string;
   parking?: boolean;
   id?: string; // ID to identify the booking for editing/deletion
+  startDateRaw?: string; // Raw ISO date for sorting
+  endDateRaw?: string;   // Raw ISO date for sorting
 }
 
 // Interface for booking summary
