@@ -1,8 +1,9 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import theme from './theme';
+
+// Importera den nya ThemeProvider
+import { ThemeProvider } from './context/ThemeContext';
 
 // Static imports
 import Layout from './components/Layout';
@@ -123,7 +124,7 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       <CssBaseline />
       <AuthProvider>
         <PageProvider>

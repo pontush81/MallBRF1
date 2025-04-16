@@ -33,6 +33,7 @@ import { userService } from '../../services/userService';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import AdminMenu from '../../components/AdminMenu';
+import ThemeDesignSelector from '../../components/ThemeDesignSelector';
 
 // Komponenten för översiktsdashboard
 const DashboardHome: React.FC = () => {
@@ -261,6 +262,13 @@ const DashboardHome: React.FC = () => {
           </Grid>
         </Grid>
       </Box>
+
+      <Grid container spacing={3}>
+        {/* Designväljare */}
+        <Grid item xs={12} md={6}>
+          <ThemeDesignSelector />
+        </Grid>
+      </Grid>
     </Box>
   );
 };

@@ -6,13 +6,23 @@ import {
   IconButton,
   Typography,
   useMediaQuery,
-  useTheme,
   Button,
-  Box
+  Box,
+  alpha,
+  useTheme as useMuiTheme,
+  Tooltip
 } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { 
+  Menu as MenuIcon, 
+  Brightness4, 
+  Brightness7, 
+  WbSunny, 
+  Brightness3,
+  AccessTime
+} from '@mui/icons-material';
 import DesktopMenu from './DesktopMenu';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface HeaderNavProps {
   pages: Array<{id: string, title: string}>;
@@ -25,13 +35,14 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
   onMenuToggle, 
   isAuthLoaded 
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'), {
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'), {
     noSsr: true,
     defaultMatches: false
   });
   const navigate = useNavigate();
   const { isLoggedIn, isAdmin } = useAuth();
+  const { mode, toggleThemeMode, autoModeEnabled } = useTheme();
 
   // Hantera klick på en sida
   const handlePageClick = (pageId: string) => {
@@ -52,8 +63,8 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
       elevation={3}
       sx={{ 
         top: 0,
-        zIndex: theme.zIndex.drawer + 1,
-        backgroundColor: theme.palette.primary.main,
+        zIndex: muiTheme.zIndex.drawer + 1
+        // Gradient och shadow hanteras nu av theme.ts
       }}
     >
       <Toolbar>
@@ -68,7 +79,10 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
             flexGrow: 1,
             textDecoration: 'none', 
             color: 'white',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+            textShadow: `1px 1px 2px ${alpha(muiTheme.palette.common.black, 0.3)}`
           }}
         >
           Gulmåran
@@ -83,16 +97,58 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
             sx={{
               textTransform: 'none',
               fontWeight: 'bold',
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
+              bgcolor: alpha(muiTheme.palette.secondary.main, 0.8),
               mr: 2,
+              px: 3,
+              py: 0.8,
+              borderRadius: '4px',
+              transition: 'all 0.2s ease',
               '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)'
+                bgcolor: muiTheme.palette.secondary.main,
+                transform: 'translateY(-2px)',
+                boxShadow: `0 4px 8px ${alpha(muiTheme.palette.common.black, 0.2)}`
               }
             }}
           >
             Admin
           </Button>
         )}
+        
+        {/* Light/Dark mode toggle */}
+        <Tooltip title={autoModeEnabled ? "Automatiskt läge aktivt (Ljust 06-18, Mörkt 18-06)" : mode === 'dark' ? "Byt till ljust läge" : "Byt till mörkt läge"}>
+          <IconButton 
+            color="inherit" 
+            onClick={toggleThemeMode} 
+            sx={{ 
+              mr: 1,
+              transition: 'transform 0.3s',
+              position: 'relative',
+              '&:hover': { transform: 'rotate(30deg)' } 
+            }}
+          >
+            {autoModeEnabled ? (
+              <>
+                <AccessTime />
+                <Box 
+                  sx={{ 
+                    position: 'absolute', 
+                    bottom: -2, 
+                    right: -2, 
+                    width: 12, 
+                    height: 12, 
+                    borderRadius: '50%', 
+                    bgcolor: 'success.main',
+                    border: '2px solid white'
+                  }} 
+                />
+              </>
+            ) : mode === 'dark' ? (
+              <Brightness3 />
+            ) : (
+              <WbSunny />
+            )}
+          </IconButton>
+        </Tooltip>
         
         {/* Desktop navigation - Show only when auth has loaded */}
         {!isMobile && isAuthLoaded && (
@@ -113,7 +169,14 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
                   textTransform: 'none',
                   fontWeight: 'bold',
                   minWidth: 'auto',
-                  px: 2
+                  px: 2,
+                  py: 0.8,
+                  bgcolor: alpha(muiTheme.palette.common.white, 0.15),
+                  borderRadius: '4px',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: alpha(muiTheme.palette.common.white, 0.25),
+                  }
                 }}
               >
                 Logga in
@@ -124,6 +187,14 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
               edge="end"
               onClick={onMenuToggle}
               aria-label="öppna meny"
+              sx={{
+                bgcolor: alpha(muiTheme.palette.common.white, 0.1),
+                transition: 'all 0.2s',
+                '&:hover': {
+                  bgcolor: alpha(muiTheme.palette.common.white, 0.2),
+                  transform: 'rotate(90deg)'
+                }
+              }}
             >
               <MenuIcon />
             </IconButton>
