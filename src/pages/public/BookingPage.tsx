@@ -68,7 +68,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
+import * as dateFns from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 import pageService from '../../services/pageService';
@@ -112,6 +112,10 @@ const CustomPickersDay = ({
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
+
+  // Add week number display
+  const weekNumber = other.day ? dateFns.getISOWeek(other.day) : null;
+  const isFirstDayOfWeek = other.day ? dateFns.isMonday(other.day) : false;
 
   // Check if a date is fully booked (not available for checkin or checkout)
   const isDateFullyBooked = (day: Date) => {
@@ -287,19 +291,36 @@ const CustomPickersDay = ({
   }
 
   return (
-    <Tooltip 
-      title={tooltipText} 
-      arrow
-      placement="top"
-    >
-      <span>
-        <PickersDay
-          {...other}
-          selected={isSelected}
-          sx={styles}
-        />
-      </span>
-    </Tooltip>
+    <Box sx={{ position: 'relative' }}>
+      {isFirstDayOfWeek && (
+        <Typography
+          sx={{
+            position: 'absolute',
+            left: '-24px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontSize: '0.75rem',
+            color: 'text.secondary',
+            fontWeight: 500
+          }}
+        >
+          v.{weekNumber}
+        </Typography>
+      )}
+      <Tooltip 
+        title={tooltipText} 
+        arrow
+        placement="top"
+      >
+        <span>
+          <PickersDay
+            {...other}
+            selected={isSelected}
+            sx={styles}
+          />
+        </span>
+      </Tooltip>
+    </Box>
   );
 };
 
@@ -423,8 +444,8 @@ const BookingPage: React.FC = () => {
                 bookerPhone: booking.phone || '',
                 dates: (() => {
                   try {
-                    const startFormatted = booking.startDate ? format(startDateObj, 'dd/MM', { locale: sv }) : 'N/A';
-                    const endFormatted = booking.endDate ? format(endDateObj, 'dd/MM', { locale: sv }) : 'N/A';
+                    const startFormatted = booking.startDate ? dateFns.format(startDateObj, 'dd/MM', { locale: sv }) : 'N/A';
+                    const endFormatted = booking.endDate ? dateFns.format(endDateObj, 'dd/MM', { locale: sv }) : 'N/A';
                     return `${startFormatted} - ${endFormatted}`;
                   } catch (error) {
                     return 'Ogiltigt datumformat';
@@ -498,7 +519,7 @@ const BookingPage: React.FC = () => {
     }
     
     if (startDate && endDate) {
-      if (isAfter(startDate, endDate)) {
+      if (dateFns.isAfter(startDate, endDate)) {
         errors.dateRange = 'Avresedatum måste vara efter ankomstdatum';
       }
     }
@@ -610,9 +631,9 @@ const BookingPage: React.FC = () => {
       
       if (booking) {
         // Formatera datumen för visning i toast-meddelandet
-        const formattedStartDate = format(normalizedStartDate, 'd MMM', { locale: sv });
-        const formattedEndDate = format(normalizedEndDate, 'd MMM', { locale: sv });
-        const nights = differenceInDays(normalizedEndDate, normalizedStartDate);
+        const formattedStartDate = dateFns.format(normalizedStartDate, 'd MMM', { locale: sv });
+        const formattedEndDate = dateFns.format(normalizedEndDate, 'd MMM', { locale: sv });
+        const nights = dateFns.differenceInDays(normalizedEndDate, normalizedStartDate);
         
         // Visa ett snyggt toast-meddelande för bekräftelse
         toast.success(
@@ -856,12 +877,15 @@ const BookingPage: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: { xs: '4px 8px', sm: theme.spacing(1) },
-              paddingBottom: 0
+              paddingBottom: 0,
+              marginLeft: '24px' // Space for week numbers
             },
             '& .MuiDayCalendar-weekContainer': {
+              display: 'flex',
               justifyContent: 'space-between',
               margin: '4px 0',
-              minHeight: { xs: '32px', sm: '36px', md: '40px' }
+              minHeight: { xs: '32px', sm: '36px', md: '40px' },
+              paddingLeft: '24px' // Space for week numbers
             },
             '& .MuiPickersDay-root': {
               width: { xs: '32px', sm: '36px', md: '40px' },
@@ -879,8 +903,10 @@ const BookingPage: React.FC = () => {
               padding: '0'
             },
             '& .MuiDayCalendar-header': {
+              display: 'flex',
               justifyContent: 'space-between',
-              padding: { xs: '0 4px', sm: '0 8px', md: '0 12px' }
+              padding: { xs: '0 4px', sm: '0 8px', md: '0 12px' },
+              marginLeft: '24px' // Space for week numbers
             },
             '& .MuiDateCalendar-root': {
               maxHeight: 'none',
@@ -901,6 +927,8 @@ const BookingPage: React.FC = () => {
               }
             }
           }}
+          showDaysOutsideCurrentMonth={true}
+          fixedWeekNumber={6}
         />
       </Box>
     );
@@ -1166,14 +1194,14 @@ const BookingPage: React.FC = () => {
       const totalNights = yearlyBookings.reduce((sum, booking) => {
         const start = new Date(booking.startDate);
         const end = new Date(booking.endDate);
-        return sum + differenceInDays(end, start);
+        return sum + dateFns.differenceInDays(end, start);
       }, 0);
 
       const apartmentRevenue = yearlyBookings.reduce((sum, booking) => {
         const start = new Date(booking.startDate);
         const end = new Date(booking.endDate);
-        const nights = differenceInDays(end, start);
-        const weekNumber = parseInt(format(start, 'w'));
+        const nights = dateFns.differenceInDays(end, start);
+        const weekNumber = parseInt(dateFns.format(start, 'w'));
         
         let nightlyRate = 400;
         if (weekNumber >= 24 && weekNumber <= 32) {
@@ -1187,7 +1215,7 @@ const BookingPage: React.FC = () => {
         if (!booking.parking) return sum;
         const start = new Date(booking.startDate);
         const end = new Date(booking.endDate);
-        const nights = differenceInDays(end, start);
+        const nights = dateFns.differenceInDays(end, start);
         return sum + (nights * 75);
       }, 0);
 
@@ -1343,18 +1371,18 @@ const BookingPage: React.FC = () => {
         {sortedMonths.map(monthYear => {
           const [year, month] = monthYear.split('-');
           const bookings = groupedBookings[monthYear];
-          const monthName = format(new Date(Number(year), Number(month) - 1), 'LLLL', { locale: sv });
+          const monthName = dateFns.format(new Date(Number(year), Number(month) - 1), 'LLLL', { locale: sv });
           const totalNights = bookings.reduce((sum, booking) => {
             const start = new Date(booking.startDate);
             const end = new Date(booking.endDate);
-            return sum + differenceInDays(end, start);
+            return sum + dateFns.differenceInDays(end, start);
           }, 0);
 
           const totalRevenue = bookings.reduce((sum, booking) => {
             const start = new Date(booking.startDate);
             const end = new Date(booking.endDate);
-            const nights = differenceInDays(end, start);
-            const weekNumber = parseInt(format(start, 'w'));
+            const nights = dateFns.differenceInDays(end, start);
+            const weekNumber = parseInt(dateFns.format(start, 'w'));
             
             let nightlyRate = 400;
             if (weekNumber >= 24 && weekNumber <= 32) {
@@ -1369,7 +1397,7 @@ const BookingPage: React.FC = () => {
             if (!booking.parking) return sum;
             const start = new Date(booking.startDate);
             const end = new Date(booking.endDate);
-            const nights = differenceInDays(end, start);
+            const nights = dateFns.differenceInDays(end, start);
             return sum + (nights * 75);
           }, 0);
 
@@ -1380,8 +1408,8 @@ const BookingPage: React.FC = () => {
             return {
               id: booking.id,
               name: booking.name,
-              arrival: format(new Date(booking.startDate), 'E d MMM', { locale: sv }),
-              departure: format(new Date(booking.endDate), 'E d MMM', { locale: sv }),
+              arrival: dateFns.format(new Date(booking.startDate), 'E d MMM', { locale: sv }),
+              departure: dateFns.format(new Date(booking.endDate), 'E d MMM', { locale: sv }),
               week: week.toString(),
               notes: booking.notes,
               parking: booking.parking
@@ -1545,7 +1573,7 @@ const BookingPage: React.FC = () => {
       
       // Get current date for filename
       const today = new Date();
-      const dateStr = format(today, 'yyyy-MM-dd');
+      const dateStr = dateFns.format(today, 'yyyy-MM-dd');
       
       // Set appropriate extension based on format
       const extension = formatType === 'excel' ? 'xlsx' : 'pdf';
@@ -1601,14 +1629,14 @@ const BookingPage: React.FC = () => {
   const formatDateRange = () => {
     if (!startDate) return null;
     
-    const startFormatted = format(startDate, 'd MMMM', { locale: sv });
+    const formattedStart = dateFns.format(startDate, 'd MMMM', { locale: sv });
     if (!endDate) {
-      return `Valt datum: ${startFormatted}`;
+      return `Valt datum: ${formattedStart}`;
     }
     
-    const endFormatted = format(endDate, 'd MMMM', { locale: sv });
-    const nights = differenceInDays(endDate, startDate);
-    return `Valt datum: ${startFormatted} - ${endFormatted} (${nights} nätter)`;
+    const formattedEnd = dateFns.format(endDate, 'd MMMM', { locale: sv });
+    const nights = dateFns.differenceInDays(endDate, startDate);
+    return `Valt datum: ${formattedStart} - ${formattedEnd} (${nights} nätter)`;
   };
 
   return (
