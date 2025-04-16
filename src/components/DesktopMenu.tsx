@@ -33,7 +33,7 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
   
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/pages');
   };
 
   const handlePageNavigation = (pageId: string) => {

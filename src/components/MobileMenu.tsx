@@ -29,7 +29,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   const handleLogout = () => {
     logout();
     onClose();
-    navigate('/login');
+    navigate('/pages');
   };
   
   const handlePageClick = (pageId: string) => {
