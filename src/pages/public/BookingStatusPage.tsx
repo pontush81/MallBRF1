@@ -13,11 +13,13 @@ import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
 import bookingService from '../../services/bookingService';
 import BookingStatus from '../../components/booking/BookingStatus';
+import { useAuth } from '../../context/AuthContext';
 
 const BookingStatusPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isLoggedIn, isAdmin } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -232,6 +234,8 @@ const BookingStatusPage: React.FC = () => {
                 revenue={totalRevenue}
                 parkingRevenue={parkingRevenue}
                 guestData={guestData}
+                isLoggedIn={isLoggedIn}
+                isAdmin={isAdmin}
               />
             );
           })}

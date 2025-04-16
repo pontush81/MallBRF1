@@ -24,6 +24,7 @@ interface BookingDetailsProps {
   isAdmin?: boolean;
   onEditClick?: (guest: GuestData) => void;
   onDeleteClick?: (guest: GuestData) => void;
+  isLoggedIn: boolean;
 }
 
 const BookingDetails: React.FC<BookingDetailsProps> = ({
@@ -31,6 +32,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({
   isAdmin = false,
   onEditClick,
   onDeleteClick,
+  isLoggedIn,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -96,7 +98,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({
             </Typography>
           </Grid>
           
-          {guest.notes && (
+          {guest.notes && isLoggedIn && (
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Anteckningar:
@@ -140,7 +142,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({
         <ParkingChip hasParking={guest.parking} />
       </TableCell>
       <TableCell>
-        {guest.notes && (
+        {guest.notes && isLoggedIn && (
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
             {guest.notes}
           </Typography>

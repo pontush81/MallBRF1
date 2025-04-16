@@ -14,6 +14,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Grid,
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import BookingDetails from './BookingDetails';
@@ -95,6 +96,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                   isAdmin={isAdmin}
                   onEditClick={onEditClick}
                   onDeleteClick={onDeleteClick}
+                  isLoggedIn={isLoggedIn}
                 />
               ))}
             </TableBody>
@@ -153,6 +155,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
               isAdmin={isAdmin}
               onEditClick={onEditClick}
               onDeleteClick={onDeleteClick}
+              isLoggedIn={isLoggedIn}
             />
           ))}
         </Box>
