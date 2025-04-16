@@ -18,7 +18,9 @@ const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const PageView = React.lazy(() => import('./pages/public/PageView'));
 const PublicPages = React.lazy(() => import('./pages/PublicPages'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
-const BookingPage = React.lazy(() => import('./pages/public/BookingPage'));
+const BookingPage = React.lazy(() => 
+  import('./pages/public/BookingPage').then(module => ({ default: module.default }))
+);
 const BookingStatusPage = React.lazy(() => import('./pages/public/BookingStatusPage'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const DataDeletion = React.lazy(() => import('./pages/DataDeletion'));

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -43,13 +44,6 @@ import {
   ListItemIcon,
   ListItemText
 } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
-import { sv } from 'date-fns/locale';
 import { 
   Person, 
   Email, 
@@ -70,14 +64,20 @@ import {
   InsertDriveFile as ExcelIcon,
   KeyboardArrowDown as ArrowDownIcon 
 } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { format, isAfter, differenceInDays, parseISO, isThisMonth, isFuture, isBefore, startOfMonth, endOfMonth, getMonth, getYear, addMonths } from 'date-fns';
+import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
-import { Booking } from '../../types/Booking';
 import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { toast, Toaster } from 'react-hot-toast';
 import BookingStatus from '../../components/booking/BookingStatus';
+import { Booking } from '../../types/Booking';
 
 // Helper function to group bookings by month
 const groupBookingsByMonth = (bookings: Booking[]) => {
@@ -105,30 +105,72 @@ const CustomPickersDay = ({
   selectedDays?: Date[];
   bookedDates?: Booking[];
 }) => {
-  // Check booking status - simplified to only check if a day is booked
-  const isDateBooked = (day: Date) => {
-    // Format date to YYYY-MM-DD for simple comparison
-    const formatDateStr = (date: Date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-    
+  // Format date to YYYY-MM-DD for simple comparison
+  const formatDateStr = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Check if a date is fully booked (not available for checkin or checkout)
+  const isDateFullyBooked = (day: Date) => {
     const dayStr = formatDateStr(day);
     
-    // Check each booking - only days from start date to day before end date are considered booked
+    // First check traditional fully booked days (middle of a booking)
     for (const booking of bookedDates) {
       const startDateStr = formatDateStr(new Date(booking.startDate || booking.startdate));
       const endDateStr = formatDateStr(new Date(booking.endDate || booking.enddate));
       
-      // If day is >= start date and < end date, it's booked
-      if (dayStr >= startDateStr && dayStr < endDateStr) {
+      // If day is after start date and before end date, it's fully booked
+      if (dayStr > startDateStr && dayStr < endDateStr) {
         return true;
       }
     }
     
     return false;
+  };
+
+  // Check if day is a checkout date for any booking
+  const isCheckoutDate = (day: Date) => {
+    const dayStr = formatDateStr(day);
+    
+    for (const booking of bookedDates) {
+      const endDateStr = formatDateStr(new Date(booking.endDate || booking.enddate));
+      
+      // If day is exactly the end date of a booking, it's a checkout date
+      if (dayStr === endDateStr) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Check if this day is a checkin date for any booking
+  const isCheckinDate = (day: Date) => {
+    const dayStr = formatDateStr(day);
+    
+    for (const booking of bookedDates) {
+      const startDateStr = formatDateStr(new Date(booking.startDate || booking.startdate));
+      
+      // If day is exactly the start date of a booking, it's a checkin date
+      if (dayStr === startDateStr) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Check if a date has back-to-back bookings (one booking ends and another starts on same day)
+  const hasBackToBackBookings = (day: Date) => {
+    return isCheckoutDate(day) && isCheckinDate(day);
+  };
+
+  // Check if a date is effectively fully booked (either fully booked or has back-to-back bookings)
+  const isEffectivelyFullyBooked = (day: Date) => {
+    return isDateFullyBooked(day) || hasBackToBackBookings(day);
   };
 
   const isSelected = selectedDays.some(
@@ -147,11 +189,106 @@ const CustomPickersDay = ({
     }
   );
   
-  const isBooked = isDateBooked(other.day);
+  const isFullyBooked = isDateFullyBooked(other.day);
+  const isCheckout = isCheckoutDate(other.day);
+  const isCheckin = isCheckinDate(other.day);
+  const isBackToBack = hasBackToBackBookings(other.day);
+  
+  // Determine what tooltip to show
+  let tooltipText = "Tillgängligt";
+  if (isFullyBooked) {
+    tooltipText = "Upptaget";
+  } else if (isBackToBack) {
+    tooltipText = "Utcheckning / Incheckning";
+  } else if (isCheckout) {
+    tooltipText = "Tillgänglig för incheckning";
+  } else if (isCheckin) {
+    tooltipText = "Tillgänglig för utcheckning";
+  }
+
+  // Determine style properties based on date status
+  let styles: any = {
+    position: 'relative',
+    transition: 'all 0.2s ease',
+  };
+
+  // Apply styles in order of priority
+  if (isSelected) {
+    // Selected dates (highest priority)
+    styles = {
+      ...styles,
+      backgroundColor: 'primary.main',
+      color: 'white',
+      fontWeight: 'bold',
+      transform: { xs: 'scale(1.08)', sm: 'scale(1.12)', md: 'scale(1.15)' },
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+      zIndex: 10,
+      '&:hover': {
+        backgroundColor: 'primary.dark',
+      },
+    };
+  } else if (isFullyBooked) {
+    // Fully booked dates
+    styles = {
+      ...styles,
+      backgroundColor: 'error.light',
+      color: 'white',
+      fontWeight: 'bold',
+      '&:hover': {
+        backgroundColor: 'error.main',
+        cursor: 'not-allowed'
+      },
+    };
+  } else if (isBackToBack) {
+    // Back-to-back dates (one booking ends, another starts)
+    styles = {
+      ...styles,
+      backgroundColor: 'error.light',
+      color: 'white',
+      fontWeight: 'bold',
+      '&:hover': {
+        backgroundColor: 'error.main',
+        cursor: 'not-allowed'
+      },
+    };
+  } else if (isCheckout) {
+    // Checkout dates (half booked - left side red)
+    styles = {
+      ...styles,
+      background: 'linear-gradient(135deg, #ffcdd2 0%, #ffcdd2 50%, white 50%, white 100%)',
+      color: 'text.primary',
+      fontWeight: 'medium',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #ef9a9a 0%, #ef9a9a 50%, #e3f2fd 50%, #e3f2fd 100%)',
+        transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
+      },
+    };
+  } else if (isCheckin) {
+    // Checkin dates (half booked - right side red)
+    styles = {
+      ...styles,
+      background: 'linear-gradient(135deg, white 0%, white 50%, #ffcdd2 50%, #ffcdd2 100%)',
+      color: 'text.primary',
+      fontWeight: 'medium',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #e3f2fd 0%, #e3f2fd 50%, #ef9a9a 50%, #ef9a9a 100%)',
+        transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
+      },
+    };
+  } else {
+    // Available dates (lowest priority)
+    styles = {
+      ...styles,
+      '&:hover': {
+        backgroundColor: '#e3f2fd',
+        transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
+      },
+    };
+  }
 
   return (
     <Tooltip 
-      title={isBooked ? "Upptaget" : "Tillgängligt"} 
+      title={tooltipText} 
       arrow
       placement="top"
     >
@@ -159,70 +296,7 @@ const CustomPickersDay = ({
         <PickersDay
           {...other}
           selected={isSelected}
-          sx={{
-            position: 'relative',
-            transition: 'all 0.2s ease',
-            fontWeight: isBooked ? 'bold' : 'normal',
-            
-            ...(isSelected && {
-              backgroundColor: 'primary.main',
-              color: 'white',
-              fontWeight: 'bold',
-              transform: 'scale(1.05)',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-              '&:hover': {
-                backgroundColor: 'primary.dark',
-              },
-            }),
-            
-            ...(isBooked && {
-              backgroundColor: 'rgba(255, 0, 0, 0.15)',
-              color: 'error.main',
-              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255, 0, 0, 0.07) 5px, rgba(255, 0, 0, 0.07) 10px)',
-              fontWeight: 'bold',
-              transform: 'scale(0.95)',
-              transition: 'all 0.2s ease',
-              border: '2px solid',
-              borderColor: 'error.light',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 0, 0, 0.2)',
-                transform: 'scale(1)',
-                cursor: 'not-allowed'
-              },
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: 'error.main',
-              },
-              '&.Mui-selected': {
-                backgroundColor: 'error.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'error.dark',
-                },
-              },
-            }),
-            
-            ...(isSelected && isBooked && {
-              backgroundColor: 'error.main',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'error.dark',
-              },
-            }),
-            
-            ...(!isBooked && !isSelected && {
-              '&:hover': {
-                backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                transform: 'scale(1.05)',
-              },
-            }),
-          }}
+          sx={styles}
         />
       </span>
     </Tooltip>
@@ -744,179 +818,91 @@ const BookingPage: React.FC = () => {
   // Rendera kalendern med maxbredd för desktop
   const renderCalendarWithMaxWidth = () => {
     return (
-      <Card 
-        elevation={0}
-        sx={{ 
-          mt: 2, 
-          mb: 4,
-          mx: 'auto',
+      <Box
+        sx={{
+          width: '100%',
           maxWidth: { xs: '100%', sm: '100%', md: '600px', lg: '650px' },
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: { xs: 1, sm: 2 }
+          backgroundColor: 'background.paper',
+          borderRadius: { xs: '4px', sm: '8px' },
+          padding: { xs: '10px', sm: '15px', md: '20px' },
+          marginTop: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          mx: 'auto' // Center the calendar
         }}
       >
-        <CardContent sx={{ px: { xs: 0.5, sm: 2 }, py: { xs: 1, sm: 2 } }}>
-          <LocalizationProvider 
-            dateAdapter={AdapterDateFns} 
-            adapterLocale={sv}
-            localeText={{
-              calendarWeekNumberText: (weekNumber) => `v${weekNumber}`,
-              calendarWeekNumberAriaLabelText: (weekNumber) => `Vecka ${weekNumber}`
-            }}
-          >
-            <DateCalendar
-              value={startDate}
-              onChange={(newDate) => {
-                if (newDate) {
-                  // Create a new date object to avoid timezone issues
-                  const date = new Date(newDate);
-                  date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-                  updateDateRange(date);
-                }
-              }}
-              displayWeekNumber
-              disablePast
-              shouldDisableDate={(date) => {
-                // Format date to YYYY-MM-DD for simple comparison
-                const formatDateStr = (date: Date) => {
-                  const year = date.getFullYear();
-                  const month = String(date.getMonth() + 1).padStart(2, '0');
-                  const day = String(date.getDate()).padStart(2, '0');
-                  return `${year}-${month}-${day}`;
-                };
-                
-                const dayStr = formatDateStr(date);
-                
-                // Check each booking - only days from start date to day before end date are considered booked
-                for (const booking of existingBookings) {
-                  const startDateStr = formatDateStr(new Date(booking.startDate || booking.startdate));
-                  const endDateStr = formatDateStr(new Date(booking.endDate || booking.enddate));
-                  
-                  // If day is >= start date and < end date, it's booked
-                  if (dayStr >= startDateStr && dayStr < endDateStr) {
-                    return true; // Disable this date
-                  }
-                }
-                
-                return false; // Date is available
-              }}
-              slots={{
-                day: (props) => (
-                  <CustomPickersDay 
-                    {...props} 
-                    selectedDays={[startDate, endDate].filter(Boolean)}
-                    bookedDates={existingBookings}
-                  />
-                ),
-              }}
-              showDaysOutsideCurrentMonth
-              sx={{
-                width: '100%',
-                '& .MuiPickersCalendarHeader-root': {
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: theme.spacing(1),
-                  paddingBottom: 0
-                },
-                '& .MuiDayCalendar-weekContainer': {
-                  justifyContent: 'space-between',
-                  margin: '4px 0',
-                  minHeight: isMobile ? '32px' : '44px'
-                },
-                '& .MuiPickersDay-root': {
-                  width: isMobile ? '28px' : '40px',
-                  height: isMobile ? '28px' : '40px',
-                  fontSize: isMobile ? '0.75rem' : '0.875rem',
-                  margin: '0',
-                  padding: '0',
-                  borderRadius: '50%',
-                  fontWeight: 'medium',
-                  '&.Mui-selected': {
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    transition: 'background-color 0.2s, transform 0.1s',
-                    '&:hover': {
-                      backgroundColor: 'primary.dark',
-                    }
-                  },
-                  '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                  },
-                  '&.Mui-disabled': {
-                    color: theme.palette.text.disabled,
-                    opacity: 0.5,
-                    backgroundColor: 'transparent',
-                    '&:hover': {
-                      backgroundColor: 'transparent'
-                    }
-                  }
-                },
-                '& .MuiDayCalendar-weekDayLabel': {
-                  width: isMobile ? '28px' : '40px',
-                  height: isMobile ? '28px' : '40px',
-                  fontSize: isMobile ? '0.75rem' : '0.875rem',
-                  color: 'primary.main',
-                  fontWeight: 'bold',
-                  margin: '0',
-                  padding: '0',
+        <DateCalendar
+          value={startDate}
+          onChange={(newValue) => {
+            if (newValue) {
+              // Create a new date object to avoid timezone issues
+              const date = new Date(newValue);
+              date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+              updateDateRange(date);
+            }
+          }}
+          slots={{
+            day: (props) => (
+              <CustomPickersDay 
+                {...props} 
+                selectedDays={[startDate, endDate].filter(Boolean)}
+                bookedDates={existingBookings}
+              />
+            )
+          }}
+          sx={{
+            width: '100%',
+            '& .MuiPickersCalendarHeader-root': {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: { xs: '4px 8px', sm: theme.spacing(1) },
+              paddingBottom: 0
+            },
+            '& .MuiDayCalendar-weekContainer': {
+              justifyContent: 'space-between',
+              margin: '4px 0',
+              minHeight: { xs: '32px', sm: '36px', md: '40px' }
+            },
+            '& .MuiPickersDay-root': {
+              width: { xs: '32px', sm: '36px', md: '40px' },
+              height: { xs: '32px', sm: '36px', md: '40px' },
+              fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.875rem' },
+              margin: '0',
+              padding: '0'
+            },
+            '& .MuiDayCalendar-weekDayLabel': {
+              width: { xs: '32px', sm: '36px', md: '40px' },
+              height: { xs: '28px', sm: '30px', md: '32px' },
+              fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
+              fontWeight: 'bold',
+              margin: '0',
+              padding: '0'
+            },
+            '& .MuiDayCalendar-header': {
+              justifyContent: 'space-between',
+              padding: { xs: '0 4px', sm: '0 8px', md: '0 12px' }
+            },
+            '& .MuiDateCalendar-root': {
+              maxHeight: 'none',
+              height: 'auto',
+              width: '100%',
+              margin: '0',
+              padding: { xs: '0 0 16px 0', sm: '0 0 24px 0', md: '0 0 32px 0' }
+            },
+            '& .MuiPickersCalendarHeader-label': {
+              textTransform: 'none',
+              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
+              fontWeight: 'bold',
+              color: 'primary.dark',
+              '&.MuiTypography-root': {
+                '&::first-letter': {
                   textTransform: 'uppercase'
-                },
-                '& .MuiDayCalendar-header': {
-                  justifyContent: 'space-between',
-                  padding: '0 12px'
-                },
-                '& .MuiDateCalendar-root': {
-                  maxHeight: 'none',
-                  height: 'auto',
-                  width: '100%',
-                  margin: '0',
-                  padding: '0 0 32px 0'
-                },
-                '& .MuiPickersCalendarHeader-label': {
-                  textTransform: 'none',
-                  fontSize: '1.25rem',
-                  fontWeight: 'bold',
-                  color: 'primary.dark',
-                  '&.MuiTypography-root': {
-                    '&::first-letter': {
-                      textTransform: 'uppercase'
-                    }
-                  }
-                },
-                '& .MuiDayCalendar-monthContainer': {
-                  minHeight: isMobile ? '360px' : '400px',
-                  padding: '0 12px',
-                  marginBottom: '24px'
-                },
-                '& .MuiDayCalendar-slideTransition': {
-                  minHeight: isMobile ? '360px' : '400px'
-                },
-                '& .MuiPickersCalendarHeader-switchViewButton': {
-                  display: 'none'
-                },
-                '& .MuiPickersArrowSwitcher-button': {
-                  color: 'primary.main',
-                },
-                '& .MuiPickersArrowSwitcher-spacer': {
-                  width: isMobile ? '8px' : '16px'
-                },
-                '& .MuiDayCalendar-weekNumber': {
-                  width: isMobile ? '24px' : '32px',
-                  height: isMobile ? '28px' : '40px',
-                  fontSize: isMobile ? '0.7rem' : '0.75rem',
-                  margin: '0',
-                  padding: '0',
-                  color: 'text.secondary',
-                  fontWeight: 'bold'
                 }
-              }}
-            />
-          </LocalizationProvider>
-        </CardContent>
-      </Card>
+              }
+            }
+          }}
+        />
+      </Box>
     );
   };
 
@@ -1626,489 +1612,512 @@ const BookingPage: React.FC = () => {
   };
 
   return (
-    <Container 
-      maxWidth="lg" 
-      sx={{ 
-        px: { xs: 0.5, sm: 2 } // Reduce padding on small screens
-      }}
-    >
-      <Box sx={{ 
-        mb: 5, 
-        mt: 2,
-        background: 'linear-gradient(to bottom, rgba(240,248,255,0.8), rgba(230,240,250,0.4))',
-        borderRadius: { xs: 1, sm: 2 },
-        p: { xs: 1.5, sm: 2, md: 3 }, // Even smaller padding on xs screens
-        boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-      }}>
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          px: { xs: 0.5, sm: 2 } // Reduce padding on small screens
+        }}
+      >
         <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          mb: 3
+          mb: 5, 
+          mt: 2,
+          background: 'linear-gradient(to bottom, rgba(240,248,255,0.8), rgba(230,240,250,0.4))',
+          borderRadius: { xs: 1, sm: 2 },
+          p: { xs: 1.5, sm: 2, md: 3 }, // Even smaller padding on xs screens
+          boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
         }}>
-          <Typography variant="h4" component="h1" sx={{ 
-            color: 'primary.dark', 
-            fontWeight: 600,
-            borderBottom: '2px solid',
-            borderColor: 'primary.light',
-            pb: 1 
-          }}>
-            Boka boende
-          </Typography>
-        </Box>
-
-        {renderPriceList()}
-
-        <Grid container spacing={4}>
-          <Grid item xs={12}>
-            {loadingBookings && (
-              <Alert severity="info" icon={<CircularProgress size={24} />} 
-                sx={{ 
-                  backgroundColor: 'info.lighter',
-                  border: '1px solid',
-                  borderColor: 'info.light',
-                  borderRadius: 2
-                }}
-              >
-                Laddar tillgänglighet...
-              </Alert>
-            )}
-          </Grid>
-          
-          <Grid item xs={12}>
-            {loadingBookings ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <>
-                {startDate && (
-                  <Box sx={{ 
-                    mb: 2, 
-                    p: 2, 
-                    bgcolor: 'primary.lighter',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'primary.light'
-                  }}>
-                    <Typography variant="h6" sx={{ color: 'primary.dark' }}>
-                      {formatDateRange()}
-                    </Typography>
-                  </Box>
-                )}
-                {renderCalendarWithMaxWidth()}
-              </>
-            )}
-          </Grid>
-          
-          <Grid item xs={12}>
-            {renderBookingForm()}
-          </Grid>
-        </Grid>
-
-        {renderBookingStatus()}
-
-        {isAdmin && (
           <Box sx={{ 
             display: 'flex', 
-            justifyContent: 'flex-end',
-            mt: 4,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            pt: 4,
-            gap: 2
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 3
           }}>
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleHsbMenuClick}
-              disabled={hsbFormLoading}
-              startIcon={hsbFormLoading ? <CircularProgress size={20} /> : <DescriptionIcon />}
-              endIcon={<ArrowDownIcon />}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                px: 3,
-                py: 1
-              }}
-            >
-              Skapa underlag till HSB
-            </Button>
-            
-            {/* Format Selection Menu */}
-            <Menu
-              anchorEl={menuAnchorEl}
-              open={Boolean(menuAnchorEl)}
-              onClose={handleHsbMenuClose}
-            >
-              <MenuItem onClick={handleHsbFormClick('excel')}>
-                <ListItemIcon>
-                  <ExcelIcon color="primary" />
-                </ListItemIcon>
-                <ListItemText primary="Excel (XLSX)" />
-              </MenuItem>
-              <MenuItem onClick={handleHsbFormClick('pdf')}>
-                <ListItemIcon>
-                  <PdfIcon color="error" />
-                </ListItemIcon>
-                <ListItemText primary="PDF" />
-              </MenuItem>
-            </Menu>
-            
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleBackupClick}
-              disabled={backupLoading}
-              startIcon={backupLoading ? <CircularProgress size={20} /> : <BackupIcon />}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                px: 3,
-                py: 1
-              }}
-            >
-              Skapa backup
-            </Button>
+            <Typography variant="h4" component="h1" sx={{ 
+              color: 'primary.dark', 
+              fontWeight: 600,
+              borderBottom: '2px solid',
+              borderColor: 'primary.light',
+              pb: 1 
+            }}>
+              Boka boende
+            </Typography>
           </Box>
-        )}
 
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={6000}
-          onClose={() => setSnackbarOpen(false)}
-          message={snackbarMessage}
-        />
+          {renderPriceList()}
 
-        {/* Raderingsdialog */}
-        <Dialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          fullWidth
-          maxWidth="sm"
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-            }
-          }}
-        >
-          <DialogTitle sx={{ 
-            bgcolor: 'error.lighter', 
-            color: 'error.dark',
-            fontWeight: 'bold',
-            borderBottom: '1px solid',
-            borderColor: 'error.light'
-          }}>
-            Radera bokning
-          </DialogTitle>
-          <DialogContent sx={{ pt: 2 }}>
-            <DialogContentText>
-              Är du säker på att du vill radera denna bokning?
-              Detta kan inte ångras.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button 
-              onClick={() => setDeleteDialogOpen(false)} 
-              variant="outlined"
-              sx={{ 
-                borderRadius: 1,
-                color: 'text.primary',
-                borderColor: 'divider',
-                '&:hover': {
-                  borderColor: 'text.primary',
-                  backgroundColor: 'rgba(0,0,0,0.04)'
-                }
-              }}
-            >
-              Avbryt
-            </Button>
-            <Button 
-              onClick={handleBookingDeleted} 
-              variant="contained" 
-              color="error" 
-              autoFocus
-              sx={{ 
-                borderRadius: 1,
-                boxShadow: 2,
-                '&:hover': {
-                  boxShadow: 4
-                }
-              }}
-            >
-              Radera
-            </Button>
-          </DialogActions>
-        </Dialog>
-        
-        {/* Redigeringsdialog */}
-        <Dialog 
-          open={editDialogOpen} 
-          onClose={() => setEditDialogOpen(false)}
-          fullWidth
-          maxWidth="sm"
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-            }
-          }}
-        >
-          <DialogTitle sx={{ 
-            bgcolor: 'primary.lighter', 
-            color: 'primary.dark',
-            fontWeight: 'bold',
-            borderBottom: '1px solid',
-            borderColor: 'primary.light'
-          }}>
-            Redigera bokning
-          </DialogTitle>
-          <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <TextField
-                  label="Namn"
-                  fullWidth
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
-                      },
-                    }
+          <Grid container spacing={4}>
+            <Grid item xs={12}>
+              {loadingBookings && (
+                <Alert severity="info" icon={<CircularProgress size={24} />} 
+                  sx={{ 
+                    backgroundColor: 'info.lighter',
+                    border: '1px solid',
+                    borderColor: 'info.light',
+                    borderRadius: 2
                   }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="E-post"
-                  fullWidth
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
-                      },
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Telefon"
-                  fullWidth
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
-                      },
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Ankomstdatum"
-                  fullWidth
-                  type="date"
-                  value={editStartDate ? editStartDate.substring(0, 10) : ''}
-                  onChange={(e) => setEditStartDate(e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
-                      },
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Avresedatum"
-                  fullWidth
-                  type="date"
-                  value={editEndDate ? editEndDate.substring(0, 10) : ''}
-                  onChange={(e) => setEditEndDate(e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
-                      },
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Anteckningar"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
-                      },
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Box sx={{ 
-                  p: 2, 
-                  bgcolor: 'success.lighter', 
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'success.light'
-                }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={editParking}
-                        onChange={(e) => setEditParking(e.target.checked)}
-                        color="success"
-                      />
-                    }
-                    label={
-                      <Typography sx={{ color: 'success.dark' }}>
-                        Parkeringsplats önskas (75 kr/dygn)
-                      </Typography>
-                    }
-                  />
-                </Box>
-              </Grid>
+                >
+                  Laddar tillgänglighet...
+                </Alert>
+              )}
             </Grid>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button 
-              onClick={() => setEditDialogOpen(false)}
-              variant="outlined"
-              sx={{ 
-                borderRadius: 1,
-                color: 'text.primary',
-                borderColor: 'divider',
-                '&:hover': {
-                  borderColor: 'text.primary',
-                  backgroundColor: 'rgba(0,0,0,0.04)'
-                }
-              }}
-            >
-              Avbryt
-            </Button>
-            <Button 
-              onClick={async () => {
-                if (!bookingToEdit) return;
-                
-                setEditLoading(true);
-                
-                try {
-                  // Validera formuläret först
-                  let valid = true;
-                  const errors: Record<string, string> = {};
-                  
-                  if (!editName.trim()) {
-                    errors.name = 'Namn måste anges';
-                    valid = false;
+            
+            <Grid item xs={12}>
+              {loadingBookings ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <>
+                  {startDate && (
+                    <Box sx={{ 
+                      mb: 2, 
+                      p: { xs: 1.5, sm: 2 }, 
+                      bgcolor: 'primary.lighter',
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'primary.light',
+                      display: 'flex',
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      alignItems: { xs: 'flex-start', sm: 'center' },
+                      justifyContent: { sm: 'space-between' }
+                    }}>
+                      <Typography variant="h6" sx={{ 
+                        color: 'primary.dark',
+                        fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }
+                      }}>
+                        {formatDateRange()}
+                      </Typography>
+                      {startDate && endDate && (
+                        <Button 
+                          variant="outlined" 
+                          color="primary" 
+                          size="small" 
+                          onClick={handleReset}
+                          sx={{ 
+                            mt: { xs: 1, sm: 0 },
+                            fontSize: { xs: '0.75rem', sm: '0.8rem' }
+                          }}
+                        >
+                          Rensa val
+                        </Button>
+                      )}
+                    </Box>
+                  )}
+                  {renderCalendarWithMaxWidth()}
+                </>
+              )}
+            </Grid>
+            
+            <Grid item xs={12}>
+              {renderBookingForm()}
+            </Grid>
+          </Grid>
+
+          {renderBookingStatus()}
+
+          {isAdmin && (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end',
+              mt: 4,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              pt: 4,
+              gap: 2
+            }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={handleHsbMenuClick}
+                disabled={hsbFormLoading}
+                startIcon={hsbFormLoading ? <CircularProgress size={20} /> : <DescriptionIcon />}
+                endIcon={<ArrowDownIcon />}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Skapa underlag till HSB
+              </Button>
+              
+              {/* Format Selection Menu */}
+              <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleHsbMenuClose}
+              >
+                <MenuItem onClick={handleHsbFormClick('excel')}>
+                  <ListItemIcon>
+                    <ExcelIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="Excel (XLSX)" />
+                </MenuItem>
+                <MenuItem onClick={handleHsbFormClick('pdf')}>
+                  <ListItemIcon>
+                    <PdfIcon color="error" />
+                  </ListItemIcon>
+                  <ListItemText primary="PDF" />
+                </MenuItem>
+              </Menu>
+              
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleBackupClick}
+                disabled={backupLoading}
+                startIcon={backupLoading ? <CircularProgress size={20} /> : <BackupIcon />}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Skapa backup
+              </Button>
+            </Box>
+          )}
+
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={6000}
+            onClose={() => setSnackbarOpen(false)}
+            message={snackbarMessage}
+          />
+
+          {/* Raderingsdialog */}
+          <Dialog
+            open={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+              }
+            }}
+          >
+            <DialogTitle sx={{ 
+              bgcolor: 'error.lighter', 
+              color: 'error.dark',
+              fontWeight: 'bold',
+              borderBottom: '1px solid',
+              borderColor: 'error.light'
+            }}>
+              Radera bokning
+            </DialogTitle>
+            <DialogContent sx={{ pt: 2 }}>
+              <DialogContentText>
+                Är du säker på att du vill radera denna bokning?
+                Detta kan inte ångras.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 3 }}>
+              <Button 
+                onClick={() => setDeleteDialogOpen(false)} 
+                variant="outlined"
+                sx={{ 
+                  borderRadius: 1,
+                  color: 'text.primary',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    borderColor: 'text.primary',
+                    backgroundColor: 'rgba(0,0,0,0.04)'
                   }
+                }}
+              >
+                Avbryt
+              </Button>
+              <Button 
+                onClick={handleBookingDeleted} 
+                variant="contained" 
+                color="error" 
+                autoFocus
+                sx={{ 
+                  borderRadius: 1,
+                  boxShadow: 2,
+                  '&:hover': {
+                    boxShadow: 4
+                  }
+                }}
+              >
+                Radera
+              </Button>
+            </DialogActions>
+          </Dialog>
+          
+          {/* Redigeringsdialog */}
+          <Dialog 
+            open={editDialogOpen} 
+            onClose={() => setEditDialogOpen(false)}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+              }
+            }}
+          >
+            <DialogTitle sx={{ 
+              bgcolor: 'primary.lighter', 
+              color: 'primary.dark',
+              fontWeight: 'bold',
+              borderBottom: '1px solid',
+              borderColor: 'primary.light'
+            }}>
+              Redigera bokning
+            </DialogTitle>
+            <DialogContent>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Namn"
+                    fullWidth
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="E-post"
+                    fullWidth
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Telefon"
+                    fullWidth
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Ankomstdatum"
+                    fullWidth
+                    type="date"
+                    value={editStartDate ? editStartDate.substring(0, 10) : ''}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Avresedatum"
+                    fullWidth
+                    type="date"
+                    value={editEndDate ? editEndDate.substring(0, 10) : ''}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Anteckningar"
+                    fullWidth
+                    multiline
+                    rows={3}
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    p: 2, 
+                    bgcolor: 'success.lighter', 
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'success.light'
+                  }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={editParking}
+                          onChange={(e) => setEditParking(e.target.checked)}
+                          color="success"
+                        />
+                      }
+                      label={
+                        <Typography sx={{ color: 'success.dark' }}>
+                          Parkeringsplats önskas (75 kr/dygn)
+                        </Typography>
+                      }
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 3 }}>
+              <Button 
+                onClick={() => setEditDialogOpen(false)}
+                variant="outlined"
+                sx={{ 
+                  borderRadius: 1,
+                  color: 'text.primary',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    borderColor: 'text.primary',
+                    backgroundColor: 'rgba(0,0,0,0.04)'
+                  }
+                }}
+              >
+                Avbryt
+              </Button>
+              <Button 
+                onClick={async () => {
+                  if (!bookingToEdit) return;
                   
-                  if (!editStartDate || !editEndDate) {
-                    errors.dates = 'Både ankomst- och avresedatum måste anges';
-                    valid = false;
-                  } else {
-                    const startDateObj = new Date(editStartDate);
-                    const endDateObj = new Date(editEndDate);
+                  setEditLoading(true);
+                  
+                  try {
+                    // Validera formuläret först
+                    let valid = true;
+                    const errors: Record<string, string> = {};
                     
-                    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
-                      errors.dates = 'Ogiltiga datum';
-                      valid = false;
-                    } else if (startDateObj >= endDateObj) {
-                      errors.dates = 'Avresedatum måste vara efter ankomstdatum';
+                    if (!editName.trim()) {
+                      errors.name = 'Namn måste anges';
                       valid = false;
                     }
-                  }
-                  
-                  if (!valid) {
-                    // Visa fel
-                    setSnackbarMessage(Object.values(errors)[0]);
+                    
+                    if (!editStartDate || !editEndDate) {
+                      errors.dates = 'Både ankomst- och avresedatum måste anges';
+                      valid = false;
+                    } else {
+                      const startDateObj = new Date(editStartDate);
+                      const endDateObj = new Date(editEndDate);
+                      
+                      if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+                        errors.dates = 'Ogiltiga datum';
+                        valid = false;
+                      } else if (startDateObj >= endDateObj) {
+                        errors.dates = 'Avresedatum måste vara efter ankomstdatum';
+                        valid = false;
+                      }
+                    }
+                    
+                    if (!valid) {
+                      // Visa fel
+                      setSnackbarMessage(Object.values(errors)[0]);
+                      setSnackbarSeverity('error');
+                      setSnackbarOpen(true);
+                      setEditLoading(false);
+                      return;
+                    }
+                    
+                    // Skapa uppdaterat bokningsobjekt
+                    const updatedBooking: Booking = {
+                      ...bookingToEdit,
+                      name: editName,
+                      email: editEmail,
+                      phone: editPhone,
+                      notes: editNotes,
+                      startDate: editStartDate,
+                      endDate: editEndDate,
+                      parking: editParking
+                    };
+                    
+                    // Skicka uppdatering till servern
+                    const result = await bookingService.updateBooking(updatedBooking.id, updatedBooking);
+                    
+                    if (result) {
+                      // Uppdatera lokalt state
+                      setExistingBookings(prev => 
+                        prev.map(b => b.id === updatedBooking.id ? updatedBooking : b)
+                      );
+                      
+                      setSnackbarMessage('Bokningen har uppdaterats');
+                      setSnackbarSeverity('success');
+                      setEditDialogOpen(false);
+                      
+                      // Uppdatera bokningslistan
+                      fetchBookings();
+                    } else {
+                      setSnackbarMessage('Kunde inte uppdatera bokningen');
+                      setSnackbarSeverity('error');
+                    }
+                  } catch (error) {
+                    console.error('Error updating booking:', error);
+                    setSnackbarMessage('Ett fel uppstod vid uppdatering av bokningen');
                     setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
+                  } finally {
                     setEditLoading(false);
-                    return;
+                    setSnackbarOpen(true);
                   }
-                  
-                  // Skapa uppdaterat bokningsobjekt
-                  const updatedBooking: Booking = {
-                    ...bookingToEdit,
-                    name: editName,
-                    email: editEmail,
-                    phone: editPhone,
-                    notes: editNotes,
-                    startDate: editStartDate,
-                    endDate: editEndDate,
-                    parking: editParking
-                  };
-                  
-                  // Skicka uppdatering till servern
-                  const result = await bookingService.updateBooking(updatedBooking.id, updatedBooking);
-                  
-                  if (result) {
-                    // Uppdatera lokalt state
-                    setExistingBookings(prev => 
-                      prev.map(b => b.id === updatedBooking.id ? updatedBooking : b)
-                    );
-                    
-                    setSnackbarMessage('Bokningen har uppdaterats');
-                    setSnackbarSeverity('success');
-                    setEditDialogOpen(false);
-                    
-                    // Uppdatera bokningslistan
-                    fetchBookings();
-                  } else {
-                    setSnackbarMessage('Kunde inte uppdatera bokningen');
-                    setSnackbarSeverity('error');
+                }} 
+                variant="contained" 
+                color="primary"
+                disabled={editLoading}
+                sx={{ 
+                  borderRadius: 1,
+                  boxShadow: 2,
+                  '&:hover': {
+                    boxShadow: 4
                   }
-                } catch (error) {
-                  console.error('Error updating booking:', error);
-                  setSnackbarMessage('Ett fel uppstod vid uppdatering av bokningen');
-                  setSnackbarSeverity('error');
-                } finally {
-                  setEditLoading(false);
-                  setSnackbarOpen(true);
-                }
-              }} 
-              variant="contained" 
-              color="primary"
-              disabled={editLoading}
-              sx={{ 
-                borderRadius: 1,
-                boxShadow: 2,
-                '&:hover': {
-                  boxShadow: 4
-                }
-              }}
-            >
-              {editLoading ? <CircularProgress size={24} /> : "Spara"}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-      
-      {/* Add the Toaster component with proper type for position */}
-      <Toaster position={isMobile ? "bottom-center" : "top-right" as const} />
-    </Container>
+                }}
+              >
+                {editLoading ? <CircularProgress size={24} /> : "Spara"}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Box>
+        
+        {/* Add the Toaster component with proper type for position */}
+        <Toaster position={isMobile ? "bottom-center" : "top-right" as const} />
+      </Container>
+    </LocalizationProvider>
   );
 };
 
