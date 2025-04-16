@@ -9,6 +9,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PageProvider } from './context/PageContext';
+import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
 
 // Lazy loaded components
@@ -130,7 +131,9 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <PageProvider>
-          <AppRoutes />
+          <MaintenanceProvider>
+            <AppRoutes />
+          </MaintenanceProvider>
         </PageProvider>
       </AuthProvider>
     </ThemeProvider>

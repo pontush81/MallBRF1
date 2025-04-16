@@ -22,12 +22,14 @@ import {
   Event as BookingIcon,
   People as PeopleIcon,
   Security as SecurityIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  BuildCircle as MaintenanceIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/bookingService';
 import { userService } from '../services/userService';
 import { Booking } from '../types/Booking';
+import { maintenanceTasksData } from '../data/maintenanceTasksData';
 
 const AdminMenu: React.FC = () => {
   const [stats, setStats] = useState({
@@ -35,7 +37,9 @@ const AdminMenu: React.FC = () => {
     totalBookings: 6,
     totalUsers: 0,
     bookingsByYear: {} as Record<string, number>,
-    allowlistItems: 0
+    allowlistItems: 0,
+    pendingMaintenance: 0,
+    completedMaintenance: 0
   });
   const [loading, setLoading] = useState(true);
   const [refreshingUsers, setRefreshingUsers] = useState(false);
@@ -53,13 +57,30 @@ const AdminMenu: React.FC = () => {
       await Promise.all([
         fetchBookingStats(),
         fetchUserStats(),
-        fetchAllowlistStats()
+        fetchAllowlistStats(),
+        fetchMaintenanceStats()
       ]);
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
       setRefreshingUsers(false);
+    }
+  };
+
+  const fetchMaintenanceStats = async () => {
+    try {
+      // Count maintenance tasks by status
+      const pending = maintenanceTasksData.filter(task => task.status === 'pending').length;
+      const completed = maintenanceTasksData.filter(task => task.status === 'completed').length;
+      
+      setStats(prevStats => ({
+        ...prevStats,
+        pendingMaintenance: pending,
+        completedMaintenance: completed
+      }));
+    } catch (error) {
+      console.error('Error fetching maintenance stats:', error);
     }
   };
 
@@ -240,6 +261,49 @@ const AdminMenu: React.FC = () => {
             <Box sx={{ px: 2, pb: 2 }}>
               <Button size="small" onClick={() => navigate('/admin/users')}>
                 Hantera användare
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+        
+        {/* Underhållsplan card */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={2}>
+            <CardHeader
+              avatar={
+                <Avatar sx={{ bgcolor: 'info.main', width: 40, height: 40 }}>
+                  <MaintenanceIcon fontSize="small" />
+                </Avatar>
+              }
+              title="Underhållsplan"
+              sx={{ pb: 0 }}
+            />
+            <CardContent sx={{ pt: 1, pb: 1 }}>
+              <Typography variant="h4">{maintenanceTasksData.length}</Typography>
+              
+              {/* Visa uppgifter per status */}
+              {loading ? (
+                <CircularProgress size={20} sx={{ mt: 1 }} />
+              ) : (
+                <List dense sx={{ mt: 1, p: 0 }}>
+                  <ListItem sx={{ py: 0, px: 1 }}>
+                    <ListItemText 
+                      primary={`Ej påbörjade: ${stats.pendingMaintenance}`}
+                      primaryTypographyProps={{ variant: 'body2' }}
+                    />
+                  </ListItem>
+                  <ListItem sx={{ py: 0, px: 1 }}>
+                    <ListItemText 
+                      primary={`Klara: ${stats.completedMaintenance}`}
+                      primaryTypographyProps={{ variant: 'body2' }}
+                    />
+                  </ListItem>
+                </List>
+              )}
+            </CardContent>
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Button size="small" onClick={() => navigate('/admin/maintenance')}>
+                Visa underhållsplan
               </Button>
             </Box>
           </Card>

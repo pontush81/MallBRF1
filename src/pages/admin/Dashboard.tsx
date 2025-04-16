@@ -26,7 +26,8 @@ import {
   ExitToApp as ExitToAppIcon,
   Menu as MenuIcon,
   Security as SecurityIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  BuildCircle as MaintenanceIcon
 } from '@mui/icons-material';
 import { useNavigate, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -36,6 +37,7 @@ import DashboardHome from './DashboardHome';
 import UsersList from './UsersList';
 import AllowlistManager from './AllowlistManager';
 import NotificationSettings from './NotificationSettings';
+import MaintenancePlanPage from './MaintenancePlanPage';
 
 // Huvudkomponent för admin-dashboarden med navigering via tabs
 const Dashboard: React.FC = () => {
@@ -58,6 +60,8 @@ const Dashboard: React.FC = () => {
       return 'allowlist';
     } else if (path.includes('/admin/notifications')) {
       return 'notifications';
+    } else if (path.includes('/admin/maintenance')) {
+      return 'maintenance';
     } else {
       return 'dashboard';
     }
@@ -82,6 +86,9 @@ const Dashboard: React.FC = () => {
         break;
       case 'notifications':
         navigate('/admin/notifications');
+        break;
+      case 'maintenance':
+        navigate('/admin/maintenance');
         break;
     }
     
@@ -137,6 +144,7 @@ const Dashboard: React.FC = () => {
             {selectedItem === 'users' && 'Användare'}
             {selectedItem === 'allowlist' && 'Tillåtna användare'}
             {selectedItem === 'notifications' && 'Notifikationer'}
+            {selectedItem === 'maintenance' && 'Underhållsplan'}
           </Typography>
           
           <Button 
@@ -196,6 +204,21 @@ const Dashboard: React.FC = () => {
                 >
                   <EventIcon sx={{ mr: 1 }} />
                   Bokningar
+                </Button>
+                
+                <Button 
+                  color="inherit"
+                  onClick={() => handleNavItemClick('maintenance')}
+                  sx={{ 
+                    py: 1.5, 
+                    px: 2,
+                    borderBottom: selectedItem === 'maintenance' ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    opacity: selectedItem === 'maintenance' ? 1 : 0.8
+                  }}
+                >
+                  <MaintenanceIcon sx={{ mr: 1 }} />
+                  Underhållsplan
                 </Button>
                 
                 <Button 
@@ -350,6 +373,27 @@ const Dashboard: React.FC = () => {
             
             <ListItem 
               button 
+              selected={selectedItem === 'maintenance'}
+              onClick={() => handleNavItemClick('maintenance')}
+              sx={{ 
+                minHeight: '56px',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              <ListItemIcon>
+                <MaintenanceIcon />
+              </ListItemIcon>
+              <ListItemText primary="Underhållsplan" />
+            </ListItem>
+            
+            <ListItem 
+              button 
               selected={selectedItem === 'users'}
               onClick={() => handleNavItemClick('users')}
               sx={{ 
@@ -452,6 +496,7 @@ const Dashboard: React.FC = () => {
             <Route path="/users" element={<UsersList />} />
             <Route path="/allowlist" element={<AllowlistManager />} />
             <Route path="/notifications" element={<NotificationSettings />} />
+            <Route path="/maintenance" element={<MaintenancePlanPage />} />
           </Routes>
         </Container>
       </Box>
