@@ -13,16 +13,10 @@ import {
   Tooltip
 } from '@mui/material';
 import { 
-  Menu as MenuIcon, 
-  Brightness4, 
-  Brightness7, 
-  WbSunny, 
-  Brightness3,
-  AccessTime
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import DesktopMenu from './DesktopMenu';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 
 interface HeaderNavProps {
   pages: Array<{id: string, title: string}>;
@@ -42,7 +36,6 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
   });
   const navigate = useNavigate();
   const { isLoggedIn, isAdmin } = useAuth();
-  const { mode, toggleThemeMode, autoModeEnabled } = useTheme();
 
   // Hantera klick på en sida
   const handlePageClick = (pageId: string) => {
@@ -113,42 +106,6 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
             Admin
           </Button>
         )}
-        
-        {/* Light/Dark mode toggle */}
-        <Tooltip title={autoModeEnabled ? "Automatiskt läge aktivt (Ljust 06-18, Mörkt 18-06)" : mode === 'dark' ? "Byt till ljust läge" : "Byt till mörkt läge"}>
-          <IconButton 
-            color="inherit" 
-            onClick={toggleThemeMode} 
-            sx={{ 
-              mr: 1,
-              transition: 'transform 0.3s',
-              position: 'relative',
-              '&:hover': { transform: 'rotate(30deg)' } 
-            }}
-          >
-            {autoModeEnabled ? (
-              <>
-                <AccessTime />
-                <Box 
-                  sx={{ 
-                    position: 'absolute', 
-                    bottom: -2, 
-                    right: -2, 
-                    width: 12, 
-                    height: 12, 
-                    borderRadius: '50%', 
-                    bgcolor: 'success.main',
-                    border: '2px solid white'
-                  }} 
-                />
-              </>
-            ) : mode === 'dark' ? (
-              <Brightness3 />
-            ) : (
-              <WbSunny />
-            )}
-          </IconButton>
-        </Tooltip>
         
         {/* Desktop navigation - Show only when auth has loaded */}
         {!isMobile && isAuthLoaded && (

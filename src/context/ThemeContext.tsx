@@ -35,87 +35,60 @@ export const useTheme = () => {
 
 // Theme provider komponent
 export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  // Hämta tema-inställningar från localStorage eller använd standardvärden
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    const savedMode = localStorage.getItem('themeMode');
-    return (savedMode as ThemeMode) || 'light';
-  });
-  
+  // Inställningar för tema
   const [design, setDesign] = useState<ThemeDesign>(() => {
     const savedDesign = localStorage.getItem('themeDesign');
-    return (savedDesign as ThemeDesign) || 'light'; // Använder det nya ljusa temat som standard
+    return (savedDesign as ThemeDesign) || 'light';
   });
   
-  const [fontFamily, setFont] = useState<ThemeFont>(() => {
-    const savedFont = localStorage.getItem('themeFont') as ThemeFont | null;
-    return savedFont || 'roboto';
+  // Alltid använda light mode
+  const [mode, setMode] = useState<ThemeMode>('light');
+  
+  const [font, setFont] = useState<ThemeFont>(() => {
+    const savedFont = localStorage.getItem('themeFont');
+    return (savedFont as ThemeFont) || 'roboto';
   });
   
-  const [customColors, setCustomColors] = useState<CustomColors>(() => {
-    const savedColors = localStorage.getItem('themeCustomColors');
-    return savedColors ? JSON.parse(savedColors) : {};
-  });
+  const [customColors, setCustomColors] = useState<CustomColors>({});
   
-  const [autoModeEnabled, setAutoModeEnabled] = useState<boolean>(() => {
-    const savedAutoMode = localStorage.getItem('themeAutoMode');
-    return savedAutoMode ? savedAutoMode === 'true' : false;
-  });
+  // Alltid inaktivera auto mode
+  const [autoModeEnabled, setAutoModeEnabled] = useState<boolean>(false);
   
-  // Spara inställningarna i localStorage när de ändras
-  useEffect(() => {
-    localStorage.setItem('themeMode', mode);
-  }, [mode]);
-  
+  // Spara designval
   useEffect(() => {
     localStorage.setItem('themeDesign', design);
   }, [design]);
   
+  // Spara typsnitt
   useEffect(() => {
-    localStorage.setItem('themeFont', fontFamily);
-  }, [fontFamily]);
+    localStorage.setItem('themeFont', font);
+  }, [font]);
   
-  useEffect(() => {
-    localStorage.setItem('themeCustomColors', JSON.stringify(customColors));
-  }, [customColors]);
-  
-  useEffect(() => {
-    localStorage.setItem('themeAutoMode', String(autoModeEnabled));
-  }, [autoModeEnabled]);
-  
-  // Automatiskt mörkt/ljust läge baserat på tid på dygnet
-  useEffect(() => {
-    if (!autoModeEnabled) return;
-    
-    const checkTimeAndSetMode = () => {
-      const hour = new Date().getHours();
-      const newMode = (hour >= 6 && hour < 18) ? 'light' : 'dark';
-      setMode(newMode);
-    };
-    
-    // Kör direkt vid start
-    checkTimeAndSetMode();
-    
-    // Kör var 15:e minut
-    const interval = setInterval(checkTimeAndSetMode, 15 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [autoModeEnabled]);
-  
-  // Växla mellan ljust och mörkt läge
-  const toggleThemeMode = () => {
-    if (autoModeEnabled) {
-      // Om automatiskt läge är på, stäng av det och byt till motsatt läge
-      setAutoModeEnabled(false);
-      setMode(prev => prev === 'light' ? 'dark' : 'light');
-    } else {
-      // Annars bara växla läge
-      setMode(prev => prev === 'light' ? 'dark' : 'light');
-    }
+  // Uppdatera en specifik färg
+  const setCustomColor = (key: keyof CustomColors, value: string) => {
+    setCustomColors(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
   
-  // Växla automatiskt läge
+  // Automatiskt mörkt/ljust läge baserat på tid på dygnet - inaktiverat
+  useEffect(() => {
+    // Automatisk växling är inaktiverad
+    // Alltid sätt mode till 'light'
+    setMode('light');
+  }, []);
+  
+  // Växla mellan ljust och mörkt läge - inaktiverat
+  const toggleThemeMode = () => {
+    // Funktion behålls för bakåtkompatibilitet men gör ingenting
+    console.log('Dark mode är inaktiverat i applikationen');
+  };
+  
+  // Växla automatiskt läge - inaktiverat
   const toggleAutoMode = () => {
-    setAutoModeEnabled(prev => !prev);
+    // Funktion behålls för bakåtkompatibilitet men gör ingenting
+    console.log('Auto mode är inaktiverat i applikationen');
   };
   
   // Byt design/färgschema
@@ -127,12 +100,12 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children 
   const setFontFamily = setFont;
   
   // Skapa tema baserat på nuvarande inställningar
-  const [theme, setAppTheme] = useState<Theme>(getAppTheme(design, mode, fontFamily, customColors));
+  const [theme, setAppTheme] = useState<Theme>(getAppTheme(design, 'light', font, customColors));
   
-  // Uppdatera temat när inställningar ändras
+  // Uppdatera temat när inställningar ändras - alltid använd 'light' som mode
   useEffect(() => {
-    setAppTheme(getAppTheme(design, mode, fontFamily, customColors));
-  }, [design, mode, fontFamily, customColors]);
+    setAppTheme(getAppTheme(design, 'light', font, customColors));
+  }, [design, font, customColors]);
   
   // Fördefinierade färgprover för förhandsvisning
   const designPreviews = {
@@ -150,36 +123,26 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children 
     }
     return designPreviews.light; // Fallback
   };
-
-  // Funktion för att uppdatera en anpassad färg
-  const setCustomColor = (key: keyof CustomColors, value: string) => {
-    const updatedColors = { ...customColors, [key]: value };
-    setCustomColors(updatedColors);
-    
-    // Spara till localStorage
-    localStorage.setItem('themeCustomColors', JSON.stringify(updatedColors));
-    
-    // Uppdatera temat när färger ändras
-    setAppTheme(getAppTheme(design, mode, fontFamily, updatedColors));
-  };
   
   return (
-    <ThemeContext.Provider value={{ 
-      mode, 
-      toggleThemeMode, 
-      setMode, 
-      design, 
-      setDesign, 
-      fontFamily, 
-      setFontFamily, 
-      changeThemeDesign, 
-      customColors, 
-      autoModeEnabled,
-      toggleAutoMode,
-      theme,
-      setCustomColor,
-      getPreviewColors
-    }}>
+    <ThemeContext.Provider 
+      value={{
+        mode: 'light',
+        toggleThemeMode,
+        setMode,
+        design,
+        setDesign,
+        fontFamily: font,
+        setFontFamily,
+        changeThemeDesign,
+        customColors,
+        setCustomColor,
+        autoModeEnabled,
+        toggleAutoMode,
+        theme,
+        getPreviewColors
+      }}
+    >
       <MuiThemeProvider theme={theme}>
         {children}
       </MuiThemeProvider>

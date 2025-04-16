@@ -200,10 +200,8 @@ const CustomPickersDay = ({
   
   // Determine what tooltip to show
   let tooltipText = "Tillgängligt";
-  if (isFullyBooked) {
+  if (isFullyBooked || isBackToBack) {
     tooltipText = "Upptaget";
-  } else if (isBackToBack) {
-    tooltipText = "Utcheckning / Incheckning";
   } else if (isCheckout) {
     tooltipText = "Tillgänglig för incheckning";
   } else if (isCheckin) {
@@ -231,25 +229,15 @@ const CustomPickersDay = ({
         backgroundColor: 'primary.dark',
       },
     };
-  } else if (isFullyBooked) {
+  } else if (isFullyBooked || isBackToBack) {
     // Fully booked dates
     styles = {
       ...styles,
       backgroundColor: 'error.light',
       color: 'white',
       fontWeight: 'bold',
-      '&:hover': {
-        backgroundColor: 'error.main',
-        cursor: 'not-allowed'
-      },
-    };
-  } else if (isBackToBack) {
-    // Back-to-back dates (one booking ends, another starts)
-    styles = {
-      ...styles,
-      backgroundColor: 'error.light',
-      color: 'white',
-      fontWeight: 'bold',
+      cursor: 'not-allowed',
+      pointerEvents: 'none',
       '&:hover': {
         backgroundColor: 'error.main',
         cursor: 'not-allowed'
@@ -317,6 +305,7 @@ const CustomPickersDay = ({
             {...other}
             selected={isSelected}
             sx={styles}
+            disabled={isFullyBooked || isBackToBack}
           />
         </span>
       </Tooltip>
@@ -848,7 +837,11 @@ const BookingPage: React.FC = () => {
           padding: { xs: '10px', sm: '15px', md: '20px' },
           marginTop: '20px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          mx: 'auto' // Center the calendar
+          mx: 'auto', // Center the calendar
+          overflow: 'visible', // Ensure parent container doesn't cause scroll
+          '& *': {
+            overflowY: 'visible' // Apply to all children
+          }
         }}
       >
         <DateCalendar
@@ -872,20 +865,24 @@ const BookingPage: React.FC = () => {
           }}
           sx={{
             width: '100%',
+            overflow: 'visible',
             '& .MuiPickersCalendarHeader-root': {
               display: 'flex',
-              alignItems: 'center',
               justifyContent: 'space-between',
-              padding: { xs: '4px 8px', sm: theme.spacing(1) },
-              paddingBottom: 0,
-              marginLeft: '24px' // Space for week numbers
+              padding: { xs: '0 4px', sm: '0 8px', md: '0 12px' },
+              marginLeft: '24px', // Space for week numbers
+              marginTop: '4px',
+              marginBottom: '4px',
             },
             '& .MuiDayCalendar-weekContainer': {
               display: 'flex',
               justifyContent: 'space-between',
               margin: '4px 0',
               minHeight: { xs: '32px', sm: '36px', md: '40px' },
-              paddingLeft: '24px' // Space for week numbers
+              paddingLeft: '24px', // Space for week numbers
+              '&:last-child:empty, &:last-child > .MuiPickersDay-hiddenDay:only-child': {
+                display: 'none',
+              }
             },
             '& .MuiPickersDay-root': {
               width: { xs: '32px', sm: '36px', md: '40px' },
@@ -913,7 +910,26 @@ const BookingPage: React.FC = () => {
               height: 'auto',
               width: '100%',
               margin: '0',
-              padding: { xs: '0 0 16px 0', sm: '0 0 24px 0', md: '0 0 32px 0' }
+              padding: '0',
+              '& > div': {
+                overflow: 'visible'
+              },
+              '& [role="grid"]': {
+                marginBottom: '-1px', // Ta bort extra padding längst ner
+              }
+            },
+            '& .MuiDayCalendar-monthContainer': {
+              overflow: 'visible',
+              height: 'auto'
+            },
+            '& .MuiDayCalendar-slideTransition': {
+              overflow: 'visible',
+              height: 'auto',
+              minHeight: 'auto'
+            },
+            '& .PrivatePickersFadeTransitionGroup-root': {
+              overflow: 'visible',
+              height: 'auto'
             },
             '& .MuiPickersCalendarHeader-label': {
               textTransform: 'none',
@@ -925,10 +941,27 @@ const BookingPage: React.FC = () => {
                   textTransform: 'uppercase'
                 }
               }
+            },
+            // Dölj extra rader i månaden
+            '& .MuiPickersSlideTransition-root': {
+              minHeight: 'auto',
+              height: 'auto',
+              maxHeight: 'none',
+              overflow: 'visible'
+            },
+            // Ändra begränsning från hela dagar till bara tomma dagar
+            '& .MuiDayCalendar-root': {
+              overflow: 'visible',
+              '& > div:empty:last-child': {
+                display: 'none'
+              }
             }
           }}
           showDaysOutsideCurrentMonth={true}
+          displayWeekNumber={false}
+          reduceAnimations={true}
           fixedWeekNumber={6}
+          disableHighlightToday={false}
         />
       </Box>
     );

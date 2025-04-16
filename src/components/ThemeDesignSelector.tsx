@@ -17,9 +17,6 @@ import {
   CardContent
 } from '@mui/material';
 import { 
-  WbSunny, 
-  Brightness3, 
-  AccessTime, 
   TextFields 
 } from '@mui/icons-material';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
@@ -70,14 +67,10 @@ const ThemeDesignSelector: React.FC = () => {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   const { 
-    mode, 
     design, 
     fontFamily,
-    toggleThemeMode, 
     changeThemeDesign, 
-    setFontFamily,
-    autoModeEnabled, 
-    toggleAutoMode 
+    setFontFamily
   } = useTheme();
 
   // Tema alternativ
@@ -126,59 +119,6 @@ const ThemeDesignSelector: React.FC = () => {
       <Typography variant="h6" gutterBottom>
         Anpassa gränssnittet
       </Typography>
-      
-      <Box mt={3}>
-        <FormControl component="fieldset">
-          <FormLabel component="legend" sx={{ mb: 2 }}>Tema</FormLabel>
-          
-          {/* Auto-mode switch */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoModeEnabled}
-                onChange={toggleAutoMode}
-                color="primary"
-              />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <AccessTime sx={{ mr: 1, fontSize: 18 }} />
-                <span>Automatiskt läge (Ljust 06-18, Mörkt 18-06)</span>
-              </Box>
-            }
-            sx={{ mb: 1 }}
-          />
-          
-          {/* Manual mode switch (disabled when auto mode is on) */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={mode === 'dark'}
-                onChange={toggleThemeMode}
-                color="primary"
-                disabled={autoModeEnabled}
-              />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', opacity: autoModeEnabled ? 0.5 : 1 }}>
-                {mode === 'dark' ? (
-                  <>
-                    <Brightness3 sx={{ mr: 1, fontSize: 18 }} />
-                    <span>Mörkt läge</span>
-                  </>
-                ) : (
-                  <>
-                    <WbSunny sx={{ mr: 1, fontSize: 18 }} />
-                    <span>Ljust läge</span>
-                  </>
-                )}
-              </Box>
-            }
-          />
-        </FormControl>
-      </Box>
-      
-      <Divider sx={{ my: 3 }} />
       
       {/* Typsnittsväljare */}
       <Box mt={3} mb={3}>
