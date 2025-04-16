@@ -31,6 +31,7 @@ interface BookingStatusProps {
   defaultExpanded?: boolean;
   isCurrentOrFutureMonth?: boolean;
   isAdmin?: boolean;
+  isLoggedIn?: boolean;
   onEditClick?: (guest: GuestData) => void;
   onDeleteClick?: (guest: GuestData) => void;
 }
@@ -46,6 +47,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
   defaultExpanded = false,
   isCurrentOrFutureMonth = false,
   isAdmin = false,
+  isLoggedIn = false,
   onEditClick,
   onDeleteClick,
 }) => {
@@ -86,7 +88,10 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
               {sortedGuests.map((guest) => (
                 <BookingDetails
                   key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
-                  guest={guest}
+                  guest={{
+                    ...guest,
+                    name: isLoggedIn ? guest.name : 'Bokad'
+                  }}
                   isAdmin={isAdmin}
                   onEditClick={onEditClick}
                   onDeleteClick={onDeleteClick}
@@ -141,7 +146,10 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
           {sortedGuests.map((guest) => (
             <BookingDetails
               key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
-              guest={guest}
+              guest={{
+                ...guest,
+                name: isLoggedIn ? guest.name : 'Bokad'
+              }}
               isAdmin={isAdmin}
               onEditClick={onEditClick}
               onDeleteClick={onDeleteClick}

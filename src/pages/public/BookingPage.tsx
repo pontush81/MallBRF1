@@ -1421,6 +1421,7 @@ const BookingPage: React.FC = () => {
               defaultExpanded={false}
               isCurrentOrFutureMonth={isCurrentOrFutureMonth}
               isAdmin={isAdmin}
+              isLoggedIn={isLoggedIn}
               onEditClick={(guest) => {
                 // Hitta originalbokningen baserat på guest.id
                 const booking = bookings.find(b => b.id === guest.id);
