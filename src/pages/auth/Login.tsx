@@ -166,6 +166,22 @@ const Login: React.FC = () => {
             </Button>
           </Grid>
         </Grid>
+
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Button
+            variant="text"
+            onClick={() => navigate('/')}
+            sx={{ 
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                color: 'primary.main',
+              }
+            }}
+          >
+            Tillbaka till startsidan
+          </Button>
+        </Box>
       </Paper>
     </Container>
   );
