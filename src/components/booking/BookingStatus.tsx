@@ -129,36 +129,84 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                   </TableCell>
                   <TableCell align="right">
                     {(() => {
-                      const nights = differenceInDays(new Date(guest.departure), new Date(guest.arrival));
-                      let baseRate = 400;
-                      if (parseInt(guest.week.replace('v.', ''), 10) >= 24 && parseInt(guest.week.replace('v.', ''), 10) <= 32) {
-                        baseRate = [28, 29].includes(parseInt(guest.week.replace('v.', ''), 10)) ? 800 : 600;
+                      try {
+                        // Konvertera datum från svenska format till Date-objekt
+                        const arrivalParts = guest.arrival.split(' ');
+                        const departureParts = guest.departure.split(' ');
+                        
+                        // Extrahera numeriskt datum och månad
+                        const arrivalDay = parseInt(arrivalParts[1], 10);
+                        const departureDay = parseInt(departureParts[1], 10);
+                        
+                        // Skapa månadsnummer (0-11) baserat på svenska månadsnamn
+                        const getMonthNumber = (monthStr) => {
+                          const months = {
+                            'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'maj': 4, 'juni': 5,
+                            'juli': 6, 'aug': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
+                          };
+                          return months[monthStr.toLowerCase()] || 0;
+                        };
+                        
+                        const arrivalMonth = getMonthNumber(arrivalParts[2]);
+                        const departureMonth = getMonthNumber(departureParts[2]);
+                        
+                        // Antag nuvarande år om inte specificerat
+                        const currentYear = parseInt(year);
+                        
+                        // Skapa Date-objekt
+                        const arrivalDate = new Date(currentYear, arrivalMonth, arrivalDay);
+                        const departureDate = new Date(currentYear, departureMonth, departureDay);
+                        
+                        // Hantera årsskifte
+                        if (departureMonth < arrivalMonth) {
+                          departureDate.setFullYear(currentYear + 1);
+                        }
+                        
+                        // Beräkna nätter
+                        const nights = differenceInDays(departureDate, arrivalDate);
+                        
+                        // Beräkna pris baserat på vecka
+                        let baseRate = 400;
+                        const weekNumber = parseInt(guest.week.replace('v.', ''), 10);
+                        
+                        if (weekNumber >= 24 && weekNumber <= 32) {
+                          baseRate = [28, 29].includes(weekNumber) ? 800 : 600;
+                        }
+                        
+                        const baseAmount = nights * baseRate;
+                        const parkingAmount = guest.parking ? nights * 75 : 0;
+                        const totalAmount = baseAmount + parkingAmount;
+                        
+                        return (
+                          <Box>
+                            {guest.parking ? (
+                              <>
+                                <Typography variant="body2">
+                                  {nights} × {baseRate} kr = {baseAmount} kr
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                  + {parkingAmount} kr (P)
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                                  {totalAmount.toLocaleString()} kr
+                                </Typography>
+                              </>
+                            ) : (
+                              <>
+                                <Typography variant="body2">
+                                  {nights} × {baseRate} kr = {baseAmount} kr
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                  {totalAmount.toLocaleString()} kr
+                                </Typography>
+                              </>
+                            )}
+                          </Box>
+                        );
+                      } catch (error) {
+                        console.error('Error calculating totals:', error, guest);
+                        return <Typography color="error">Beräkningsfel</Typography>;
                       }
-                      const baseAmount = nights * baseRate;
-                      const parkingAmount = guest.parking ? nights * 75 : 0;
-                      const totalAmount = baseAmount + parkingAmount;
-                      
-                      return (
-                        <Box>
-                          {guest.parking ? (
-                            <>
-                              <Typography variant="body2">
-                                {nights} × {baseRate} kr = {baseAmount} kr
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                + {parkingAmount} kr (P)
-                              </Typography>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                                {totalAmount.toLocaleString()} kr
-                              </Typography>
-                            </>
-                          ) : (
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                              {totalAmount.toLocaleString()} kr
-                            </Typography>
-                          )}
-                        </Box>
-                      );
                     })()}
                   </TableCell>
                   <TableCell align="center">
