@@ -78,9 +78,7 @@ const BookingStatusPage: React.FC = () => {
     if (!booking.startDate || !booking.endDate) return 0;
     
     const startDate = new Date(booking.startDate);
-    const firstDayOfYear = new Date(startDate.getFullYear(), 0, 1);
-    const pastDaysOfYear = (startDate.getTime() - firstDayOfYear.getTime()) / 86400000;
-    const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    const week = isValid(startDate) ? getISOWeek(startDate) : 0;
     
     const nights = calculateNights(booking);
     let pricePerNight = 400; // Default low season price
