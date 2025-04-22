@@ -191,17 +191,21 @@ router.get('/hsb-form', async (req, res) => {
                              notesStr.match(/rum\s*(\d+|[a-zA-Z]+)/i) ||
                              null;
       
-      // Use the name as a fallback for apartment key
-      const apartmentKey = apartmentMatch ? apartmentMatch[1] : booking.name;
+      // Use the name as a fallback for apartment key - add unique booking ID to make entries separate
+      const apartmentKey = apartmentMatch 
+        ? `${apartmentMatch[1]}-${booking.id}` 
+        : `${booking.name}-${booking.id}`;
       
       if (!rentalsByApartment[apartmentKey]) {
         rentalsByApartment[apartmentKey] = {
           bookings: [],
-          totalAmount: 0
+          totalAmount: 0,
+          name: booking.name,
+          apartmentBase: apartmentMatch ? apartmentMatch[1] : booking.name
         };
       }
       
-      // Calculate revenue based on dates and parking
+      // Calculate revenue based on dates and parking - using exact same logic as the frontend
       try {
         const startDate = new Date(booking.startDate);
         const endDate = new Date(booking.endDate);
@@ -212,7 +216,8 @@ router.get('/hsb-form', async (req, res) => {
           return;
         }
         
-        const nights = Math.floor((endDate - startDate) / (86400000)); // MS in a day
+        // Use differenceInDays from date-fns like frontend does
+        const nights = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
         
         if (nights <= 0) {
           console.warn(`Invalid nights (${nights}) for booking ${booking.id}. Skipping revenue calculation.`);
@@ -220,23 +225,38 @@ router.get('/hsb-form', async (req, res) => {
           return;
         }
         
-        // Calculate nightly rate based on season
+        // Calculate nightly rate based on season using same logic as frontend
         let nightlyRate = 400; // Default low season rate
-        const weekNumber = getWeekNumber(startDate);
         
-        // High season: weeks 24-32, with peak in weeks 27-29
+        // Get the ISO week number like frontend does
+        const date = new Date(startDate);
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+        const week1 = new Date(date.getFullYear(), 0, 4);
+        const weekNumber = 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+        
+        console.log(`Booking ${booking.id} week number: ${weekNumber}`);
+        
+        // High season: weeks 24-32, with peak in weeks 28-29 (same as frontend)
         if (weekNumber >= 24 && weekNumber <= 32) {
-          nightlyRate = (weekNumber >= 27 && weekNumber <= 29) ? 800 : 600;
+          nightlyRate = (weekNumber >= 28 && weekNumber <= 29) ? 800 : 600;
         }
         
         const roomAmount = nights * nightlyRate;
         const parkingAmount = booking.parking ? nights * 75 : 0;
         const totalAmount = roomAmount + parkingAmount;
         
-        console.log(`Booking ${booking.id} (${apartmentKey}): ${nights} nights, total ${totalAmount} kr`);
+        console.log(`Booking ${booking.id} (${booking.name}): ${nights} nights at ${nightlyRate} kr/night, parking: ${parkingAmount} kr, total ${totalAmount} kr`);
         
         rentalsByApartment[apartmentKey].bookings.push(booking);
-        rentalsByApartment[apartmentKey].totalAmount += totalAmount;
+        rentalsByApartment[apartmentKey].totalAmount = totalAmount; // Set directly, not adding
+        rentalsByApartment[apartmentKey].nights = nights;
+        rentalsByApartment[apartmentKey].startDate = startDate;
+        rentalsByApartment[apartmentKey].endDate = endDate;
+        rentalsByApartment[apartmentKey].roomAmount = roomAmount;
+        rentalsByApartment[apartmentKey].parkingAmount = parkingAmount;
+        rentalsByApartment[apartmentKey].nightlyRate = nightlyRate;
+        rentalsByApartment[apartmentKey].weekNumber = weekNumber;
       } catch (err) {
         console.error(`Error calculating revenue for booking ${booking.id}:`, err);
         rentalsByApartment[apartmentKey].bookings.push(booking);
@@ -255,15 +275,6 @@ router.get('/hsb-form', async (req, res) => {
       }
     }
     
-    // Helper function to get week number
-    function getWeekNumber(d) {
-      const date = new Date(d);
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-      const week1 = new Date(date.getFullYear(), 0, 4);
-      return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-    }
-    
     // Check if we have any entries from real data
     const apartmentEntries = Object.entries(rentalsByApartment).map(([apartmentKey, data]) => {
       if (!data.bookings.length) return null;
@@ -272,22 +283,16 @@ router.get('/hsb-form', async (req, res) => {
       let dateRange = "Uthyrning";
       
       try {
-        if (data.bookings.length > 1) {
-          const firstDate = formatSwedishDate(data.bookings[0].startDate);
-          const lastDate = formatSwedishDate(data.bookings[data.bookings.length-1].endDate);
-          dateRange = `Uthyrning ${firstDate} - ${lastDate}`;
-        } else {
-          const startDate = formatSwedishDate(firstBooking.startDate);
-          const endDate = formatSwedishDate(firstBooking.endDate);
-          dateRange = `Uthyrning ${startDate} - ${endDate}`;
-        }
+        const startDate = formatSwedishDate(data.startDate);
+        const endDate = formatSwedishDate(data.endDate);
+        dateRange = `Uthyrning ${startDate} - ${endDate}`;
       } catch (err) {
         console.warn(`Error formatting dates for apartment ${apartmentKey}:`, err);
       }
       
       return {
-        apartment: apartmentKey,
-        name: firstBooking.name,
+        apartment: data.apartmentBase,
+        name: data.name,
         description: dateRange,
         quantity: 1,
         unitPrice: data.totalAmount.toFixed(2),
