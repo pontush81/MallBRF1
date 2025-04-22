@@ -15,11 +15,16 @@ import {
   TableHead,
   TableRow,
   Grid,
+  Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import BookingDetails from './BookingDetails';
 import { BookingSummary, GuestData } from '../../types/Booking';
 import { formatCurrency, getPlural } from '../../utils/formatting';
+import { differenceInDays } from 'date-fns';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 interface BookingStatusProps {
   month: string;
@@ -74,7 +79,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
       <>
         <TableContainer>
           <Table size="small">
-            <TableHead>
+            <TableHead sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
               <TableRow>
                 <TableCell>Namn</TableCell>
                 <TableCell>Ankomst</TableCell>
@@ -82,22 +87,113 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                 <TableCell align="center">Vecka</TableCell>
                 <TableCell align="center">Parkering</TableCell>
                 <TableCell>Anteckningar</TableCell>
-                {isAdmin && <TableCell align="center">Åtgärder</TableCell>}
+                <TableCell align="right">Dygnspris</TableCell>
+                <TableCell align="right">Totalt</TableCell>
+                <TableCell align="center">Åtgärder</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {sortedGuests.map((guest) => (
-                <BookingDetails
-                  key={`${guest.name}-${guest.arrival}-${guest.id || ''}`}
-                  guest={{
-                    ...guest,
-                    name: isLoggedIn ? guest.name : 'Bokad'
-                  }}
-                  isAdmin={isAdmin}
-                  onEditClick={onEditClick}
-                  onDeleteClick={onDeleteClick}
-                  isLoggedIn={isLoggedIn}
-                />
+                <TableRow key={`${guest.name}-${guest.arrival}`}>
+                  <TableCell>{guest.name}</TableCell>
+                  <TableCell>{guest.arrival}</TableCell>
+                  <TableCell>{guest.departure}</TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      size="small" 
+                      label={`v.${guest.week.replace('v.', '')}`} 
+                      sx={{ 
+                        backgroundColor: guest.parking ? 'success.main' : 'default',
+                        minWidth: "50px"
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    {guest.parking ? 'Parkerad' : 'Ej parkerad'}
+                  </TableCell>
+                  <TableCell>
+                    {guest.notes && (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        {guest.notes}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    {(() => {
+                      let baseRate = 400;
+                      if (parseInt(guest.week.replace('v.', ''), 10) >= 24 && parseInt(guest.week.replace('v.', ''), 10) <= 32) {
+                        baseRate = [28, 29].includes(parseInt(guest.week.replace('v.', ''), 10)) ? 800 : 600;
+                      }
+                      return `${baseRate} kr`;
+                    })()}
+                  </TableCell>
+                  <TableCell align="right">
+                    {(() => {
+                      const nights = differenceInDays(new Date(guest.departure), new Date(guest.arrival));
+                      let baseRate = 400;
+                      if (parseInt(guest.week.replace('v.', ''), 10) >= 24 && parseInt(guest.week.replace('v.', ''), 10) <= 32) {
+                        baseRate = [28, 29].includes(parseInt(guest.week.replace('v.', ''), 10)) ? 800 : 600;
+                      }
+                      const baseAmount = nights * baseRate;
+                      const parkingAmount = guest.parking ? nights * 75 : 0;
+                      const totalAmount = baseAmount + parkingAmount;
+                      
+                      return (
+                        <Box>
+                          {guest.parking ? (
+                            <>
+                              <Typography variant="body2">
+                                {nights} × {baseRate} kr = {baseAmount} kr
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                + {parkingAmount} kr (P)
+                              </Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                                {totalAmount.toLocaleString()} kr
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                              {totalAmount.toLocaleString()} kr
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell align="center">
+                    {isAdmin && (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                        {onEditClick && (
+                          <Tooltip title="Redigera bokning">
+                            <span>
+                              <IconButton 
+                                size="small" 
+                                color="primary" 
+                                onClick={() => onEditClick(guest)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                        {onDeleteClick && (
+                          <Tooltip title="Radera bokning">
+                            <span>
+                              <IconButton 
+                                size="small" 
+                                color="error" 
+                                onClick={() => onDeleteClick(guest)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    )}
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>

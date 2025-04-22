@@ -1109,7 +1109,7 @@ const BookingPage: React.FC = () => {
                     lineHeight: { xs: 1.2, sm: 1.4 }
                   }}
                 >
-                  Tennisveckor (v. 27-29)
+                  Tennisveckor (v. 28-29)
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ color: 'error.main', fontWeight: 'bold', mt: 'auto' }}>
@@ -1238,7 +1238,7 @@ const BookingPage: React.FC = () => {
         
         let nightlyRate = 400;
         if (weekNumber >= 24 && weekNumber <= 32) {
-          nightlyRate = weekNumber >= 27 && weekNumber <= 29 ? 800 : 600;
+          nightlyRate = weekNumber >= 28 && weekNumber <= 29 ? 800 : 600;
         }
         
         return sum + (nights * nightlyRate);
@@ -1419,7 +1419,7 @@ const BookingPage: React.FC = () => {
             
             let nightlyRate = 400;
             if (weekNumber >= 24 && weekNumber <= 32) {
-              nightlyRate = weekNumber >= 27 && weekNumber <= 29 ? 800 : 600;
+              nightlyRate = weekNumber >= 28 && weekNumber <= 29 ? 800 : 600;
             }
             
             const parkingFee = booking.parking ? nights * 75 : 0;
