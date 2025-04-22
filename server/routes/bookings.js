@@ -174,7 +174,7 @@ router.get('/hsb-form', async (req, res) => {
       startDate: booking.startdate,
       endDate: booking.enddate,
       notes: booking.notes || '',
-      parking: booking.parkering
+      parking: booking.parkering === true || booking.parkering === 'true' || booking.parkering === 1
     }));
 
     console.log(`Using all ${transformedBookings.length} bookings for HSB form generation`);
@@ -243,10 +243,11 @@ router.get('/hsb-form', async (req, res) => {
         }
         
         const roomAmount = nights * nightlyRate;
-        const parkingAmount = booking.parking ? nights * 75 : 0;
+        // Endast beräkna parkeringsavgift om parking är true (använd samma logik som i transformBookingData)
+        const parkingAmount = (booking.parking === true) ? nights * 75 : 0;
         const totalAmount = roomAmount + parkingAmount;
         
-        console.log(`Booking ${booking.id} (${booking.name}): ${nights} nights at ${nightlyRate} kr/night, parking: ${parkingAmount} kr, total ${totalAmount} kr`);
+        console.log(`Booking ${booking.id} (${booking.name}): ${nights} nights at ${nightlyRate} kr/night, parking: ${booking.parking === true ? 'Ja' : 'Nej'} (${parkingAmount} kr), total ${totalAmount} kr`);
         
         rentalsByApartment[apartmentKey].bookings.push(booking);
         rentalsByApartment[apartmentKey].totalAmount = totalAmount; // Set directly, not adding
