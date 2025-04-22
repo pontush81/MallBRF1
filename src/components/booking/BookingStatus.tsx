@@ -140,11 +140,13 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                         
                         // Skapa månadsnummer (0-11) baserat på svenska månadsnamn
                         const getMonthNumber = (monthStr) => {
+                          // Ta bort eventuella punkter från månadsnamnet
+                          const cleanMonthStr = monthStr.replace(/\./g, '').toLowerCase();
                           const months = {
                             'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'maj': 4, 'juni': 5,
                             'juli': 6, 'aug': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
                           };
-                          return months[monthStr.toLowerCase()] || 0;
+                          return months[cleanMonthStr] || 0;
                         };
                         
                         const arrivalMonth = getMonthNumber(arrivalParts[2]);

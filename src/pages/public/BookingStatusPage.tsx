@@ -86,7 +86,7 @@ const BookingStatusPage: React.FC = () => {
     let pricePerNight = 400; // Default low season price
     
     if (week >= 24 && week <= 32) {
-      if ([27, 28, 29].includes(week)) {
+      if ([28, 29].includes(week)) {
         pricePerNight = 800; // Tennis weeks
       } else {
         pricePerNight = 600; // High season
