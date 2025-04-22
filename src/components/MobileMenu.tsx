@@ -242,8 +242,9 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       variant="temporary"
       ModalProps={{
         keepMounted: true,
-        disableScrollLock: true,
-        hideBackdrop: false
+        disableScrollLock: false,
+        hideBackdrop: false,
+        onBackdropClick: onClose
       }}
       sx={{
         '& .MuiDrawer-paper': { 
@@ -251,6 +252,9 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           height: '100%',
           boxSizing: 'border-box',
           borderRight: 'none'
+        },
+        '& .MuiBackdrop-root': {
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
         }
       }}
     >
