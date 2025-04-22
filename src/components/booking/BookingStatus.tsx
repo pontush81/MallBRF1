@@ -25,6 +25,7 @@ import { BookingSummary, GuestData } from '../../types/Booking';
 import { formatCurrency, getPlural } from '../../utils/formatting';
 import { differenceInDays } from 'date-fns';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import ParkingChip from '../common/ParkingChip';
 
 interface BookingStatusProps {
   month: string;
@@ -109,7 +110,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                     />
                   </TableCell>
                   <TableCell align="center">
-                    {guest.parking ? 'Parkerad' : 'Ej parkerad'}
+                    <ParkingChip hasParking={guest.parking} />
                   </TableCell>
                   <TableCell>
                     {guest.notes && (
