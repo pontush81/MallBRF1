@@ -419,6 +419,9 @@ const BookingPage: React.FC = () => {
   // FullCalendar-komponenten
   const calendarRef = useRef<any>(null);
 
+  // Multi-month calendar state
+  const [currentMonthOffset, setCurrentMonthOffset] = useState(0);
+
   // Flytta hooks till komponentnivån
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -920,32 +923,68 @@ const BookingPage: React.FC = () => {
     );
   };
 
-  // Rendera kalendern med maxbredd för desktop
-  const renderCalendarWithMaxWidth = () => {
+  // Generate multiple months for display
+  const generateMonthsToShow = () => {
+    const months = [];
+    const today = new Date();
+    const monthsToShow = isMobile ? 2 : 3; // 2 months on mobile, 3 on desktop
+    
+    for (let i = 0; i < monthsToShow; i++) {
+      const monthDate = new Date(today.getFullYear(), today.getMonth() + currentMonthOffset + i, 1);
+      months.push(monthDate);
+    }
+    
+    return months;
+  };
+
+  // Navigate months
+  const navigateMonths = (direction: 'prev' | 'next') => {
+    const step = isMobile ? 1 : 2; // Navigate by 1 month on mobile, 2 on desktop
+    setCurrentMonthOffset(prev => 
+      direction === 'next' ? prev + step : prev - step
+    );
+  };
+
+  // Render individual month calendar
+  const renderSingleMonth = (monthDate: Date, index: number) => {
+    const isLastMonth = index === generateMonthsToShow().length - 1;
+    
     return (
       <Box
+        key={`${monthDate.getFullYear()}-${monthDate.getMonth()}`}
         sx={{
-          width: '100%',
-          maxWidth: { xs: '100%', sm: '100%', md: '600px', lg: '650px' },
+          flex: { xs: '0 0 auto', md: '0 0 calc(50% - 8px)', lg: '0 0 calc(33.333% - 12px)' },
+          width: { xs: '100%', md: 'auto' },
           backgroundColor: 'background.paper',
-          borderRadius: { xs: '4px', sm: '8px' },
-          padding: { xs: '10px', sm: '15px', md: '20px' },
-          marginTop: '20px',
+          borderRadius: '8px',
+          padding: { xs: '12px', sm: '16px' },
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          mx: 'auto', // Center the calendar
-          overflow: 'visible', // Ensure parent container doesn't cause scroll
-          '& *': {
-            overflowY: 'visible' // Apply to all children
+          position: 'relative',
+          // Subtle month separator
+          '&:not(:last-child)': {
+            marginRight: { xs: 0, md: '16px', lg: '18px' },
+            marginBottom: { xs: '16px', md: 0 },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: { xs: 'auto', md: '20%' },
+              right: { xs: 'auto', md: '-8px', lg: '-9px' },
+              bottom: { xs: '-8px', md: 'auto' },
+              left: { xs: '20%', md: 'auto' },
+              width: { xs: '60%', md: '1px' },
+              height: { xs: '1px', md: '60%' },
+              background: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.1) 50%, transparent 100%)',
+              display: isLastMonth ? 'none' : 'block',
+            }
           }
         }}
       >
         <DateCalendar
-          value={startDate}
+          value={monthDate} // Use month date to control which month is shown
           onChange={(newValue) => {
             if (newValue) {
-              // Create a new date object to avoid timezone issues
               const date = new Date(newValue);
-              date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+              date.setHours(12, 0, 0, 0);
               updateDateRange(date);
             }
           }}
@@ -958,98 +997,44 @@ const BookingPage: React.FC = () => {
               />
             )
           }}
+          views={['day']}
+          openTo="day"
           sx={{
             width: '100%',
-            overflow: 'visible',
-            '& .MuiPickersCalendarHeader-root': {
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: { xs: '0 4px', sm: '0 8px', md: '0 12px' },
-              marginLeft: '24px', // Space for week numbers
-              marginTop: '4px',
-              marginBottom: '4px',
-            },
-            '& .MuiDayCalendar-weekContainer': {
-              display: 'flex',
-              justifyContent: 'space-between',
-              margin: '4px 0',
-              minHeight: { xs: '32px', sm: '36px', md: '40px' },
-              paddingLeft: '24px', // Space for week numbers
-              '&:last-child:empty, &:last-child > .MuiPickersDay-hiddenDay:only-child': {
-                display: 'none',
-              }
-            },
-            '& .MuiPickersDay-root': {
-              width: { xs: '32px', sm: '36px', md: '40px' },
-              height: { xs: '32px', sm: '36px', md: '40px' },
-              fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.875rem' },
-              margin: '0',
-              padding: '0'
-            },
-            '& .MuiDayCalendar-weekDayLabel': {
-              width: { xs: '32px', sm: '36px', md: '40px' },
-              height: { xs: '28px', sm: '30px', md: '32px' },
-              fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
-              fontWeight: 'bold',
-              margin: '0',
-              padding: '0'
-            },
-            '& .MuiDayCalendar-header': {
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: { xs: '0 4px', sm: '0 8px', md: '0 12px' },
-              marginLeft: '24px' // Space for week numbers
-            },
+            margin: '0',
+            padding: '0',
             '& .MuiDateCalendar-root': {
               maxHeight: 'none',
               height: 'auto',
               width: '100%',
               margin: '0',
               padding: '0',
-              '& > div': {
-                overflow: 'visible'
-              },
-              '& [role="grid"]': {
-                marginBottom: '-1px', // Ta bort extra padding längst ner
-              }
             },
-            '& .MuiDayCalendar-monthContainer': {
-              overflow: 'visible',
-              height: 'auto'
-            },
-            '& .MuiDayCalendar-slideTransition': {
-              overflow: 'visible',
-              height: 'auto',
-              minHeight: 'auto'
-            },
-            '& .PrivatePickersFadeTransitionGroup-root': {
-              overflow: 'visible',
-              height: 'auto'
+            '& .MuiPickersCalendarHeader-root': {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              marginBottom: '8px',
             },
             '& .MuiPickersCalendarHeader-label': {
               textTransform: 'none',
-              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
-              fontWeight: 'bold',
+              fontSize: { xs: '0.95rem', sm: '1.05rem' },
+              fontWeight: '600',
               color: 'primary.dark',
-              '&.MuiTypography-root': {
-                '&::first-letter': {
-                  textTransform: 'uppercase'
-                }
+              '&::first-letter': {
+                textTransform: 'uppercase'
               }
             },
-            // Dölj extra rader i månaden
-            '& .MuiPickersSlideTransition-root': {
-              minHeight: 'auto',
-              height: 'auto',
-              maxHeight: 'none',
-              overflow: 'visible'
+            // Hide navigation arrows on individual month calendars
+            '& .MuiPickersArrowSwitcher-root': {
+              display: 'none',
             },
-            // Ändra begränsning från hela dagar till bara tomma dagar
             '& .MuiDayCalendar-root': {
               overflow: 'visible',
-              '& > div:empty:last-child': {
-                display: 'none'
-              }
+            },
+            '& .MuiPickersDay-root': {
+              fontSize: { xs: '0.8rem', sm: '0.85rem' },
+              width: { xs: '28px', sm: '32px' },
+              height: { xs: '28px', sm: '32px' },
             }
           }}
           showDaysOutsideCurrentMonth={true}
@@ -1058,6 +1043,95 @@ const BookingPage: React.FC = () => {
           fixedWeekNumber={6}
           disableHighlightToday={false}
         />
+      </Box>
+    );
+  };
+
+  // Rendera multi-month kalendern med navigation
+  const renderCalendarWithMaxWidth = () => {
+    const monthsToShow = generateMonthsToShow();
+    
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: { xs: '100%', sm: '100%', md: '900px', lg: '1000px' },
+          marginTop: '20px',
+          mx: 'auto',
+        }}
+      >
+        {/* Navigation Header */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px',
+            padding: '0 8px',
+          }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigateMonths('prev')}
+            sx={{
+              minWidth: '40px',
+              borderRadius: '50%',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              '&:hover': {
+                backgroundColor: 'primary.lighter',
+              }
+            }}
+          >
+            ‹
+          </Button>
+          
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: '600',
+              color: 'primary.dark',
+              fontSize: { xs: '1rem', sm: '1.1rem' },
+              textAlign: 'center',
+            }}
+          >
+            {monthsToShow.length > 1 
+              ? `${monthsToShow[0].toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })} - ${monthsToShow[monthsToShow.length - 1].toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })}`
+              : monthsToShow[0]?.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })
+            }
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigateMonths('next')}
+            sx={{
+              minWidth: '40px',
+              borderRadius: '50%',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              '&:hover': {
+                backgroundColor: 'primary.lighter',
+              }
+            }}
+          >
+            ›
+          </Button>
+        </Box>
+
+        {/* Multi-Month Layout */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: { xs: '0', md: '0' }, // Gap handled by margin in individual months
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+          }}
+        >
+          {monthsToShow.map((monthDate, index) => renderSingleMonth(monthDate, index))}
+        </Box>
       </Box>
     );
   };
