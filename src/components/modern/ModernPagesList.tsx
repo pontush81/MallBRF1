@@ -70,6 +70,8 @@ const SearchField = styled(TextField)(({ theme }) => ({
 
 const PageCard = styled(ModernCard)(({ theme }) => ({
   height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
   transition: modernTheme.transitions.normal,
   cursor: 'pointer',
   border: `1px solid ${modernTheme.colors.gray[200]}`,
@@ -193,17 +195,6 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
       <HeroSection>
         <Container maxWidth="md">
           <Typography
-            variant="h3"
-            sx={{
-              fontSize: modernTheme.typography.fontSize['2xl'],
-              fontWeight: modernTheme.typography.fontWeight.bold,
-              marginBottom: modernTheme.spacing[2],
-              color: modernTheme.colors.primary[800],
-            }}
-          >
-            Gulmaran Information
-          </Typography>
-          <Typography
             variant="body1"
             sx={{
               fontSize: modernTheme.typography.fontSize.base,
@@ -306,10 +297,10 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             {/* Conditional rendering based on view mode */}
             {viewMode === 'cards' ? (
               // Card view - current layout
-              <Grid container spacing={modernTheme.spacing[4]}>
+              <Grid container spacing={modernTheme.spacing[4]} sx={{ alignItems: 'stretch' }}>
                               {filteredPages.map((page) => {
                 return (
-                    <Grid item xs={12} md={6} key={page.id}>
+                    <Grid item xs={12} md={6} key={page.id} sx={{ display: 'flex' }}>
                       <Box
                         tabIndex={0}
                         role="button"
@@ -321,9 +312,20 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                             toggleCardExpansion(page.id);
                           }
                         }}
+                        sx={{ 
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}
                       >
                         <PageCard>
-                          <CardContent sx={{ padding: modernTheme.spacing[5] }}>
+                          <CardContent sx={{ 
+                            padding: modernTheme.spacing[5],
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: '100%'
+                          }}>
                             {/* NYTT badge */}
                             {isRecentlyUpdated(page.updatedAt) && (
                               <Box sx={{ 
@@ -411,6 +413,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                               alignItems: 'center',
                               paddingTop: modernTheme.spacing[3],
                               borderTop: `1px solid ${modernTheme.colors.gray[100]}`,
+                              marginTop: 'auto',
                             }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: modernTheme.spacing[1] }}>
                                 <AccessTimeOutlined sx={{ 
