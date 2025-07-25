@@ -72,6 +72,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import * as dateFns from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
+import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
@@ -453,10 +454,12 @@ const BookingPage: React.FC = () => {
   const [backupError, setBackupError] = useState<string | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
-  // Hämta befintliga bokningar när komponenten laddas
+  // Hämta befintliga bokningar när komponenten laddas (optimerat med cache)
   const fetchBookings = async () => {
     try {
       setLoadingBookings(true);
+      
+      // Använd cachade data för snabbare laddning
       const bookings = await bookingService.getAllBookings();
       
       if (!bookings || bookings.length === 0) {
@@ -466,30 +469,10 @@ const BookingPage: React.FC = () => {
         return;
       }
       
-      // Standardize booking date fields and ensure we handle UTC dates consistently
-      const normalizedBookings = bookings.map(booking => {
-        // Get start and end dates with consistent naming
-        const startDate = booking.startDate || booking.startdate;
-        const endDate = booking.endDate || booking.enddate;
-        
-        // Ensure dates are in proper ISO format for consistent handling
-        const normalizedStartDate = startDate ? new Date(startDate) : null;
-        const normalizedEndDate = endDate ? new Date(endDate) : null;
-        
-        // Set to midnight UTC if valid dates
-        if (normalizedStartDate) normalizedStartDate.setUTCHours(0, 0, 0, 0);
-        if (normalizedEndDate) normalizedEndDate.setUTCHours(0, 0, 0, 0);
-        
-        return {
-          ...booking,
-          startDate: normalizedStartDate ? normalizedStartDate.toISOString() : startDate,
-          endDate: normalizedEndDate ? normalizedEndDate.toISOString() : endDate,
-        };
-      });
+      // Data är redan normaliserad i service-lagret, inget behov av extra processing
+      setExistingBookings(bookings);
       
-      setExistingBookings(normalizedBookings);
-      
-      const events = normalizedBookings
+      const events = bookings
         .map(booking => {
           try {
             if (!booking.startDate || !booking.endDate) {
@@ -1878,24 +1861,9 @@ const BookingPage: React.FC = () => {
 
           <Grid container spacing={4}>
             <Grid item xs={12}>
-              {loadingBookings && (
-                <Alert severity="info" icon={<CircularProgress size={24} />} 
-                  sx={{ 
-                    backgroundColor: 'info.lighter',
-                    border: '1px solid',
-                    borderColor: 'info.light',
-                    borderRadius: 2
-                  }}
-                >
-                  Laddar tillgänglighet...
-                </Alert>
-              )}
-            </Grid>
-            
-            <Grid item xs={12}>
               {loadingBookings ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                  <CircularProgress />
+                <Box sx={{ mb: 4 }}>
+                  <BookingSkeleton variant="calendar" count={5} />
                 </Box>
               ) : (
                 <>

@@ -68,7 +68,7 @@ const DashboardHome: React.FC = () => {
       const published = pages.filter(p => p.isPublished).length;
       const drafts = pages.length - published;
       
-      // Hämta bokningsstatistik
+      // Hämta bokningsstatistik (använd cache för snabbare laddning)
       const bookings = await bookingService.getAllBookings();
       const pending = bookings.filter(b => b.status === 'pending').length;
       const confirmed = bookings.filter(b => b.status === 'confirmed').length;

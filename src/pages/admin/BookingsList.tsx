@@ -50,6 +50,7 @@ import { Booking } from '../../types/Booking';
 import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
+import BookingSkeleton from '../../components/common/BookingSkeleton';
 import { API_BASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -109,12 +110,13 @@ const BookingsList: React.FC = () => {
     fetchBookings();
   }, []);
 
-  // Hämta bokningar från API
+  // Hämta bokningar från API (optimerat med cache)
   const fetchBookings = async () => {
     setLoading(true);
     setError(null);
     
     try {
+      // Använd cache för snabbare laddning
       const fetchedBookings = await bookingService.getAllBookings();
       setBookings(fetchedBookings);
       setFilteredBookings(fetchedBookings);
@@ -881,8 +883,8 @@ const BookingsList: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
+      <Box sx={{ mt: 4 }}>
+        <BookingSkeleton variant="list" count={6} />
       </Box>
     );
   }

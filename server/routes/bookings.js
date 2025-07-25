@@ -100,17 +100,47 @@ const transformBookingDataForDB = (booking) => {
   };
 };
 
-// Hämta alla bokningar
+// Hämta alla bokningar med optimerade queries
 router.get('/', async (req, res) => {
   try {
-    console.log('Attempting to fetch all bookings...');
+    console.log('Attempting to fetch bookings with filters...');
+    const { startDate, endDate, limit } = req.query;
+    
+    console.log('Query params:', { startDate, endDate, limit });
     console.log('Supabase URL:', process.env.SUPABASE_URL);
     console.log('Supabase Service Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
     
-    const { data: bookings, error } = await supabase
+    let query = supabase
       .from('bookings')
-      .select('*')
-      .order('createdat', { ascending: false });
+      .select('*');
+    
+    // Lägg till datum-filtrering om specificerat
+    if (startDate && endDate) {
+      console.log(`Filtering bookings between ${startDate} and ${endDate}`);
+      // Använd overlapp-logik: bokningar som överlappar med det begärda intervallet
+      query = query
+        .or(`and(startdate.lte.${endDate},enddate.gte.${startDate})`);
+    } else if (startDate) {
+      // Bara startdatum - hitta bokningar från detta datum framåt
+      console.log(`Filtering bookings from ${startDate} onwards`);
+      query = query.gte('enddate', startDate);
+    } else if (endDate) {
+      // Bara slutdatum - hitta bokningar till detta datum
+      console.log(`Filtering bookings until ${endDate}`);
+      query = query.lte('startdate', endDate);
+    }
+    
+    // Lägg till sortering (alltid visa senaste först som standard)
+    query = query.order('createdat', { ascending: false });
+    
+    // Lägg till limit om specificerat
+    if (limit && !isNaN(parseInt(limit))) {
+      const limitNum = parseInt(limit);
+      console.log(`Limiting results to ${limitNum} bookings`);
+      query = query.limit(limitNum);
+    }
+
+    const { data: bookings, error } = await query;
 
     if (error) {
       console.error('Supabase error:', {
@@ -124,6 +154,9 @@ router.get('/', async (req, res) => {
 
     console.log(`Successfully fetched ${bookings.length} bookings`);
     const transformedBookings = bookings.map(transformBookingData);
+    
+    // Lägg till cache headers för optimering
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
     res.json(transformedBookings);
   } catch (error) {
     console.error('Error fetching bookings:', {

@@ -87,7 +87,7 @@ const AdminMenu: React.FC = () => {
 
   const fetchBookingStats = async () => {
     try {
-      // Hämta bokningsstatistik
+      // Hämta bokningsstatistik (använd cache för snabbare laddning)
       const bookings = await bookingService.getAllBookings();
       
       // Räkna bokningar per år
