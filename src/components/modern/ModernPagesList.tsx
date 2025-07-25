@@ -94,7 +94,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [expandedCards, setExpandedCards] = useState<string[]>([]);
 
   // Simple search functionality - no complex filtering needed for 10 documents
   const filteredPages = useMemo(() => {
@@ -107,7 +107,11 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
   }, [pages, searchTerm]);
 
   const toggleCardExpansion = (pageId: string) => {
-    setExpandedCard(expandedCard === pageId ? null : pageId);
+    setExpandedCards(prev => 
+      prev.includes(pageId) 
+        ? prev.filter(id => id !== pageId)  // Remove if already expanded
+        : [...prev, pageId]                 // Add if not expanded
+    );
   };
 
   // Custom link component for ReactMarkdown to handle internal routing
@@ -309,7 +313,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                       <Box
                         tabIndex={0}
                         role="button"
-                        aria-label={`${expandedCard === page.id ? 'Kollaps' : 'Expandera'} ${page.title}`}
+                                                  aria-label={`${expandedCards.includes(page.id) ? 'Kollaps' : 'Expandera'} ${page.title}`}
                         onClick={() => toggleCardExpansion(page.id)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
@@ -354,8 +358,8 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                               {page.title}
                             </Typography>
 
-                            {/* Content preview or full content */}
-                            {expandedCard === page.id ? (
+                                                          {/* Content preview or full content */}
+                              {expandedCards.includes(page.id) ? (
                               <Box
                                 sx={{
                                   color: modernTheme.colors.gray[700],
@@ -441,9 +445,9 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                                     fontWeight: modernTheme.typography.fontWeight.medium,
                                   }}
                                 >
-                                  {expandedCard === page.id ? 'Kollaps' : 'Läs mer'}
+                                  {expandedCards.includes(page.id) ? 'Kollaps' : 'Läs mer'}
                                 </Typography>
-                                {expandedCard === page.id ? (
+                                {expandedCards.includes(page.id) ? (
                                   <ExpandLess sx={{ fontSize: modernTheme.typography.fontSize.sm }} />
                                 ) : (
                                   <ExpandMore sx={{ fontSize: modernTheme.typography.fontSize.sm }} />
