@@ -23,10 +23,8 @@ import {
   Menu as MenuIcon,
   Close as CloseIcon,
   Home as HomeIcon,
-  Article as ArticleIcon,
   BookOnline as BookIcon,
   AdminPanelSettings as AdminIcon,
-
   Logout as LogoutIcon,
   Login as LoginIcon,
 } from '@mui/icons-material';
@@ -49,11 +47,6 @@ const ModernHeader: React.FC = () => {
       label: 'Hem',
       path: '/',
       icon: <HomeIcon />,
-    },
-    {
-      label: 'Sidor',
-      path: '/pages',
-      icon: <ArticleIcon />,
     },
     {
       label: 'Boka',
@@ -598,14 +591,31 @@ const ModernHeader: React.FC = () => {
               edge="end"
               onClick={handleDrawerToggle}
               sx={{
-                color: modernTheme.colors.white,
+                color: modernTheme.colors.primary[700],
+                backgroundColor: modernTheme.colors.white,
+                border: `2px solid ${modernTheme.colors.primary[200]}`,
+                borderRadius: modernTheme.borderRadius.lg,
+                padding: modernTheme.spacing[2],
+                marginRight: modernTheme.spacing[2],
+                boxShadow: modernTheme.shadows.sm,
+                transition: modernTheme.transitions.normal,
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.primary[50],
+                  borderColor: modernTheme.colors.primary[300],
+                  boxShadow: modernTheme.shadows.md,
+                  transform: 'scale(1.05)',
+                },
                 '&:focus': {
-                  outline: `2px solid ${modernTheme.colors.white}40`,
+                  outline: `2px solid ${modernTheme.colors.primary[400]}`,
                   outlineOffset: '2px',
+                  backgroundColor: modernTheme.colors.primary[50],
+                },
+                '&:active': {
+                  transform: 'scale(0.98)',
                 },
               }}
             >
-              <MenuIcon />
+              <MenuIcon sx={{ fontSize: '1.2rem' }} />
             </IconButton>
           )}
         </Toolbar>
