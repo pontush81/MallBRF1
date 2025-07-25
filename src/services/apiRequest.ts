@@ -17,9 +17,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       throw new Error('Ingen inloggad användare');
     }
     
-    // Get fresh ID token
-    const idToken = await currentUser.getIdToken(true);
-    console.log('Got fresh ID token');
+    // Get cached ID token (only refreshes if expired)
+    const idToken = await currentUser.getIdToken(false);
+    console.log('Got ID token (cached if valid)');
     
     // Ensure path does not start with a slash
     const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
@@ -35,8 +35,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       ...options.headers
     };
     
-    console.log('Making API request to:', url);
-    console.log('With authorization:', headers.Authorization ? 'Bearer token included' : 'No token');
+    // Reduced logging for better performance in production
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Making API request to:', url);
+      console.log('With authorization:', headers.Authorization ? 'Bearer token included' : 'No token');
+    }
     
     const response = await fetch(url, {
       ...options,

@@ -76,10 +76,8 @@ router.get('/published', async (req, res) => {
 // Hämta synliga sidor
 router.get('/visible', async (req, res) => {
   try {
+    // Reduced logging for better performance
     console.log('Fetching visible pages...');
-    console.log('Request headers:', req.headers);
-    console.log('Supabase URL:', process.env.SUPABASE_URL);
-    console.log('Service Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
     const { data, error } = await supabase
       .from('pages')

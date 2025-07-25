@@ -31,8 +31,13 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Om laddning redan pågår, avbryt
     if (loadingRef.current) return;
     
-    // Om sidor redan är laddade, avbryt
-    if (pages.length > 0 && !loading) return;
+    // Om sidor redan är laddade och inte äldre än 5 minuter, avbryt
+    const lastLoadTime = localStorage.getItem('pages_last_load');
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    
+    if (pages.length > 0 && !loading && lastLoadTime && parseInt(lastLoadTime) > fiveMinutesAgo) {
+      return;
+    }
     
     try {
       loadingRef.current = true;
@@ -40,6 +45,9 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       const allPages = await pageService.getVisiblePages();
       setPages(allPages);
+      
+      // Cache timestamp for smart reloading
+      localStorage.setItem('pages_last_load', Date.now().toString());
     } catch (err) {
       console.error('Error loading pages:', err);
       setError('Ett fel uppstod vid laddning av sidorna');

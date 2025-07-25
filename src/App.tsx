@@ -26,19 +26,56 @@ const BookingStatusPage = React.lazy(() => import('./pages/public/BookingStatusP
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const DataDeletion = React.lazy(() => import('./pages/DataDeletion'));
 
-// Loading component
-const LoadingFallback = () => (
-  <Layout>
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh' 
-    }}>
-      <div className="loading-spinner">Laddar...</div>
-    </div>
-  </Layout>
-);
+// Loading component with timeout protection
+const LoadingFallback = () => {
+  const [showError, setShowError] = React.useState(false);
+  
+  // Timeout protection - if loading takes too long, show error
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowError(true);
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <Layout>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '60vh', 
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        {!showError ? (
+          <>
+            <div className="loading-spinner">Laddar...</div>
+            <p style={{ color: '#666', fontSize: '14px' }}>Väntar på sidan...</p>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', color: '#d32f2f' }}>
+            <p>Sidan tar för lång tid att ladda.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{ 
+                padding: '8px 16px', 
+                backgroundColor: '#1976d2', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Ladda om sidan
+            </button>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+};
 
 // Protected route component
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {

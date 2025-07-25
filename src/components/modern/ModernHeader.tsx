@@ -76,6 +76,20 @@ const ModernHeader: React.FC = () => {
     setMobileDrawerOpen(!mobileDrawerOpen);
   };
 
+  // Force close all overlays when navigating
+  const forceCloseOverlays = () => {
+    setMobileDrawerOpen(false);
+    setUserMenuAnchor(null);
+    
+    // Also close any potential stuck Material-UI backdrops
+    const backdrops = document.querySelectorAll('.MuiBackdrop-root');
+    backdrops.forEach(backdrop => {
+      if (backdrop.parentNode) {
+        backdrop.parentNode.removeChild(backdrop);
+      }
+    });
+  };
+
   const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
   };
@@ -85,8 +99,13 @@ const ModernHeader: React.FC = () => {
   };
 
   const handleNavigation = (path: string) => {
-    navigate(path);
-    setMobileDrawerOpen(false);
+    // Force close all overlays immediately
+    forceCloseOverlays();
+    
+    // Small delay to ensure all overlays are closed before navigation
+    setTimeout(() => {
+      navigate(path);
+    }, 150);
   };
 
   const handleLogout = async () => {
