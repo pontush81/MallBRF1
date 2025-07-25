@@ -83,44 +83,116 @@ export async function withFallback<T>(
       // Undvik att visa flera meddelanden
       const existingAlert = document.getElementById('fallback-alert');
       if (!existingAlert) {
-        // Skapa alert element
+        // Skapa modern, professionell error notification
         const alertEl = document.createElement('div');
         alertEl.id = 'fallback-alert';
-        alertEl.style.position = 'fixed';
-        alertEl.style.top = '10px';
-        alertEl.style.left = '50%';
-        alertEl.style.transform = 'translateX(-50%)';
-        alertEl.style.backgroundColor = '#f8d7da';
-        alertEl.style.color = '#721c24';
-        alertEl.style.padding = '10px 20px';
-        alertEl.style.borderRadius = '4px';
-        alertEl.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-        alertEl.style.zIndex = '9999';
-        alertEl.innerHTML = 'Sidan kunde inte laddas. <a href="javascript:location.reload()">Ladda om sidan</a> för att försöka igen.';
         
-        // Lägg till stängknapp
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.marginLeft = '10px';
-        closeBtn.style.border = 'none';
-        closeBtn.style.background = 'none';
-        closeBtn.style.fontSize = '20px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.onclick = () => {
-          document.body.removeChild(alertEl);
-        };
+        // Modern styling som matchar appens design
+        Object.assign(alertEl.style, {
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          border: '1px solid #e2e8f0',
+          borderLeft: '4px solid #0ea5e9',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          zIndex: '9999',
+          maxWidth: '400px',
+          minWidth: '320px',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          color: '#1e293b',
+          backdropFilter: 'blur(10px)',
+          animation: 'slideDown 0.3s ease-out'
+        });
         
-        alertEl.appendChild(closeBtn);
+        // Lägg till CSS animation
+        if (!document.getElementById('error-animations')) {
+          const style = document.createElement('style');
+          style.id = 'error-animations';
+          style.textContent = `
+            @keyframes slideDown {
+              from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+              }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+        
+        // Innehåll med ikon och text
+        alertEl.innerHTML = `
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div style="flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: #0ea5e9; display: flex; align-items: center; justify-content: center; margin-top: 2px;">
+              <span style="color: white; font-size: 12px; font-weight: bold;">!</span>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px;">
+                Anslutningsproblem
+              </div>
+              <div style="color: #64748b; margin-bottom: 12px;">
+                Kunde inte hämta senaste informationen. Kontrollera din internetanslutning.
+              </div>
+              <button onclick="location.reload()" style="
+                background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-family: inherit;
+              " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(14, 165, 233, 0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                Ladda om sidan
+              </button>
+            </div>
+            <button onclick="document.body.removeChild(this.closest('#fallback-alert'))" style="
+              background: none;
+              border: none;
+              color: #94a3b8;
+              font-size: 18px;
+              cursor: pointer;
+              padding: 0;
+              width: 24px;
+              height: 24px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 4px;
+              transition: all 0.2s ease;
+            " onmouseover="this.style.background='#f1f5f9'; this.style.color='#64748b'" onmouseout="this.style.background=''; this.style.color='#94a3b8'">
+              ×
+            </button>
+          </div>
+        `;
         
         // Lägg till på sidan
         document.body.appendChild(alertEl);
         
-        // Auto-ta bort efter 10 sekunder
+        // Auto-dölja efter 8 sekunder med fade out
         setTimeout(() => {
           if (document.body.contains(alertEl)) {
-            document.body.removeChild(alertEl);
+            alertEl.style.transition = 'all 0.3s ease-out';
+            alertEl.style.opacity = '0';
+            alertEl.style.transform = 'translateX(-50%) translateY(-10px)';
+            setTimeout(() => {
+              if (document.body.contains(alertEl)) {
+                document.body.removeChild(alertEl);
+              }
+            }, 300);
           }
-        }, 10000);
+        }, 8000);
       }
     }
     

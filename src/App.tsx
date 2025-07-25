@@ -1,9 +1,10 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Importera den nya ThemeProvider
 import { ThemeProvider } from './context/ThemeContext';
+import { startVersionCheck } from './utils/versionCheck';
 
 // Static imports
 import Layout from './components/Layout';
@@ -163,6 +164,11 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    // Start version checking to detect updates and prevent cache issues
+    startVersionCheck();
+  }, []);
+
   return (
     <ThemeProvider>
       <CssBaseline />
