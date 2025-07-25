@@ -326,26 +326,26 @@ const CustomPickersDay = ({
       },
     };
   } else if (isCheckout) {
-    // Checkout dates (half booked - left side red)
+    // Checkout dates (half booked - left side red, vertical split)
     styles = {
       ...styles,
-      background: 'linear-gradient(135deg, #ffcdd2 0%, #ffcdd2 50%, white 50%, white 100%)',
+      background: 'linear-gradient(90deg, #ffcdd2 0%, #ffcdd2 50%, white 50%, white 100%)',
       color: 'text.primary',
       fontWeight: 'medium',
       '&:hover': {
-        background: 'linear-gradient(135deg, #ef9a9a 0%, #ef9a9a 50%, #e3f2fd 50%, #e3f2fd 100%)',
+        background: 'linear-gradient(90deg, #ef9a9a 0%, #ef9a9a 50%, #e3f2fd 50%, #e3f2fd 100%)',
         transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
       },
     };
   } else if (isCheckin) {
-    // Checkin dates (half booked - right side red)
+    // Checkin dates (half booked - right side red, vertical split)
     styles = {
       ...styles,
-      background: 'linear-gradient(135deg, white 0%, white 50%, #ffcdd2 50%, #ffcdd2 100%)',
+      background: 'linear-gradient(90deg, white 0%, white 50%, #ffcdd2 50%, #ffcdd2 100%)',
       color: 'text.primary',
       fontWeight: 'medium',
       '&:hover': {
-        background: 'linear-gradient(135deg, #e3f2fd 0%, #e3f2fd 50%, #ef9a9a 50%, #ef9a9a 100%)',
+        background: 'linear-gradient(90deg, #e3f2fd 0%, #e3f2fd 50%, #ef9a9a 50%, #ef9a9a 100%)',
         transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
       },
     };
