@@ -44,6 +44,7 @@ import {
   ListItemIcon,
   ListItemText
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { 
   Person, 
   Email, 
@@ -78,6 +79,87 @@ import { auth } from '../../services/firebase';
 import { toast, Toaster } from 'react-hot-toast';
 import BookingStatus from '../../components/booking/BookingStatus';
 import { Booking } from '../../types/Booking';
+import { modernTheme } from '../../theme/modernTheme';
+
+// Modern styled components for booking page
+const ModernPageContainer = styled(Box)(({ theme }) => ({
+  background: modernTheme.colors.gray[50],
+  minHeight: '100vh',
+  paddingBottom: modernTheme.spacing[8],
+}));
+
+const ModernHeroSection = styled(Box)(({ theme }) => ({
+  background: modernTheme.gradients.header,
+  padding: `${modernTheme.spacing[8]} 0 ${modernTheme.spacing[6]} 0`,
+  textAlign: 'center',
+  marginBottom: modernTheme.spacing[6],
+  borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
+}));
+
+const ModernCard = styled(Paper)(({ theme }) => ({
+  borderRadius: modernTheme.borderRadius.xl,
+  background: modernTheme.colors.white,
+  border: `1px solid ${modernTheme.colors.gray[200]}`,
+  boxShadow: modernTheme.shadows.md,
+  padding: modernTheme.spacing[6],
+  transition: modernTheme.transitions.normal,
+  '&:hover': {
+    boxShadow: modernTheme.shadows.lg,
+  },
+}));
+
+const ModernButton = styled(Button)(({ theme }) => ({
+  borderRadius: modernTheme.borderRadius.lg,
+  textTransform: 'none',
+  fontWeight: modernTheme.typography.fontWeight.semibold,
+  padding: `${modernTheme.spacing[3]} ${modernTheme.spacing[6]}`,
+  boxShadow: modernTheme.shadows.sm,
+  transition: modernTheme.transitions.normal,
+  '&:hover': {
+    boxShadow: modernTheme.shadows.md,
+    transform: 'translateY(-1px)',
+  },
+}));
+
+const ModernTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: modernTheme.borderRadius.lg,
+    backgroundColor: modernTheme.colors.white,
+    transition: modernTheme.transitions.normal,
+    minHeight: { xs: '56px', sm: '48px' }, // Better touch targets on mobile
+    '&:hover': {
+      boxShadow: modernTheme.shadows.sm,
+    },
+    '&.Mui-focused': {
+      boxShadow: modernTheme.shadows.md,
+      '& .MuiOutlinedInput-notchedOutline': {
+        borderColor: modernTheme.colors.secondary[500],
+        borderWidth: '2px',
+      },
+    },
+  },
+  '& .MuiInputBase-input': {
+    padding: { xs: '16px 14px', sm: '12px 14px' }, // More padding on mobile
+    fontSize: { xs: '16px', sm: '14px' }, // Larger text on mobile to prevent zoom
+  },
+}));
+
+const ModernChip = styled(Chip)(({ theme }) => ({
+  borderRadius: modernTheme.borderRadius.md,
+  fontWeight: modernTheme.typography.fontWeight.medium,
+  '&.MuiChip-colorPrimary': {
+    backgroundColor: modernTheme.colors.secondary[100],
+    color: modernTheme.colors.secondary[800],
+  },
+  '&.MuiChip-colorSuccess': {
+    backgroundColor: modernTheme.colors.success[100],
+    color: modernTheme.colors.success[800],
+  },
+  '&.MuiChip-colorError': {
+    backgroundColor: modernTheme.colors.error[100],
+    color: modernTheme.colors.error[800],
+  },
+}));
 
 // Helper function to group bookings by month
 const groupBookingsByMonth = (bookings: Booking[]) => {
@@ -720,21 +802,21 @@ const BookingPage: React.FC = () => {
     }
 
     return (
-      <Card 
-        elevation={0}
+      <ModernCard 
         sx={{ 
-          mt: 3,
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: { xs: 1, sm: 2 }
+          mt: { xs: 2, sm: 3 },
+          mx: { xs: 1, sm: 0 }, // Less margin on mobile for more space
+          borderRadius: { xs: modernTheme.borderRadius.lg, sm: modernTheme.borderRadius.xl },
         }}
       >
-        <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+        <CardContent sx={{ 
+          px: { xs: 2, sm: 3, md: 4 }, 
+          py: { xs: 2.5, sm: 3, md: 4 } 
+        }}>
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             <Grid item xs={12}>
-              <Stack spacing={2}>
-                <TextField
+              <Stack spacing={{ xs: 2.5, sm: 3 }}>
+                <ModernTextField
                   fullWidth
                   label="Namn"
                   value={name}
@@ -745,7 +827,7 @@ const BookingPage: React.FC = () => {
                     startAdornment: <Person sx={{ mr: 1, color: 'text.secondary' }} />
                   }}
                 />
-                <TextField
+                <ModernTextField
                   fullWidth
                   label="E-post"
                   value={email}
@@ -756,7 +838,7 @@ const BookingPage: React.FC = () => {
                     startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} />
                   }}
                 />
-                <TextField
+                <ModernTextField
                   fullWidth
                   label="Telefon"
                   value={phone}
@@ -764,7 +846,7 @@ const BookingPage: React.FC = () => {
                   error={!!validationErrors.phone}
                   helperText={validationErrors.phone}
                 />
-                <TextField
+                <ModernTextField
                   fullWidth
                   multiline
                   rows={3}
@@ -778,17 +860,28 @@ const BookingPage: React.FC = () => {
                       checked={parking}
                       onChange={(e) => setParking(e.target.checked)}
                       color="primary"
+                      sx={{ 
+                        '& .MuiSvgIcon-root': { 
+                          fontSize: { xs: '28px', sm: '24px' } // Larger touch target on mobile
+                        } 
+                      }}
                     />
                   }
                   label="Jag behöver parkering"
+                  sx={{
+                    '& .MuiFormControlLabel-label': {
+                      fontSize: { xs: '16px', sm: '14px' }, // Larger text on mobile
+                    },
+                    marginTop: { xs: 1, sm: 0.5 }, // Extra spacing on mobile
+                  }}
                 />
               </Stack>
             </Grid>
             <Grid item xs={12}>
               <Box sx={{ 
                 display: 'flex',
-                justifyContent: 'flex-end',
-                mt: 2
+                justifyContent: { xs: 'stretch', sm: 'flex-end' },
+                mt: { xs: 2.5, sm: 2 }
               }}>
                 <Button
                   variant="contained"
@@ -797,11 +890,13 @@ const BookingPage: React.FC = () => {
                   onClick={submitBooking}
                   disabled={isLoading}
                   sx={{
-                    py: 2,
-                    px: 4,
+                    width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
+                    py: { xs: 3, sm: 2 }, // Larger touch target on mobile
+                    px: { xs: 4, sm: 4 },
                     borderRadius: 2,
                     textTransform: 'none',
-                    fontSize: '1.1rem',
+                    fontSize: { xs: '18px', sm: '1.1rem' }, // Larger text on mobile
+                    minHeight: { xs: '56px', sm: '48px' }, // Ensure good touch target
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     '&:hover': {
                       boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
@@ -821,7 +916,7 @@ const BookingPage: React.FC = () => {
             </Grid>
           </Grid>
         </CardContent>
-      </Card>
+      </ModernCard>
     );
   };
 
@@ -1674,36 +1769,36 @@ const BookingPage: React.FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
-          px: { xs: 0.5, sm: 2 } // Reduce padding on small screens
-        }}
-      >
-        <Box sx={{ 
-          mb: 5, 
-          mt: 2,
-          background: 'linear-gradient(to bottom, rgba(240,248,255,0.8), rgba(230,240,250,0.4))',
-          borderRadius: { xs: 1, sm: 2 },
-          p: { xs: 1.5, sm: 2, md: 3 }, // Even smaller padding on xs screens
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 3
-          }}>
-            <Typography variant="h4" component="h1" sx={{ 
-              color: 'primary.dark', 
-              fontWeight: 600,
-              borderBottom: '2px solid',
-              borderColor: 'primary.light',
-              pb: 1 
-            }}>
+      <ModernPageContainer>
+        {/* Modern Hero Section */}
+        <ModernHeroSection>
+          <Container maxWidth="md">
+            <Typography
+              variant="h3"
+              sx={{
+                fontSize: modernTheme.typography.fontSize['2xl'],
+                fontWeight: modernTheme.typography.fontWeight.bold,
+                marginBottom: modernTheme.spacing[2],
+                color: modernTheme.colors.primary[800],
+              }}
+            >
               Boka boende
             </Typography>
-          </Box>
+            <Typography
+              variant="body1"
+              sx={{
+                fontSize: modernTheme.typography.fontSize.base,
+                color: modernTheme.colors.gray[600],
+                marginBottom: modernTheme.spacing[2],
+              }}
+            >
+              Välj datum och boka ditt boende enkelt
+            </Typography>
+          </Container>
+        </ModernHeroSection>
+
+        <Container maxWidth="lg">
+          <ModernCard sx={{ marginBottom: modernTheme.spacing[6] }}>
 
           {renderPriceList()}
 
@@ -1824,21 +1919,15 @@ const BookingPage: React.FC = () => {
                 </MenuItem>
               </Menu>
               
-              <Button
+              <ModernButton
                 variant="outlined"
                 color="primary"
                 onClick={handleBackupClick}
                 disabled={backupLoading}
                 startIcon={backupLoading ? <CircularProgress size={20} /> : <BackupIcon />}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  px: 3,
-                  py: 1
-                }}
               >
                 Skapa backup
-              </Button>
+              </ModernButton>
             </Box>
           )}
 
@@ -1878,11 +1967,10 @@ const BookingPage: React.FC = () => {
               </DialogContentText>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 3 }}>
-              <Button 
+              <ModernButton 
                 onClick={() => setDeleteDialogOpen(false)} 
                 variant="outlined"
                 sx={{ 
-                  borderRadius: 1,
                   color: 'text.primary',
                   borderColor: 'divider',
                   '&:hover': {
@@ -1892,22 +1980,15 @@ const BookingPage: React.FC = () => {
                 }}
               >
                 Avbryt
-              </Button>
-              <Button 
+              </ModernButton>
+              <ModernButton 
                 onClick={handleBookingDeleted} 
                 variant="contained" 
                 color="error" 
                 autoFocus
-                sx={{ 
-                  borderRadius: 1,
-                  boxShadow: 2,
-                  '&:hover': {
-                    boxShadow: 4
-                  }
-                }}
               >
                 Radera
-              </Button>
+              </ModernButton>
             </DialogActions>
           </Dialog>
           
@@ -2173,11 +2254,12 @@ const BookingPage: React.FC = () => {
               </Button>
             </DialogActions>
           </Dialog>
-        </Box>
         
         {/* Add the Toaster component with proper type for position */}
         <Toaster position={isMobile ? "bottom-center" : "top-right" as const} />
-      </Container>
+          </ModernCard>
+        </Container>
+      </ModernPageContainer>
     </LocalizationProvider>
   );
 };

@@ -17,7 +17,7 @@ const Login = React.lazy(() => import('./pages/auth/Login'));
 const Register = React.lazy(() => import('./pages/auth/Register'));
 const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const PageView = React.lazy(() => import('./pages/public/PageView'));
-const PublicPages = React.lazy(() => import('./pages/PublicPages'));
+const PublicPages = React.lazy(() => import('./pages/ModernPublicPages'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const BookingPage = React.lazy(() => 
   import('./pages/public/BookingPage').then(module => ({ default: module.default }))

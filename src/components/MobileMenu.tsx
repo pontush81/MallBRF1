@@ -243,8 +243,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       ModalProps={{
         keepMounted: true,
         disableScrollLock: false,
-        hideBackdrop: false,
-        onBackdropClick: onClose
+        hideBackdrop: false
       }}
       sx={{
         '& .MuiDrawer-paper': { 
