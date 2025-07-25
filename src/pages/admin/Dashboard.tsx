@@ -18,6 +18,7 @@ import {
   ListItemText,
   Divider
 } from '@mui/material';
+import { modernTheme } from '../../theme/modernTheme';
 import { 
   Dashboard as DashboardIcon, 
   People as PeopleIcon, 
@@ -110,20 +111,29 @@ const Dashboard: React.FC = () => {
       {/* Top App Bar */}
       <AppBar
         position="fixed"
-        color="primary"
+        elevation={0}
         sx={{ 
           zIndex: theme.zIndex.drawer + 1,
-          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+          background: modernTheme.gradients.header,
+          backdropFilter: 'blur(10px)',
+          borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
+          boxShadow: modernTheme.shadows.lg,
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ 
+          px: { xs: modernTheme.spacing[2], md: modernTheme.spacing[4] },
+          minHeight: { xs: '64px', md: '72px' }
+        }}>
           {isMobile && (
             <IconButton
               color="inherit"
               aria-label="open drawer"
               edge="start"
               onClick={toggleDrawer}
-              sx={{ mr: 2 }}
+              sx={{ 
+                mr: modernTheme.spacing[2],
+                color: modernTheme.colors.primary[800]
+              }}
             >
               <MenuIcon />
             </IconButton>
@@ -135,6 +145,14 @@ const Dashboard: React.FC = () => {
             sx={{ 
               flexGrow: 1,
               cursor: 'pointer',
+              color: modernTheme.colors.primary[800],
+              fontWeight: modernTheme.typography.fontWeight.bold,
+              fontSize: { xs: modernTheme.typography.fontSize.lg, md: modernTheme.typography.fontSize.xl },
+              textShadow: 'none',
+              transition: modernTheme.transitions.normal,
+              '&:hover': {
+                opacity: 0.9,
+              }
             }}
             onClick={() => navigate('/admin')}
           >
@@ -148,9 +166,15 @@ const Dashboard: React.FC = () => {
           </Typography>
           
           <Button 
-            color="inherit"
             startIcon={<ExitToAppIcon />}
             onClick={() => navigate('/pages')}
+            sx={{
+              color: modernTheme.colors.primary[800],
+              fontWeight: modernTheme.typography.fontWeight.medium,
+              '&:hover': {
+                backgroundColor: modernTheme.colors.primary[100],
+              }
+            }}
           >
             {isMobile ? '' : 'Lämna admin'}
           </Button>
@@ -158,18 +182,28 @@ const Dashboard: React.FC = () => {
         
         {/* Navigation Tabs - endast på desktop */}
         {!isMobile && (
-          <Box sx={{ backgroundColor: theme.palette.primary.main, color: 'white' }}>
+          <Box sx={{ 
+            background: modernTheme.gradients.accent, 
+            color: 'white',
+            borderTop: `1px solid ${modernTheme.colors.gray[200]}`
+          }}>
             <Container>
               <Box sx={{ display: 'flex', overflow: 'auto' }}>
                 <Button 
                   color="inherit"
                   onClick={() => handleNavItemClick('dashboard')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'dashboard' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'dashboard' ? 1 : 0.8
+                    opacity: selectedItem === 'dashboard' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'dashboard' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <DashboardIcon sx={{ mr: 1 }} />
@@ -180,11 +214,17 @@ const Dashboard: React.FC = () => {
                   color="inherit"
                   onClick={() => handleNavItemClick('pages')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'pages' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'pages' ? 1 : 0.8
+                    opacity: selectedItem === 'pages' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'pages' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <ArticleIcon sx={{ mr: 1 }} />
@@ -195,11 +235,17 @@ const Dashboard: React.FC = () => {
                   color="inherit"
                   onClick={() => handleNavItemClick('bookings')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'bookings' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'bookings' ? 1 : 0.8
+                    opacity: selectedItem === 'bookings' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'bookings' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <EventIcon sx={{ mr: 1 }} />
@@ -210,11 +256,17 @@ const Dashboard: React.FC = () => {
                   color="inherit"
                   onClick={() => handleNavItemClick('maintenance')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'maintenance' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'maintenance' ? 1 : 0.8
+                    opacity: selectedItem === 'maintenance' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'maintenance' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <MaintenanceIcon sx={{ mr: 1 }} />
@@ -225,11 +277,17 @@ const Dashboard: React.FC = () => {
                   color="inherit"
                   onClick={() => handleNavItemClick('users')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'users' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'users' ? 1 : 0.8
+                    opacity: selectedItem === 'users' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'users' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <PeopleIcon sx={{ mr: 1 }} />
@@ -240,11 +298,17 @@ const Dashboard: React.FC = () => {
                   color="inherit"
                   onClick={() => handleNavItemClick('allowlist')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'allowlist' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'allowlist' ? 1 : 0.8
+                    opacity: selectedItem === 'allowlist' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'allowlist' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <SecurityIcon sx={{ mr: 1 }} />
@@ -255,11 +319,17 @@ const Dashboard: React.FC = () => {
                   color="inherit"
                   onClick={() => handleNavItemClick('notifications')}
                   sx={{ 
-                    py: 1.5, 
-                    px: 2,
+                    py: modernTheme.spacing[3], 
+                    px: modernTheme.spacing[4],
                     borderBottom: selectedItem === 'notifications' ? '2px solid white' : 'none',
                     borderRadius: 0,
-                    opacity: selectedItem === 'notifications' ? 1 : 0.8
+                    opacity: selectedItem === 'notifications' ? 1 : 0.85,
+                    fontWeight: selectedItem === 'notifications' ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
+                    transition: modernTheme.transitions.normal,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <NotificationsIcon sx={{ mr: 1 }} />
@@ -282,6 +352,8 @@ const Dashboard: React.FC = () => {
           '& .MuiDrawer-paper': {
             width: 250,
             boxSizing: 'border-box',
+            backgroundColor: modernTheme.colors.white,
+            borderRight: `1px solid ${modernTheme.colors.gray[200]}`,
           },
         }}
         ModalProps={{
@@ -298,11 +370,18 @@ const Dashboard: React.FC = () => {
             height: '56px', // Samma höjd som AppBar
             display: 'flex',
             alignItems: 'center',
-            px: 2,
-            bgcolor: 'primary.main',
+            px: modernTheme.spacing[4],
+            background: modernTheme.gradients.accent,
             color: 'white'
           }}>
-            <Typography variant="h6" component="div">
+            <Typography 
+              variant="h6" 
+              component="div"
+              sx={{
+                fontWeight: modernTheme.typography.fontWeight.bold,
+                fontSize: modernTheme.typography.fontSize.lg
+              }}
+            >
               Admin
             </Typography>
           </Box>
@@ -314,13 +393,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('dashboard')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -335,13 +420,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('pages')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -356,13 +447,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('bookings')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -377,13 +474,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('maintenance')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -398,13 +501,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('users')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -419,13 +528,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('allowlist')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -440,13 +555,19 @@ const Dashboard: React.FC = () => {
               onClick={() => handleNavItemClick('notifications')}
               sx={{ 
                 minHeight: '56px',
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2],
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: modernTheme.colors.primary[100],
+                  color: modernTheme.colors.primary[800],
                   '& .MuiListItemIcon-root': {
-                    color: 'white'
+                    color: modernTheme.colors.primary[600]
                   }
-                }
+                },
+                '&:hover': {
+                  backgroundColor: modernTheme.colors.gray[100],
+                },
+                transition: modernTheme.transitions.normal
               }}
             >
               <ListItemIcon>
@@ -483,11 +604,22 @@ const Dashboard: React.FC = () => {
           flexGrow: 1, 
           pt: isMobile ? '56px' : '104px', 
           minHeight: '100vh',
-          backgroundColor: '#f5f5f5',
+          background: modernTheme.colors.gray[50],
           width: '100%'
         }}
       >
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container 
+          maxWidth="lg" 
+          sx={{ 
+            py: modernTheme.spacing[4],
+            px: { 
+              xs: modernTheme.spacing[2], 
+              sm: modernTheme.spacing[4], 
+              md: modernTheme.spacing[6] 
+            },
+            maxWidth: { xs: '100%', sm: '100%', md: '1200px' }
+          }}
+        >
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="/pages" element={<PagesList />} />

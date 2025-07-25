@@ -252,11 +252,15 @@ const ModernHeader: React.FC = () => {
           <Typography
             variant="h6"
             sx={{
-              fontWeight: modernTheme.typography.fontWeight.bold,
+              fontWeight: modernTheme.typography.fontWeight.extrabold,
               fontSize: modernTheme.typography.fontSize.lg,
+              background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
             }}
           >
-            Gulmaran
+            Gulmåran
           </Typography>
           <IconButton
             onClick={handleDrawerToggle}
@@ -414,18 +418,24 @@ const ModernHeader: React.FC = () => {
             onClick={() => handleNavigation('/')}
             sx={{
               flexGrow: isMobile ? 1 : 0,
-              fontWeight: modernTheme.typography.fontWeight.bold,
+              fontWeight: modernTheme.typography.fontWeight.extrabold,
               fontSize: { xs: modernTheme.typography.fontSize.lg, md: modernTheme.typography.fontSize.xl },
-              color: modernTheme.colors.primary[800],
+              background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
               cursor: 'pointer',
               textShadow: 'none',
               transition: modernTheme.transitions.normal,
               marginRight: isMobile ? 0 : modernTheme.spacing[8],
               '&:hover': {
-                opacity: 0.9,
+                background: `linear-gradient(135deg, ${modernTheme.colors.secondary[500]} 0%, ${modernTheme.colors.secondary[600]} 100%)`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                transform: 'scale(1.02)',
               },
               '&:focus': {
-                outline: `2px solid ${modernTheme.colors.white}40`,
+                outline: `2px solid ${modernTheme.colors.secondary[400]}`,
                 outlineOffset: '2px',
                 borderRadius: modernTheme.borderRadius.md,
               },
@@ -434,7 +444,7 @@ const ModernHeader: React.FC = () => {
             role="button"
             aria-label="Gå till startsidan"
           >
-            Gulmaran
+            Gulmåran
           </Typography>
 
           {/* Desktop Navigation */}

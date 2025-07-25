@@ -17,6 +17,7 @@ import {
   Tooltip,
   LinearProgress
 } from '@mui/material';
+import { modernTheme } from '../theme/modernTheme';
 import { 
   Article as PageIcon,
   Event as BookingIcon,
@@ -149,63 +150,185 @@ const AdminMenu: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" sx={{ mt: 0, mb: 2 }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        sx={{ 
+          mt: modernTheme.spacing[8], // Increased from 0 to fix spacing issue
+          mb: modernTheme.spacing[8], // Increased for better separation
+          fontFamily: modernTheme.typography.fontFamily.primary,
+          fontWeight: modernTheme.typography.fontWeight.bold,
+          color: modernTheme.colors.primary[800],
+          fontSize: modernTheme.typography.fontSize['3xl']
+        }}
+      >
         Välkommen till adminpanelen
       </Typography>
       
-      {/* Statistik-kort */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      {/* Innehåll & Operationer */}
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          mb: modernTheme.spacing[4],
+          fontFamily: modernTheme.typography.fontFamily.primary,
+          fontWeight: modernTheme.typography.fontWeight.semibold,
+          color: modernTheme.colors.primary[600],
+          fontSize: modernTheme.typography.fontSize.lg
+        }}
+      >
+        Innehåll & Operationer
+      </Typography>
+      <Grid container spacing={modernTheme.spacing[4]} sx={{ mb: modernTheme.spacing[8] }}>
         {/* Sidor card */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
+          <Card 
+            elevation={0}
+            sx={{
+              background: modernTheme.gradients.card,
+              borderRadius: modernTheme.borderRadius.xl,
+              boxShadow: modernTheme.shadows.lg,
+              border: `1px solid ${modernTheme.colors.gray[200]}`,
+              transition: modernTheme.transitions.normal,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: modernTheme.shadows.xl,
+              }
+            }}
+          >
             <CardHeader
               avatar={
-                <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
-                  <PageIcon fontSize="small" />
+                <Avatar sx={{ 
+                  background: modernTheme.gradients.accent,
+                  width: 48, 
+                  height: 48,
+                  boxShadow: modernTheme.shadows.md
+                }}>
+                  <PageIcon fontSize="medium" />
                 </Avatar>
               }
-              title="Sidor"
-              sx={{ pb: 0 }}
+              title={
+                <Typography sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.semibold,
+                  fontSize: modernTheme.typography.fontSize.lg,
+                  color: modernTheme.colors.primary[700]
+                }}>
+                  Sidor
+                </Typography>
+              }
+              sx={{ pb: modernTheme.spacing[2] }}
             />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">{stats.totalPages}</Typography>
+            <CardContent sx={{ pt: 0, pb: modernTheme.spacing[2] }}>
+              <Typography 
+                variant="h3" 
+                sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.bold,
+                  fontSize: modernTheme.typography.fontSize['4xl'],
+                  color: modernTheme.colors.primary[800],
+                  lineHeight: modernTheme.typography.lineHeight.tight
+                }}
+              >
+                {stats.totalPages}
+              </Typography>
             </CardContent>
-            <Box sx={{ px: 2, pb: 2 }}>
-              <Button size="small" onClick={() => navigate('/admin/pages')}>
+            <Box sx={{ px: modernTheme.spacing[4], pb: modernTheme.spacing[4] }}>
+              <Button 
+                variant="outlined"
+                size="small" 
+                onClick={() => navigate('/admin/pages')}
+                sx={{
+                  borderColor: modernTheme.colors.primary[300],
+                  color: modernTheme.colors.primary[600],
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.medium,
+                  '&:hover': {
+                    borderColor: modernTheme.colors.primary[500],
+                    backgroundColor: modernTheme.colors.primary[50],
+                  }
+                }}
+              >
                 Hantera sidor
               </Button>
             </Box>
           </Card>
         </Grid>
         
-        {/* Bokningar card */}
+        {/* Bokningar card - Made consistent with other cards */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
+          <Card 
+            elevation={0}
+            sx={{
+              background: modernTheme.gradients.card,
+              borderRadius: modernTheme.borderRadius.xl,
+              boxShadow: modernTheme.shadows.lg,
+              border: `1px solid ${modernTheme.colors.gray[200]}`,
+              transition: modernTheme.transitions.normal,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: modernTheme.shadows.xl,
+              }
+            }}
+          >
             <CardHeader
               avatar={
-                <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}>
-                  <BookingIcon fontSize="small" />
+                <Avatar sx={{ 
+                  background: `linear-gradient(135deg, ${modernTheme.colors.secondary[500]} 0%, ${modernTheme.colors.secondary[600]} 100%)`,
+                  width: 48, 
+                  height: 48,
+                  boxShadow: modernTheme.shadows.md
+                }}>
+                  <BookingIcon fontSize="medium" />
                 </Avatar>
               }
-              title="Bokningar"
-              sx={{ pb: 0 }}
+              title={
+                <Typography sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.semibold,
+                  fontSize: modernTheme.typography.fontSize.lg,
+                  color: modernTheme.colors.primary[700]
+                }}>
+                  Bokningar
+                </Typography>
+              }
+              sx={{ pb: modernTheme.spacing[2] }}
             />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">{stats.totalBookings}</Typography>
+            <CardContent sx={{ pt: 0, pb: modernTheme.spacing[2] }}>
+              <Typography 
+                variant="h3" 
+                sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.bold,
+                  fontSize: modernTheme.typography.fontSize['4xl'],
+                  color: modernTheme.colors.primary[800],
+                  lineHeight: modernTheme.typography.lineHeight.tight,
+                  mb: modernTheme.spacing[2]
+                }}
+              >
+                {stats.totalBookings}
+              </Typography>
               
               {/* Visa bokningar per år */}
               {loading ? (
-                <CircularProgress size={20} sx={{ mt: 1 }} />
+                <CircularProgress size={24} sx={{ color: modernTheme.colors.secondary[500] }} />
               ) : (
                 Object.keys(stats.bookingsByYear).length > 0 && (
-                  <List dense sx={{ mt: 1, p: 0 }}>
+                  <List dense sx={{ mt: modernTheme.spacing[2], p: 0 }}>
                     {Object.keys(stats.bookingsByYear)
-                      .sort((a, b) => parseInt(b) - parseInt(a)) // Sortera åren i fallande ordning
+                      .sort((a, b) => parseInt(b) - parseInt(a))
+                      .slice(0, 2) // Show only last 2 years for consistency
                       .map(year => (
-                        <ListItem key={year} sx={{ py: 0, px: 1 }}>
+                        <ListItem key={year} sx={{ py: modernTheme.spacing[1], px: 0 }}>
                           <ListItemText 
                             primary={`${year}: ${stats.bookingsByYear[year]} bokningar`}
-                            primaryTypographyProps={{ variant: 'body2' }}
+                            primaryTypographyProps={{ 
+                              variant: 'body2',
+                              sx: {
+                                fontFamily: modernTheme.typography.fontFamily.primary,
+                                fontWeight: modernTheme.typography.fontWeight.medium,
+                                color: modernTheme.colors.secondary[600]
+                              }
+                            }}
                           />
                         </ListItem>
                       ))}
@@ -213,54 +336,23 @@ const AdminMenu: React.FC = () => {
                 )
               )}
             </CardContent>
-            <Box sx={{ px: 2, pb: 2 }}>
-              <Button size="small" onClick={() => navigate('/booking')}>
+            <Box sx={{ px: modernTheme.spacing[4], pb: modernTheme.spacing[4] }}>
+              <Button 
+                variant="outlined"
+                size="small" 
+                onClick={() => navigate('/booking')}
+                sx={{
+                  borderColor: modernTheme.colors.primary[300],
+                  color: modernTheme.colors.primary[600],
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.medium,
+                  '&:hover': {
+                    borderColor: modernTheme.colors.primary[500],
+                    backgroundColor: modernTheme.colors.primary[50],
+                  }
+                }}
+              >
                 Hantera bokningar
-              </Button>
-            </Box>
-          </Card>
-        </Grid>
-        
-        {/* Användare card */}
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
-            <CardHeader
-              avatar={
-                <Avatar sx={{ bgcolor: 'success.main', width: 40, height: 40 }}>
-                  <PeopleIcon fontSize="small" />
-                </Avatar>
-              }
-              title="Användare"
-              action={
-                <Tooltip title="Uppdatera användarantal">
-                  <IconButton 
-                    aria-label="uppdatera" 
-                    size="small" 
-                    onClick={handleRefreshUserCount}
-                    disabled={refreshingUsers}
-                  >
-                    <RefreshIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              }
-              sx={{ pb: 0 }}
-            />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">
-                {refreshingUsers ? 
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <Box sx={{ width: '20px', mr: 1 }}>
-                      <LinearProgress />
-                    </Box>
-                    {stats.totalUsers}
-                  </Box> : 
-                  stats.totalUsers
-                }
-              </Typography>
-            </CardContent>
-            <Box sx={{ px: 2, pb: 2 }}>
-              <Button size="small" onClick={() => navigate('/admin/users')}>
-                Hantera användare
               </Button>
             </Box>
           </Card>
@@ -268,42 +360,231 @@ const AdminMenu: React.FC = () => {
         
         {/* Underhållsplan card */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
+          <Card 
+            elevation={0}
+            sx={{
+              background: modernTheme.gradients.card,
+              borderRadius: modernTheme.borderRadius.xl,
+              boxShadow: modernTheme.shadows.lg,
+              border: `1px solid ${modernTheme.colors.gray[200]}`,
+              transition: modernTheme.transitions.normal,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: modernTheme.shadows.xl,
+              }
+            }}
+          >
             <CardHeader
               avatar={
-                <Avatar sx={{ bgcolor: 'info.main', width: 40, height: 40 }}>
-                  <MaintenanceIcon fontSize="small" />
+                <Avatar sx={{ 
+                  background: `linear-gradient(135deg, ${modernTheme.colors.warning[500]} 0%, ${modernTheme.colors.warning[600]} 100%)`,
+                  width: 48, 
+                  height: 48,
+                  boxShadow: modernTheme.shadows.md
+                }}>
+                  <MaintenanceIcon fontSize="medium" />
                 </Avatar>
               }
-              title="Underhållsplan"
-              sx={{ pb: 0 }}
+              title={
+                <Typography sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.semibold,
+                  fontSize: modernTheme.typography.fontSize.lg,
+                  color: modernTheme.colors.primary[700]
+                }}>
+                  Underhållsplan
+                </Typography>
+              }
+              sx={{ pb: modernTheme.spacing[2] }}
             />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">{maintenanceTasksData.length}</Typography>
+            <CardContent sx={{ pt: 0, pb: modernTheme.spacing[2] }}>
+              <Typography 
+                variant="h3" 
+                sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.bold,
+                  fontSize: modernTheme.typography.fontSize['4xl'],
+                  color: modernTheme.colors.primary[800],
+                  lineHeight: modernTheme.typography.lineHeight.tight,
+                  mb: modernTheme.spacing[2]
+                }}
+              >
+                {maintenanceTasksData.length}
+              </Typography>
               
               {/* Visa uppgifter per status */}
               {loading ? (
-                <CircularProgress size={20} sx={{ mt: 1 }} />
+                <CircularProgress size={24} sx={{ color: modernTheme.colors.warning[500] }} />
               ) : (
-                <List dense sx={{ mt: 1, p: 0 }}>
-                  <ListItem sx={{ py: 0, px: 1 }}>
+                <List dense sx={{ mt: modernTheme.spacing[2], p: 0 }}>
+                  <ListItem sx={{ py: modernTheme.spacing[1], px: 0 }}>
                     <ListItemText 
                       primary={`Ej påbörjade: ${stats.pendingMaintenance}`}
-                      primaryTypographyProps={{ variant: 'body2' }}
+                      primaryTypographyProps={{ 
+                        variant: 'body2',
+                        sx: {
+                          fontFamily: modernTheme.typography.fontFamily.primary,
+                          fontWeight: modernTheme.typography.fontWeight.medium,
+                          color: modernTheme.colors.warning[600]
+                        }
+                      }}
                     />
                   </ListItem>
-                  <ListItem sx={{ py: 0, px: 1 }}>
+                  <ListItem sx={{ py: modernTheme.spacing[1], px: 0 }}>
                     <ListItemText 
                       primary={`Klara: ${stats.completedMaintenance}`}
-                      primaryTypographyProps={{ variant: 'body2' }}
+                      primaryTypographyProps={{ 
+                        variant: 'body2',
+                        sx: {
+                          fontFamily: modernTheme.typography.fontFamily.primary,
+                          fontWeight: modernTheme.typography.fontWeight.medium,
+                          color: modernTheme.colors.success[600]
+                        }
+                      }}
                     />
                   </ListItem>
                 </List>
               )}
             </CardContent>
-            <Box sx={{ px: 2, pb: 2 }}>
-              <Button size="small" onClick={() => navigate('/admin/maintenance')}>
+            <Box sx={{ px: modernTheme.spacing[4], pb: modernTheme.spacing[4] }}>
+              <Button 
+                variant="outlined"
+                size="small" 
+                onClick={() => navigate('/admin/maintenance')}
+                sx={{
+                  borderColor: modernTheme.colors.primary[300],
+                  color: modernTheme.colors.primary[600],
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.medium,
+                  '&:hover': {
+                    borderColor: modernTheme.colors.primary[500],
+                    backgroundColor: modernTheme.colors.primary[50],
+                  }
+                }}
+              >
                 Visa underhållsplan
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Användarhantering */}
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          mb: modernTheme.spacing[4],
+          fontFamily: modernTheme.typography.fontFamily.primary,
+          fontWeight: modernTheme.typography.fontWeight.semibold,
+          color: modernTheme.colors.primary[600],
+          fontSize: modernTheme.typography.fontSize.lg
+        }}
+      >
+        Användarhantering
+      </Typography>
+      <Grid container spacing={modernTheme.spacing[4]} sx={{ mb: modernTheme.spacing[6] }}>
+        {/* Användare card */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={0}
+            sx={{
+              background: modernTheme.gradients.card,
+              borderRadius: modernTheme.borderRadius.xl,
+              boxShadow: modernTheme.shadows.lg,
+              border: `1px solid ${modernTheme.colors.gray[200]}`,
+              transition: modernTheme.transitions.normal,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: modernTheme.shadows.xl,
+              }
+            }}
+          >
+            <CardHeader
+              avatar={
+                <Avatar sx={{ 
+                  background: `linear-gradient(135deg, ${modernTheme.colors.success[500]} 0%, ${modernTheme.colors.success[600]} 100%)`,
+                  width: 48, 
+                  height: 48,
+                  boxShadow: modernTheme.shadows.md
+                }}>
+                  <PeopleIcon fontSize="medium" />
+                </Avatar>
+              }
+              title={
+                <Typography sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.semibold,
+                  fontSize: modernTheme.typography.fontSize.lg,
+                  color: modernTheme.colors.primary[700]
+                }}>
+                  Användare
+                </Typography>
+              }
+              action={
+                <Tooltip title="Uppdatera användarantal">
+                  <IconButton 
+                    aria-label="uppdatera" 
+                    size="small" 
+                    onClick={handleRefreshUserCount}
+                    disabled={refreshingUsers}
+                    sx={{
+                      color: modernTheme.colors.primary[600],
+                      '&:hover': {
+                        backgroundColor: modernTheme.colors.primary[50],
+                        color: modernTheme.colors.primary[700]
+                      }
+                    }}
+                  >
+                    <RefreshIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              }
+              sx={{ pb: modernTheme.spacing[2] }}
+            />
+            <CardContent sx={{ pt: 0, pb: modernTheme.spacing[2] }}>
+              <Typography 
+                variant="h3"
+                sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.bold,
+                  fontSize: modernTheme.typography.fontSize['4xl'],
+                  color: modernTheme.colors.primary[800],
+                  lineHeight: modernTheme.typography.lineHeight.tight,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: modernTheme.spacing[2]
+                }}
+              >
+                {refreshingUsers ? (
+                  <>
+                    <CircularProgress 
+                      size={20} 
+                      sx={{ color: modernTheme.colors.success[500] }} 
+                    />
+                    {stats.totalUsers}
+                  </>
+                ) : (
+                  stats.totalUsers
+                )}
+              </Typography>
+            </CardContent>
+            <Box sx={{ px: modernTheme.spacing[4], pb: modernTheme.spacing[4] }}>
+              <Button 
+                variant="outlined"
+                size="small" 
+                onClick={() => navigate('/admin/users')}
+                sx={{
+                  borderColor: modernTheme.colors.primary[300],
+                  color: modernTheme.colors.primary[600],
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.medium,
+                  '&:hover': {
+                    borderColor: modernTheme.colors.primary[500],
+                    backgroundColor: modernTheme.colors.primary[50],
+                  }
+                }}
+              >
+                Hantera användare
               </Button>
             </Box>
           </Card>
@@ -311,32 +592,93 @@ const AdminMenu: React.FC = () => {
         
         {/* Tillåtna användare kort */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
+          <Card 
+            elevation={0}
+            sx={{
+              background: modernTheme.gradients.card,
+              borderRadius: modernTheme.borderRadius.xl,
+              boxShadow: modernTheme.shadows.lg,
+              border: `1px solid ${modernTheme.colors.gray[200]}`,
+              transition: modernTheme.transitions.normal,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: modernTheme.shadows.xl,
+              }
+            }}
+          >
             <CardHeader
               avatar={
-                <Avatar sx={{ bgcolor: 'info.main', width: 40, height: 40 }}>
-                  <SecurityIcon fontSize="small" />
+                <Avatar sx={{ 
+                  background: `linear-gradient(135deg, ${modernTheme.colors.primary[500]} 0%, ${modernTheme.colors.primary[600]} 100%)`,
+                  width: 48, 
+                  height: 48,
+                  boxShadow: modernTheme.shadows.md
+                }}>
+                  <SecurityIcon fontSize="medium" />
                 </Avatar>
               }
-              title="Tillåtna användare"
-              sx={{ pb: 0 }}
+              title={
+                <Typography sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.semibold,
+                  fontSize: modernTheme.typography.fontSize.lg,
+                  color: modernTheme.colors.primary[700]
+                }}>
+                  Tillåtna användare
+                </Typography>
+              }
+              sx={{ pb: modernTheme.spacing[2] }}
             />
-            <CardContent sx={{ pt: 1, pb: 1 }}>
-              <Typography variant="h4">
-                {loading ? 
-                  <CircularProgress size={20} /> : 
+            <CardContent sx={{ pt: 0, pb: modernTheme.spacing[2] }}>
+              <Typography 
+                variant="h3"
+                sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.bold,
+                  fontSize: modernTheme.typography.fontSize['4xl'],
+                  color: modernTheme.colors.primary[800],
+                  lineHeight: modernTheme.typography.lineHeight.tight,
+                  mb: modernTheme.spacing[2]
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: modernTheme.colors.primary[500] }} />
+                ) : (
                   stats.allowlistItems
-                }
+                )}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography 
+                variant="body2" 
+                sx={{
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.medium,
+                  color: stats.allowlistItems === 0 && !loading ? 
+                    modernTheme.colors.success[600] : 
+                    modernTheme.colors.warning[600]
+                }}
+              >
                 {stats.allowlistItems === 0 && !loading ? 
                   "Alla användare tillåts logga in" : 
                   "Begränsad åtkomst aktiverad"
                 }
               </Typography>
             </CardContent>
-            <Box sx={{ px: 2, pb: 2 }}>
-              <Button size="small" onClick={() => navigate('/admin/allowlist')}>
+            <Box sx={{ px: modernTheme.spacing[4], pb: modernTheme.spacing[4] }}>
+              <Button 
+                variant="outlined"
+                size="small" 
+                onClick={() => navigate('/admin/allowlist')}
+                sx={{
+                  borderColor: modernTheme.colors.primary[300],
+                  color: modernTheme.colors.primary[600],
+                  fontFamily: modernTheme.typography.fontFamily.primary,
+                  fontWeight: modernTheme.typography.fontWeight.medium,
+                  '&:hover': {
+                    borderColor: modernTheme.colors.primary[500],
+                    backgroundColor: modernTheme.colors.primary[50],
+                  }
+                }}
+              >
                 Hantera tillåtna användare
               </Button>
             </Box>

@@ -24,6 +24,7 @@ import {
   ViewList,
   ExpandMore,
   ExpandLess,
+  SearchOutlined,
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 import { modernTheme } from '../../theme/modernTheme';
@@ -35,13 +36,33 @@ interface ModernPagesListProps {
   isLoading?: boolean;
 }
 
-// Simplified, clean hero section
+// Modern hero section with gradient and visual interest
 const HeroSection = styled(Box)(({ theme }) => ({
-  background: modernTheme.colors.white,
-  padding: `${modernTheme.spacing[8]} 0 ${modernTheme.spacing[6]} 0`,
+  background: `linear-gradient(135deg, ${modernTheme.colors.secondary[50]} 0%, ${modernTheme.colors.white} 50%, ${modernTheme.colors.primary[50]} 100%)`,
+  padding: `${modernTheme.spacing[10]} 0 ${modernTheme.spacing[8]} 0`,
   textAlign: 'center',
   marginBottom: modernTheme.spacing[6],
-  borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `radial-gradient(circle at 30% 20%, ${modernTheme.colors.secondary[100]}40 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, ${modernTheme.colors.primary[100]}30 0%, transparent 50%)`,
+    pointerEvents: 'none',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '2px',
+    background: `linear-gradient(90deg, transparent 0%, ${modernTheme.colors.secondary[400]} 50%, transparent 100%)`,
+  },
 }));
 
 const SearchField = styled(TextField)(({ theme }) => ({
@@ -49,20 +70,30 @@ const SearchField = styled(TextField)(({ theme }) => ({
     backgroundColor: modernTheme.colors.white,
     borderRadius: modernTheme.borderRadius.xl,
     fontSize: modernTheme.typography.fontSize.base,
-    minHeight: '48px',
+    minHeight: '56px',
+    border: `2px solid ${modernTheme.colors.gray[200]}`,
+    boxShadow: modernTheme.shadows.sm,
+    transition: modernTheme.transitions.normal,
     '&:hover': {
-      boxShadow: modernTheme.shadows.sm,
+      boxShadow: modernTheme.shadows.md,
+      borderColor: modernTheme.colors.secondary[300],
+      transform: 'translateY(-1px)',
     },
     '&.Mui-focused': {
-      boxShadow: modernTheme.shadows.md,
+      boxShadow: `0 0 0 4px ${modernTheme.colors.secondary[100]}, ${modernTheme.shadows.lg}`,
+      borderColor: modernTheme.colors.secondary[500],
+      transform: 'translateY(-2px)',
       '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: modernTheme.colors.secondary[500],
-        borderWidth: '2px',
+        borderColor: 'transparent',
       },
     },
   },
   '& .MuiOutlinedInput-input': {
-    padding: modernTheme.spacing[3],
+    padding: `${modernTheme.spacing[4]} ${modernTheme.spacing[4]}`,
+    fontWeight: modernTheme.typography.fontWeight.medium,
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    border: 'none',
   },
 }));
 
@@ -75,11 +106,31 @@ const PageCard = styled(ModernCard)(({ theme }) => ({
   transition: modernTheme.transitions.normal,
   cursor: 'pointer',
   border: `1px solid ${modernTheme.colors.gray[200]}`,
+  background: `linear-gradient(145deg, ${modernTheme.colors.white} 0%, ${modernTheme.colors.gray[50]} 100%)`,
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
+    background: `linear-gradient(90deg, ${modernTheme.colors.secondary[500]} 0%, ${modernTheme.colors.primary[500]} 100%)`,
+    opacity: 0,
+    transition: modernTheme.transitions.normal,
+  },
   '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: modernTheme.shadows.lg,
+    transform: 'translateY(-4px)',
+    boxShadow: `0 8px 25px rgba(0,0,0,0.1), 0 0 0 1px ${modernTheme.colors.secondary[200]}`,
     borderColor: modernTheme.colors.secondary[300],
+    '&::before': {
+      opacity: 1,
+    },
     '& .expand-indicator': {
+      color: modernTheme.colors.secondary[700],
+    },
+    '& .page-title': {
       color: modernTheme.colors.secondary[700],
     },
   },
@@ -195,14 +246,21 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
       <HeroSection>
         <Container maxWidth="md">
           <Typography
-            variant="body1"
+            variant="h4"
+            component="h1"
             sx={{
-              fontSize: modernTheme.typography.fontSize.base,
-              color: modernTheme.colors.gray[600],
+              fontSize: { xs: modernTheme.typography.fontSize['2xl'], md: modernTheme.typography.fontSize['3xl'] },
+              fontWeight: modernTheme.typography.fontWeight.bold,
+              background: `linear-gradient(135deg, ${modernTheme.colors.secondary[700]} 0%, ${modernTheme.colors.primary[600]} 100%)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
               marginBottom: modernTheme.spacing[6],
+              position: 'relative',
+              zIndex: 1,
             }}
           >
-            Dokument och information för vår bostadsrättsförening
+            Information för vår bostadsrättsförening
           </Typography>
 
           {/* Simple search - only if we have documents */}
@@ -216,8 +274,13 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   startAdornment: (
-                    <Box sx={{ marginRight: modernTheme.spacing[2], color: modernTheme.colors.gray[500] }}>
-                      🔍
+                    <Box sx={{ 
+                      marginRight: modernTheme.spacing[2], 
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: modernTheme.colors.secondary[500],
+                    }}>
+                      <SearchOutlined fontSize="small" />
                     </Box>
                   ),
                 }}
@@ -349,12 +412,14 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                             {/* Title */}
                             <Typography
                               variant="h6"
+                              className="page-title"
                               sx={{
                                 fontWeight: modernTheme.typography.fontWeight.semibold,
                                 fontSize: modernTheme.typography.fontSize.lg,
                                 marginBottom: modernTheme.spacing[3],
                                 color: modernTheme.colors.primary[800],
                                 lineHeight: modernTheme.typography.lineHeight.snug,
+                                transition: modernTheme.transitions.normal,
                               }}
                             >
                               {page.title}
