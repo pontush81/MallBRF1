@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User } from '../types/User';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -31,27 +31,111 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const validationInProgress = useRef(false);
 
-  // Initialize state from localStorage
-  useEffect(() => {
-    // Check if user is already logged in from localStorage
-    const savedUser = localStorage.getItem('currentUser');
+  // Validate session and refresh token if needed
+  const validateSession = async () => {
+    if (validationInProgress.current) return;
     
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setCurrentUser(parsedUser);
-        setIsLoggedIn(true);
-        setIsAdmin(parsedUser.role === 'admin');
-      } catch (error) {
-        // If parsing fails, clear localStorage
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('isLoggedIn');
+    try {
+      validationInProgress.current = true;
+      
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        // No Firebase user, clear local storage
+        clearUserData();
+        return;
       }
+
+      // Check if token is still valid by trying to refresh it
+      try {
+        await firebaseUser.getIdToken(true); // Force refresh
+        
+        // If successful, validate user data from local storage
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          setCurrentUser(parsedUser);
+          setIsLoggedIn(true);
+          setIsAdmin(parsedUser.role === 'admin');
+                 } else {
+           // No saved user data, but Firebase user exists - fetch user data
+           const userData = await userService.getUserById(firebaseUser.uid);
+           if (userData) {
+             login(userData);
+           } else {
+             clearUserData();
+           }
+         }
+      } catch (tokenError) {
+        console.warn('Token validation failed:', tokenError);
+        clearUserData();
+      }
+    } catch (error) {
+      console.error('Session validation error:', error);
+      clearUserData();
+    } finally {
+      validationInProgress.current = false;
     }
-    
-    setLoading(false);
+  };
+
+  const clearUserData = () => {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('pages_last_load');
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+  };
+
+  // Initialize and validate session
+  useEffect(() => {
+    try {
+      // Listen to Firebase auth state changes
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          await validateSession();
+        } else {
+          clearUserData();
+        }
+        setLoading(false);
+      });
+
+      // Cleanup function
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      clearUserData();
+      setLoading(false);
+    }
   }, []);
+
+  // Validate session when user returns to the tab/window
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isLoggedIn) {
+        validateSession();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isLoggedIn) {
+        validateSession();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isLoggedIn]);
   
   const login = (user: User) => {
     setCurrentUser(user);

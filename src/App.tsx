@@ -11,6 +11,8 @@ import './utils/debugBookings';
 
 // Static imports
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
+import OfflineIndicator from './components/OfflineIndicator';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PageProvider } from './context/PageContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
@@ -100,6 +102,7 @@ function AppRoutes() {
   return (
     <Router>
       <ScrollToTop />
+      <OfflineIndicator />
       <Routes>
         {/* Redirect root to pages */}
         <Route path="/" element={<Navigate to="/pages" replace />} />
@@ -173,16 +176,18 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <CssBaseline />
-      <AuthProvider>
-        <PageProvider>
-          <MaintenanceProvider>
-            <AppRoutes />
-          </MaintenanceProvider>
-        </PageProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <CssBaseline />
+        <AuthProvider>
+          <PageProvider>
+            <MaintenanceProvider>
+              <AppRoutes />
+            </MaintenanceProvider>
+          </PageProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
