@@ -38,7 +38,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { SUPABASE_URL } from '../config';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 import { auth } from '../services/firebase';
 
 interface Backup {
@@ -107,19 +107,17 @@ const BackupManager: React.FC = () => {
             setLoading(true);
             setError(null);
             
-            // Use new Supabase Edge Function for backup
+                        // Use new Supabase Edge Function for backup with anon key
             const user = auth.currentUser;
             if (!user) {
                 throw new Error('Du måste vara inloggad för att skapa backup');
             }
-            
-            const idToken = await user.getIdToken();
-            
+
             const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify({
                     tables: selectedTables.length > 0 ? selectedTables : ['bookings'],

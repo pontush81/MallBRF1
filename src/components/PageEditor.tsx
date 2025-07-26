@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import pageService from '../services/pageService';
+import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
 import '../styles/PageEditor.css';
 
@@ -27,7 +27,7 @@ const PageEditor: React.FC = () => {
           return;
         }
 
-        const loadedPage = await pageService.getPageById(id);
+        const loadedPage = await pageServiceSupabase.getPageById(id);
         if (!loadedPage) {
           setError('Sidan kunde inte hittas');
           setLoading(false);
@@ -68,7 +68,7 @@ const PageEditor: React.FC = () => {
     try {
       if (!id) return;
 
-      const updatedPage = await pageService.updatePage(id, formData);
+      const updatedPage = await pageServiceSupabase.updatePage(id, formData);
       if (updatedPage) {
         navigate('/admin/pages');
       } else {
@@ -88,15 +88,15 @@ const PageEditor: React.FC = () => {
       setError(null);
 
       console.log('Starting file upload for:', file.name);
-      const response = await pageService.uploadFile(file, id);
+      const response = await pageServiceSupabase.uploadFile(id, file);
       console.log('Upload response:', response);
 
-      if (!response || !response.filename || !response.url) {
+      if (!response || !response.originalName || !response.url) {
         throw new Error('Kunde inte ladda upp filen: Ogiltig svarsdata');
       }
 
-      console.log('File uploaded successfully:', response.filename);
-      alert(`Filen "${response.filename}" har laddats upp framgångsrikt!`);
+      console.log('File uploaded successfully:', response.originalName);
+      alert(`Filen "${response.originalName}" har laddats upp framgångsrikt!`);
 
       // Rensa fil-inputen
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -120,7 +120,7 @@ const PageEditor: React.FC = () => {
     if (!id) return;
 
     try {
-      await pageService.deleteFile(fileId);
+      await pageServiceSupabase.deleteFile(id, fileId);
       
       if (page) {
         setPage({

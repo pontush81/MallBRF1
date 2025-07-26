@@ -35,7 +35,7 @@ import {
 import 'easymde/dist/easymde.min.css';
 
 import { Page, FileInfo } from '../../types/Page';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 
 // Interfacet för våra TabPanel komponenter
 interface TabPanelProps {
@@ -96,7 +96,7 @@ const PageEditor: React.FC = () => {
   const fetchPage = async (pageId: string) => {
     try {
       setLoading(true);
-      const page = await pageService.getPageById(pageId);
+      const page = await pageServiceSupabase.getPageById(pageId);
       
       if (!page) {
         setError('Kunde inte hitta sidan');
@@ -179,7 +179,7 @@ const PageEditor: React.FC = () => {
       
       if (isEditMode && id) {
         // Uppdatera befintlig sida
-        result = await pageService.updatePage(id, pageData);
+        result = await pageServiceSupabase.updatePage(id, pageData);
         
         if (!result) {
           throw new Error('Kunde inte uppdatera sidan');
@@ -188,7 +188,7 @@ const PageEditor: React.FC = () => {
         setSnackbarMessage('Sidan har uppdaterats');
       } else {
         // Skapa ny sida
-        result = await pageService.createPage(pageData);
+        result = await pageServiceSupabase.createPage(pageData);
         setSnackbarMessage('Sidan har skapats');
       }
       
@@ -239,15 +239,15 @@ const PageEditor: React.FC = () => {
         type: file.type
       });
 
-      const response = await pageService.uploadFile(file, id);
+      const response = await pageServiceSupabase.uploadFile(id, file);
       console.log('Upload response:', response);
 
-      if (!response || !response.filename || !response.url) {
-        throw new Error('Kunde inte ladda upp filen: Ogiltig svarsdata');
-      }
+              if (!response || !response.originalName || !response.url) {
+          throw new Error('Kunde inte ladda upp filen: Ogiltig svarsdata');
+        }
 
-      console.log('File uploaded successfully:', response.filename);
-      alert(`Filen "${response.filename}" har laddats upp framgångsrikt!`);
+        console.log('File uploaded successfully:', response.originalName);
+        alert(`Filen "${response.originalName}" har laddats upp framgångsrikt!`);
       
       setSnackbarMessage('Filen har laddats upp');
       setSnackbarOpen(true);
@@ -282,7 +282,7 @@ const PageEditor: React.FC = () => {
       setUploadLoading(true);
       console.log('Attempting to delete file:', { pageId: id, fileId });
       
-      await pageService.deleteFile(fileId);
+      await pageServiceSupabase.deleteFile(id, fileId);
       
       // Update local state
       setFiles(prevFiles => prevFiles.filter(f => f.id !== fileId));

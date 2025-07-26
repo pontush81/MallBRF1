@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import { Page } from '../types/Page';
-import pageService from '../services/pageService';
+import pageServiceSupabase from '../services/pageServiceSupabase';
 import { useTheme } from '../context/ThemeContext';
 import StyledMarkdown from './StyledMarkdown';
 
@@ -26,7 +26,7 @@ const PublicPages: React.FC = () => {
     const fetchPages = async () => {
       try {
         setLoading(true);
-        const fetchedPages = await pageService.getVisiblePages();
+        const fetchedPages = await pageServiceSupabase.getVisiblePages();
         setPages(fetchedPages);
       } catch (err) {
         console.error('Fel vid hämtning av sidor:', err);

@@ -71,11 +71,11 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import * as dateFns from 'date-fns';
 import { sv } from 'date-fns/locale';
-import bookingService from '../../services/bookingService';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL, SUPABASE_URL } from '../../config';
+import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../config';
 import { auth } from '../../services/firebase';
 import { toast, Toaster } from 'react-hot-toast';
 import BookingStatus from '../../components/booking/BookingStatus';
@@ -460,7 +460,7 @@ const BookingPage: React.FC = () => {
       setLoadingBookings(true);
       
       // Använd cachade data för snabbare laddning
-      const bookings = await bookingService.getAllBookings();
+      const bookings = await bookingServiceSupabase.getAllBookings();
       
       if (!bookings || bookings.length === 0) {
         setExistingBookings([]);
@@ -541,7 +541,7 @@ const BookingPage: React.FC = () => {
   useEffect(() => {
     const fetchApartmentInfo = async () => {
       try {
-        const page = await pageService.getPageBySlug('gastlagenhet');
+        const page = await pageServiceSupabase.getPageBySlug('gastlagenhet');
       } catch (error) {
         console.log('Kunde inte hämta lägenhetsinformation, fortsätter utan den');
       }
@@ -666,7 +666,7 @@ const BookingPage: React.FC = () => {
       // The client-side validation above should be sufficient for detecting conflicts
       
       // Använd de ursprungliga datumen direkt
-      const booking = await bookingService.createBooking({
+      const booking = await bookingServiceSupabase.createBooking({
         type: 'common-room', // Gästlägenhet = common room  
         date: normalizedStartDate.toISOString(), // Fullt datum med tid
         startTime: '14:00', // Check-in tid
@@ -1138,7 +1138,7 @@ const BookingPage: React.FC = () => {
     if (!bookingToDelete) return;
     
     try {
-      await bookingService.deleteBooking(bookingToDelete.id);
+      await bookingServiceSupabase.deleteBooking(bookingToDelete.id);
       
       // Uppdatera lokalt state med immuterbar metod
       setExistingBookings(prev => 
@@ -1641,15 +1641,13 @@ const BookingPage: React.FC = () => {
       if (!user) {
         throw new Error('Du måste vara inloggad för att skapa backup');
       }
-
-      const idToken = await user.getIdToken();
       
-      // Use Supabase Edge Function instead of Express backend
+      // Use Supabase Edge Function with anon key for authorization
       const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           tables: ['bookings'],
@@ -2247,7 +2245,7 @@ const BookingPage: React.FC = () => {
                     };
                     
                     // Skicka uppdatering till servern
-                    const result = await bookingService.updateBooking(updatedBooking.id, updatedBooking);
+                    const result = await bookingServiceSupabase.updateBooking(updatedBooking.id, updatedBooking);
                     
                     if (result) {
                       // Uppdatera lokalt state

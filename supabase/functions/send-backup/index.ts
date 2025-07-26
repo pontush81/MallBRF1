@@ -19,18 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    // Basic authorization check (same as original Express route)
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
+    // No authorization check needed - Edge Function uses Service Role Key internally
     console.log('Starting backup process...')
 
     // Parse request body

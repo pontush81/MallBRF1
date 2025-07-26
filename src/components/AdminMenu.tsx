@@ -27,7 +27,7 @@ import {
   BuildCircle as MaintenanceIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import bookingService from '../services/bookingService';
+import bookingServiceSupabase from '../services/bookingServiceSupabase';
 import { userService } from '../services/userService';
 import { Booking } from '../types/Booking';
 import { maintenanceTasksData } from '../data/maintenanceTasksData';
@@ -88,7 +88,7 @@ const AdminMenu: React.FC = () => {
   const fetchBookingStats = async () => {
     try {
       // Hämta bokningsstatistik (använd cache för snabbare laddning)
-      const bookings = await bookingService.getAllBookings();
+      const bookings = await bookingServiceSupabase.getAllBookings();
       
       // Räkna bokningar per år
       const bookingsByYear: Record<string, number> = {};

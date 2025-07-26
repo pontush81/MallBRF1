@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import pageService from '../services/pageService';
+import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
 
 const PagesList: React.FC = () => {
@@ -16,7 +16,7 @@ const PagesList: React.FC = () => {
 
   const loadPages = async () => {
     try {
-      const loadedPages = await pageService.getAllPages();
+      const loadedPages = await pageServiceSupabase.getAllPages();
       setPages(loadedPages);
     } catch (err) {
       setError('Ett fel uppstod vid laddning av sidorna');
@@ -41,7 +41,7 @@ const PagesList: React.FC = () => {
     if (!deletePageId) return;
 
     try {
-      await pageService.deletePage(deletePageId);
+      await pageServiceSupabase.deletePage(deletePageId);
       setPages(pages.filter(page => page.id !== deletePageId));
     } catch (err) {
       setError('Ett fel uppstod vid borttagning av sidan');

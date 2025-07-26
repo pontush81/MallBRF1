@@ -27,8 +27,8 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import pageService from '../../services/pageService';
-import bookingService from '../../services/bookingService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import { userService } from '../../services/userService';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -64,12 +64,12 @@ const DashboardHome: React.FC = () => {
       setLoading(true);
       
       // Hämta sidstatistik
-      const pages = await pageService.getAllPages();
+      const pages = await pageServiceSupabase.getAllPages();
       const published = pages.filter(p => p.isPublished).length;
       const drafts = pages.length - published;
       
       // Hämta bokningsstatistik (använd cache för snabbare laddning)
-      const bookings = await bookingService.getAllBookings();
+      const bookings = await bookingServiceSupabase.getAllBookings();
       const pending = bookings.filter(b => b.status === 'pending').length;
       const confirmed = bookings.filter(b => b.status === 'confirmed').length;
       

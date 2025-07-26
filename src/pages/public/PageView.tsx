@@ -26,7 +26,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { Page, FileInfo } from '../../types/Page';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloseIcon from '@mui/icons-material/Close';
@@ -147,7 +147,7 @@ const PageView: React.FC = () => {
 
       try {
         setLoading(true);
-        const fetchedPage = await pageService.getPageById(id);
+        const fetchedPage = await pageServiceSupabase.getPageById(id);
         
         if (!fetchedPage) {
           setError('Sidan kunde inte hittas');

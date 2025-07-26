@@ -11,7 +11,7 @@ import {
 import { format, differenceInDays, getISOWeek, isValid } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
-import bookingService from '../../services/bookingService';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingStatus from '../../components/booking/BookingStatus';
 import { useAuth } from '../../context/AuthContext';
 
@@ -30,7 +30,7 @@ const BookingStatusPage: React.FC = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const fetchedBookings = await bookingService.getAllBookings();
+      const fetchedBookings = await bookingServiceSupabase.getAllBookings();
       console.log('Fetched bookings from API:', fetchedBookings);
       setBookings(fetchedBookings);
     } catch (err) {

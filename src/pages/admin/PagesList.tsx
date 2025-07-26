@@ -32,7 +32,7 @@ import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
 import { Page } from '../../types/Page';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 
 const PagesList: React.FC = () => {
   const [pages, setPages] = useState<Page[]>([]);
@@ -54,7 +54,7 @@ const PagesList: React.FC = () => {
   const fetchPages = async () => {
     try {
       setLoading(true);
-      const allPages = await pageService.getAllPages();
+      const allPages = await pageServiceSupabase.getAllPages();
       setPages(allPages);
       setError(null);
     } catch (err) {
@@ -83,7 +83,7 @@ const PagesList: React.FC = () => {
     
     try {
       setLoading(true);
-      await pageService.deletePage(pageToDelete.id);
+      await pageServiceSupabase.deletePage(pageToDelete.id);
       setPages(pages.filter(p => p.id !== pageToDelete.id));
       setSnackbarMessage(`Sidan "${pageToDelete.title}" har raderats`);
       setSnackbarOpen(true);

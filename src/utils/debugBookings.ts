@@ -1,5 +1,5 @@
 // Debug utility för att lösa boknings-laddningsproblem
-import bookingService from '../services/bookingService';
+import bookingServiceSupabase from '../services/bookingServiceSupabase';
 
 // Lägg till i window för enkel åtkomst från browser console
 declare global {
@@ -18,9 +18,8 @@ const debugBookings = {
   forceRefresh: async () => {
     console.log('🔄 Force refreshing bookings...');
     try {
-      // Clear cache first
-      bookingService.clearCache();
-      const bookings = await bookingService.getAllBookings();
+      // No cache to clear - Supabase service fetches fresh data directly
+      const bookings = await bookingServiceSupabase.getAllBookings();
       console.log('✅ Refreshed bookings:', bookings);
       
       // Trigga en page reload för att uppdatera UI
@@ -30,11 +29,10 @@ const debugBookings = {
     }
   },
 
-  // Rensa cache helt
+  // Rensa cache helt (no-op for Supabase service)
   clearCache: () => {
-    console.log('🗑️ Clearing booking cache...');
-    bookingService.invalidateCache();
-    console.log('✅ Cache cleared');
+    console.log('🗑️ No cache to clear - Supabase service fetches fresh data directly');
+    console.log('✅ Cache cleared (no-op)!');
   },
 
   // Testa API direkt
@@ -70,7 +68,7 @@ const debugBookings = {
   getBookings: async () => {
     console.log('📖 Getting bookings with full logging...');
     try {
-      const bookings = await bookingService.getAllBookings();
+      const bookings = await bookingServiceSupabase.getAllBookings();
       console.log('📊 Bookings result:', bookings);
       return bookings;
     } catch (error) {

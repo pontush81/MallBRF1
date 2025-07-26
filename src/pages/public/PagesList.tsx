@@ -17,7 +17,7 @@ import { Visibility as ViewIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Page } from '../../types/Page';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 
 const PublicPagesList: React.FC = () => {
   const [pages, setPages] = useState<Page[]>([]);
@@ -33,7 +33,7 @@ const PublicPagesList: React.FC = () => {
   const fetchPages = async () => {
     try {
       setLoading(true);
-      const publishedPages = await pageService.getPublishedPages();
+      const publishedPages = await pageServiceSupabase.getPublishedPages();
       setPages(publishedPages);
       setError(null);
     } catch (err) {

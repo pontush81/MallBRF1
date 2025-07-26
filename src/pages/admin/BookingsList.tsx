@@ -49,7 +49,7 @@ import {
 import { Booking } from '../../types/Booking';
 import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import bookingService from '../../services/bookingService';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import { API_BASE_URL, SUPABASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
@@ -117,7 +117,7 @@ const BookingsList: React.FC = () => {
     
     try {
       // Använd cache för snabbare laddning
-      const fetchedBookings = await bookingService.getAllBookings();
+      const fetchedBookings = await bookingServiceSupabase.getAllBookings();
       setBookings(fetchedBookings);
       setFilteredBookings(fetchedBookings);
     } catch (err) {
@@ -165,7 +165,7 @@ const BookingsList: React.FC = () => {
     if (!bookingToDelete) return;
     
     try {
-      await bookingService.deleteBooking(bookingToDelete.id);
+      await bookingServiceSupabase.deleteBooking(bookingToDelete.id);
       
       // Uppdatera listan
       setBookings(prevBookings => 
@@ -470,7 +470,7 @@ const BookingsList: React.FC = () => {
       };
       
       console.log('Attempting to update booking:', bookingToEdit.id);
-      const updatedBookingResponse = await bookingService.updateBooking(bookingToEdit.id, updatedBooking);
+      const updatedBookingResponse = await bookingServiceSupabase.updateBooking(bookingToEdit.id, updatedBooking);
       
       if (updatedBookingResponse) {
         // Successfully updated - update UI
