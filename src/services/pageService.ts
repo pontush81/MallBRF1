@@ -1,283 +1,234 @@
 import { Page } from '../types/Page';
-import { apiRequest, withFallback } from '../utils/apiClient';
+import pageServiceSupabase from './pageServiceSupabase';
 
-// Fallback data for when API requests fail
-export const FALLBACK_PAGES = [
-  {
-    id: "fallback-1",
-    title: "Bokning",
-    content: "# Ett fel uppstod\n\nTyvärr kunde vi inte hämta sidans innehåll från servern. Detta kan bero på ett tillfälligt problem med anslutningen.\n\nVänligen försök ladda om sidan för att se aktuell information.",
-    slug: "bokning",
-    isPublished: true,
-    show: true,
-    files: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "fallback-2",
-    title: "Information",
-    content: "# Ett fel uppstod\n\nTyvärr kunde vi inte hämta sidans innehåll från servern. Detta kan bero på ett tillfälligt problem med anslutningen.\n\nVänligen försök ladda om sidan för att se aktuell information.",
-    slug: "information",
-    isPublished: true,
-    show: true,
-    files: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "fallback-3",
-    title: "Välkomstsida",
-    content: "# Ett fel uppstod\n\nTyvärr kunde vi inte hämta sidans innehåll från servern. Detta kan bero på ett tillfälligt problem med anslutningen.\n\nVänligen försök ladda om sidan för att se aktuell information.",
-    slug: "valkomstsida",
-    isPublished: true,
-    show: true,
-    files: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
+// Use Supabase instead of Express API
+console.log('PageService använder Supabase direkt (inga API-anrop)');
 
-// Fallback page data by slug
-const FALLBACK_PAGES_BY_SLUG = {
-  "valkomstsida": FALLBACK_PAGES[2],
-  "information": FALLBACK_PAGES[1],
-  "bokning": FALLBACK_PAGES[0],
-  "lagenhet-info": {
-    id: "fallback-4",
-    title: "Lägenhetsinformation",
-    content: "# Ett fel uppstod\n\nTyvärr kunde vi inte hämta sidans innehåll från servern. Detta kan bero på ett tillfälligt problem med anslutningen.\n\nVänligen försök ladda om sidan för att se aktuell information.",
-    slug: "lagenhet-info",
-    isPublished: true,
-    show: true,
-    files: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+// Cache konfiguration
+const CACHE_DURATION = 30000; // 30 sekunder cache
+const STALE_WHILE_REVALIDATE_DURATION = 300000; // 5 minuter stale-while-revalidate
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  isStale: boolean;
+}
+
+class PageCache {
+  private cache = new Map<string, CacheEntry<any>>();
+  private pendingRequests = new Map<string, Promise<any>>();
+  
+  private isExpired(entry: CacheEntry<any>): boolean {
+    return Date.now() - entry.timestamp > CACHE_DURATION;
   }
+  
+  private isStale(entry: CacheEntry<any>): boolean {
+    return Date.now() - entry.timestamp > STALE_WHILE_REVALIDATE_DURATION;
+  }
+  
+  async get<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const existing = this.cache.get(key);
+    
+    // If we have fresh data, return it
+    if (existing && !this.isExpired(existing)) {
+      return existing.data;
+    }
+    
+    // If we have stale data but not too old, return stale data and refresh in background
+    if (existing && !this.isStale(existing)) {
+      // Start background refresh if not already pending
+      if (!this.pendingRequests.has(key)) {
+        const refreshPromise = this.refreshInBackground(key, fetcher);
+        this.pendingRequests.set(key, refreshPromise);
+      }
+      return existing.data;
+    }
+    
+    // If we have a pending request, wait for it
+    const pendingRequest = this.pendingRequests.get(key);
+    if (pendingRequest) {
+      return await pendingRequest;
+    }
+    
+    // No cache or very stale - fetch fresh data
+    const fetchPromise = this.fetchAndCache(key, fetcher);
+    this.pendingRequests.set(key, fetchPromise);
+    
+    try {
+      return await fetchPromise;
+    } finally {
+      this.pendingRequests.delete(key);
+    }
+  }
+  
+  private async refreshInBackground<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    try {
+      const data = await fetcher();
+      this.cache.set(key, {
+        data,
+        timestamp: Date.now(),
+        isStale: false
+      });
+      return data;
+    } catch (error) {
+      console.warn(`Background refresh failed for ${key}:`, error);
+      // Return stale data if refresh fails
+      const existing = this.cache.get(key);
+      if (existing) {
+        return existing.data;
+      }
+      throw error;
+    } finally {
+      this.pendingRequests.delete(key);
+    }
+  }
+  
+  private async fetchAndCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const data = await fetcher();
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      isStale: false
+    });
+    return data;
+  }
+  
+  invalidate(keyPattern?: string): void {
+    if (keyPattern) {
+      // Invalidate keys matching pattern
+      for (const key of this.cache.keys()) {
+        if (key.includes(keyPattern)) {
+          this.cache.delete(key);
+        }
+      }
+    } else {
+      // Clear all cache
+      this.cache.clear();
+    }
+    this.pendingRequests.clear();
+  }
+  
+  clear(): void {
+    this.cache.clear();
+    this.pendingRequests.clear();
+  }
+}
+
+const cache = new PageCache();
+
+// Cache keys
+const CACHE_KEYS = {
+  ALL_PAGES: 'all_pages',
+  VISIBLE_PAGES: 'visible_pages',
+  PUBLISHED_PAGES: 'published_pages',
+  PAGE_BY_ID: (id: string) => `page_${id}`,
+  PAGE_BY_SLUG: (slug: string) => `page_slug_${slug}`
 };
 
-// Service för att hantera sidor
 const pageService = {
-  // Hämta alla sidor
-  getAllPages: async (): Promise<Page[]> => {
-    return withFallback(
-      async () => {
-        const pages = await apiRequest<Page[]>('/pages');
-        console.log(`Successfully fetched ${pages.length} pages`);
-        return pages;
-      }, 
-      []
-    );
+  // Hämta alla synliga sidor
+  async getVisiblePages(): Promise<Page[]> {
+    return cache.get(CACHE_KEYS.VISIBLE_PAGES, async () => {
+      console.log('🔄 Hämtar synliga sidor från Supabase...');
+      return await pageServiceSupabase.getVisiblePages();
+    });
   },
 
-  // Hämta publicerade sidor
-  getPublishedPages: async (): Promise<Page[]> => {
-    return withFallback(
-      async () => apiRequest<Page[]>('/pages/published'),
-      []
-    );
+  // Hämta alla publicerade sidor
+  async getPublishedPages(): Promise<Page[]> {
+    return cache.get(CACHE_KEYS.PUBLISHED_PAGES, async () => {
+      console.log('🔄 Hämtar publicerade sidor från Supabase...');
+      return await pageServiceSupabase.getPublishedPages();
+    });
   },
 
-  // Hämta publicerade sidor som ska visas i sidlistan
-  getVisiblePages: async (): Promise<Page[]> => {
-    return withFallback(
-      async () => {
-        const pages = await apiRequest<Page[]>('/pages/visible');
-        console.log(`Successfully fetched ${pages.length} visible pages`);
-        // Sortera sidorna i alfabetisk ordning baserat på titeln
-        return [...pages].sort((a, b) => a.title.localeCompare(b.title, 'sv'));
-      },
-      // Sort fallback pages by title
-      [...FALLBACK_PAGES].sort((a, b) => a.title.localeCompare(b.title, 'sv'))
-    );
+  // Hämta alla sidor (admin)
+  async getAllPages(): Promise<Page[]> {
+    return cache.get(CACHE_KEYS.ALL_PAGES, async () => {
+      console.log('🔄 Hämtar alla sidor från Supabase...');
+      return await pageServiceSupabase.getAllPages();
+    });
   },
 
   // Hämta en specifik sida med ID
-  getPageById: async (id: string): Promise<Page | null> => {
-    try {
-      return await apiRequest<Page>(`/pages/${id}`);
-    } catch (error) {
-      if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
-        return null;
-      }
-      console.error('Fel vid hämtning av sida:', error);
-      return null;
-    }
+  async getPageById(id: string): Promise<Page | null> {
+    return cache.get(CACHE_KEYS.PAGE_BY_ID(id), async () => {
+      console.log(`🔄 Hämtar sida ${id} från Supabase...`);
+      return await pageServiceSupabase.getPageById(id);
+    });
   },
 
   // Hämta en specifik sida med slug
-  getPageBySlug: async (slug: string): Promise<Page | null> => {
-    try {
-      return await apiRequest<Page>(`/pages/slug/${slug}`);
-    } catch (error) {
-      console.error('Fel vid hämtning av sida med slug:', error);
-      
-      // Försök använda fallback för denna slug
-      if (slug in FALLBACK_PAGES_BY_SLUG) {
-        console.log(`Använder fallback för slug: ${slug}`);
-        return FALLBACK_PAGES_BY_SLUG[slug];
-      }
-      
-      // Returnera null som säkerhetsåtgärd
-      return null;
-    }
-  },
-
-  // Skapa en ny sida
-  createPage: async (pageData: Omit<Page, 'id' | 'createdAt' | 'updatedAt'>): Promise<Page> => {
-    return await apiRequest<Page>('/pages', {
-      method: 'POST',
-      body: pageData
+  async getPageBySlug(slug: string): Promise<Page | null> {
+    return cache.get(CACHE_KEYS.PAGE_BY_SLUG(slug), async () => {
+      console.log(`🔄 Hämtar sida med slug ${slug} från Supabase...`);
+      return await pageServiceSupabase.getPageBySlug(slug);
     });
   },
 
-  // Uppdatera en befintlig sida
-  updatePage: async (id: string, pageData: Partial<Page>): Promise<Page> => {
-    return await apiRequest<Page>(`/pages/${id}`, {
-      method: 'PUT',
-      body: pageData
-    });
+  // Skapa ny sida
+  async createPage(pageData: any): Promise<Page> {
+    console.log('🔄 Skapar ny sida i Supabase...');
+    const page = await pageServiceSupabase.createPage(pageData);
+    
+    // Invalidate relevant cache entries
+    cache.invalidate('pages');
+    
+    return page;
   },
 
-  // Ta bort en sida
-  deletePage: async (id: string): Promise<void> => {
-    await apiRequest<void>(`/pages/${id}`, {
-      method: 'DELETE'
-    });
-  },
-
-  // Ladda upp en fil till en sida
-  uploadFile: async (pageId: string, file: File) => {
-    try {
-      console.log('Starting file upload process:', { 
-        filename: file.name, 
-        size: file.size, 
-        type: file.type,
-        pageId: pageId
-      });
-      
-      // Validera filen först
-      if (file.size === 0) {
-        throw new Error('Filen är tom (0 bytes)');
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const url = `/pages/${pageId}/upload`;
-      
-      // Använd window.location.origin istället för hårdkodad localhost
-      const apiBaseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3002' : window.location.origin;
-      const fullUrl = `${apiBaseUrl}/api${url}`;
-      
-      console.log('Making upload request to:', fullUrl);
-      
-      // Använd vanlig fetch istället för apiRequest för formdata
-      const response = await fetch(fullUrl, {
-        method: 'POST',
-        headers: {
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: formData,
-        credentials: 'include'
-      });
-
-      console.log('Upload response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Upload failed with status:', response.status, errorText);
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          // Om det inte är JSON, använd texten direkt
-          throw new Error(`Kunde inte ladda upp filen: ${response.status} ${errorText}`);
-        }
-        throw new Error(errorData.error || errorData.details || 'Kunde inte ladda upp filen');
-      }
-      
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (!data.file) {
-        console.error('No file data in response:', data);
-        throw new Error('Servern returnerade inget fildata');
-      }
-
-      // Create response object with strict type checking
-      const result = {
-        success: true,
-        file: {
-          id: String(data.file.id || Date.now()),
-          filename: String(data.file.filename || file.name),
-          originalName: String(data.file.originalName || file.name),
-          mimetype: String(data.file.mimetype || file.type),
-          size: Number(data.file.size || file.size),
-          url: String(data.file.url || ''),
-          uploadedAt: String(data.file.uploadedAt || new Date().toISOString())
-        }
-      };
-
-      console.log('Upload completed successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('File upload failed:', error);
-      throw new Error(`Kunde inte ladda upp filen: ${error instanceof Error ? error.message : String(error)}`);
+  // Uppdatera sida
+  async updatePage(id: string, pageData: any): Promise<Page> {
+    console.log(`🔄 Uppdaterar sida ${id} i Supabase...`);
+    const page = await pageServiceSupabase.updatePage(id, pageData);
+    
+    // Invalidate relevant cache entries
+    cache.invalidate('pages');
+    cache.invalidate(`page_${id}`);
+    if (pageData.slug) {
+      cache.invalidate(`page_slug_${pageData.slug}`);
     }
+    
+    return page;
   },
 
-  // Radera en fil från en sida
-  deleteFile: async (pageId: string, fileId: string): Promise<boolean> => {
-    try {
-      await apiRequest<{success: boolean}>(`/pages/${pageId}/files/${fileId}`, {
-        method: 'DELETE'
-      });
-      return true;
-    } catch (error) {
-      console.error('Fel vid radering av fil:', error);
-      throw error;
-    }
+  // Radera sida
+  async deletePage(id: string): Promise<void> {
+    console.log(`🔄 Raderar sida ${id} från Supabase...`);
+    await pageServiceSupabase.deletePage(id);
+    
+    // Invalidate relevant cache entries
+    cache.invalidate('pages');
+    cache.invalidate(`page_${id}`);
   },
 
-  // Exportera alla sidor som JSON-fil
-  exportPages: async (): Promise<string> => {
-    try {
-      const pages = await pageService.getAllPages();
-      return JSON.stringify(pages, null, 2);
-    } catch (error) {
-      console.error('Fel vid export av sidor:', error);
-      return '[]';
-    }
+  // File upload methods
+  async uploadFile(file: File, pageId?: string): Promise<{ filename: string; url: string }> {
+    console.log('🔄 Laddar upp fil till Supabase Storage...');
+    const result = await pageServiceSupabase.uploadFile(pageId || '', file);
+    return {
+      filename: result.originalName || file.name,
+      url: result.url
+    };
   },
 
-  // Importera sidor från JSON-sträng
-  importPages: async (pagesJson: string): Promise<boolean> => {
-    try {
-      const pages = JSON.parse(pagesJson) as Page[];
-      
-      // Validera att det är en array av Page-objekt
-      if (!Array.isArray(pages) || !pages.every(p => 
-        p.id && p.title && p.content && typeof p.isPublished === 'boolean')) {
-        throw new Error('Ogiltig siddata');
-      }
-      
-      // Detta är en förenklad implementation som skulle kräva en ny endpoint
-      // på servern för att importera flera sidor samtidigt.
-      // Här laddar vi upp varje sida separat
-      for (const page of pages) {
-        await apiRequest<Page>(`/pages/${page.id}`, {
-          method: 'PUT', 
-          body: page
-        });
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Fel vid import av sidor:', error);
-      throw error;
-    }
+  async deleteFile(filename: string): Promise<void> {
+    console.log(`🔄 Raderar fil ${filename} från Supabase Storage...`);
+    // Importera supabaseStorage direkt för filoperationer
+    const { default: supabaseStorage } = await import('./supabaseStorage');
+    await supabaseStorage.deleteFile(filename);
   },
+
+  // Cache management
+  clearCache(): void {
+    console.log('🧹 Rensar page cache...');
+    cache.clear();
+  },
+
+  invalidateCache(pattern?: string): void {
+    console.log(`🧹 Invaliderar page cache${pattern ? ` (${pattern})` : ''}...`);
+    cache.invalidate(pattern);
+  }
 };
 
 export default pageService; 

@@ -1,8 +1,8 @@
 import { Booking } from '../types/Booking';
-import { API_BASE_URL } from '../config';
+import bookingServiceSupabase from './bookingServiceSupabase';
 
-// Use the same API base URL as other services
-console.log('BookingService använder API URL:', API_BASE_URL);
+// Use Supabase instead of Express API
+console.log('BookingService använder Supabase direkt (inga API-anrop)');
 
 // Cache konfiguration
 const CACHE_DURATION = 30000; // 30 sekunder cache
@@ -18,503 +18,227 @@ class BookingCache {
   private cache = new Map<string, CacheEntry<any>>();
   private pendingRequests = new Map<string, Promise<any>>();
   
-  async get<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    duration: number = CACHE_DURATION
-  ): Promise<T> {
-    const cached = this.cache.get(key);
-    const now = Date.now();
+  private isExpired(entry: CacheEntry<any>): boolean {
+    return Date.now() - entry.timestamp > CACHE_DURATION;
+  }
+  
+  private isStale(entry: CacheEntry<any>): boolean {
+    return Date.now() - entry.timestamp > STALE_WHILE_REVALIDATE_DURATION;
+  }
+  
+  async get<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const existing = this.cache.get(key);
     
-    // Om vi har färsk data, returnera den direkt
-    if (cached && !cached.isStale && (now - cached.timestamp) < duration) {
-      console.log(`Cache hit för ${key} (${now - cached.timestamp}ms sedan)`);
-      return cached.data;
+    // If we have fresh data, return it
+    if (existing && !this.isExpired(existing)) {
+      return existing.data;
     }
     
-    // Om vi har stale data men inte för gammal, returnera den och uppdatera i bakgrunden
-    if (cached && cached.isStale && (now - cached.timestamp) < STALE_WHILE_REVALIDATE_DURATION) {
-      console.log(`Stale cache hit för ${key}, uppdaterar i bakgrunden`);
-      
-      // Starta bakgrundsuppdatering utan att vänta
-      this.backgroundRefresh(key, fetcher, duration);
-      
-      return cached.data;
-    }
-    
-    // Om vi har en pågående request för samma nyckel, vänta på den
-    if (this.pendingRequests.has(key)) {
-      console.log(`Väntar på pågående request för ${key}`);
-      return this.pendingRequests.get(key)!;
-    }
-    
-    // Ingen cache eller för gammal data - hämta ny data
-    console.log(`Cache miss för ${key}, hämtar ny data`);
-    const promise = this.fetchAndCache(key, fetcher, duration);
-    this.pendingRequests.set(key, promise);
-    
-    try {
-      const result = await promise;
-      this.pendingRequests.delete(key);
-      return result;
-    } catch (error) {
-      this.pendingRequests.delete(key);
-      
-      // Om vi har stale data vid fel, returnera den istället
-      if (cached && cached.data) {
-        console.log(`API-fel, returnerar stale data för ${key}`);
-        return cached.data;
+    // If we have stale data but not too old, return stale data and refresh in background
+    if (existing && !this.isStale(existing)) {
+      // Start background refresh if not already pending
+      if (!this.pendingRequests.has(key)) {
+        const refreshPromise = this.refreshInBackground(key, fetcher);
+        this.pendingRequests.set(key, refreshPromise);
       }
-      
-      throw error;
+      return existing.data;
     }
-  }
-  
-  private async backgroundRefresh<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    duration: number
-  ): Promise<void> {
-    try {
-      await this.fetchAndCache(key, fetcher, duration);
-    } catch (error) {
-      console.log(`Bakgrundsuppdatering misslyckades för ${key}:`, error);
-    }
-  }
-  
-  private async fetchAndCache<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    duration: number
-  ): Promise<T> {
-    const data = await fetcher();
-    const now = Date.now();
     
+    // If we have a pending request, wait for it
+    const pendingRequest = this.pendingRequests.get(key);
+    if (pendingRequest) {
+      return await pendingRequest;
+    }
+    
+    // No cache or very stale - fetch fresh data
+    const fetchPromise = this.fetchAndCache(key, fetcher);
+    this.pendingRequests.set(key, fetchPromise);
+    
+    try {
+      return await fetchPromise;
+    } finally {
+      this.pendingRequests.delete(key);
+    }
+  }
+  
+  private async refreshInBackground<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    try {
+      const data = await fetcher();
+      this.cache.set(key, {
+        data,
+        timestamp: Date.now(),
+        isStale: false
+      });
+      return data;
+    } catch (error) {
+      console.warn(`Background refresh failed for ${key}:`, error);
+      // Return stale data if refresh fails
+      const existing = this.cache.get(key);
+      if (existing) {
+        return existing.data;
+      }
+      throw error;
+    } finally {
+      this.pendingRequests.delete(key);
+    }
+  }
+  
+  private async fetchAndCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const data = await fetcher();
     this.cache.set(key, {
       data,
-      timestamp: now,
+      timestamp: Date.now(),
       isStale: false
     });
-    
-    // Sätt data som stale efter cache duration
-    setTimeout(() => {
-      const entry = this.cache.get(key);
-      if (entry && entry.timestamp === now) {
-        entry.isStale = true;
-      }
-    }, duration);
-    
-    console.log(`Cachade ${key} vid ${now}`);
     return data;
   }
   
-  invalidate(key?: string): void {
-    if (key) {
-      this.cache.delete(key);
-      this.pendingRequests.delete(key);
-      console.log(`Invaliderade cache för ${key}`);
+  invalidate(keyPattern?: string): void {
+    if (keyPattern) {
+      // Invalidate keys matching pattern
+      for (const key of this.cache.keys()) {
+        if (key.includes(keyPattern)) {
+          this.cache.delete(key);
+        }
+      }
     } else {
+      // Clear all cache
       this.cache.clear();
-      this.pendingRequests.clear();
-      console.log('Invaliderade all cache');
     }
+    this.pendingRequests.clear();
   }
   
-  // Städa upp gamla cache-entries
-  cleanup(): void {
-    const now = Date.now();
-    const maxAge = STALE_WHILE_REVALIDATE_DURATION * 2;
-    
-    for (const [key, entry] of this.cache.entries()) {
-      if (now - entry.timestamp > maxAge) {
-        this.cache.delete(key);
-        console.log(`Rensade gammal cache för ${key}`);
-      }
-    }
+  clear(): void {
+    this.cache.clear();
+    this.pendingRequests.clear();
   }
 }
 
-// Global cache instance
-const bookingCache = new BookingCache();
+const cache = new BookingCache();
 
-// Städa cache var 10:e minut
-setInterval(() => bookingCache.cleanup(), 600000);
+// Cache keys
+const CACHE_KEYS = {
+  ALL_BOOKINGS: 'all_bookings',
+  BOOKINGS_BY_DATE: (date: string) => `bookings_by_date_${date}`,
+  BOOKING_BY_ID: (id: string) => `booking_${id}`
+};
 
-// Invalidera cache vid appstart för att undvika gamla data
-bookingCache.invalidate();
-
-// Interface för tillgänglighetskontroll
-interface AvailabilityResponse {
-  available: boolean;
-  overlappingBookings?: Booking[];
-}
-
-// Interface för att skapa en bokning
-interface CreateBookingData {
-  name: string;
-  email: string;
-  startDate: string;
-  endDate: string;
-  notes?: string;
-  phone?: string;
-  parking?: boolean;
-}
-
-// Interface för att uppdatera en bokning
-interface UpdateBookingData {
-  name?: string;
-  email?: string;
-  startDate?: string;
-  endDate?: string;
-  status?: 'pending' | 'confirmed' | 'cancelled';
-  notes?: string;
-  phone?: string;
-  parking?: boolean;
-}
-
-// Service för att hantera bokningar
 const bookingService = {
-  // Hämta alla bokningar med optimerad cache och robust felhantering
-  getAllBookings: async (options: { 
-    forceRefresh?: boolean; 
-    dateRange?: { start: string; end: string };
-    limit?: number;
-  } = {}): Promise<Booking[]> => {
-    const { forceRefresh = false, dateRange, limit } = options;
-    
-    // Skapa cache-nyckel baserat på filter
-    let cacheKey = 'all-bookings';
-    if (dateRange) {
-      cacheKey += `-${dateRange.start}-${dateRange.end}`;
-    }
-    if (limit) {
-      cacheKey += `-limit-${limit}`;
-    }
-    
-    // Om force refresh, invalidera cache först
-    if (forceRefresh) {
-      bookingCache.invalidate(cacheKey);
-    }
-    
-    const fetcher = async (): Promise<Booking[]> => {
-      try {
-        // Bygg URL med query parameters
-        let url = `${API_BASE_URL}/bookings`;
-        const params = new URLSearchParams();
-        
-        if (dateRange) {
-          params.append('startDate', dateRange.start);
-          params.append('endDate', dateRange.end);
-        }
-        if (limit) {
-          params.append('limit', limit.toString());
-        }
-        
-        if (params.toString()) {
-          url += '?' + params.toString();
-        }
-        
-        console.log('Hämtar bokningar från:', url);
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-vercel-protection-bypass': 'true'
-          },
-          mode: 'cors',
-          credentials: process.env.NODE_ENV === 'development' ? 'include' : 'include'
-        });
-
-        console.log('Bokningsrespons status:', response.status);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Error Response:', response.status, errorText);
-          
-          if (response.status === 401) {
-            console.error('Unauthorized - detta kan vara normalt för nya sessions');
-          }
-          
-          // Returnera tom array för att undvika krasch av appen
-          console.warn('Returnerar tom array på grund av API-fel');
-          return [];
-        }
-
-        const data = await response.json();
-        console.log(`Hämtade ${data.length} bokningar från API`);
-        
-        // Optimerad datumbehandling - görs en gång här istället för i varje komponent
-        const processedBookings = data.map((booking: any) => {
-          const startDate = booking.startDate || booking.startdate;
-          const endDate = booking.endDate || booking.enddate;
-          
-          return {
-            ...booking,
-            startDate: startDate ? new Date(startDate).toISOString() : null,
-            endDate: endDate ? new Date(endDate).toISOString() : null,
-            parking: Boolean(booking.parking || booking.parkering)
-          };
-        });
-        
-        return processedBookings;
-      } catch (error) {
-        console.error('Fel vid hämtning av bokningar:', error);
-        // Returnera tom array istället för att kasta fel
-        return [];
-      }
-    };
-    
-    return bookingCache.get(cacheKey, fetcher);
-  },
-
-  // Hämta en specifik bokning med ID
-  getBookingById: async (id: string): Promise<Booking | null> => {
-    try {
-      console.log('Hämtar bokning med ID:', id);
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Bokningsrespons status:', response.status);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log('Bokning hittades inte (404)');
-          return null;
-        }
-        throw new Error(`Kunde inte hämta bokningen: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Hittad bokning:', data);
-      return data;
-    } catch (error) {
-      console.error('Fel vid hämtning av bokning:', error);
-      return null;
-    }
-  },
-
-  // Kontrollera tillgänglighet för datum
-  checkAvailability: async (startDate: string, endDate: string): Promise<AvailabilityResponse> => {
-    try {
-      console.log('Kontrollerar tillgänglighet för:', startDate, 'till', endDate);
-      const response = await fetch(`${API_BASE_URL}/bookings/check-availability`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: JSON.stringify({ startDate, endDate }),
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Tillgänglighetsrespons status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`Kunde inte kontrollera tillgänglighet: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Tillgänglighetsresultat:', data);
-      return data;
-    } catch (error) {
-      console.error('Fel vid kontroll av tillgänglighet:', error);
-      throw error;
-    }
-  },
-
-  // Skapa en ny bokning
-  createBooking: async (bookingData: CreateBookingData): Promise<Booking | null> => {
-    try {
-      console.log('Skapar ny bokning:', bookingData);
-      const response = await fetch(`${API_BASE_URL}/bookings`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: JSON.stringify(bookingData),
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Skapa bokning respons status:', response.status);
-
-      if (!response.ok) {
-        // Om det är en konflikt (datum inte tillgängliga)
-        if (response.status === 409) {
-          const errorData = await response.json();
-          console.log('Konflikt vid bokning:', errorData);
-          throw new Error(errorData.error);
-        }
-        throw new Error(`Kunde inte skapa bokningen: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Skapad bokning:', data);
-      
-      // Invalidera alla booking caches eftersom en ny bokning skapades
-      bookingCache.invalidate();
-      
-      return data;
-    } catch (error) {
-      console.error('Fel vid skapande av bokning:', error);
-      throw error;
-    }
-  },
-
-  // Uppdatera en befintlig bokning
-  updateBooking: async (id: string, bookingData: UpdateBookingData): Promise<Booking | null> => {
-    try {
-      console.log('Uppdaterar bokning:', id);
-      
-      // The server expects startDate, endDate, parking and then maps them to database fields
-      const serverBookingData = {
-        name: bookingData.name,
-        email: bookingData.email,
-        phone: bookingData.phone || "",
-        notes: bookingData.notes || "",
-        startDate: bookingData.startDate, // Server expects startDate (camelCase)
-        endDate: bookingData.endDate,     // Server expects endDate (camelCase)
-        parking: bookingData.parking,     // Server expects parking (camelCase)
-        status: bookingData.status || "pending"
-      };
-      
-      console.log('Sending booking data:', JSON.stringify(serverBookingData, null, 2));
-      
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        body: JSON.stringify(serverBookingData),
-        mode: 'cors',
-        credentials: 'include'
-      });
-      
-      console.log('Update booking response status:', response.status);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log('Booking not found (404)');
-          return null;
-        }
-        
-        // Try to extract error message from response
-        try {
-          const errorText = await response.text();
-          console.error('Error response text:', errorText);
-          
-          try {
-            // Try to parse as JSON
-            const errorJson = JSON.parse(errorText);
-            if (errorJson && errorJson.error) {
-              throw new Error(`Kunde inte uppdatera bokningen: ${errorJson.error}`);
-            }
-          } catch (parseError) {
-            // Not valid JSON, use as is
-          }
-          
-          if (response.status === 409) {
-            throw new Error('Det finns redan bokningar för detta datum');
-          }
-          
-          if (response.status === 500) {
-            throw new Error('Servern kunde inte uppdatera bokningen.');
-          }
-          
-          throw new Error(`Kunde inte uppdatera bokningen: ${errorText || response.statusText}`);
-        } catch (e) {
-          if (e instanceof Error) {
-            throw e; // Re-throw our custom error
-          }
-          throw new Error(`Kunde inte uppdatera bokningen: ${response.statusText}`);
-        }
-      }
-
-      const data = await response.json();
-      console.log('Updated booking response:', data);
-      
-      // Invalidera alla booking caches eftersom en bokning uppdaterades
-      bookingCache.invalidate();
-      
-      return data;
-    } catch (error) {
-      console.error('Error updating booking:', error);
-      throw error;
-    }
-  },
-
-  // Radera en bokning
-  deleteBooking: async (id: string): Promise<boolean> => {
-    try {
-      console.log('Raderar bokning:', id);
-      const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-      console.log('Radera bokning respons status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`Kunde inte radera bokningen: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Raderingsresultat:', data);
-      
-      // Invalidera alla booking caches eftersom en bokning raderades
-      bookingCache.invalidate();
-      
-      return true;
-    } catch (error) {
-      console.error('Fel vid radering av bokning:', error);
-      return false;
-    }
-  },
-
-  // Helper-metoder för cache-hantering
-  invalidateCache: (key?: string) => {
-    bookingCache.invalidate(key);
-  },
-
-  // Hämta bokningar för en specifik månad (optimerat för kalendervisning)
-  getBookingsForMonth: async (year: number, month: number): Promise<Booking[]> => {
-    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
-    
-    return bookingService.getAllBookings({
-      dateRange: { start: startDate, end: endDate }
+  // Hämta alla bokningar
+  async getAllBookings(): Promise<Booking[]> {
+    return cache.get(CACHE_KEYS.ALL_BOOKINGS, async () => {
+      console.log('🔄 Hämtar alla bokningar från Supabase...');
+      return await bookingServiceSupabase.getAllBookings();
     });
   },
 
-  // Hämta kommande bokningar (optimerat för dashboard)
-  getUpcomingBookings: async (limit: number = 5): Promise<Booking[]> => {
-    const today = new Date().toISOString().split('T')[0];
-    const futureDate = new Date();
-    futureDate.setFullYear(futureDate.getFullYear() + 1);
-    const endDate = futureDate.toISOString().split('T')[0];
-    
-    return bookingService.getAllBookings({
-      dateRange: { start: today, end: endDate },
-      limit
+  // Hämta bokningar för ett specifikt datum
+  async getBookingsByDate(date: string): Promise<Booking[]> {
+    return cache.get(CACHE_KEYS.BOOKINGS_BY_DATE(date), async () => {
+      console.log(`🔄 Hämtar bokningar för datum ${date} från Supabase...`);
+      return await bookingServiceSupabase.getBookingsByDate(date);
     });
+  },
+
+  // Kolla tillgänglighet för datum
+  async checkAvailability(date: string, startTime: string, endTime: string): Promise<boolean> {
+    // Don't cache availability checks - they should be real-time
+    console.log(`🔄 Kollar tillgänglighet för ${date} ${startTime}-${endTime}...`);
+    return await bookingServiceSupabase.checkAvailability(date, startTime, endTime);
+  },
+
+  // Skapa ny bokning
+  async createBooking(bookingData: any): Promise<Booking> {
+    console.log('🔄 Skapar ny bokning i Supabase...');
+    const booking = await bookingServiceSupabase.createBooking(bookingData);
+    
+    // Invalidate relevant cache entries
+    cache.invalidate('bookings');
+    
+    return booking;
+  },
+
+  // Uppdatera bokning
+  async updateBooking(id: string, bookingData: any): Promise<Booking> {
+    console.log(`🔄 Uppdaterar bokning ${id} i Supabase...`);
+    const booking = await bookingServiceSupabase.updateBooking(id, bookingData);
+    
+    // Invalidate relevant cache entries
+    cache.invalidate('bookings');
+    cache.invalidate(`booking_${id}`);
+    
+    return booking;
+  },
+
+  // Radera bokning
+  async deleteBooking(id: string): Promise<void> {
+    console.log(`🔄 Raderar bokning ${id} från Supabase...`);
+    await bookingServiceSupabase.deleteBooking(id);
+    
+    // Invalidate relevant cache entries
+    cache.invalidate('bookings');
+    cache.invalidate(`booking_${id}`);
+  },
+
+  // Hämta bokning med ID
+  async getBookingById(id: string): Promise<Booking | null> {
+    return cache.get(CACHE_KEYS.BOOKING_BY_ID(id), async () => {
+      console.log(`🔄 Hämtar bokning ${id} från Supabase...`);
+      return await bookingServiceSupabase.getBookingById(id);
+    });
+  },
+
+  // Hämta bokningar med email
+  async getBookingsByEmail(email: string): Promise<Booking[]> {
+    // Don't cache email lookups for privacy/security
+    console.log(`🔄 Hämtar bokningar för email ${email} från Supabase...`);
+    return await bookingServiceSupabase.getBookingsByEmail(email);
+  },
+
+  // Cache management
+  clearCache(): void {
+    console.log('🧹 Rensar booking cache...');
+    cache.clear();
+  },
+
+  invalidateCache(pattern?: string): void {
+    console.log(`🧹 Invaliderar booking cache${pattern ? ` (${pattern})` : ''}...`);
+    cache.invalidate(pattern);
+  },
+
+  // Helper methods för kompatibilitet
+  async getUpcomingBookings(limit = 10): Promise<Booking[]> {
+    const allBookings = await this.getAllBookings();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return allBookings
+      .filter(booking => {
+        const startDate = new Date(booking.startDate || booking.startdate || '');
+        return startDate >= today;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.startDate || a.startdate || '');
+        const dateB = new Date(b.startDate || b.startdate || '');
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(0, limit);
+  },
+
+  async getRecentBookings(limit = 10): Promise<Booking[]> {
+    const allBookings = await this.getAllBookings();
+    
+    return allBookings
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.createdat || '');
+        const dateB = new Date(b.createdAt || b.createdat || '');
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, limit);
+  },
+
+  async getFutureBookings(limit = 100): Promise<Booking[]> {
+    return this.getAllBookings();
   }
 };
 

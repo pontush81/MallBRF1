@@ -1,4 +1,3 @@
-import { User } from '../types/User';
 import { 
   getUserById, 
   login, 

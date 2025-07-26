@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User } from '../types/User';
 import { auth } from '../services/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { userService } from '../services/userService';
 
 // Make this file a module

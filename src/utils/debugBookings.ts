@@ -18,7 +18,9 @@ const debugBookings = {
   forceRefresh: async () => {
     console.log('🔄 Force refreshing bookings...');
     try {
-      const bookings = await bookingService.getAllBookings({ forceRefresh: true });
+      // Clear cache first
+      bookingService.clearCache();
+      const bookings = await bookingService.getAllBookings();
       console.log('✅ Refreshed bookings:', bookings);
       
       // Trigga en page reload för att uppdatera UI

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { Page } from '../types/Page';
-import pageService from '../services/pageService';
+import pageServiceSupabase from '../services/pageServiceSupabase';
 
 interface PageContextType {
   pages: Page[];
@@ -43,7 +43,7 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       loadingRef.current = true;
       setLoading(true);
       
-      const allPages = await pageService.getVisiblePages();
+      const allPages = await pageServiceSupabase.getVisiblePages();
       setPages(allPages);
       
       // Cache timestamp for smart reloading

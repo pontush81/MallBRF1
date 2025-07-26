@@ -51,7 +51,7 @@ import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, a
 import { sv } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, SUPABASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -165,20 +165,15 @@ const BookingsList: React.FC = () => {
     if (!bookingToDelete) return;
     
     try {
-      const success = await bookingService.deleteBooking(bookingToDelete.id);
+      await bookingService.deleteBooking(bookingToDelete.id);
       
-      if (success) {
-        // Uppdatera listan
-        setBookings(prevBookings => 
-          prevBookings.filter(b => b.id !== bookingToDelete.id)
-        );
+      // Uppdatera listan
+      setBookings(prevBookings => 
+        prevBookings.filter(b => b.id !== bookingToDelete.id)
+      );
         
-        setSnackbarMessage('Bokningen har raderats');
-        setSnackbarSeverity('success');
-      } else {
-        setSnackbarMessage('Kunde inte radera bokningen');
-        setSnackbarSeverity('error');
-      }
+      setSnackbarMessage('Bokningen har raderats');
+      setSnackbarSeverity('success');
     } catch (error) {
       setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
       setSnackbarSeverity('error');
@@ -204,14 +199,17 @@ const BookingsList: React.FC = () => {
     setBackupLoading(true);
     try {
       const token = await auth.currentUser?.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/backup/send-backup`, {
+      // Use Supabase Edge Function instead of Express backend
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'x-vercel-protection-bypass': 'true'
         },
-        credentials: 'include'
+        body: JSON.stringify({
+          tables: ['bookings'],
+          includeFiles: false
+        })
       });
 
       if (!response.ok) {

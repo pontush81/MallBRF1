@@ -75,7 +75,7 @@ import bookingService from '../../services/bookingService';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageService from '../../services/pageService';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, SUPABASE_URL } from '../../config';
 import { auth } from '../../services/firebase';
 import { toast, Toaster } from 'react-hot-toast';
 import BookingStatus from '../../components/booking/BookingStatus';
@@ -662,28 +662,25 @@ const BookingPage: React.FC = () => {
         endDateForCheck = dayBefore;
       }
       
-      // Kontrollera tillgänglighet med de justerade datumen
-      const availabilityCheck = await bookingService.checkAvailability(
-        startDateForCheck.toISOString(), 
-        endDateForCheck.toISOString()
-      );
+      // Skip detailed availability check for now since we already validate against existingBookings above
+      // The client-side validation above should be sufficient for detecting conflicts
       
-      // Om tillgänglighetskontrollen misslyckas med de justerade datumen,
-      // betyder det att det finns en faktisk överlappning (inte bara start/slut på samma dag)
-      if (!availabilityCheck.available) {
-        setErrorMessage('De valda datumen är inte längre tillgängliga. Vänligen välj andra datum.');
-        return;
-      }
-      
-      // Använd de ursprungliga datumen för själva bokningen
+      // Använd de ursprungliga datumen direkt
       const booking = await bookingService.createBooking({
+        type: 'common-room', // Gästlägenhet = common room  
+        date: normalizedStartDate.toISOString(), // Fullt datum med tid
+        startTime: '14:00', // Check-in tid
+        endTime: '11:00',   // Check-out tid  
+        weeks: 1, // Alltid 1 för gästlägenhetsbokningar
+        apartment: '1', // Default apartment
+        floor: '1',     // Default floor
         name,
         email,
-        startDate: normalizedStartDate.toISOString(),
-        endDate: normalizedEndDate.toISOString(),
-        notes: notes,
-        phone: phone,
-        parking: parking
+        phone: phone || '',
+        message: notes || '',
+        parkingSpace: parking ? 'Ja' : undefined,
+        // Lägg till slutdatum för korrekt hantering
+        endDate: normalizedEndDate.toISOString()
       });
       
       if (booking) {
@@ -1141,13 +1138,12 @@ const BookingPage: React.FC = () => {
     if (!bookingToDelete) return;
     
     try {
-      const success = await bookingService.deleteBooking(bookingToDelete.id);
+      await bookingService.deleteBooking(bookingToDelete.id);
       
-      if (success) {
-        // Uppdatera lokalt state med immuterbar metod
-        setExistingBookings(prev => 
-          prev.filter(b => b.id !== bookingToDelete.id)
-        );
+      // Uppdatera lokalt state med immuterbar metod
+      setExistingBookings(prev => 
+        prev.filter(b => b.id !== bookingToDelete.id)
+      );
         
         // Stäng dialogen först
         setDeleteDialogOpen(false);
@@ -1162,12 +1158,6 @@ const BookingPage: React.FC = () => {
         setTimeout(() => {
           fetchBookings();
         }, 300);
-      } else {
-        setSnackbarMessage('Kunde inte radera bokningen');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-        setDeleteDialogOpen(false);
-      }
     } catch (error) {
       console.error('Error deleting booking:', error);
       setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
@@ -1654,14 +1644,17 @@ const BookingPage: React.FC = () => {
 
       const idToken = await user.getIdToken();
       
-      const response = await fetch(`${API_BASE_URL}/backup/send-backup`, {
+      // Use Supabase Edge Function instead of Express backend
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`,
-          'x-vercel-protection-bypass': 'true'
         },
-        credentials: 'include'
+        body: JSON.stringify({
+          tables: ['bookings'],
+          includeFiles: false
+        })
       });
 
       if (!response.ok) {

@@ -239,61 +239,25 @@ const PageEditor: React.FC = () => {
         type: file.type
       });
 
-      const response = await pageService.uploadFile(id, file);
+      const response = await pageService.uploadFile(file, id);
       console.log('Upload response:', response);
 
-      if (!response || !response.success || !response.file) {
+      if (!response || !response.filename || !response.url) {
         throw new Error('Kunde inte ladda upp filen: Ogiltig svarsdata');
       }
 
-      // Kontrollera att filobjektet har alla nödvändiga fält
-      const fileData = response.file;
-      console.log('File data received:', fileData);
-
-      // Lägg till den nya filen i listan
-      setFiles(prevFiles => [...prevFiles, fileData]);
+      console.log('File uploaded successfully:', response.filename);
+      alert(`Filen "${response.filename}" har laddats upp framgångsrikt!`);
+      
       setSnackbarMessage('Filen har laddats upp');
       setSnackbarOpen(true);
 
-      // Vänta en kort stund för att låta Supabase processa filen
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Hämta den uppdaterade sidan
-      console.log('Fetching updated page data');
-      const updatedPage = await pageService.getPageById(id);
-      console.log('Updated page data:', updatedPage);
-
-      if (!updatedPage) {
-        throw new Error('Kunde inte uppdatera sidan med den nya filen');
+      // Rensa fil-inputen
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
       }
 
-      // Säkerställ att files-arrayen är giltig
-      if (!updatedPage.files) {
-        updatedPage.files = [];
-      } else if (!Array.isArray(updatedPage.files)) {
-        updatedPage.files = [];
-      }
-
-      // Skapa en säker kopia av sidan med validerade filobjekt
-      const safePage = {
-        ...updatedPage,
-        files: updatedPage.files.map(f => {
-          // Om f är null eller undefined, skapa ett tomt filobjekt
-          if (!f) return null;
-          
-          return {
-            id: f.id || String(Date.now()),
-            filename: f.filename || 'unknown',
-            originalName: f.originalName || f.filename || 'Namnlös fil',
-            mimetype: f.mimetype || 'application/octet-stream',
-            size: typeof f.size === 'number' ? f.size : 0,
-            url: typeof f.url === 'string' ? f.url : '',
-            uploadedAt: f.uploadedAt || new Date().toISOString()
-          };
-        }).filter(Boolean) // Ta bort eventuella null-värden
-      };
-
-      console.log('Setting safe page:', safePage);
       setError(null);
     } catch (err) {
       console.error('File upload error:', err);
@@ -318,7 +282,7 @@ const PageEditor: React.FC = () => {
       setUploadLoading(true);
       console.log('Attempting to delete file:', { pageId: id, fileId });
       
-      await pageService.deleteFile(id, fileId);
+      await pageService.deleteFile(fileId);
       
       // Update local state
       setFiles(prevFiles => prevFiles.filter(f => f.id !== fileId));
