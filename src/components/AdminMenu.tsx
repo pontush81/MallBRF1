@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography, 
-  Paper,
   Grid,
   Card,
   CardContent,
@@ -14,8 +13,7 @@ import {
   Avatar,
   CircularProgress,
   IconButton,
-  Tooltip,
-  LinearProgress
+  Tooltip
 } from '@mui/material';
 import { modernTheme } from '../theme/modernTheme';
 import { 
@@ -29,7 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import bookingServiceSupabase from '../services/bookingServiceSupabase';
 import { userService } from '../services/userService';
-import { Booking } from '../types/Booking';
+
 import { maintenanceTasksData } from '../data/maintenanceTasksData';
 
 const AdminMenu: React.FC = () => {
@@ -48,9 +46,9 @@ const AdminMenu: React.FC = () => {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -67,7 +65,7 @@ const AdminMenu: React.FC = () => {
       setLoading(false);
       setRefreshingUsers(false);
     }
-  };
+  }, []);
 
   const fetchMaintenanceStats = async () => {
     try {

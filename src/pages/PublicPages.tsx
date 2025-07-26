@@ -32,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import pageService from '../services/pageService';
+import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

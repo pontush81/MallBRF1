@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -14,17 +14,7 @@ import {
   Tooltip,
   useTheme,
   useMediaQuery,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
-  Link,
   FormControlLabel,
   Checkbox,
   Dialog,
@@ -33,34 +23,23 @@ import {
   DialogActions,
   DialogContentText,
   Snackbar,
-  IconButton,
-  Card,
   CardContent,
   Stack,
-  Radio,
-  RadioGroup,
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Select,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { 
   Person, 
   Email, 
   Check, 
-  ExpandMore, 
-  LockOutlined, 
-  Delete as DeleteIcon, 
-  Email as EmailIcon, 
-  Edit as EditIcon, 
   Backup as BackupIcon, 
   Description as DescriptionIcon,
-  CalendarToday as CalendarIcon,
-  Phone as PhoneIcon,
-  Info as InfoIcon,
-  Event as EventIcon,
-  EuroSymbol as PriceIcon,
   PictureAsPdf as PdfIcon,
   InsertDriveFile as ExcelIcon,
   KeyboardArrowDown as ArrowDownIcon 

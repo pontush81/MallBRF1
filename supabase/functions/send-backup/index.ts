@@ -50,7 +50,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from(table)
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('createdat', { ascending: false })
 
       if (error) {
         console.error(`Error backing up ${table}:`, error)
@@ -78,7 +78,7 @@ Lagenhet: ${booking.apartment || 'Saknas'}
 Vaning: ${booking.floor || 'Saknas'}
 Status: ${booking.status || 'pending'}
 Meddelande: ${booking.message || 'Inget'}
-Skapad: ${booking.created_at ? new Date(booking.created_at).toLocaleString('sv-SE') : 'Okant'}
+Skapad: ${booking.createdat ? new Date(booking.createdat).toLocaleString('sv-SE') : 'Okant'}
 ----------------------------------------`
       }).join('\n')
     }
@@ -112,6 +112,7 @@ JSON-data ar bifogad som fil.
     `.trim()
 
     // Call send-email Edge Function
+    const authHeader = `Bearer ${supabaseServiceRoleKey}`
     const emailResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
       method: 'POST',
       headers: {

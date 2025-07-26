@@ -2,11 +2,11 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PagesList from '../../components/PagesList';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { Page } from '../../types/Page';
 
-// Mock the pageService
-jest.mock('../../services/pageService');
+// Mock the pageServiceSupabase
+jest.mock('../../services/pageServiceSupabase');
 
 // Mock useNavigate
 const mockNavigate = jest.fn();
@@ -43,11 +43,11 @@ describe('PagesList Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (pageService.getAllPages as jest.Mock).mockResolvedValue(mockPages);
+    (pageServiceSupabase.getAllPages as jest.Mock).mockResolvedValue(mockPages);
   });
 
   it('renders loading state initially', async () => {
-    (pageService.getAllPages as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    (pageServiceSupabase.getAllPages as jest.Mock).mockImplementation(() => new Promise(() => {}));
     
     render(
       <BrowserRouter>
@@ -74,7 +74,7 @@ describe('PagesList Component', () => {
   });
 
   it('handles load error', async () => {
-    (pageService.getAllPages as jest.Mock).mockRejectedValue(new Error('Failed to load pages'));
+    (pageServiceSupabase.getAllPages as jest.Mock).mockRejectedValue(new Error('Failed to load pages'));
     
     render(
       <BrowserRouter>
@@ -124,7 +124,7 @@ describe('PagesList Component', () => {
   });
 
   it('handles page deletion', async () => {
-    (pageService.deletePage as jest.Mock).mockResolvedValue(true);
+    (pageServiceSupabase.deletePage as jest.Mock).mockResolvedValue(true);
     
     render(
       <BrowserRouter>
@@ -150,13 +150,13 @@ describe('PagesList Component', () => {
     });
 
     await waitFor(() => {
-      expect(pageService.deletePage).toHaveBeenCalledWith('1');
+      expect(pageServiceSupabase.deletePage).toHaveBeenCalledWith('1');
       expect(screen.queryByText('Test Page 1')).not.toBeInTheDocument();
     });
   });
 
   it('handles deletion error', async () => {
-    (pageService.deletePage as jest.Mock).mockRejectedValue(new Error('Failed to delete'));
+    (pageServiceSupabase.deletePage as jest.Mock).mockRejectedValue(new Error('Failed to delete'));
     
     render(
       <BrowserRouter>

@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PublicPages from '../../components/PublicPages';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from '../../theme';
 
-// Mock the pageService
-jest.mock('../../services/pageService');
+// Mock the pageServiceSupabase
+jest.mock('../../services/pageServiceSupabase');
 
 describe('PublicPages Component', () => {
   const mockPages = [
@@ -34,7 +34,7 @@ describe('PublicPages Component', () => {
   });
 
   it('renders loading state initially', async () => {
-    (pageService.getVisiblePages as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    (pageServiceSupabase.getVisiblePages as jest.Mock).mockImplementation(() => new Promise(() => {}));
     
     await act(async () => {
       render(
@@ -75,7 +75,7 @@ describe('PublicPages Component', () => {
       }
     ];
 
-    (pageService.getVisiblePages as jest.Mock).mockResolvedValue(mockPages);
+    (pageServiceSupabase.getVisiblePages as jest.Mock).mockResolvedValue(mockPages);
 
     await act(async () => {
       render(
@@ -96,7 +96,7 @@ describe('PublicPages Component', () => {
   });
 
   it('renders fallback pages when API fails', async () => {
-    (pageService.getVisiblePages as jest.Mock).mockRejectedValue(new Error('API Error'));
+    (pageServiceSupabase.getVisiblePages as jest.Mock).mockRejectedValue(new Error('API Error'));
 
     await act(async () => {
       render(
@@ -136,7 +136,7 @@ describe('PublicPages Component', () => {
       }
     ];
 
-    (pageService.getVisiblePages as jest.Mock).mockResolvedValue(mockPages);
+    (pageServiceSupabase.getVisiblePages as jest.Mock).mockResolvedValue(mockPages);
 
     await act(async () => {
       render(
@@ -155,7 +155,7 @@ describe('PublicPages Component', () => {
   });
 
   it('displays empty state when no pages are available', async () => {
-    (pageService.getVisiblePages as jest.Mock).mockResolvedValue([]);
+    (pageServiceSupabase.getVisiblePages as jest.Mock).mockResolvedValue([]);
 
     render(
       <ThemeProvider theme={theme}>

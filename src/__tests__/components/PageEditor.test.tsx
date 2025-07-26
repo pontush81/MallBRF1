@@ -2,11 +2,11 @@ import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PageEditor from '../../components/PageEditor';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { Page } from '../../types/Page';
 
-// Mock the pageService
-jest.mock('../../services/pageService');
+// Mock the pageServiceSupabase
+jest.mock('../../services/pageServiceSupabase');
 
 // Mock useNavigate
 const mockNavigate = jest.fn();
@@ -31,11 +31,11 @@ describe('PageEditor Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (pageService.getPageById as jest.Mock).mockResolvedValue(mockPage);
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(mockPage);
   });
 
   it('renders loading state initially', async () => {
-    (pageService.getPageById as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    (pageServiceSupabase.getPageById as jest.Mock).mockImplementation(() => new Promise(() => {}));
     
     await act(async () => {
       render(
@@ -49,7 +49,7 @@ describe('PageEditor Component', () => {
   });
 
   it('renders page data when loaded', async () => {
-    (pageService.getPageById as jest.Mock).mockResolvedValue(mockPage);
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(mockPage);
     
     await act(async () => {
       render(
@@ -67,7 +67,7 @@ describe('PageEditor Component', () => {
   });
 
   it('handles page not found', async () => {
-    (pageService.getPageById as jest.Mock).mockResolvedValue(null);
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(null);
     
     await act(async () => {
       render(
@@ -84,7 +84,7 @@ describe('PageEditor Component', () => {
 
   it('handles load error', async () => {
     const error = new Error('Failed to load page');
-    (pageService.getPageById as jest.Mock).mockRejectedValue(error);
+    (pageServiceSupabase.getPageById as jest.Mock).mockRejectedValue(error);
     
     await act(async () => {
       render(
@@ -100,8 +100,8 @@ describe('PageEditor Component', () => {
   });
 
   it('updates page successfully', async () => {
-    (pageService.getPageById as jest.Mock).mockResolvedValue(mockPage);
-    (pageService.updatePage as jest.Mock).mockResolvedValue({ ...mockPage, title: 'Updated Title' });
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(mockPage);
+    (pageServiceSupabase.updatePage as jest.Mock).mockResolvedValue({ ...mockPage, title: 'Updated Title' });
     
     await act(async () => {
       render(
@@ -119,7 +119,7 @@ describe('PageEditor Component', () => {
     fireEvent.click(screen.getByText('Spara'));
 
     await waitFor(() => {
-      expect(pageService.updatePage).toHaveBeenCalledWith('1', {
+      expect(pageServiceSupabase.updatePage).toHaveBeenCalledWith('1', {
         title: 'Updated Title',
         content: '# Test Content\n\nThis is a test page.',
         slug: 'test-page',
@@ -131,8 +131,8 @@ describe('PageEditor Component', () => {
   });
 
   it('handles update error', async () => {
-    (pageService.getPageById as jest.Mock).mockResolvedValue(mockPage);
-    (pageService.updatePage as jest.Mock).mockRejectedValue(new Error('Failed to update page'));
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(mockPage);
+    (pageServiceSupabase.updatePage as jest.Mock).mockRejectedValue(new Error('Failed to update page'));
     
     await act(async () => {
       render(
@@ -164,7 +164,7 @@ describe('PageEditor Component', () => {
       size: 1024
     };
     
-    (pageService.uploadFile as jest.Mock).mockResolvedValue(uploadedFile);
+    (pageServiceSupabase.uploadFile as jest.Mock).mockResolvedValue(uploadedFile);
     
     await act(async () => {
       render(
@@ -185,14 +185,14 @@ describe('PageEditor Component', () => {
     });
 
     await waitFor(() => {
-      expect(pageService.uploadFile).toHaveBeenCalledWith('1', file);
+      expect(pageServiceSupabase.uploadFile).toHaveBeenCalledWith('1', file);
       expect(screen.getByText('test.txt')).toBeInTheDocument();
     });
   });
 
   it('handles file upload error', async () => {
-    (pageService.getPageById as jest.Mock).mockResolvedValue(mockPage);
-    (pageService.uploadFile as jest.Mock).mockRejectedValue(new Error('Failed to upload file'));
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(mockPage);
+    (pageServiceSupabase.uploadFile as jest.Mock).mockRejectedValue(new Error('Failed to upload file'));
     
     await act(async () => {
       render(
@@ -226,8 +226,8 @@ describe('PageEditor Component', () => {
       }]
     };
     
-    (pageService.getPageById as jest.Mock).mockResolvedValue(pageWithFile);
-    (pageService.deleteFile as jest.Mock).mockResolvedValue(true);
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(pageWithFile);
+    (pageServiceSupabase.deleteFile as jest.Mock).mockResolvedValue(true);
     
     await act(async () => {
       render(
@@ -246,14 +246,14 @@ describe('PageEditor Component', () => {
     });
 
     await waitFor(() => {
-      expect(pageService.deleteFile).toHaveBeenCalledWith('1', '1');
+      expect(pageServiceSupabase.deleteFile).toHaveBeenCalledWith('1', '1');
       expect(screen.queryByText('test.txt')).not.toBeInTheDocument();
     });
   });
 
   it('handles file deletion error', async () => {
-    (pageService.getPageById as jest.Mock).mockResolvedValue(mockPage);
-    (pageService.deleteFile as jest.Mock).mockRejectedValue(new Error('Delete failed'));
+    (pageServiceSupabase.getPageById as jest.Mock).mockResolvedValue(mockPage);
+    (pageServiceSupabase.deleteFile as jest.Mock).mockRejectedValue(new Error('Delete failed'));
     
     await act(async () => {
       render(

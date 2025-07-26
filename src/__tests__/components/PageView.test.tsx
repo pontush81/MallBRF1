@@ -2,10 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PageView from '../../pages/public/PageView';
-import pageService from '../../services/pageService';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 
-// Mock the pageService
-jest.mock('../../services/pageService');
+// Mock the pageServiceSupabase
+jest.mock('../../services/pageServiceSupabase');
 
 // Mock the useNavigate hook
 const mockNavigate = jest.fn();
@@ -30,8 +30,8 @@ describe('PageView Component', () => {
     // Reset all mocks before each test
     jest.clearAllMocks();
     
-    // Mock the pageService.getPageBySlug function
-    (pageService.getPageBySlug as jest.Mock).mockResolvedValue(mockPage);
+    // Mock the pageServiceSupabase.getPageBySlug function
+    (pageServiceSupabase.getPageBySlug as jest.Mock).mockResolvedValue(mockPage);
   });
 
   it('renders loading state initially', () => {
@@ -62,8 +62,8 @@ describe('PageView Component', () => {
   });
 
   it('displays error message when page loading fails', async () => {
-    // Mock the pageService to throw an error
-    (pageService.getPageBySlug as jest.Mock).mockRejectedValue(new Error('Failed to load page'));
+    // Mock the pageServiceSupabase to throw an error
+    (pageServiceSupabase.getPageBySlug as jest.Mock).mockRejectedValue(new Error('Failed to load page'));
 
     render(
       <BrowserRouter>
@@ -108,7 +108,7 @@ describe('PageView Component', () => {
       ]
     };
 
-    (pageService.getPageBySlug as jest.Mock).mockResolvedValue(pageWithFiles);
+    (pageServiceSupabase.getPageBySlug as jest.Mock).mockResolvedValue(pageWithFiles);
 
     render(
       <BrowserRouter>

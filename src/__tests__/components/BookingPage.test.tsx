@@ -7,12 +7,12 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { sv } from 'date-fns/locale';
 import theme from '../../theme';
 import BookingPage from '../../pages/public/BookingPage';
-import bookingService from '../../services/bookingService';
-import pageService from '../../services/pageService';
+import bookingServiceSupabaseSupabase from '../../services/bookingServiceSupabaseSupabaseSupabase';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
 
 // Mock the services
-jest.mock('../../services/bookingService');
-jest.mock('../../services/pageService');
+jest.mock('../../services/bookingServiceSupabaseSupabase');
+jest.mock('../../services/pageServiceSupabase');
 jest.mock('@mui/material/useMediaQuery', () => () => false);
 
 interface CalendarProps {
@@ -42,9 +42,9 @@ jest.mock('@fullcalendar/react', () => ({
 describe('BookingPage Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (bookingService.getAllBookings as jest.Mock).mockResolvedValue([]);
-    (bookingService.checkAvailability as jest.Mock).mockResolvedValue({ available: true });
-    (bookingService.createBooking as jest.Mock).mockResolvedValue({ id: '1' });
+    (bookingServiceSupabase.getAllBookings as jest.Mock).mockResolvedValue([]);
+    (bookingServiceSupabase.checkAvailability as jest.Mock).mockResolvedValue({ available: true });
+    (bookingServiceSupabase.createBooking as jest.Mock).mockResolvedValue({ id: '1' });
     (pageService.getPageBySlug as jest.Mock).mockResolvedValue(null);
   });
 
@@ -102,7 +102,7 @@ describe('BookingPage Component', () => {
     });
 
     // Verify booking service was called
-    expect(bookingService.createBooking).toHaveBeenCalledWith({
+    expect(bookingServiceSupabase.createBooking).toHaveBeenCalledWith({
       name: 'Test User',
       email: 'test@example.com',
       startDate: expect.any(String),
@@ -137,7 +137,7 @@ describe('BookingPage Component', () => {
 
   it('shows error message on booking failure', async () => {
     // Mock booking service to throw error
-    (bookingService.createBooking as jest.Mock).mockRejectedValue(new Error('Booking failed'));
+    (bookingServiceSupabase.createBooking as jest.Mock).mockRejectedValue(new Error('Booking failed'));
 
     renderComponent();
 
