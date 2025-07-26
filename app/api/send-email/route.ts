@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +28,9 @@ interface EmailRequest {
   }>;
 }
 
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function POST(request: NextRequest) {
   try {
     const { to, subject, text, html, attachments }: EmailRequest = await request.json();
@@ -40,76 +43,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get Gmail credentials from environment
-    const emailUser = process.env.EMAIL_USER; // pontus.hberg@gmail.com
-    const emailPassword = process.env.EMAIL_APP_PASSWORD; // same app password
-    
-    if (!emailUser || !emailPassword) {
-      console.error('Missing Gmail credentials');
+    // Validate Resend API key
+    if (!process.env.RESEND_API_KEY) {
+      console.error('Missing Resend API key');
       return NextResponse.json(
-        { error: 'Gmail email service not configured' },
+        { error: 'Resend email service not configured' },
         { status: 500, headers: corsHeaders }
       );
     }
 
-    console.log('Sending email via Gmail SMTP...');
-    console.log('From:', emailUser);
+    console.log('Sending email via Resend...');
     console.log('To:', to);
     console.log('Subject:', subject);
 
-    // Create Gmail transporter (same config as original server/routes/backup.js)
-    const transporter = nodemailer.createTransporter({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: emailUser,
-        pass: emailPassword,
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-
-    // Verify transporter
-    await transporter.verify();
-
-    // Prepare email content with attachments
-    let emailContent = text;
+    // Prepare attachments for Resend format
+    let resendAttachments: Array<{filename: string, content: Buffer | string}> = [];
     
     if (attachments && attachments.length > 0) {
-      emailContent += '\n\n=== BACKUP DATA ATTACHED ===\n';
-      attachments.forEach(att => {
-        emailContent += `\n📎 ${att.filename}\n`;
-        if (att.contentType === 'application/json') {
-          // Include the JSON backup data inline
-          emailContent += '\n' + att.content + '\n';
-        }
-      });
+      resendAttachments = attachments.map(att => ({
+        filename: att.filename,
+        content: Buffer.from(att.content, 'utf-8') // Convert string content to Buffer
+      }));
     }
 
-    // Send email
-    const info = await transporter.sendMail({
-      from: emailUser,
-      to: to,
+    // Send email using Resend
+    const emailData = await resend.emails.send({
+      from: 'MallBRF Backup <noreply@resend.dev>', // Use Resend's default domain for now
+      to: [to],
       subject: subject,
-      text: emailContent,
-      html: html || emailContent.replace(/\n/g, '<br>'),
+      text: text,
+      html: html || text.replace(/\n/g, '<br>'),
+      attachments: resendAttachments.length > 0 ? resendAttachments : undefined,
     });
 
-    console.log('✅ Email sent successfully via Gmail:', info.messageId);
+    console.log('✅ Email sent successfully via Resend:', emailData.data?.id);
 
     return NextResponse.json({
       success: true,
-      message: 'Email sent via Gmail successfully',
-      messageId: info.messageId,
+      message: 'Email sent via Resend successfully',
+      messageId: emailData.data?.id,
       to: to,
       subject: subject,
-      from: emailUser
+      service: 'Resend'
     }, { headers: corsHeaders });
 
   } catch (error) {
-    console.error('Email sending error:', error);
+    console.error('Resend email error:', error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Unknown email error',
       details: error instanceof Error ? error.stack : undefined
