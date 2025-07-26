@@ -44,10 +44,6 @@ const AdminMenu: React.FC = () => {
   const [refreshingUsers, setRefreshingUsers] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
@@ -66,6 +62,10 @@ const AdminMenu: React.FC = () => {
       setRefreshingUsers(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const fetchMaintenanceStats = async () => {
     try {
