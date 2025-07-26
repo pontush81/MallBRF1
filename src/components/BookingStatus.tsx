@@ -48,6 +48,7 @@ interface BookingStatusProps {
   guestData: GuestData[];
   defaultExpanded?: boolean;
   isCurrentOrFutureMonth?: boolean;
+  isLoggedIn?: boolean; // Ny prop för att kontrollera inloggningsstatus
   isAdmin?: boolean; // Ny prop för att kontrollera admin-status
   onEditClick?: (guest: GuestData) => void; // Ny prop för att hantera redigeringsklick
   onDeleteClick?: (guest: GuestData) => void; // Ny prop för att hantera raderingsklick
@@ -63,6 +64,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
   guestData,
   defaultExpanded = false,
   isCurrentOrFutureMonth = false,
+  isLoggedIn = false,
   isAdmin = false,
   onEditClick,
   onDeleteClick,
@@ -125,7 +127,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                  {guest.name}
+                  {isLoggedIn ? guest.name : "Gäst"}
                 </Typography>
                 {isAdmin && (
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -209,7 +211,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
     // Desktop view with table row
     return (
       <TableRow key={`${guest.name}-${guest.arrival}`}>
-        <TableCell>{guest.name}</TableCell>
+        <TableCell>{isLoggedIn ? guest.name : "Gäst"}</TableCell>
         <TableCell>{guest.arrival}</TableCell>
         <TableCell>{guest.departure}</TableCell>
         <TableCell align="center">
@@ -291,7 +293,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                  {guest.name}
+                  {isLoggedIn ? guest.name : "Gäst"}
                 </Typography>
                 {isAdmin && (
                   <Box sx={{ display: 'flex', gap: 0.5 }}>

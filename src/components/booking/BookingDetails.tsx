@@ -55,7 +55,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                {guest.name}
+                {isLoggedIn ? guest.name : "Gäst"}
               </Typography>
               {isAdmin && (
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -132,7 +132,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({
   // Desktop view - Table row to be used in a TableBody
   return (
     <TableRow key={`${guest.name}-${guest.arrival}`}>
-      <TableCell>{guest.name}</TableCell>
+      <TableCell>{isLoggedIn ? guest.name : "Gäst"}</TableCell>
       <TableCell>{guest.arrival}</TableCell>
       <TableCell>{guest.departure}</TableCell>
       <TableCell align="center">

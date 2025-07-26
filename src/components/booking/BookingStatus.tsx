@@ -96,7 +96,9 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
             <TableBody>
               {sortedGuests.map((guest) => (
                 <TableRow key={`${guest.name}-${guest.arrival}`}>
-                  <TableCell>{guest.name}</TableCell>
+                  <TableCell>
+                    {isLoggedIn ? guest.name : "Gäst"}
+                  </TableCell>
                   <TableCell>{guest.arrival}</TableCell>
                   <TableCell>{guest.departure}</TableCell>
                   <TableCell align="center">
