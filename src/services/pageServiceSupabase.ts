@@ -1,5 +1,5 @@
 import { Page } from '../types/Page';
-import { executeWithRLS } from './supabaseClient';
+import { executeWithRLS, executePublic } from './supabaseClient';
 
 // Fallback data för när Supabase inte är tillgängligt
 const FALLBACK_PAGES: Page[] = [
@@ -50,7 +50,7 @@ function transformPageToDB(page: Partial<Page>): any {
 const pageServiceSupabase = {
   // Hämta alla synliga sidor (published och show = true)
   getVisiblePages: async (): Promise<Page[]> => {
-    return executeWithRLS(async (supabase) => {
+    return executePublic(async (supabase) => {
       console.log('Fetching visible pages from Supabase...');
       
       const { data, error } = await supabase
@@ -83,7 +83,7 @@ const pageServiceSupabase = {
 
   // Hämta alla publicerade sidor
   getPublishedPages: async (): Promise<Page[]> => {
-    return executeWithRLS(async (supabase) => {
+    return executePublic(async (supabase) => {
       const { data, error } = await supabase
         .from(PAGES_TABLE)
         .select('*')
@@ -140,7 +140,7 @@ const pageServiceSupabase = {
 
   // Hämta en specifik sida med slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
-    return executeWithRLS(async (supabase) => {
+    return executePublic(async (supabase) => {
       const { data, error } = await supabase
         .from(PAGES_TABLE)
         .select('*')

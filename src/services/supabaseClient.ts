@@ -53,7 +53,23 @@ export async function getAuthenticatedSupabaseClient(): Promise<SupabaseClient> 
   return supabaseClient;
 }
 
-// Helper function for RLS-safe database operations
+// Helper function for public database operations (no auth required)
+export async function executePublic<T>(
+  operation: (client: SupabaseClient) => Promise<T>,
+  fallbackValue?: T
+): Promise<T> {
+  try {
+    return await operation(supabaseClient);
+  } catch (error) {
+    console.error('Supabase public operation failed:', error);
+    if (fallbackValue !== undefined) {
+      return fallbackValue;
+    }
+    throw error;
+  }
+}
+
+// Helper function for RLS-safe database operations (auth required)
 export async function executeWithRLS<T>(
   operation: (client: SupabaseClient) => Promise<T>,
   fallbackValue?: T

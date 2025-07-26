@@ -34,19 +34,20 @@ export async function OPTIONS(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Your backup logic here
-    // ...
-
-    return new NextResponse(JSON.stringify({ success: true }), {
+    // Backup functionality is now handled by Supabase Edge Functions
+    // This route can be removed once all references are updated
+    return NextResponse.json({ 
+      message: 'Backup functionality has been migrated to Supabase Edge Functions',
+      redirect: '/functions/v1/send-backup'
+    }, {
       status: 200,
     });
+
   } catch (error) {
     console.error('Backup error:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Failed to create backup' }),
-      {
-        status: 500,
-      }
+    return NextResponse.json(
+      { error: 'Failed to create backup' },
+      { status: 500 }
     );
   }
 } 

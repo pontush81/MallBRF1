@@ -1,5 +1,5 @@
 import { Booking, CreateBookingData, UpdateBookingData } from '../types/Booking';
-import { executeWithRLS } from './supabaseClient';
+import { executeWithRLS, executePublic } from './supabaseClient';
 
 // Database table mapping
 const BOOKINGS_TABLE = 'bookings';
@@ -116,7 +116,7 @@ const bookingServiceSupabase = {
     dateRange?: { start: string; end: string };
     limit?: number;
   } = {}): Promise<Booking[]> => {
-    return executeWithRLS(async (supabase) => {
+    return executePublic(async (supabase) => {
       console.log('Fetching bookings from Supabase...', options);
 
       let query = supabase
@@ -152,7 +152,7 @@ const bookingServiceSupabase = {
 
   // Hämta bokningar för ett specifikt datum (använder legacy schema)
   getBookingsByDate: async (date: string): Promise<Booking[]> => {
-    return executeWithRLS(async (supabase) => {
+    return executePublic(async (supabase) => {
       // Konvertera datum till rätt format för jämförelse
       const targetDate = new Date(date);
       const startOfDay = new Date(targetDate);
@@ -178,7 +178,7 @@ const bookingServiceSupabase = {
 
   // Kontrollera tillgänglighet för ett datum och tid (använder legacy schema)
   checkAvailability: async (date: string, startTime: string, endTime: string, weeks: number = 1): Promise<boolean> => {
-    return executeWithRLS(async (supabase) => {
+    return executePublic(async (supabase) => {
       // Validera datum format först
       if (!date || typeof date !== 'string') {
         console.error('Invalid date provided to checkAvailability:', date);

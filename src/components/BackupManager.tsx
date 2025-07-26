@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Button,
-    Typography,
     Box,
+    Button,
     Card,
     CardContent,
-    CardActions,
     CardHeader,
-    TextField,
-    Grid,
-    Divider,
-    Alert,
-    Snackbar,
+    CardActions,
+    Typography,
     List,
     ListItem,
     ListItemText,
@@ -22,20 +17,29 @@ import {
     DialogContent,
     DialogContentText,
     DialogActions,
-    CircularProgress,
-    Chip,
-    FormGroup,
+    TextField,
+    Checkbox,
     FormControlLabel,
-    Checkbox
+    FormGroup,
+    Snackbar,
+    Alert,
+    CircularProgress,
+    Divider,
+    Chip,
+    Grid
 } from '@mui/material';
-import {
+import { 
+    Download as DownloadIcon,
+    Delete as DeleteIcon,
+    Add as AddIcon,
+    Refresh as RefreshIcon,
     Backup as BackupIcon,
-    Restore as RestoreIcon,
-    DeleteForever as DeleteIcon
+    Restore as RestoreIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { API_BASE_URL } from '../config';
+import { SUPABASE_URL } from '../config';
+import { auth } from '../services/firebase';
 
 interface Backup {
     id: string;
@@ -70,15 +74,14 @@ const BackupManager: React.FC = () => {
     const fetchBackups = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/backups`);
-            if (!response.ok) {
-                throw new Error('Kunde inte hämta backup-listan');
-            }
-            const data = await response.json();
-            setBackups(data.files || []);
+            // Note: With Supabase Edge Functions, backup listing is now handled differently
+            // Backups are stored in Supabase Storage and can be listed via storage API
+            // For now, we'll disable this feature and use the direct backup functionality
+            console.log('Backup listing via Storage API not yet implemented');
+            setBackups([]);
         } catch (err) {
             console.error('Error fetching backups:', err);
-            setError('Kunde inte hämta backup-listan');
+            setError('Backup-listning inte tillgänglig för närvarande');
         } finally {
             setLoading(false);
         }
@@ -103,15 +106,25 @@ const BackupManager: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await fetch(`${API_BASE_URL}/backup`, {
+            
+            // Use new Supabase Edge Function for backup
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error('Du måste vara inloggad för att skapa backup');
+            }
+            
+            const idToken = await user.getIdToken();
+            
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`,
                 },
                 body: JSON.stringify({
-                    tables: selectedTables,
-                    name: backupName.trim()
-                }),
+                    tables: selectedTables.length > 0 ? selectedTables : ['bookings'],
+                    includeFiles: false
+                })
             });
 
             if (!response.ok) {
@@ -119,13 +132,22 @@ const BackupManager: React.FC = () => {
                 throw new Error(errorData.error || 'Kunde inte skapa backup');
             }
 
-            setSnackbarMessage('Backup skapad framgångsrikt!');
+            const data = await response.json();
+            console.log('Backup response:', data);
+            
+            setSnackbarMessage(`Backup skapad och skickad via e-post (${data.bookingCount} bokningar)`);
             setSnackbarSeverity('success');
             setSnackbarOpen(true);
+            
+            // Reset form
             setBackupName('');
-            fetchBackups();
+            setSelectedTables([]);
+            
         } catch (err) {
-            setSnackbarMessage(err instanceof Error ? err.message : 'Ett fel uppstod vid skapande av backup');
+            console.error('Error creating backup:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod vid skapande av backup';
+            setError(errorMessage);
+            setSnackbarMessage(errorMessage);
             setSnackbarSeverity('error');
             setSnackbarOpen(true);
         } finally {
@@ -133,43 +155,13 @@ const BackupManager: React.FC = () => {
         }
     };
 
-    const handleRestoreClick = (backup: Backup) => {
-        setSelectedBackup(backup);
-        setRestoreDialogOpen(true);
-    };
-
-    const handleRestoreCancel = () => {
-        setSelectedBackup(null);
+    const handleRestoreBackup = async () => {
+        // Restore functionality is now handled differently with Supabase
+        // For now, we'll disable this feature and focus on backup creation
+        setSnackbarMessage('Återställning av backup inte tillgänglig för närvarande. Kontakta admin för manuell återställning.');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
         setRestoreDialogOpen(false);
-    };
-
-    const handleRestoreConfirm = async () => {
-        if (!selectedBackup) return;
-        
-        try {
-            setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/backups/${selectedBackup.name}/restore`, {
-                method: 'POST',
-            });
-
-            if (!response.ok) {
-                throw new Error('Kunde inte återställa backup');
-            }
-
-            setSnackbarMessage('Backup återställd framgångsrikt');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
-            fetchBackups();
-        } catch (err) {
-            console.error('Error restoring backup:', err);
-            setSnackbarMessage('Ett fel uppstod vid återställning av backup');
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
-        } finally {
-            setLoading(false);
-            setRestoreDialogOpen(false);
-            setSelectedBackup(null);
-        }
     };
 
     // Hantera snackbar close
@@ -191,6 +183,26 @@ const BackupManager: React.FC = () => {
                 Backup-hantering
             </Typography>
             
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={handleCreateBackup}
+                    disabled={loading || selectedTables.length === 0 || !backupName.trim()}
+                >
+                    {loading ? 'Skapar backup...' : 'Skapa ny backup'}
+                </Button>
+                <Button
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={fetchBackups}
+                    disabled={loading}
+                >
+                    Uppdatera lista
+                </Button>
+            </Box>
+
             <Grid container spacing={3}>
                 {/* Skapa backup */}
                 <Grid item xs={12} md={5} lg={4}>
@@ -282,7 +294,7 @@ const BackupManager: React.FC = () => {
                                                     <IconButton 
                                                         edge="end" 
                                                         aria-label="restore" 
-                                                        onClick={() => handleRestoreClick(backup)}
+                                                        onClick={() => handleRestoreBackup()}
                                                         disabled={loading}
                                                         title="Återställ från backup"
                                                     >
@@ -303,7 +315,7 @@ const BackupManager: React.FC = () => {
             {/* Dialog för bekräftelse av återställning */}
             <Dialog
                 open={restoreDialogOpen}
-                onClose={handleRestoreCancel}
+                onClose={() => setRestoreDialogOpen(false)}
             >
                 <DialogTitle>Bekräfta återställning</DialogTitle>
                 <DialogContent>
@@ -315,9 +327,9 @@ const BackupManager: React.FC = () => {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleRestoreCancel}>Avbryt</Button>
+                    <Button onClick={() => setRestoreDialogOpen(false)}>Avbryt</Button>
                     <Button 
-                        onClick={handleRestoreConfirm} 
+                        onClick={handleRestoreBackup} 
                         color="primary"
                         variant="contained"
                         startIcon={<RestoreIcon />}

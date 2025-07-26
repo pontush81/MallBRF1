@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authorization
+    // Basic authorization check (same as original Express route)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -31,11 +31,13 @@ serve(async (req) => {
       )
     }
 
+    console.log('Starting backup process...')
+
     // Parse request body
     const { tables = ['bookings'], includeFiles = false, customEmail }: BackupRequest = 
       req.method === 'POST' ? await req.json() : {}
 
-    // Initialize Supabase client with service role key
+    // Initialize Supabase client with service role key (same as original)
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseServiceRoleKey) {
       throw new Error('Missing Supabase service role key')
@@ -49,8 +51,6 @@ serve(async (req) => {
       }
     )
 
-    console.log('Starting backup process...')
-    
     const backupData: Record<string, any[]> = {}
     let totalRecords = 0
 
@@ -79,17 +79,17 @@ serve(async (req) => {
       formattedText = backupData.bookings.map((booking: any, index: number) => {
         return `
 Bokning #${booking.id || index + 1}
-Namn: ${booking.name || 'Okänd'}
+Namn: ${booking.name || 'Okand'}
 E-post: ${booking.email || 'Saknas'}
 Telefon: ${booking.phone || 'Saknas'}
 Typ: ${booking.type || 'laundry'}
 Datum: ${booking.date || 'Saknas'}
 Tid: ${booking.start_time || 'Saknas'} - ${booking.end_time || 'Saknas'}
-Lägenhet: ${booking.apartment || 'Saknas'}
-Våning: ${booking.floor || 'Saknas'}
+Lagenhet: ${booking.apartment || 'Saknas'}
+Vaning: ${booking.floor || 'Saknas'}
 Status: ${booking.status || 'pending'}
 Meddelande: ${booking.message || 'Inget'}
-Skapad: ${booking.created_at ? new Date(booking.created_at).toLocaleString('sv-SE') : 'Okänt'}
+Skapad: ${booking.created_at ? new Date(booking.created_at).toLocaleString('sv-SE') : 'Okant'}
 ----------------------------------------`
       }).join('\n')
     }
@@ -112,55 +112,14 @@ Skapad: ${booking.created_at ? new Date(booking.created_at).toLocaleString('sv-S
     // Prepare email content
     const subject = `Bokningsbackup - ${new Date().toLocaleDateString('sv-SE')}`
     const textContent = `
-Här är en backup av databasen skapad ${new Date().toLocaleString('sv-SE')}
+Har ar en backup av databasen skapad ${new Date().toLocaleString('sv-SE')}
 
 Tabeller som backades upp: ${tables.join(', ')}
 Totalt antal poster: ${totalRecords}
 
 ${formattedText || 'Ingen data att visa i textformat.'}
 
-JSON-data är bifogad som fil.
-    `.trim()
-
-    // Create HTML version
-    const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Backup Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background: #f5f5f5; padding: 20px; border-radius: 5px; }
-        .stats { margin: 20px 0; }
-        .data { background: #f9f9f9; padding: 15px; border-left: 4px solid #007cba; }
-        pre { white-space: pre-wrap; word-wrap: break-word; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>📊 Database Backup Report</h1>
-        <p><strong>Datum:</strong> ${new Date().toLocaleString('sv-SE')}</p>
-        <p><strong>Tabeller:</strong> ${tables.join(', ')}</p>
-        <p><strong>Totalt antal poster:</strong> ${totalRecords}</p>
-    </div>
-    
-    <div class="stats">
-        ${Object.entries(backupData).map(([table, data]) => 
-          `<p><strong>${table}:</strong> ${data.length} poster</p>`
-        ).join('')}
-    </div>
-    
-    ${formattedText ? `
-    <div class="data">
-        <h3>📋 Bokningsdetaljer</h3>
-        <pre>${formattedText}</pre>
-    </div>
-    ` : ''}
-    
-    <p><em>Fullständig JSON-data är bifogad som separat fil.</em></p>
-</body>
-</html>
+JSON-data ar bifogad som fil.
     `.trim()
 
     // Call send-email Edge Function
@@ -174,10 +133,7 @@ JSON-data är bifogad som fil.
         to: backupEmail,
         subject: subject,
         text: textContent,
-        html: htmlContent,
-        type: 'backup-notification',
-        // For now, we can't easily send attachments via our simple SMTP function
-        // but the important data is in the HTML/text content
+        type: 'backup-notification'
       })
     })
 

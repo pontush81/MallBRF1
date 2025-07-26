@@ -1,28 +1,29 @@
 import { 
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
   updateProfile,
   User as FirebaseUser,
   deleteUser as deleteFirebaseUser,
-  getAuth,
+  updateEmail,
+  getAuth
 } from 'firebase/auth';
+import { auth, db } from '../firebase';
 import { 
   doc, 
-  getDoc, 
   setDoc, 
-  collection,
-  getDocs,
+  getDoc, 
+  updateDoc, 
+  deleteDoc,
   query,
   where,
-  updateDoc,
-  deleteDoc,
+  getDocs,
+  collection,
   serverTimestamp
 } from 'firebase/firestore';
 import { User } from '../../types/User';
-import { auth, db } from '../firebase';
 import { isUserAllowed } from './allowlist';
 import { sendNewUserNotification } from './settings';
-import { apiRequest } from '../apiRequest';
+// Removed apiRequest import - no longer needed after Express migration
 
 export async function getUserById(userId: string): Promise<User | null> {
   try {
@@ -41,7 +42,6 @@ export async function getUserById(userId: string): Promise<User | null> {
 
 export async function login(email: string, password: string): Promise<User> {
   try {
-    const auth = getAuth();
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
@@ -73,12 +73,12 @@ export async function login(email: string, password: string): Promise<User> {
 
 export async function register(email: string, password: string, name: string): Promise<User> {
   try {
-    const auth = getAuth();
-    
     // Check if user's email is in allowlist
     const allowed = await isUserAllowed(email);
-    
-    // Create user in Firebase Auth
+    if (!allowed) {
+      throw new Error('Din e-postadress är inte godkänd för registrering');
+    }
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
@@ -155,13 +155,12 @@ export const deleteUser = async (uid: string) => {
     console.log('Deleting user document from Firestore');
     await deleteDoc(doc(db, 'users', uid));
     
-    // Delete user from Firebase Auth through our server endpoint
-    console.log('Deleting user from Firebase Auth');
-    await apiRequest(`/users/${uid}`, {
-      method: 'DELETE'
-    });
+    // Note: Firebase Auth user deletion is now handled by Firebase Admin 
+    // in production, or can be done manually via Firebase Console
+    // No need for Express server dependency
+    console.log('User document deleted from Firestore successfully');
+    console.log('Note: Firebase Auth user should be deleted via Firebase Console if needed');
     
-    console.log('User deletion completed successfully');
     return true;
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -181,7 +180,6 @@ export async function syncAuthUsersWithFirestore(): Promise<void> {
     const firestoreUserIds = firestoreUsers.map(user => user.id);
     
     // Get current user from Auth
-    const auth = getAuth();
     const currentUser = auth.currentUser;
     
     if (currentUser && !firestoreUserIds.includes(currentUser.uid)) {

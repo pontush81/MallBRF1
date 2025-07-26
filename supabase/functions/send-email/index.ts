@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authorization
+    // Basic authorization check (same as original Express route)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
