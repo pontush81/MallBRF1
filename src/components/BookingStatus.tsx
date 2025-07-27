@@ -75,7 +75,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
   const getWeekStyle = (week: number) => {
     let bgcolor = "transparent";
     if (week >= 24 && week <= 32) {
-      if ([27, 28, 29].includes(week)) {
+                            if ([28, 29].includes(week)) {
         bgcolor = "rgba(255, 0, 0, 0.08)"; // Tennis weeks
       } else {
         bgcolor = "rgba(0, 128, 255, 0.08)"; // High season

@@ -369,14 +369,10 @@ function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month
         }
       }
       
-      // Special handling for bookings that should be treated as tennis weeks
-      // Based on what's shown on the booking page frontend
-      const dateStr = startDate.toISOString().split('T')[0];
-      if (dateStr >= '2025-07-21' && dateStr <= '2025-07-23') {
-        // Jacob Adaktusson 21-24 juli shown as v.29 on booking page with 800 kr/night
-        nightlyRate = 800;
-        console.log(`🎾 Tennis week override for ${dateStr}: 800 kr/night`);
-      }
+      // No special overrides needed - use standard week-based pricing
+      // Tennis weeks are v.28-29 (800 kr/night)
+      // High season is v.24-32 except tennis weeks (600 kr/night) 
+      // Low season is all other weeks (400 kr/night)
       
       console.log(`💰 Pricing: Week ${weekNumber} → ${nightlyRate} kr/night`);
 
@@ -531,6 +527,7 @@ function generateCSVReport(hsbData: HSBReportItem[], residentData: ResidentData[
   content += `Uppgiftslämnare: ${reporterName}\n`;
   content += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
   
+  content += `DEBITERINGSUNDERLAG\n`;
   content += `Lgh nr,Namn,Period,Vad avser avgiften,Antal,á pris,Summa\n`;
   
   console.log('CSV header created, adding data...');
@@ -630,6 +627,17 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   });
   
   yPosition -= 30;
+  
+  // Debiteringsunderlag section
+  page.drawText('DEBITERINGSUNDERLAG', {
+    x: margin,
+    y: yPosition,
+    size: 16,
+    font: helveticaBoldFont,
+    color: rgb(0, 0, 0),
+  });
+  
+  yPosition -= 25;
   
   // Table headers  
   const colWidths = [40, 100, 80, 120, 30, 50, 60];
