@@ -130,12 +130,7 @@ const DashboardHome: React.FC = () => {
   }
 
   return (
-    <Box sx={{ backgroundColor: 'red', padding: '20px', minHeight: '200px' }}>
-      <h1 style={{ color: 'white', fontSize: '24px' }}>🚨 DEBUG: DashboardHome Content</h1>
-      <p style={{ color: 'white' }}>Loading: {loading ? 'true' : 'false'}</p>
-      <p style={{ color: 'white' }}>Error: {error || 'null'}</p>
-      <p style={{ color: 'white' }}>Stats: {JSON.stringify(stats)}</p>
-      
+    <Box>
       {/* Welcome Header */}
       <Box sx={{ mb: modernTheme.spacing[6] }}>
         <ModernCard gradient>
