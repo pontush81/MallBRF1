@@ -17,6 +17,8 @@ import {
 import { User } from '../../types/User';
 import { isUserAllowed } from './allowlist';
 import { sendNewUserNotification } from './settings';
+import { syncUserToSupabase } from '../supabaseSync';
+import { getInitialUserRole } from './adminConfig';
 // Removed apiRequest import - no longer needed after Express migration
 
 export async function getUserById(userId: string): Promise<User | null> {
@@ -76,12 +78,13 @@ export async function register(email: string, password: string, name: string): P
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Create user document in Firestore
+    // Create user document in Firestore - kontrollera om de ska få admin-roll automatiskt
+    const initialRole = getInitialUserRole(email);
     const userData: User = {
       id: user.uid,
       email: email,
       name: name,
-      role: 'user',
+      role: initialRole,
       isActive: allowed, // Active if email is in allowlist
       pendingApproval: !allowed,
       createdAt: new Date().toISOString(),
@@ -98,6 +101,13 @@ export async function register(email: string, password: string, name: string): P
       await sendNewUserNotification(userData);
       
       throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
+    }
+    
+    // Sync user to Supabase for RLS policies
+    try {
+      await syncUserToSupabase(userData);
+    } catch (error) {
+      console.error('Failed to sync registered user to Supabase:', error);
     }
     
     return userData;
@@ -178,11 +188,12 @@ export async function syncAuthUsersWithFirestore(): Promise<void> {
     
     if (currentUser && !firestoreUserIds.includes(currentUser.uid)) {
       // Create a Firestore record for the current user if they don't have one
+      const initialRole = getInitialUserRole(currentUser.email || '');
       const userData: User = {
         id: currentUser.uid,
         email: currentUser.email || '',
         name: currentUser.displayName || 'User',
-        role: 'user',
+        role: initialRole,
         isActive: true, // Assuming they're active since they're authenticated
         pendingApproval: false,
         createdAt: new Date().toISOString(),

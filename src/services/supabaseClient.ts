@@ -1,11 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
-import { auth } from './firebase';
+import { getCachedSupabaseToken } from './supabaseAuth';
 
-// Initialize Supabase client with auth configuration
+// Initialize Supabase client with minimal config (no Firebase token integration)
 const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    // Use Firebase Auth instead of Supabase Auth
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false
@@ -17,40 +16,47 @@ const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_
   }
 });
 
-// Helper function to get Firebase user token for Supabase
-export async function getSupabaseToken(): Promise<string | null> {
-  try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      console.warn('No Firebase user found for Supabase auth');
-      return null;
-    }
-    
-    // Get Firebase ID token
-    const idToken = await currentUser.getIdToken();
-    return idToken;
-  } catch (error) {
-    console.error('Error getting Firebase token for Supabase:', error);
-    return null;
-  }
-}
+// Cache for authenticated client to avoid creating multiple instances
+let authenticatedClientCache: SupabaseClient | null = null;
+let cachedTokenForClient: string | null = null;
 
-// Helper function to create authenticated Supabase client
+// Helper function to get authenticated Supabase client using secure JWT bridge
 export async function getAuthenticatedSupabaseClient(): Promise<SupabaseClient> {
-  const token = await getSupabaseToken();
-  
-  if (token) {
-    // Set the auth token for this request
-    supabaseClient.auth.setSession({
-      access_token: token,
-      refresh_token: '', // Not needed with Firebase
-      expires_in: 3600,
-      token_type: 'bearer',
-      user: null // Will be populated by Supabase
-    } as any);
+  try {
+    const token = await getCachedSupabaseToken();
+
+    if (token) {
+      // Reuse cached client if token hasn't changed
+      if (authenticatedClientCache && cachedTokenForClient === token) {
+        return authenticatedClientCache;
+      }
+
+      // Create new authenticated client with the secure JWT
+      authenticatedClientCache = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        },
+        global: {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      });
+
+      cachedTokenForClient = token;
+      return authenticatedClientCache;
+    }
+
+    // Fallback to anon client if no token available
+    console.warn('No auth token available, using anon client');
+    return supabaseClient;
+
+  } catch (error) {
+    console.error('Error creating authenticated client:', error);
+    return supabaseClient;
   }
-  
-  return supabaseClient;
 }
 
 // Helper function for public database operations (no auth required)
@@ -79,11 +85,47 @@ export async function executeWithRLS<T>(
     return await operation(authenticatedClient);
   } catch (error) {
     console.error('Supabase operation failed:', error);
+    
+    // If it's a role error, clear cache and try once more
+    if (error?.message?.includes('role') && error?.message?.includes('does not exist')) {
+      console.log('🔄 Role error detected, clearing cache and retrying...');
+      
+      // Clear caches
+      authenticatedClientCache = null;
+      cachedTokenForClient = null;
+      
+      // Import and clear supabase auth cache
+      const { clearSupabaseAuthCache } = await import('./supabaseAuth');
+      clearSupabaseAuthCache();
+      
+      // Retry once
+      try {
+        const freshClient = await getAuthenticatedSupabaseClient();
+        return await operation(freshClient);
+      } catch (retryError) {
+        console.error('Retry also failed:', retryError);
+        throw retryError;
+      }
+    }
+    
     if (fallbackValue !== undefined) {
       return fallbackValue;
     }
     throw error;
   }
+}
+
+// Helper function to manually clear all auth caches
+export function clearAllAuthCaches(): void {
+  // Clear client caches
+  authenticatedClientCache = null;
+  cachedTokenForClient = null;
+  
+  // Clear localStorage caches
+  localStorage.removeItem('supabase_auth_token');
+  localStorage.removeItem('supabase_auth_expires');
+  
+  console.log('🗑️ All auth caches cleared');
 }
 
 export default supabaseClient; 

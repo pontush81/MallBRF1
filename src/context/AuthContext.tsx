@@ -3,6 +3,8 @@ import { User } from '../types/User';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { userService } from '../services/userService';
+import { syncUserToSupabase } from '../services/supabaseSync';
+import { clearSupabaseAuthCache } from '../services/supabaseAuth';
 
 // Make this file a module
 export {};
@@ -58,11 +60,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentUser(parsedUser);
           setIsLoggedIn(true);
           setIsAdmin(parsedUser.role === 'admin');
+          
+          // Sync user to Supabase to ensure RLS policies work
+          try {
+            await syncUserToSupabase(parsedUser);
+          } catch (error) {
+            console.error('Failed to sync user to Supabase during validation:', error);
+          }
                  } else {
            // No saved user data, but Firebase user exists - fetch user data
            const userData = await userService.getUserById(firebaseUser.uid);
            if (userData) {
-             login(userData);
+             await login(userData);
            } else {
              clearUserData();
            }
@@ -83,6 +92,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('pages_last_load');
+    clearSupabaseAuthCache(); // Clear Supabase auth tokens
+    
+    // Also clear all Supabase client caches
+    const { clearAllAuthCaches } = require('../services/supabaseClient');
+    clearAllAuthCaches();
+    
     setCurrentUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
@@ -137,14 +152,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [isLoggedIn]);
   
-  const login = (user: User) => {
+  const login = async (user: User) => {
     setCurrentUser(user);
-    setIsLoggedIn(true);
+    setIsLoggedIn(true);  
     setIsAdmin(user.role === 'admin');
     
     // Save to localStorage
     localStorage.setItem('currentUser', JSON.stringify(user));
     localStorage.setItem('isLoggedIn', 'true');
+    
+    // Sync user to Supabase so RLS policies work
+    try {
+      await syncUserToSupabase(user);
+    } catch (error) {
+      console.error('Failed to sync user to Supabase:', error);
+      // Don't prevent login if sync fails
+    }
   };
 
   const logout = async () => {

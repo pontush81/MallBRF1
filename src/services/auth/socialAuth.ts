@@ -10,6 +10,8 @@ import { User } from '../../types/User';
 import { getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { sendNewUserNotification } from './settings';
+import { syncUserToSupabase } from '../supabaseSync';
+import { getInitialUserRole } from './adminConfig';
 
 // Generisk funktion för inloggning med social tjänst
 export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAuthProvider): Promise<User> {
@@ -61,18 +63,28 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
         lastLogin: new Date().toISOString()
       });
       
-      return {
+      const updatedUser = {
         ...userData,
         lastLogin: new Date().toISOString()
       };
       
+      // Sync user to Supabase for RLS policies
+      try {
+        await syncUserToSupabase(updatedUser);
+      } catch (error) {
+        console.error('Failed to sync user to Supabase:', error);
+      }
+      
+      return updatedUser;
+      
     } else {
-      // Skapa ny användare
+      // Skapa ny användare - kontrollera om de ska få admin-roll automatiskt
+      const initialRole = getInitialUserRole(user.email || '');
       const newUser: User = {
         id: user.uid,
         email: user.email,
         name: user.displayName || '',
-        role: 'user',
+        role: initialRole,
         isActive: isAllowed,
         pendingApproval: !isAllowed,
         createdAt: new Date().toISOString(),
@@ -89,6 +101,13 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
         // Logga ut
         await auth.signOut();
         throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
+      }
+      
+      // Sync user to Supabase for RLS policies
+      try {
+        await syncUserToSupabase(newUser);
+      } catch (error) {
+        console.error('Failed to sync new user to Supabase:', error);
       }
       
       return newUser;
@@ -152,12 +171,21 @@ export async function handleGoogleRedirect(): Promise<User | null> {
             lastLogin: new Date().toISOString()
           });
           
-          return {
+          const activatedUser = {
             ...userData,
             isActive: true,
             pendingApproval: false,
             lastLogin: new Date().toISOString()
           };
+          
+          // Sync user to Supabase for RLS policies
+          try {
+            await syncUserToSupabase(activatedUser);
+          } catch (error) {
+            console.error('Failed to sync activated user to Supabase:', error);
+          }
+          
+          return activatedUser;
         } else {
           await auth.signOut();
           throw new Error('Ditt konto väntar på godkännande. Du kommer få tillgång när ditt konto har godkänts.');
@@ -168,16 +196,27 @@ export async function handleGoogleRedirect(): Promise<User | null> {
         lastLogin: new Date().toISOString()
       });
       
-      return {
+      const redirectUser = {
         ...userData,
         lastLogin: new Date().toISOString()
       };
+      
+      // Sync user to Supabase for RLS policies
+      try {
+        await syncUserToSupabase(redirectUser);
+      } catch (error) {
+        console.error('Failed to sync redirect user to Supabase:', error);
+      }
+      
+      return redirectUser;
     } else {
+      // Skapa ny användare - kontrollera om de ska få admin-roll automatiskt  
+      const initialRole = getInitialUserRole(user.email || '');
       const newUser: User = {
         id: user.uid,
         email: user.email,
         name: user.displayName || '',
-        role: 'user',
+        role: initialRole,
         isActive: isAllowed,
         pendingApproval: !isAllowed,
         createdAt: new Date().toISOString(),
@@ -190,6 +229,13 @@ export async function handleGoogleRedirect(): Promise<User | null> {
         await sendNewUserNotification(newUser);
         await auth.signOut();
         throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
+      }
+      
+      // Sync user to Supabase for RLS policies
+      try {
+        await syncUserToSupabase(newUser);
+      } catch (error) {
+        console.error('Failed to sync new redirect user to Supabase:', error);
       }
       
       return newUser;

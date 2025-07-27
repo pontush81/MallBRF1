@@ -7,6 +7,7 @@ declare global {
     debugBookings: {
       forceRefresh: () => Promise<void>;
       clearCache: () => void;
+      clearAuthCache: () => void;
       testAPI: () => Promise<void>;
       getBookings: () => Promise<any>;
     };
@@ -33,6 +34,18 @@ const debugBookings = {
   clearCache: () => {
     console.log('🗑️ No cache to clear - Supabase service fetches fresh data directly');
     console.log('✅ Cache cleared (no-op)!');
+  },
+
+  // Rensa auth cache (för JWT token problem)
+  clearAuthCache: () => {
+    console.log('🗑️ Clearing ALL auth caches...');
+    try {
+      const { clearAllAuthCaches } = require('../services/supabaseClient');
+      clearAllAuthCaches();
+      console.log('✅ Auth cache cleared! Try your operation again.');
+    } catch (error) {
+      console.error('❌ Failed to clear auth cache:', error);
+    }
   },
 
   // Testa API direkt
@@ -84,6 +97,7 @@ if (typeof window !== 'undefined') {
   console.log('🐛 Debug tools loaded! Use window.debugBookings in console:');
   console.log('• window.debugBookings.forceRefresh() - Force refresh bookings');
   console.log('• window.debugBookings.clearCache() - Clear cache');
+  console.log('• window.debugBookings.clearAuthCache() - Clear auth tokens (for JWT errors)');
   console.log('• window.debugBookings.testAPI() - Test API directly');
   console.log('• window.debugBookings.getBookings() - Get bookings with logging');
 } 
