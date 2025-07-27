@@ -531,7 +531,6 @@ function generateCSVReport(hsbData: HSBReportItem[], residentData: ResidentData[
   content += `Uppgiftslämnare: ${reporterName}\n`;
   content += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
   
-  content += `DEBITERINGSUNDERLAG\n`;
   content += `Lgh nr,Namn,Period,Vad avser avgiften,Antal,á pris,Summa\n`;
   
   console.log('CSV header created, adding data...');
@@ -631,17 +630,6 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   });
   
   yPosition -= 30;
-  
-  // Debiteringsunderlag section
-  page.drawText('DEBITERINGSUNDERLAG', {
-    x: margin,
-    y: yPosition,
-    size: 16,
-    font: helveticaBoldFont,
-    color: rgb(0, 0, 0),
-  });
-  
-  yPosition -= 25;
   
   // Table headers  
   const colWidths = [40, 100, 80, 120, 30, 50, 60];

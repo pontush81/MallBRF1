@@ -687,20 +687,22 @@ const BookingPage: React.FC = () => {
     }
 
     return (
-      <ModernCard 
+      <Paper
+        elevation={0}
         sx={{ 
-          mt: { xs: 2, sm: 3 },
-          mx: { xs: 1, sm: 0 }, // Less margin on mobile for more space
-          borderRadius: { xs: modernTheme.borderRadius.lg, sm: modernTheme.borderRadius.xl },
+          mt: { xs: 1, sm: 3 },
+          mx: { xs: -0.5, sm: 0 }, // Slightly negative margin on mobile
+          px: { xs: 1, sm: 6 }, // Minimal padding on mobile, more on desktop
+          py: { xs: 2, sm: 4 },
+          backgroundColor: { xs: 'transparent', sm: modernTheme.colors.white },
+          borderRadius: { xs: 0, sm: modernTheme.borderRadius.xl },
+          border: { xs: 'none', sm: `1px solid ${modernTheme.colors.gray[200]}` },
+          boxShadow: { xs: 'none', sm: modernTheme.shadows.md },
         }}
       >
-        <CardContent sx={{ 
-          px: { xs: 2, sm: 3, md: 4 }, 
-          py: { xs: 2.5, sm: 3, md: 4 } 
-        }}>
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
-            <Grid item xs={12}>
-              <Stack spacing={{ xs: 2.5, sm: 3 }}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
+          <Grid item xs={12}>
+            <Stack spacing={{ xs: 2, sm: 3 }}>
                 <ModernTextField
                   fullWidth
                   label="Namn"
@@ -771,17 +773,17 @@ const BookingPage: React.FC = () => {
                 <Button
                   variant="contained"
                   color="primary"
-                  size="large"
+                  size="medium"
                   onClick={submitBooking}
                   disabled={isLoading}
                   sx={{
                     width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
-                    py: { xs: 3, sm: 2 }, // Larger touch target on mobile
-                    px: { xs: 4, sm: 4 },
+                    py: { xs: 1.5, sm: 1.5 }, // Reduced padding for more reasonable size
+                    px: { xs: 3, sm: 4 },
                     borderRadius: 2,
                     textTransform: 'none',
-                    fontSize: { xs: '18px', sm: '1.1rem' }, // Larger text on mobile
-                    minHeight: { xs: '56px', sm: '48px' }, // Ensure good touch target
+                    fontSize: { xs: '16px', sm: '1rem' }, // More reasonable text size
+                    minHeight: { xs: '44px', sm: '42px' }, // Smaller but still good touch target
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     '&:hover': {
                       boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
@@ -800,8 +802,7 @@ const BookingPage: React.FC = () => {
               </Box>
             </Grid>
           </Grid>
-        </CardContent>
-      </ModernCard>
+      </Paper>
     );
   };
 
@@ -1643,7 +1644,13 @@ const BookingPage: React.FC = () => {
           </Container>
         </ModernHeroSection>
 
-        <Container maxWidth="lg">
+        <Container 
+          maxWidth="lg"
+          sx={{ 
+            px: { xs: 1, sm: 3, md: 4 }, // Better padding on mobile for more space
+            maxWidth: { xs: '100%', sm: '100%', md: '1200px' }
+          }}
+        >
           {/* Admin Toolbar - endast synlig för admins */}
           {isAdmin && (
             <Paper
