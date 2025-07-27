@@ -170,15 +170,18 @@ const pageServiceSupabase = {
       const { data, error } = await supabase
         .from(PAGES_TABLE)
         .insert(dbData)
-        .select()
-        .single();
+        .select('*');
 
       if (error) {
         console.error('Error creating page:', error);
         throw new Error('Kunde inte skapa sidan');
       }
 
-      return transformPageFromDB(data);
+      if (!data || data.length === 0) {
+        throw new Error('Kunde inte skapa sidan - ingen data returnerades');
+      }
+
+      return transformPageFromDB(data[0]);
     });
   },
 
@@ -191,15 +194,18 @@ const pageServiceSupabase = {
         .from(PAGES_TABLE)
         .update(dbData)
         .eq('id', id)
-        .select()
-        .single();
+        .select('*');
 
       if (error) {
         console.error('Error updating page:', error);
         throw new Error('Kunde inte uppdatera sidan');
       }
 
-      return transformPageFromDB(data);
+      if (!data || data.length === 0) {
+        throw new Error('Ingen sida hittades för uppdatering');
+      }
+
+      return transformPageFromDB(data[0]);
     });
   },
 
