@@ -51,7 +51,7 @@ function transformBookingFromDB(row: any): Booking {
     message: row.message,
     notes: row.notes,
     parkingSpace: row.parkering || row.parking_space || row.parkingSpace,
-    parking: row.parkering || row.parking || (row.parking_space ? true : false),
+    parking: row.parkering === 'true' || row.parkering === true || row.parking === true || (row.parking_space ? true : false),
     status: row.status || 'pending',
     
     // Timestamps
