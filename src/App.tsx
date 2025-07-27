@@ -22,6 +22,14 @@ import ScrollToTop from './components/ScrollToTop';
 const Login = React.lazy(() => import('./pages/auth/Login'));
 const Register = React.lazy(() => import('./pages/auth/Register'));
 const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
+const DashboardHome = React.lazy(() => import('./pages/admin/DashboardHome'));
+const PagesList = React.lazy(() => import('./pages/admin/PagesList'));
+const PageEditor = React.lazy(() => import('./pages/admin/PageEditor'));
+const BookingsList = React.lazy(() => import('./pages/admin/BookingsList'));
+const UsersList = React.lazy(() => import('./pages/admin/UsersList'));
+const AllowlistManager = React.lazy(() => import('./pages/admin/AllowlistManager'));
+const NotificationSettings = React.lazy(() => import('./pages/admin/NotificationSettings'));
+const MaintenancePlanPage = React.lazy(() => import('./pages/admin/MaintenancePlanPage'));
 const PageView = React.lazy(() => import('./pages/public/PageView'));
 const PublicPages = React.lazy(() => import('./pages/ModernPublicPages'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
@@ -150,13 +158,59 @@ function AppRoutes() {
         } />
         
         {/* Protected routes */}
-        <Route path="/admin/*" element={
+        <Route path="/admin" element={
           <ProtectedRoute adminOnly>
             <Suspense fallback={<LoadingFallback />}>
               <Dashboard />
             </Suspense>
           </ProtectedRoute>
-        } />
+        }>
+          <Route index element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardHome />
+            </Suspense>
+          } />
+          <Route path="pages" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <PagesList />
+            </Suspense>
+          } />
+          <Route path="pages/new" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <PageEditor />
+            </Suspense>
+          } />
+          <Route path="pages/edit/:id" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <PageEditor />
+            </Suspense>
+          } />
+          <Route path="bookings" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <BookingsList />
+            </Suspense>
+          } />
+          <Route path="users" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <UsersList />
+            </Suspense>
+          } />
+          <Route path="allowlist" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <AllowlistManager />
+            </Suspense>
+          } />
+          <Route path="notifications" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <NotificationSettings />
+            </Suspense>
+          } />
+          <Route path="maintenance" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <MaintenancePlanPage />
+            </Suspense>
+          } />
+        </Route>
         
         {/* Fallback route */}
         <Route path="*" element={

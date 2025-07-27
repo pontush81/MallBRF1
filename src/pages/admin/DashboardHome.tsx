@@ -1,387 +1,244 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Typography, 
-  Box, 
+  Box,
   Grid,
-  CircularProgress,
-  Alert
+  Card,
+  CardContent,
+  CardActionArea,
+  Button
 } from '@mui/material';
-import { 
+import {
   Article as ArticleIcon,
   Event as EventIcon,
   People as PeopleIcon,
-  TrendingUp as TrendingUpIcon,
-  Visibility as ViewIcon,
-  CheckCircle as CheckIcon
+  Build as MaintenanceIcon,
+  Settings as SettingsIcon,
+  Notifications as NotificationIcon,
+  Add as AddIcon,
+  List as ListIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
-import { Page } from '../../types/Page';
-import { Booking } from '../../types/Booking';
-import pageServiceSupabase from '../../services/pageServiceSupabase';
-import bookingServiceSupabase from '../../services/bookingServiceSupabase';
-import { StatsCard, ModernCard } from '../../components/common/ModernCard';
 import { modernTheme } from '../../theme/modernTheme';
 
-interface DashboardStats {
-  totalPages: number;
-  publishedPages: number;
-  totalBookings: number;
-  activeBookings: number;
-  uniqueUsers: number;
+interface QuickActionCard {
+  title: string;
+  description: string;
+  icon: React.ReactElement;
+  path: string;
+  color: string;
 }
 
 const DashboardHome: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalPages: 0,
-    publishedPages: 0,
-    totalBookings: 0,
-    activeBookings: 0,
-    uniqueUsers: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [recentPages, setRecentPages] = useState<Page[]>([]);
-  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+  const navigate = useNavigate();
 
-  console.log('🔍 DashboardHome rendering - loading:', loading, 'error:', error);
-
-  const fetchStats = async () => {
-    try {
-      console.log('📊 Starting to fetch stats...');
-      setLoading(true);
-      
-      // Hämta sidor
-      console.log('📄 Fetching pages...');
-      const pages = await pageServiceSupabase.getAllPages();
-      console.log('📄 Pages fetched:', pages.length);
-      const publishedPages = pages.filter(page => page.isPublished);
-      
-      // Hämta bokningar
-      console.log('📅 Fetching bookings...');
-      const bookings = await bookingServiceSupabase.getAllBookings();
-      console.log('📅 Bookings fetched:', bookings.length);
-      const activeBookings = bookings.filter(booking => 
-        booking.status === 'confirmed' || booking.status === 'pending'
-      );
-      
-      // Räkna unika användare baserat på email
-      const uniqueEmails = [...new Set(bookings.map(booking => booking.email))];
-      
-      // Senaste sidor (max 3)
-      const sortedPages = pages
-        .sort((a, b) => new Date(b.updatedAt || '').getTime() - new Date(a.updatedAt || '').getTime())
-        .slice(0, 3);
-      
-      // Senaste bokningar (max 3)  
-      const sortedBookings = bookings
-        .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
-        .slice(0, 3);
-
-      const newStats = {
-        totalPages: pages.length,
-        publishedPages: publishedPages.length,
-        totalBookings: bookings.length,
-        activeBookings: activeBookings.length,
-        uniqueUsers: uniqueEmails.length
-      };
-
-      console.log('📊 Stats calculated:', newStats);
-      setStats(newStats);
-      
-      setRecentPages(sortedPages);
-      setRecentBookings(sortedBookings);
-      setError(null);
-      console.log('✅ Stats fetch completed successfully');
-      
-    } catch (err) {
-      console.error('❌ Error fetching dashboard stats:', err);
-      setError('Kunde inte ladda statistik');
-    } finally {
-      setLoading(false);
-      console.log('🏁 Loading set to false');
+  const quickActions: QuickActionCard[] = [
+    {
+      title: 'Hantera Sidor',
+      description: 'Skapa och redigera webbsidors innehåll',
+      icon: <ArticleIcon />,
+      path: '/admin/pages',
+      color: modernTheme.colors.primary[500]
+    },
+    {
+      title: 'Bokningar',
+      description: 'Visa och hantera alla bokningar',
+      icon: <EventIcon />,
+      path: '/admin/bookings',
+      color: modernTheme.colors.secondary[500]
+    },
+    {
+      title: 'Användare',
+      description: 'Hantera användarkonton och behörigheter',
+      icon: <PeopleIcon />,
+      path: '/admin/users',
+      color: modernTheme.colors.success[500]
+    },
+    {
+      title: 'Underhållsplan',
+      description: 'Planera och följa upp underhållsarbeten',
+      icon: <MaintenanceIcon />,
+      path: '/admin/maintenance',
+      color: modernTheme.colors.warning[500]
+    },
+    {
+      title: 'Tillåtna Användare',
+      description: 'Hantera vem som får registrera sig',
+      icon: <SettingsIcon />,
+      path: '/admin/allowlist',
+      color: modernTheme.colors.secondary[600]
+    },
+    {
+      title: 'Notifikationer',
+      description: 'Konfigurera systemmeddelanden',
+      icon: <NotificationIcon />,
+      path: '/admin/notifications',
+      color: modernTheme.colors.error[500]
     }
+  ];
+
+  const handleCardClick = (path: string) => {
+    navigate(path);
   };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  if (loading) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '400px' 
-      }}>
-        <CircularProgress size={60} sx={{ color: modernTheme.colors.primary[500] }} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <ModernCard>
-        <Alert severity="error" sx={{ borderRadius: modernTheme.borderRadius.lg }}>
-          {error}
-        </Alert>
-      </ModernCard>
-    );
-  }
 
   return (
     <Box>
       {/* Welcome Header */}
-      <Box sx={{ mb: modernTheme.spacing[6] }}>
-        <ModernCard gradient>
-          <Box sx={{ textAlign: 'center', py: modernTheme.spacing[4] }}>
-            <Typography 
-              variant="h3" 
-              sx={{ 
-                fontWeight: modernTheme.typography.fontWeight.bold,
-                color: 'white',
-                mb: modernTheme.spacing[2]
-              }}
-            >
-              Välkommen till Admin-panelen
-            </Typography>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontWeight: modernTheme.typography.fontWeight.normal
-              }}
-            >
-              Hantera ditt innehåll och bokningar från en central plats
-            </Typography>
-          </Box>
-        </ModernCard>
+      <Box sx={{ mb: modernTheme.spacing[6], textAlign: 'center' }}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            fontWeight: modernTheme.typography.fontWeight.bold,
+            color: modernTheme.colors.gray[800],
+            mb: modernTheme.spacing[2]
+          }}
+        >
+          Välkommen till Admin-panelen
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: modernTheme.colors.gray[600],
+            fontWeight: modernTheme.typography.fontWeight.normal,
+            maxWidth: '600px',
+            mx: 'auto'
+          }}
+        >
+          Hantera ditt innehåll och bokningar från en central plats
+        </Typography>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: modernTheme.spacing[6] }}>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
-          <StatsCard
-            title="Totalt Sidor"
-            value={stats.totalPages}
-            subtitle={`${stats.publishedPages} publicerade`}
-            trend="neutral"
-            icon={<ArticleIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
-          <StatsCard
-            title="Publicerade"
-            value={stats.publishedPages}
-            subtitle={`${Math.round((stats.publishedPages / Math.max(stats.totalPages, 1)) * 100)}% av alla`}
-            trend="up"
-            icon={<ViewIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
-          <StatsCard
-            title="Bokningar"
-            value={stats.totalBookings}
-            subtitle={`${stats.activeBookings} aktiva`}
-            trend="up"
-            icon={<EventIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
-          <StatsCard
-            title="Aktiva Bokningar"
-            value={stats.activeBookings}
-            subtitle="Bekräftade/väntande"
-            trend="neutral"
-            icon={<CheckIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
-          <StatsCard
-            title="Användare"
-            value={stats.uniqueUsers}
-            subtitle="Unika emailadresser"
-            trend="up"
-            icon={<PeopleIcon />}
-          />
-        </Grid>
-      </Grid>
-
-      {/* Recent Activity */}
-      <Grid container spacing={3}>
-        {/* Recent Pages */}
-        <Grid item xs={12} md={6}>
-          <ModernCard 
-            title="Senaste Sidor" 
-            subtitle="Nyligen uppdaterade sidor"
-            icon={<ArticleIcon />}
-          >
-            <Box sx={{ mt: modernTheme.spacing[2] }}>
-              {recentPages.length > 0 ? (
-                recentPages.map((page, index) => (
-                  <Box 
-                    key={page.id}
-                    sx={{ 
-                      py: modernTheme.spacing[3],
-                      borderBottom: index < recentPages.length - 1 ? 
-                        `1px solid ${modernTheme.colors.gray[200]}` : 'none'
-                    }}
-                  >
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'flex-start' 
-                    }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography 
-                          variant="subtitle1" 
-                          sx={{ 
-                            fontWeight: modernTheme.typography.fontWeight.semibold,
-                            color: modernTheme.colors.gray[900],
-                            mb: modernTheme.spacing[1]
-                          }}
-                        >
-                          {page.title}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: modernTheme.colors.gray[600],
-                            mb: modernTheme.spacing[1]
-                          }}
-                        >
-                          {page.content ? page.content.substring(0, 80) + '...' : 'Inget innehåll'}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ color: modernTheme.colors.gray[500] }}
-                        >
-                          Uppdaterad: {page.updatedAt ? new Date(page.updatedAt).toLocaleDateString('sv-SE') : 'Okänt datum'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ ml: modernTheme.spacing[2] }}>
-                        <Box
-                          sx={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: page.isPublished ? 
-                              modernTheme.colors.success[500] : 
-                              modernTheme.colors.gray[400],
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  </Box>
-                ))
-              ) : (
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: modernTheme.colors.gray[500],
-                    textAlign: 'center',
-                    py: modernTheme.spacing[4]
-                  }}
+      {/* Quick Actions Grid */}
+      <Box sx={{ mb: modernTheme.spacing[6] }}>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: modernTheme.typography.fontWeight.semibold,
+            color: modernTheme.colors.gray[800],
+            mb: modernTheme.spacing[4]
+          }}
+        >
+          Snabbåtkomst
+        </Typography>
+        
+        <Grid container spacing={3}>
+          {quickActions.map((action, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card 
+                sx={{ 
+                  height: '100%',
+                  borderRadius: modernTheme.borderRadius.lg,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  border: `1px solid ${modernTheme.colors.gray[200]}`,
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    borderColor: action.color
+                  }
+                }}
+              >
+                <CardActionArea 
+                  onClick={() => handleCardClick(action.path)}
+                  sx={{ height: '100%', p: 0 }}
                 >
-                  Inga sidor skapade än
-                </Typography>
-              )}
-            </Box>
-          </ModernCard>
-        </Grid>
-
-        {/* Recent Bookings */}
-        <Grid item xs={12} md={6}>
-          <ModernCard 
-            title="Senaste Bokningar" 
-            subtitle="Nyligen gjorda bokningar"
-            icon={<EventIcon />}
-          >
-            <Box sx={{ mt: modernTheme.spacing[2] }}>
-              {recentBookings.length > 0 ? (
-                recentBookings.map((booking, index) => (
-                  <Box 
-                    key={booking.id}
-                    sx={{ 
-                      py: modernTheme.spacing[3],
-                      borderBottom: index < recentBookings.length - 1 ? 
-                        `1px solid ${modernTheme.colors.gray[200]}` : 'none'
-                    }}
-                  >
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'flex-start' 
-                    }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography 
-                          variant="subtitle1" 
-                          sx={{ 
-                            fontWeight: modernTheme.typography.fontWeight.semibold,
-                            color: modernTheme.colors.gray[900],
-                            mb: modernTheme.spacing[1]
-                          }}
-                        >
-                          {booking.name}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: modernTheme.colors.gray[600],
-                            mb: modernTheme.spacing[1]
-                          }}
-                        >
-                          {booking.email}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ color: modernTheme.colors.gray[500] }}
-                        >
-                          Period: {booking.startDate ? new Date(booking.startDate).toLocaleDateString('sv-SE') : 'Okänt datum'} - {booking.endDate ? new Date(booking.endDate).toLocaleDateString('sv-SE') : 'Okänt datum'}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          px: modernTheme.spacing[2],
-                          py: modernTheme.spacing[1],
-                          borderRadius: modernTheme.borderRadius.lg,
-                          backgroundColor: booking.status === 'confirmed' ? 
-                            modernTheme.colors.success[100] : 
-                            booking.status === 'pending' ?
-                            modernTheme.colors.warning[100] :
-                            modernTheme.colors.gray[100],
-                          color: booking.status === 'confirmed' ? 
-                            modernTheme.colors.success[800] : 
-                            booking.status === 'pending' ?
-                            modernTheme.colors.warning[800] :
-                            modernTheme.colors.gray[800],
-                          fontSize: modernTheme.typography.fontSize.xs,
-                          fontWeight: modernTheme.typography.fontWeight.medium,
-                        }}
-                      >
-                        {booking.status === 'confirmed' ? 'Bekräftad' : 
-                         booking.status === 'pending' ? 'Väntande' : 
-                         booking.status || 'Okänd'}
-                      </Box>
+                  <CardContent sx={{ p: modernTheme.spacing[4], textAlign: 'center' }}>
+                    <Box
+                      sx={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: '50%',
+                        backgroundColor: `${action.color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mx: 'auto',
+                        mb: modernTheme.spacing[3]
+                      }}
+                    >
+                      {React.cloneElement(action.icon, {
+                        sx: { fontSize: 30, color: action.color }
+                      })}
                     </Box>
-                  </Box>
-                ))
-              ) : (
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: modernTheme.colors.gray[500],
-                    textAlign: 'center',
-                    py: modernTheme.spacing[4]
-                  }}
-                >
-                  Inga bokningar gjorda än
-                </Typography>
-              )}
-            </Box>
-          </ModernCard>
+                    
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: modernTheme.typography.fontWeight.semibold,
+                        color: modernTheme.colors.gray[800],
+                        mb: modernTheme.spacing[2]
+                      }}
+                    >
+                      {action.title}
+                    </Typography>
+                    
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: modernTheme.colors.gray[600],
+                        lineHeight: 1.5
+                      }}
+                    >
+                      {action.description}
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
-      </Grid>
+      </Box>
+
+      {/* Quick Create Actions */}
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: modernTheme.typography.fontWeight.semibold,
+            color: modernTheme.colors.gray[800],
+            mb: modernTheme.spacing[4]
+          }}
+        >
+          Snabbåtgärder
+        </Typography>
+        
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/admin/pages/new')}
+            sx={{
+              backgroundColor: modernTheme.colors.primary[500],
+              '&:hover': { backgroundColor: modernTheme.colors.primary[600] },
+              borderRadius: modernTheme.borderRadius.lg,
+              px: modernTheme.spacing[4],
+              py: modernTheme.spacing[2]
+            }}
+          >
+            Skapa Ny Sida
+          </Button>
+          
+          <Button
+            variant="outlined"
+            startIcon={<ListIcon />}
+            onClick={() => navigate('/admin/bookings')}
+            sx={{
+              borderColor: modernTheme.colors.secondary[500],
+              color: modernTheme.colors.secondary[500],
+              '&:hover': { 
+                borderColor: modernTheme.colors.secondary[600],
+                backgroundColor: `${modernTheme.colors.secondary[500]}10`
+              },
+              borderRadius: modernTheme.borderRadius.lg,
+              px: modernTheme.spacing[4],
+              py: modernTheme.spacing[2]
+            }}
+          >
+            Visa Alla Bokningar
+          </Button>
+        </Box>
+      </Box>
     </Box>
   );
 };
