@@ -8,7 +8,9 @@ function getCorsHeaders(origin?: string | null) {
     'http://localhost:3000',
     'https://gulmaran.com',
     'https://www.gulmaran.com',
-    'https://mallbrf1.vercel.app'
+    'https://mallbrf1.vercel.app',
+    'https://stage.gulmaran.com',
+    'https://www.stage.gulmaran.com'
   ];
   
   const requestOrigin = origin || '';
