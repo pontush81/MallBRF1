@@ -188,7 +188,49 @@ const pageServiceSupabase = {
   // Uppdatera en befintlig sida
   updatePage: async (id: string, pageData: Partial<Page>): Promise<Page> => {
     return executeWithRLS(async (supabase) => {
+      // Check current user authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔐 Current authenticated user:', user?.email, 'User ID:', user?.id);
+      
+      if (authError || !user) {
+        console.error('❌ Authentication error:', authError);
+        throw new Error('Du måste vara inloggad för att uppdatera sidor');
+      }
+
+      // Ensure user is properly synced to Supabase (for RLS policies)
+      try {
+        const currentUserData = localStorage.getItem('currentUser');
+        if (currentUserData) {
+          const parsedUser = JSON.parse(currentUserData);
+          console.log('🔄 Re-syncing user to Supabase for RLS policies:', parsedUser.email);
+          const { syncUserToSupabase } = await import('./supabaseSync');
+          await syncUserToSupabase(parsedUser);
+        }
+      } catch (syncError) {
+        console.warn('⚠️ Failed to sync user to Supabase:', syncError);
+        // Continue anyway, as this might not be critical
+      }
+
+      // First, verify the page exists and we can read it
+      console.log('🔍 Checking if page exists before update:', id);
+      const existingPage = await supabase
+        .from(PAGES_TABLE)
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (existingPage.error) {
+        console.error('❌ Page not found or no access:', existingPage.error);
+        if (existingPage.error.code === 'PGRST116') {
+          throw new Error('Sidan hittades inte eller du har inte behörighet att redigera den');
+        }
+        throw new Error('Kunde inte kontrollera sidan');
+      }
+
+      console.log('✅ Page found, proceeding with update:', existingPage.data.title);
+      
       const dbData = transformPageToDB(pageData);
+      console.log('📝 Update data:', dbData);
 
       const { data, error } = await supabase
         .from(PAGES_TABLE)
@@ -197,14 +239,22 @@ const pageServiceSupabase = {
         .select('*');
 
       if (error) {
-        console.error('Error updating page:', error);
+        console.error('❌ Error updating page:', error);
+        console.error('❌ Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw new Error('Kunde inte uppdatera sidan');
       }
 
       if (!data || data.length === 0) {
-        throw new Error('Ingen sida hittades för uppdatering');
+        console.error('❌ Update returned no rows - possible RLS policy issue');
+        throw new Error('Sidan kunde inte uppdateras - inga ändringar gjordes eller otillräcklig behörighet');
       }
 
+      console.log('✅ Page updated successfully');
       return transformPageFromDB(data[0]);
     });
   },
