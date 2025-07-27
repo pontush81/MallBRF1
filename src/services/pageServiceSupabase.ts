@@ -188,28 +188,62 @@ const pageServiceSupabase = {
   // Uppdatera en befintlig sida
   updatePage: async (id: string, pageData: Partial<Page>): Promise<Page> => {
     return executeWithRLS(async (supabase) => {
-      // Check current user authentication
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // Check current user authentication with retry mechanism
+      let user = null;
+      let authError = null;
+      
+      try {
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser();
+        user = authUser;
+        authError = authErr;
+      } catch (error) {
+        authError = error;
+      }
+
       console.log('🔐 Current authenticated user:', user?.email, 'User ID:', user?.id);
+      
+      // If auth fails with token issues, try to refresh/clear cache and retry
+      if (authError && (
+        authError.message?.includes('invalid claim') || 
+        authError.message?.includes('sub claim must be a UUID') ||
+        authError.message?.includes('JWT')
+      )) {
+        console.log('🔄 Auth token issue detected, clearing cache and retrying...');
+        
+        try {
+          // Clear Supabase auth cache
+          const { clearSupabaseAuthCache } = await import('./supabaseAuth');
+          clearSupabaseAuthCache();
+          
+          // Clear client caches
+          const { clearAllAuthCaches } = await import('./supabaseClient');
+          clearAllAuthCaches();
+          
+          // Re-sync user from Firebase to Supabase
+          const currentUserData = localStorage.getItem('currentUser');
+          if (currentUserData) {
+            const parsedUser = JSON.parse(currentUserData);
+            console.log('🔄 Re-syncing user to Supabase after cache clear:', parsedUser.email);
+            const { syncUserToSupabase } = await import('./supabaseSync');
+            await syncUserToSupabase(parsedUser);
+            
+            // Try auth again with fresh token
+            const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser();
+            user = retryUser;
+            authError = retryError;
+            console.log('🔄 Retry auth result:', user?.email, retryError ? 'Error' : 'Success');
+          }
+        } catch (retryError) {
+          console.error('❌ Failed to recover from auth error:', retryError);
+        }
+      }
       
       if (authError || !user) {
         console.error('❌ Authentication error:', authError);
-        throw new Error('Du måste vara inloggad för att uppdatera sidor');
+        throw new Error('Du måste vara inloggad för att uppdatera sidor. Prova att logga ut och in igen.');
       }
 
-      // Ensure user is properly synced to Supabase (for RLS policies)
-      try {
-        const currentUserData = localStorage.getItem('currentUser');
-        if (currentUserData) {
-          const parsedUser = JSON.parse(currentUserData);
-          console.log('🔄 Re-syncing user to Supabase for RLS policies:', parsedUser.email);
-          const { syncUserToSupabase } = await import('./supabaseSync');
-          await syncUserToSupabase(parsedUser);
-        }
-      } catch (syncError) {
-        console.warn('⚠️ Failed to sync user to Supabase:', syncError);
-        // Continue anyway, as this might not be critical
-      }
+      console.log('✅ Authentication successful:', user.email);
 
       // First, verify the page exists and we can read it
       console.log('🔍 Checking if page exists before update:', id);
