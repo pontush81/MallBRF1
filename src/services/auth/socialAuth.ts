@@ -1,13 +1,10 @@
 import { 
-  AuthProvider, 
   signInWithPopup,
-  signInWithRedirect,
   getRedirectResult,
-  User as FirebaseUser,
   GoogleAuthProvider,
   OAuthProvider
 } from 'firebase/auth';
-import { auth, googleProvider, microsoftProvider } from '../firebase';
+import { auth } from '../firebase';
 import { isUserAllowed } from './allowlist';
 import { User } from '../../types/User';
 import { getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';

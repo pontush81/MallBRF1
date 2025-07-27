@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import MaintenancePlan from '../../../components/maintenance/MaintenancePlan';
 import { MaintenanceTask } from '../../../types/MaintenancePlan';
-import { sampleMaintenanceTasks } from '../../../data/maintenanceTasks';
+import { maintenanceTasks } from '../../../data/maintenanceTasks';
 
 // Mock the MaintenanceTaskEditor component to avoid rendering it in tests
 jest.mock('../../../components/maintenance/MaintenanceTaskEditor', () => {
@@ -41,7 +41,7 @@ describe('MaintenancePlan Component', () => {
     expect(screen.getByText('Status')).toBeInTheDocument();
     
     // Check sample tasks are displayed
-    sampleMaintenanceTasks.forEach(task => {
+    maintenanceTasks.forEach(task => {
       expect(screen.getByText(task.task)).toBeInTheDocument();
       expect(screen.getByText(task.description)).toBeInTheDocument();
       expect(screen.getByText(task.responsible)).toBeInTheDocument();
@@ -60,13 +60,13 @@ describe('MaintenancePlan Component', () => {
     fireEvent.click(marsOption);
     
     // There should only be one task for Mars
-    const marsTask = sampleMaintenanceTasks.find(task => task.month === 'Mars');
+    const marsTask = maintenanceTasks.find(task => task.months?.includes('Mars'));
     if (marsTask) {
       // The Mars task should be visible
       expect(screen.getByText(marsTask.task)).toBeInTheDocument();
       
       // Other tasks should not be visible
-      const januariTask = sampleMaintenanceTasks.find(task => task.month === 'Januari');
+      const januariTask = maintenanceTasks.find(task => task.months?.includes('Januari'));
       if (januariTask) {
         expect(screen.queryByText(januariTask.task)).not.toBeInTheDocument();
       }
@@ -77,7 +77,7 @@ describe('MaintenancePlan Component', () => {
     render(<MaintenancePlan />);
     
     // Find the first task
-    const firstTask = sampleMaintenanceTasks[0];
+    const firstTask = maintenanceTasks[0];
     const taskRow = screen.getByText(firstTask.task).closest('tr');
     
     if (taskRow) {
@@ -98,7 +98,7 @@ describe('MaintenancePlan Component', () => {
     render(<MaintenancePlan />);
     
     // Find the first task row
-    const firstTask = sampleMaintenanceTasks[0];
+    const firstTask = maintenanceTasks[0];
     const taskRow = screen.getByText(firstTask.task).closest('tr');
     
     if (taskRow) {

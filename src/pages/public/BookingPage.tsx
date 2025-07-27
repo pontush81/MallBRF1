@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -14,7 +14,6 @@ import {
   Tooltip,
   useTheme,
   useMediaQuery,
-  Chip,
   FormControlLabel,
   Checkbox,
   Dialog,
@@ -27,22 +26,21 @@ import {
   Stack,
   Menu,
   MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  Select,
+
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { 
   Person, 
   Email, 
   Check, 
-  Backup as BackupIcon, 
+   
   Description as DescriptionIcon,
-  PictureAsPdf as PdfIcon,
-  InsertDriveFile as ExcelIcon,
-  KeyboardArrowDown as ArrowDownIcon 
+
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  Backup as BackupIcon 
 } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -54,12 +52,13 @@ import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../config';
-import { auth } from '../../services/firebase';
+
+
 import { toast, Toaster } from 'react-hot-toast';
 import BookingStatus from '../../components/booking/BookingStatus';
 import { Booking } from '../../types/Booking';
 import { modernTheme } from '../../theme/modernTheme';
+import { adminUtils } from '../../utils/adminUtils';
 
 // Modern styled components for booking page
 const ModernPageContainer = styled(Box)(({ theme }) => ({
@@ -124,22 +123,7 @@ const ModernTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const ModernChip = styled(Chip)(({ theme }) => ({
-  borderRadius: modernTheme.borderRadius.md,
-  fontWeight: modernTheme.typography.fontWeight.medium,
-  '&.MuiChip-colorPrimary': {
-    backgroundColor: modernTheme.colors.secondary[100],
-    color: modernTheme.colors.secondary[800],
-  },
-  '&.MuiChip-colorSuccess': {
-    backgroundColor: modernTheme.colors.success[100],
-    color: modernTheme.colors.success[800],
-  },
-  '&.MuiChip-colorError': {
-    backgroundColor: modernTheme.colors.error[100],
-    color: modernTheme.colors.error[800],
-  },
-}));
+
 
 // Helper function to group bookings by month
 const groupBookingsByMonth = (bookings: Booking[]) => {
@@ -235,9 +219,7 @@ const CustomPickersDay = ({
   };
 
   // Check if a date is effectively fully booked (either fully booked or has back-to-back bookings)
-  const isEffectivelyFullyBooked = (day: Date) => {
-    return isDateFullyBooked(day) || hasBackToBackBookings(day);
-  };
+
 
   const isSelected = selectedDays.some(
     (date) => {
@@ -387,8 +369,7 @@ const BookingPage: React.FC = () => {
   
   // State för valideringsfel
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   
   // State för befintliga bokningar
@@ -408,7 +389,7 @@ const BookingPage: React.FC = () => {
 
   // Använd Authentication context
   const { isLoggedIn, currentUser, isAdmin } = useAuth();
-  const navigate = useNavigate();
+
 
   // Admin-specific state variables
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -416,8 +397,9 @@ const BookingPage: React.FC = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-  const [backupLoading, setBackupLoading] = useState(false);
-  const [hsbFormLoading, setHsbFormLoading] = useState(false);
+
+  
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [editName, setEditName] = useState('');
@@ -428,10 +410,27 @@ const BookingPage: React.FC = () => {
   const [editEndDate, setEditEndDate] = useState('');
   const [editParking, setEditParking] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
-  const [backupError, setBackupError] = useState<string | null>(null);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  
+
+  
+  // Admin toolbar state
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [hsbLoading, setHsbLoading] = useState(false);
+  const [backupMenuAnchorEl, setBackupMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [hsbMenuAnchorEl, setHsbMenuAnchorEl] = useState<null | HTMLElement>(null);
+  
+  // HSB Report month/year selection
+  const [selectedHsbMonth, setSelectedHsbMonth] = useState<number>(7); // Juli som default
+  const [selectedHsbYear, setSelectedHsbYear] = useState<number>(2025);
+
+  // Admin handler functions
+  const handleBackupMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setBackupMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleBackupMenuClose = () => {
+    setBackupMenuAnchorEl(null);
+  };
 
   // Hämta befintliga bokningar när komponenten laddas (optimerat med cache)
   const fetchBookings = async () => {
@@ -520,7 +519,7 @@ const BookingPage: React.FC = () => {
   useEffect(() => {
     const fetchApartmentInfo = async () => {
       try {
-        const page = await pageServiceSupabase.getPageBySlug('gastlagenhet');
+        await pageServiceSupabase.getPageBySlug('gastlagenhet');
       } catch (error) {
         console.log('Kunde inte hämta lägenhetsinformation, fortsätter utan den');
       }
@@ -537,66 +536,19 @@ const BookingPage: React.FC = () => {
     }
   }, [isLoggedIn, currentUser]);
 
-  // Validering för e-post
-  const validateEmail = (email: string) => {
-    return /\S+@\S+\.\S+/.test(email);
-  };
 
-  // Validera datumvalet
-  const validateDates = () => {
-    const errors: Record<string, string> = {};
-    
-    if (!startDate) {
-      errors.startDate = 'Välj ett ankomstdatum';
-    }
-    
-    if (!endDate) {
-      errors.endDate = 'Välj ett avresedatum';
-    }
-    
-    if (startDate && endDate) {
-      if (dateFns.isAfter(startDate, endDate)) {
-        errors.dateRange = 'Avresedatum måste vara efter ankomstdatum';
-      }
-    }
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
-  // Validera kontaktuppgifter
-  const validateContactInfo = () => {
-    const errors: Record<string, string> = {};
-    
-    if (!name.trim()) {
-      errors.name = 'Namn krävs';
-    }
-    
-    if (!email.trim()) {
-      errors.email = 'E-post krävs';
-    } else if (!validateEmail(email)) {
-      errors.email = 'Ogiltig e-postadress';
-    }
-    
-    if (!phone.trim()) {
-      errors.phone = 'Telefonnummer krävs';
-    }
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
-  // Validera hela formuläret
-  const validateForm = () => {
-    return validateDates() && validateContactInfo();
-  };
+
+
+
+
 
   // Skicka in bokningen
   const submitBooking = async () => {
     if (!startDate || !endDate) return;
     
     setIsLoading(true);
-    setErrorMessage('');
     
     try {
       // Normalize dates to midnight UTC for consistent handling
@@ -609,37 +561,9 @@ const BookingPage: React.FC = () => {
       // 1. Om någon bokning börjar samma dag som vår bokning slutar
       // 2. Om någon bokning slutar samma dag som vår bokning börjar
       
-      // Fall 1: En bokning börjar samma dag som vår bokning slutar
-      const anotherBookingStartsOnOurEndDate = existingBookings.some(booking => {
-        const bookingStartDate = new Date(booking.startDate || booking.startdate);
-        bookingStartDate.setUTCHours(0, 0, 0, 0);
-        return bookingStartDate.getTime() === normalizedEndDate.getTime();
-      });
+
       
-      // Fall 2: En bokning slutar samma dag som vår bokning börjar
-      const anotherBookingEndsOnOurStartDate = existingBookings.some(booking => {
-        const bookingEndDate = new Date(booking.endDate || booking.enddate);
-        bookingEndDate.setUTCHours(0, 0, 0, 0);
-        return bookingEndDate.getTime() === normalizedStartDate.getTime();
-      });
-      
-      // Bestäm start- och slutdatum för tillgänglighetskontrollen baserat på ovanstående
-      let startDateForCheck = normalizedStartDate;
-      let endDateForCheck = normalizedEndDate;
-      
-      // Om en bokning slutar samma dag som vår börjar, justera startdatumet för kontrollen
-      if (anotherBookingEndsOnOurStartDate) {
-        const dayAfter = new Date(normalizedStartDate);
-        dayAfter.setDate(dayAfter.getDate() + 1);
-        startDateForCheck = dayAfter;
-      }
-      
-      // Om en bokning börjar samma dag som vår slutar, justera slutdatumet för kontrollen
-      if (anotherBookingStartsOnOurEndDate) {
-        const dayBefore = new Date(normalizedEndDate);
-        dayBefore.setDate(dayBefore.getDate() - 1);
-        endDateForCheck = dayBefore;
-      }
+      // Gamla tillgänglighetskontroller togs bort eftersom de var oanvända
       
       // Skip detailed availability check for now since we already validate against existingBookings above
       // The client-side validation above should be sufficient for detecting conflicts
@@ -687,7 +611,6 @@ const BookingPage: React.FC = () => {
         );
         
         // Återställ formuläret
-        setSuccessMessage('');
         setStartDate(null);
         setEndDate(null);
         setNotes('');
@@ -698,7 +621,7 @@ const BookingPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
-      setErrorMessage('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
+              console.error('Ett fel uppstod när bokningen skulle skapas:', error);
       
       // Visa ett toast-meddelande för felet
       toast.error('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.', {
@@ -722,8 +645,8 @@ const BookingPage: React.FC = () => {
   const handleReset = () => {
     setStartDate(null);
     setEndDate(null);
-    setSuccessMessage('');
-    setErrorMessage('');
+          // Reset form
+          // Clear any previous errors
     setValidationErrors({});
     setParking(false);
     
@@ -1611,146 +1534,9 @@ const BookingPage: React.FC = () => {
     );
   };
 
-  const handleBackupClick = async () => {
-    try {
-      setBackupLoading(true);
-      setBackupError(null);
-      
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('Du måste vara inloggad för att skapa backup');
-      }
-      
-      // Use Supabase Edge Function with anon key for authorization
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          tables: ['bookings'],
-          includeFiles: false
-        })
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Kunde inte skapa backup');
-      }
 
-      const data = await response.json();
-      console.log('Backup response:', data);
-      
-      toast.success(`Backup skapad och skickad via e-post (${data.bookingCount} bokningar)`, {
-        duration: 4000,
-        position: isMobile ? 'bottom-center' : 'top-right' as const,
-        style: {
-          background: '#4caf50',
-          color: '#fff',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          maxWidth: isMobile ? '90%' : '400px',
-          textAlign: 'center'
-        },
-      });
-    } catch (error) {
-      console.error('Error creating backup:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid skapande av backup';
-      setBackupError(errorMessage);
-      toast.error(errorMessage, {
-        duration: 4000,
-        position: isMobile ? 'bottom-center' : 'top-right' as const,
-        style: {
-          background: '#f44336',
-          color: '#fff',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          maxWidth: isMobile ? '90%' : '400px',
-          textAlign: 'center'
-        },
-      });
-    } finally {
-      setBackupLoading(false);
-    }
-  };
 
-  // Handle opening the format selection menu
-  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setMenuAnchorEl(event.currentTarget);
-  };
-
-  // Handle closing the format selection menu
-  const handleHsbMenuClose = () => {
-    setMenuAnchorEl(null);
-  };
-  
-  // Handle HSB form generation with specific format
-  const handleHsbFormClick = (formatType: 'excel' | 'pdf') => async () => {
-    setHsbFormLoading(true);
-    handleHsbMenuClose();
-    
-    try {
-      // Check if user is admin
-      if (!isAdmin) {
-        throw new Error('Du måste vara inloggad som admin för att skapa HSB-underlag');
-      }
-      
-      // Get token for API request
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) {
-        throw new Error('Kunde inte hämta autentiseringstoken');
-      }
-      
-      // Make request to server to generate HSB form data with format parameter
-      const response = await fetch(`${API_BASE_URL}/bookings/hsb-form?format=${formatType}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Kunde inte skapa HSB-underlag');
-      }
-      
-      // Get file as blob and download it
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
-      // Get current date for filename
-      const today = new Date();
-      const dateStr = dateFns.format(today, 'yyyy-MM-dd');
-      
-      // Set appropriate extension based on format
-      const extension = formatType === 'excel' ? 'xlsx' : 'pdf';
-      
-      a.download = `HSB-underlag-${dateStr}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      
-      // Show success message
-      setSnackbarMessage('HSB-underlag har skapats och laddats ned');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-    } catch (error) {
-      console.error('Error creating HSB form:', error);
-      setSnackbarMessage(error instanceof Error ? error.message : 'Ett fel uppstod');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
-      setHsbFormLoading(false);
-    }
-  };
 
   // Helper to update the date range with proper normalization
   const updateDateRange = (newDate: Date | null) => {
@@ -1794,6 +1580,39 @@ const BookingPage: React.FC = () => {
     return `Valt datum: ${formattedStart} - ${formattedEnd} (${nights} nätter)`;
   };
 
+  // Admin handler functions
+  const handleBackupWithFormat = (format: 'json' | 'excel' | 'pdf', sendEmail: boolean = false) => async () => {
+    setBackupLoading(true);
+    handleBackupMenuClose();
+    
+    try {
+      await adminUtils.createBackupWithFormat(format, sendEmail, { isMobile });
+      // Resultat hanteras redan av adminUtils (toast-meddelanden)
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setHsbMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleHsbMenuClose = () => {
+    setHsbMenuAnchorEl(null);
+  };
+
+  const handleHsbReportWithFormat = (format: 'excel' | 'pdf', sendEmail: boolean = false) => async () => {
+    setHsbLoading(true);
+    handleHsbMenuClose();
+    
+    try {
+      await adminUtils.createHsbReportWithFormat(format, sendEmail, selectedHsbMonth, selectedHsbYear, currentUser, { isMobile });
+      // Resultat hanteras redan av adminUtils (toast-meddelanden)
+    } finally {
+      setHsbLoading(false);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
       <ModernPageContainer>
@@ -1825,6 +1644,122 @@ const BookingPage: React.FC = () => {
         </ModernHeroSection>
 
         <Container maxWidth="lg">
+          {/* Admin Toolbar - endast synlig för admins */}
+          {isAdmin && (
+            <Paper
+              elevation={1}
+              sx={{
+                p: 2,
+                mb: 3,
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                border: '1px solid',
+                borderColor: 'primary.light',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AdminPanelSettingsIcon color="primary" />
+                  <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
+                    Admin-verktyg
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {/* HSB Report Month/Year Selectors */}
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mr: 1 }}>
+                    <FormControl size="small" sx={{ minWidth: 100 }}>
+                      <InputLabel>Månad</InputLabel>
+                      <Select
+                        value={selectedHsbMonth}
+                        label="Månad"
+                        onChange={(e) => setSelectedHsbMonth(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <MenuItem key={i + 1} value={i + 1}>
+                            {new Date(2023, i).toLocaleDateString('sv-SE', { month: 'long' })}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    
+                    <FormControl size="small" sx={{ minWidth: 80 }}>
+                      <InputLabel>År</InputLabel>
+                      <Select
+                        value={selectedHsbYear}
+                        label="År"
+                        onChange={(e) => setSelectedHsbYear(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <MenuItem key={2023 + i} value={2023 + i}>
+                            {2023 + i}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<BackupIcon />}
+                    onClick={handleBackupMenuClick}
+                    disabled={backupLoading}
+                    sx={{ fontSize: '0.875rem' }}
+                  >
+                    {backupLoading ? <CircularProgress size={16} /> : 'Säkerhetskopiera'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<DescriptionIcon />}
+                    onClick={handleHsbMenuClick}
+                    disabled={hsbLoading}
+                    sx={{ fontSize: '0.875rem' }}
+                  >
+                    {hsbLoading ? <CircularProgress size={16} /> : 'HSB-rapport'}
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
+          {/* Backup Menu */}
+          <Menu
+            anchorEl={backupMenuAnchorEl}
+            open={Boolean(backupMenuAnchorEl)}
+            onClose={handleBackupMenuClose}
+          >
+            <MenuItem onClick={handleBackupWithFormat('json', false)}>
+              📄 Ladda ner JSON
+            </MenuItem>
+            <MenuItem onClick={handleBackupWithFormat('excel', false)}>
+              📊 Ladda ner Excel (CSV)
+            </MenuItem>
+            <MenuItem onClick={handleBackupWithFormat('pdf', false)}>
+              📝 Ladda ner PDF (Text)
+            </MenuItem>
+            <MenuItem onClick={handleBackupWithFormat('json', true)}>
+              📧 Skicka via e-post
+            </MenuItem>
+          </Menu>
+
+          {/* HSB Report Menu */}
+          <Menu
+            anchorEl={hsbMenuAnchorEl}
+            open={Boolean(hsbMenuAnchorEl)}
+            onClose={handleHsbMenuClose}
+          >
+            <MenuItem onClick={handleHsbReportWithFormat('pdf', false)}>
+              📝 Ladda ner PDF (standard)
+            </MenuItem>
+            <MenuItem onClick={handleHsbReportWithFormat('excel', false)}>
+              📊 Ladda ner CSV (för Excel)
+            </MenuItem>
+            <MenuItem onClick={handleHsbReportWithFormat('excel', true)}>
+              📧 Skicka Excel via e-post
+            </MenuItem>
+          </Menu>
+          
           <ModernCard sx={{ marginBottom: modernTheme.spacing[6] }}>
 
           {renderPriceList()}
@@ -1894,52 +1829,8 @@ const BookingPage: React.FC = () => {
               pt: 4,
               gap: 2
             }}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleHsbMenuClick}
-                disabled={hsbFormLoading}
-                startIcon={hsbFormLoading ? <CircularProgress size={20} /> : <DescriptionIcon />}
-                endIcon={<ArrowDownIcon />}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  px: 3,
-                  py: 1
-                }}
-              >
-                Skapa underlag till HSB
-              </Button>
-              
-              {/* Format Selection Menu */}
-              <Menu
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl)}
-                onClose={handleHsbMenuClose}
-              >
-                <MenuItem onClick={handleHsbFormClick('excel')}>
-                  <ListItemIcon>
-                    <ExcelIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText primary="Excel (XLSX)" />
-                </MenuItem>
-                <MenuItem onClick={handleHsbFormClick('pdf')}>
-                  <ListItemIcon>
-                    <PdfIcon color="error" />
-                  </ListItemIcon>
-                  <ListItemText primary="PDF" />
-                </MenuItem>
-              </Menu>
-              
-              <ModernButton
-                variant="outlined"
-                color="primary"
-                onClick={handleBackupClick}
-                disabled={backupLoading}
-                startIcon={backupLoading ? <CircularProgress size={20} /> : <BackupIcon />}
-              >
-                Skapa backup
-              </ModernButton>
+
+
             </Box>
           )}
 

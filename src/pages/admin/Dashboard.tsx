@@ -9,8 +9,7 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Menu,
-  MenuItem,
+
   Drawer,
   List,
   ListItem,
@@ -36,6 +35,7 @@ import PagesList from './PagesList';
 import PageEditor from './PageEditor';
 import DashboardHome from './DashboardHome';
 import UsersList from './UsersList';
+import BookingsList from './BookingsList';
 import AllowlistManager from './AllowlistManager';
 import NotificationSettings from './NotificationSettings';
 import MaintenancePlanPage from './MaintenancePlanPage';
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
         navigate('/admin/pages');
         break;
       case 'bookings':
-        navigate('/booking');  // Redirect to public booking page instead of admin/bookings
+        navigate('/admin/bookings');
         break;
       case 'users':
         navigate('/admin/users');
@@ -625,6 +625,7 @@ const Dashboard: React.FC = () => {
             <Route path="/pages" element={<PagesList />} />
             <Route path="/pages/new" element={<PageEditor />} />
             <Route path="/pages/edit/:id" element={<PageEditor />} />
+            <Route path="/bookings" element={<BookingsList />} />
             <Route path="/users" element={<UsersList />} />
             <Route path="/allowlist" element={<AllowlistManager />} />
             <Route path="/notifications" element={<NotificationSettings />} />

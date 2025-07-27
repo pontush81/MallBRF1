@@ -63,8 +63,8 @@ global.TextEncoder = MockTextEncoder as any;
 global.TextDecoder = MockTextDecoder as any;
 
 // Mock fetch
-global.fetch = jest.fn(() => 
-  Promise.resolve({
+global.fetch = jest.fn(() => {
+  const response = {
     ok: true,
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
@@ -77,12 +77,13 @@ global.fetch = jest.fn(() =>
     statusText: 'OK',
     type: 'basic' as ResponseType,
     url: 'http://localhost:3000',
-    clone: () => Promise.resolve({} as Response),
+    clone: () => response,
     body: null,
     bodyUsed: false,
     bytes: () => Promise.resolve(new Uint8Array())
-  } as Response)
-);
+  };
+  return Promise.resolve(response as unknown as Response);
+});
 
 // Mock react-markdown
 jest.mock('react-markdown', () => {

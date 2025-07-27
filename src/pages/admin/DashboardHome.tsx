@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Typography, 
   Box, 
-  Paper, 
   Grid,
   Button,
-  Divider,
   Card,
   CardContent,
   CardActions,
@@ -19,19 +17,16 @@ import {
   ListItemText
 } from '@mui/material';
 import { 
-  TrendingUp as TrendingUpIcon,
   People as PeopleIcon, 
   Article as PageIcon, 
   Event as BookingIcon,
-  Today as CalendarIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import { userService } from '../../services/userService';
-import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+
 import AdminMenu from '../../components/AdminMenu';
 
 // Komponenten för översiktsdashboard
@@ -130,14 +125,7 @@ const DashboardHome: React.FC = () => {
     fetchStats();
   };
 
-  // Formatera datum
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'PPP', { locale: sv });
-    } catch (error) {
-      return 'Ogiltigt datum';
-    }
-  };
+
 
   if (loading) {
     return <LinearProgress />;

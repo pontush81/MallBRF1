@@ -1,22 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { MaintenanceTask, MaintenanceStatus } from '../types/MaintenancePlan';
+import { MaintenanceTask } from '../types/MaintenancePlan';
 import { saveMaintenanceTasks, loadMaintenanceTasks } from '../services/maintenanceDataService';
 import { maintenanceTasksData } from '../data/maintenanceTasksData';
 
-// Interface for backward compatibility with old task format
-interface LegacyMaintenanceTask {
-  id: string;
-  month?: string;
-  task: string;
-  description: string;
-  responsible: string;
-  status: MaintenanceStatus;
-  comments?: string;
-  category?: string;
-  dueDate?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 interface MaintenanceContextType {
   tasks: MaintenanceTask[];

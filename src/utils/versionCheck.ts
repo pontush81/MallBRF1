@@ -1,7 +1,7 @@
 // Version check utility to detect when app has updates
 // This helps prevent users from being stuck with cached old versions
 
-const APP_VERSION = process.env.REACT_APP_VERSION || Date.now().toString();
+
 const VERSION_CHECK_INTERVAL = 30000; // 30 seconds
 let versionCheckInterval: NodeJS.Timeout | null = null;
 

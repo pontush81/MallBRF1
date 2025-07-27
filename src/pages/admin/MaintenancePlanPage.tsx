@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, Paper } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Box, Typography, Paper } from '@mui/material';
 import MaintenancePlan from '../../components/maintenance/MaintenancePlan';
 
 const MaintenancePlanPage: React.FC = () => {

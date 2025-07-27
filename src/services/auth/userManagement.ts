@@ -1,11 +1,6 @@
 import { 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  updateProfile,
-  User as FirebaseUser,
-  deleteUser as deleteFirebaseUser,
-  updateEmail,
-  getAuth
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { 
@@ -14,8 +9,7 @@ import {
   getDoc, 
   updateDoc, 
   deleteDoc,
-  query,
-  where,
+
   getDocs,
   collection,
   serverTimestamp

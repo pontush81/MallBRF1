@@ -1,8 +1,12 @@
 import { userService } from '../../services/userService';
 import { auth, db } from '../../services/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { User } from '../../types/User';
 
 jest.mock('../../services/firebase');
+jest.mock('firebase/auth');
+jest.mock('firebase/firestore');
 
 describe('userService', () => {
   beforeEach(() => {
@@ -21,26 +25,28 @@ describe('userService', () => {
         id: '123',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'user'
+        role: 'user' as const,
+        isActive: true,
+        createdAt: '2023-01-01T00:00:00Z',
+        lastLogin: '2023-01-01T00:00:00Z'
       };
 
       // Mock Firebase auth
-      (auth.signInWithEmailAndPassword as jest.Mock).mockResolvedValue({ 
+      (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({ 
         user: mockFirebaseUser 
       });
 
       // Mock Firestore
-      (db.doc as jest.Mock).mockReturnValue({
-        get: jest.fn().mockResolvedValue({
-          exists: () => true,
-          data: () => mockUserData
-        })
+      (doc as jest.Mock).mockReturnValue({});
+      (getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => mockUserData
       });
 
       const result = await userService.login('test@example.com', 'password123');
 
       expect(result).toEqual(mockUserData);
-      expect(auth.signInWithEmailAndPassword).toHaveBeenCalledWith(
+      expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
         auth,
         'test@example.com',
         'password123'
@@ -48,7 +54,7 @@ describe('userService', () => {
     });
 
     it('should handle login errors', async () => {
-      (auth.signInWithEmailAndPassword as jest.Mock).mockRejectedValue(
+      (signInWithEmailAndPassword as jest.Mock).mockRejectedValue(
         new Error('Invalid credentials')
       );
 
@@ -61,13 +67,14 @@ describe('userService', () => {
   describe('register', () => {
     it('should successfully register a new user', async () => {
       const mockFirebaseUser = {
-        uid: '123',
-        email: 'test@example.com'
+        uid: '456',
+        email: 'new@example.com',
+        displayName: 'New User'
       };
 
-      const expectedUser: User = {
-        id: '123',
-        email: 'test@example.com',
+      const expectedUser = {
+        id: '456',
+        email: 'new@example.com',
         name: 'Test User',
         role: 'user',
         isActive: true,
@@ -76,14 +83,13 @@ describe('userService', () => {
       };
 
       // Mock Firebase auth
-      (auth.createUserWithEmailAndPassword as jest.Mock).mockResolvedValue({
+      (createUserWithEmailAndPassword as jest.Mock).mockResolvedValue({
         user: mockFirebaseUser
       });
 
       // Mock Firestore
-      (db.doc as jest.Mock).mockReturnValue({
-        set: jest.fn().mockResolvedValue(undefined)
-      });
+      (doc as jest.Mock).mockReturnValue({});
+      (setDoc as jest.Mock).mockResolvedValue(undefined);
 
       const result = await userService.register(
         'test@example.com',
@@ -92,7 +98,7 @@ describe('userService', () => {
       );
 
       expect(result).toMatchObject(expectedUser);
-      expect(auth.createUserWithEmailAndPassword).toHaveBeenCalledWith(
+      expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
         auth,
         'test@example.com',
         'password123'
@@ -100,7 +106,7 @@ describe('userService', () => {
     });
 
     it('should handle registration errors', async () => {
-      (auth.createUserWithEmailAndPassword as jest.Mock).mockRejectedValue(
+      (createUserWithEmailAndPassword as jest.Mock).mockRejectedValue(
         new Error('Email already in use')
       );
 
@@ -113,4 +119,4 @@ describe('userService', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

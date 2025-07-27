@@ -39,7 +39,6 @@ import remarkGfm from 'remark-gfm';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import { API_BASE_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Element, scroller } from 'react-scroll';

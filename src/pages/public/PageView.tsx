@@ -15,7 +15,7 @@ import {
   Card,
   CardMedia,
   CardContent,
-  CardActions,
+
   Dialog,
   DialogContent,
 } from '@mui/material';

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { getAppTheme, ThemeDesign, ThemeMode, ThemeFont, CustomColors } from '../theme/theme';
-import { alpha } from '@mui/material/styles';
+
 import { Theme } from '@mui/material/styles';
 
 interface ThemeContextType {
@@ -42,7 +42,7 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children 
   });
   
   // Alltid använda light mode
-  const [mode, setMode] = useState<ThemeMode>('light');
+  const [, setMode] = useState<ThemeMode>('light');
   
   const [font, setFont] = useState<ThemeFont>(() => {
     const savedFont = localStorage.getItem('themeFont');
@@ -52,7 +52,7 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children 
   const [customColors, setCustomColors] = useState<CustomColors>({});
   
   // Alltid inaktivera auto mode
-  const [autoModeEnabled, setAutoModeEnabled] = useState<boolean>(false);
+  const [autoModeEnabled] = useState<boolean>(false);
   
   // Spara designval
   useEffect(() => {

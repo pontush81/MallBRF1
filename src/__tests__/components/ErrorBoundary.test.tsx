@@ -96,7 +96,7 @@ describe('ErrorBoundary', () => {
 
   it('shows development error info in development mode', () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
+    (process.env as any).NODE_ENV = 'development';
 
     render(
       <ErrorBoundary>
@@ -107,12 +107,12 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Utvecklingsinformation:')).toBeInTheDocument();
     expect(screen.getByText('Test error message')).toBeInTheDocument();
 
-    process.env.NODE_ENV = originalEnv;
+    (process.env as any).NODE_ENV = originalEnv;
   });
 
   it('hides development error info in production mode', () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    (process.env as any).NODE_ENV = 'production';
 
     render(
       <ErrorBoundary>
@@ -123,7 +123,7 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByText('Utvecklingsinformation:')).not.toBeInTheDocument();
     expect(screen.queryByText('Test error message')).not.toBeInTheDocument();
 
-    process.env.NODE_ENV = originalEnv;
+    (process.env as any).NODE_ENV = originalEnv;
   });
 
   it('logs error to console when error occurs', () => {

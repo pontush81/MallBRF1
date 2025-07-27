@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Box,
-  Paper,
   Typography,
   useTheme,
   useMediaQuery,
@@ -14,14 +13,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Grid,
   Chip,
   IconButton,
   Tooltip,
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import BookingDetails from './BookingDetails';
-import { BookingSummary, GuestData } from '../../types/Booking';
+import { GuestData } from '../../types/Booking';
 import { formatCurrency, getPlural } from '../../utils/formatting';
 import { differenceInDays } from 'date-fns';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';

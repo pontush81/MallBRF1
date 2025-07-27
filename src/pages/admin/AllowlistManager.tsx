@@ -5,11 +5,7 @@ import {
   Paper,
   TextField,
   Button,
-  List,
-  ListItem,
-  ListItemText,
   IconButton,
-  Divider,
   Grid,
   Alert,
   Chip,
@@ -24,7 +20,6 @@ import {
   Checkbox,
   Tabs,
   Tab,
-  useTheme,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -87,7 +82,7 @@ const AllowlistManager: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const theme = useTheme();
+
   
   useEffect(() => {
     loadAllowlist();

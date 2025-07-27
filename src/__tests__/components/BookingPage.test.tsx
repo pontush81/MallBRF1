@@ -7,11 +7,11 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { sv } from 'date-fns/locale';
 import theme from '../../theme';
 import BookingPage from '../../pages/public/BookingPage';
-import bookingServiceSupabaseSupabase from '../../services/bookingServiceSupabaseSupabaseSupabase';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
 
 // Mock the services
-jest.mock('../../services/bookingServiceSupabaseSupabase');
+jest.mock('../../services/bookingServiceSupabase');
 jest.mock('../../services/pageServiceSupabase');
 jest.mock('@mui/material/useMediaQuery', () => () => false);
 
@@ -45,7 +45,7 @@ describe('BookingPage Component', () => {
     (bookingServiceSupabase.getAllBookings as jest.Mock).mockResolvedValue([]);
     (bookingServiceSupabase.checkAvailability as jest.Mock).mockResolvedValue({ available: true });
     (bookingServiceSupabase.createBooking as jest.Mock).mockResolvedValue({ id: '1' });
-    (pageService.getPageBySlug as jest.Mock).mockResolvedValue(null);
+    (pageServiceSupabase.getPageBySlug as jest.Mock).mockResolvedValue(null);
   });
 
   const renderComponent = () => {

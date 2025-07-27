@@ -23,15 +23,14 @@ jest.mock('../../services/firebase', () => ({
 
 // Test component to access auth context
 const TestComponent = ({ mockUser }: { mockUser: User }) => {
-  const { user, loading, error, login, logout } = useAuth();
+  const { currentUser, isLoggedIn, isAdmin, login, logout } = useAuth();
   return (
     <div>
-      {loading && <div data-testid="loading">Loading...</div>}
-      {error && <div data-testid="error">{error}</div>}
-      {user && (
+      {!isLoggedIn && <div data-testid="loading">Loading...</div>}
+      {currentUser && (
         <div data-testid="user">
-          <div>{user.email}</div>
-          <div>{user.role}</div>
+          <div>{currentUser.email}</div>
+          <div>{currentUser.role}</div>
         </div>
       )}
       <button onClick={() => login(mockUser)}>Login</button>

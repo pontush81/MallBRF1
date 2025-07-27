@@ -253,7 +253,7 @@ const bookingServiceSupabase = {
       console.log('Creating new booking:', bookingData);
 
       // Kontrollera tillgänglighet först - använd faktiska datum
-      let startDateForCheck = bookingData.date;
+      // startDateForCheck removed as unused
       let endDateForCheck = bookingData.endDate;
       
       // Om vi inte har endDate, beräkna det från weeks

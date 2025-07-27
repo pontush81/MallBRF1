@@ -58,7 +58,7 @@ const pageServiceSupabase = {
         .select('*')
         .eq('ispublished', true)
         .eq('show', true)
-        .order('createdat', { ascending: false });
+        .order('title', { ascending: true });
 
       if (error) {
         console.error('Error fetching visible pages:', error);
@@ -88,7 +88,7 @@ const pageServiceSupabase = {
         .from(PAGES_TABLE)
         .select('*')
         .eq('ispublished', true)
-        .order('createdat', { ascending: false });
+        .order('title', { ascending: true });
 
       if (error) {
         console.error('Error fetching published pages:', error);
@@ -105,7 +105,7 @@ const pageServiceSupabase = {
       const { data, error } = await supabase
         .from(PAGES_TABLE)
         .select('*')
-        .order('createdat', { ascending: false });
+        .order('title', { ascending: true });
 
       if (error) {
         console.error('Error fetching all pages:', error);

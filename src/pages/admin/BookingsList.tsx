@@ -32,8 +32,10 @@ import {
   Checkbox,
   Menu,
   MenuItem,
-  ListItemIcon,
-  ListItemText
+  ButtonGroup,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import { 
   Delete as DeleteIcon,
@@ -42,40 +44,28 @@ import {
   ExpandMore as ExpandMoreIcon,
   Edit as EditIcon,
   Description as DescriptionIcon,
-  PictureAsPdf as PdfIcon,
-  InsertDriveFile as ExcelIcon,
-  KeyboardArrowDown as ArrowDownIcon
+  ArrowDropDown as ArrowDropDownIcon
+
 } from '@mui/icons-material';
 import { Booking } from '../../types/Booking';
-import { format, parseISO, getMonth, getYear, isAfter, isBefore, startOfMonth, addMonths, differenceInDays } from 'date-fns';
+import { format, parseISO, getMonth, getYear, differenceInDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
-import { API_BASE_URL, SUPABASE_URL } from '../../config';
-import { auth } from '../../services/firebase';
+import HSBReportPreview from '../../components/HSBReportPreview';
+
+import { adminUtils } from '../../utils/adminUtils';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const BookingsList: React.FC = () => {
-  const { isAdmin, isLoggedIn } = useAuth();
+  const { isAdmin, isLoggedIn, currentUser } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  
-  // Kontrollera admin-behörighet
-  useEffect(() => {
-    if (!isLoggedIn || !isAdmin) {
-      navigate('/login');
-    }
-  }, [isLoggedIn, isAdmin, navigate]);
-
-  // Om användaren inte är admin, visa ingenting
-  if (!isLoggedIn || !isAdmin) {
-    return null;
-  }
   
   // Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -87,8 +77,14 @@ const BookingsList: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   const [backupLoading, setBackupLoading] = useState(false);
+  const [hsbMenuAnchorEl, setHsbMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [hsbFormLoading, setHsbFormLoading] = useState(false);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+
+  const [hsbPreviewOpen, setHsbPreviewOpen] = useState(false);
+  
+  // HSB Report month/year selection
+  const [selectedHsbMonth, setSelectedHsbMonth] = useState<number>(7); // Juli som default
+  const [selectedHsbYear, setSelectedHsbYear] = useState<number>(2025);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -105,10 +101,12 @@ const BookingsList: React.FC = () => {
   const [editParking, setEditParking] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
 
-  // Hämta alla bokningar vid komponentmontering
+  // Kontrollera admin-behörighet
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    if (!isLoggedIn || !isAdmin) {
+      navigate('/login');
+    }
+  }, [isLoggedIn, isAdmin, navigate]);
 
   // Hämta bokningar från API (optimerat med cache)
   const fetchBookings = async () => {
@@ -128,6 +126,13 @@ const BookingsList: React.FC = () => {
     }
   };
 
+  // Hämta alla bokningar vid komponentmontering - MÅSTE vara före early return
+  useEffect(() => {
+    if (isLoggedIn && isAdmin) {
+      fetchBookings();
+    }
+  }, [isLoggedIn, isAdmin]);
+
   // Uppdatera filtrerade bokningar när söktermen ändras
   useEffect(() => {
     const filtered = bookings.filter(booking => 
@@ -136,6 +141,11 @@ const BookingsList: React.FC = () => {
     );
     setFilteredBookings(filtered);
   }, [searchTerm, bookings]);
+
+  // Om användaren inte är admin, visa ingenting
+  if (!isLoggedIn || !isAdmin) {
+    return null;
+  }
 
   // Formatera datum
   const formatDate = (dateString?: string) => {
@@ -194,37 +204,57 @@ const BookingsList: React.FC = () => {
     window.location.href = `mailto:${email}`;
   };
 
-  // Hantera backup
-  const handleBackup = async () => {
+  // Hantera backup med format-alternativ
+  const handleBackupWithFormat = (format: 'json' | 'excel' | 'pdf', sendEmail: boolean = false) => async () => {
     setBackupLoading(true);
+    
     try {
-      const token = await auth.currentUser?.getIdToken();
-      // Use Supabase Edge Function instead of Express backend
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-backup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          tables: ['bookings'],
-          includeFiles: false
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Kunde inte skicka backup');
+      const result = await adminUtils.createBackupWithFormat(format, sendEmail);
+      if (result.success) {
+        setSnackbarMessage(result.message);
+        setSnackbarSeverity('success');
+      } else {
+        setSnackbarMessage(result.message);
+        setSnackbarSeverity('error');
       }
-
-      const data = await response.json();
-      setSnackbarMessage(`Backup skickad! ${data.bookingCount} bokningar exporterades.`);
-      setSnackbarSeverity('success');
     } catch (error) {
       console.error('Fel vid backup:', error);
-      setSnackbarMessage('Kunde inte skicka backup');
+      setSnackbarMessage('Kunde inte skapa backup');
       setSnackbarSeverity('error');
     } finally {
       setBackupLoading(false);
+      setSnackbarOpen(true);
+    }
+  };
+
+  // HSB menu handlers
+  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setHsbMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleHsbMenuClose = () => {
+    setHsbMenuAnchorEl(null);
+  };
+
+  const handleHsbReportWithFormat = (format: 'excel' | 'pdf', sendEmail: boolean = false) => async () => {
+    setHsbFormLoading(true);
+    handleHsbMenuClose();
+    
+    try {
+      const result = await adminUtils.createHsbReportWithFormat(format, sendEmail, selectedHsbMonth, selectedHsbYear, currentUser);
+      if (result.success) {
+        setSnackbarMessage(result.message);
+        setSnackbarSeverity('success');
+      } else {
+        setSnackbarMessage(result.message);
+        setSnackbarSeverity('error');
+      }
+    } catch (error) {
+      console.error('Fel vid HSB-rapport:', error);
+      setSnackbarMessage('Kunde inte skapa HSB-rapport');
+      setSnackbarSeverity('error');
+    } finally {
+      setHsbFormLoading(false);
       setSnackbarOpen(true);
     }
   };
@@ -522,35 +552,24 @@ const BookingsList: React.FC = () => {
       
       let revenue = 0;
       
-      // Definiera tennisveckorna (exempel - justera efter verkliga tennisveckor)
-      const tennisWeeks = [27, 28, 29]; // Justera dessa veckor efter behov
+      // Använd samma logik som bokningssidan för konsistens
+      // Beräkna pris baserat på startdatum (mer enkelt och konsistent)
+      const weekNumber = parseInt(format(startDate, 'w'));
       
-      // Gå igenom varje natt och beräkna priset baserat på säsong
-      const currentDate = new Date(startDate);
-      for (let i = 0; i < totalNights; i++) {
-        // Beräkna veckonummer (1-52)
-        const firstDayOfYear = new Date(currentDate.getFullYear(), 0, 1);
-        const pastDaysOfYear = (currentDate.getTime() - firstDayOfYear.getTime()) / 86400000;
-        const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-        
-        // Pris baserat på säsong
-        if (week >= 24 && week <= 32) {
-          // Högsäsong
-          if (tennisWeeks.includes(week)) {
-            // Tennisveckor
-            revenue += 800; // 800 kr per dygn under tennisveckorna
-          } else {
-            // Vanlig högsäsong
-            revenue += 600; // 600 kr per dygn under högsäsong
-          }
+      let nightlyRate = 400; // Lågsäsong
+      if (weekNumber >= 24 && weekNumber <= 32) {
+        // Högsäsong (vecka 24-32)
+        if (weekNumber >= 28 && weekNumber <= 29) {
+          // Tennisveckor (vecka 28-29) - samma som övriga sidor
+          nightlyRate = 800;
         } else {
-          // Lågsäsong - vecka 1-23 samt vecka 33-52
-          revenue += 400; // 400 kr per dygn under lågsäsong
+          // Vanlig högsäsong
+          nightlyRate = 600;
         }
-        
-        // Gå till nästa dag
-        currentDate.setDate(currentDate.getDate() + 1);
       }
+      
+      // Beräkna grundintäkt
+      revenue = totalNights * nightlyRate;
       
       // Lägg till parkeringsavgift om bokningen inkluderar parkering
       if (booking.parking) {
@@ -585,102 +604,7 @@ const BookingsList: React.FC = () => {
     }, 0);
   };
 
-  // Generate HSB form data
-  const generateHsbFormData = (bookings: Booking[]): Record<string, {bookings: Booking[], totalAmount: number}> => {
-    // Filter bookings with apartment rentals
-    const apartmentRentals = bookings.filter(booking => 
-      booking.startDate && booking.endDate && booking.notes?.toLowerCase().includes('lägenhet')
-    );
-    
-    // Group by apartment number/name if available
-    const rentalsByApartment: Record<string, {bookings: Booking[], totalAmount: number}> = {};
-    
-    apartmentRentals.forEach(booking => {
-      // Try to extract apartment number from notes or use name as fallback
-      const apartmentMatch = booking.notes?.match(/lgh\s*(\d+|[a-zA-Z]+)/i);
-      const apartmentKey = apartmentMatch ? apartmentMatch[1] : booking.name;
-      
-      if (!rentalsByApartment[apartmentKey]) {
-        rentalsByApartment[apartmentKey] = {
-          bookings: [],
-          totalAmount: 0
-        };
-      }
-      
-      const amount = calculateRevenueForBooking(booking);
-      rentalsByApartment[apartmentKey].bookings.push(booking);
-      rentalsByApartment[apartmentKey].totalAmount += amount;
-    });
-    
-    return rentalsByApartment;
-  };
-  
-  // Handle opening the format selection menu
-  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setMenuAnchorEl(event.currentTarget);
-  };
 
-  // Handle closing the format selection menu
-  const handleHsbMenuClose = () => {
-    setMenuAnchorEl(null);
-  };
-  
-  // Handle HSB form generation with specific format
-  const handleCreateHsbForm = (formatType: 'excel' | 'pdf') => async () => {
-    setHsbFormLoading(true);
-    handleHsbMenuClose();
-    
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      
-      // Create URL with format parameter
-      const url = `${API_BASE_URL}/bookings/hsb-form?format=${formatType}`;
-      
-      // Get the file as blob
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Kunde inte skapa HSB-underlag');
-      }
-      
-      // Get file as blob and download it
-      const blob = await response.blob();
-      const url2 = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url2;
-      
-      // Get current date for filename
-      const today = new Date();
-      const dateStr = format(today, 'yyyy-MM-dd');
-      
-      // Set appropriate extension based on format
-      const extension = formatType === 'excel' ? 'xlsx' : 'pdf';
-      
-      a.download = `HSB-underlag-${dateStr}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      setSnackbarMessage('HSB-underlag har skapats och laddats ned');
-      setSnackbarSeverity('success');
-    } catch (error) {
-      console.error('Error creating HSB form:', error);
-      setSnackbarMessage(error instanceof Error ? error.message : 'Ett fel uppstod');
-      setSnackbarSeverity('error');
-    } finally {
-      setHsbFormLoading(false);
-      setSnackbarOpen(true);
-    }
-  };
 
   // Rendera bokning beroende på skärmstorlek
   const renderBookingItem = (booking: Booking) => {
@@ -906,53 +830,75 @@ const BookingsList: React.FC = () => {
             <Typography variant="h4" sx={{ fontSize: { xs: '1.8rem', sm: '2.125rem' }, mb: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}>
               Aktuella bokningar
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<DescriptionIcon />}
-                endIcon={<ArrowDownIcon />}
-                onClick={handleHsbMenuClick}
-                disabled={hsbFormLoading}
-                size="small"
-                sx={{ 
-                  whiteSpace: 'nowrap',
-                  minHeight: '44px',
-                  px: { xs: 1.5, sm: 3 },
-                  minWidth: { xs: 'auto', sm: '180px' }
-                }}
-              >
-                {hsbFormLoading ? <CircularProgress size={20} /> : (
-                  isMobile ? 'HSB' : 'Skapa underlag till HSB'
-                )}
-              </Button>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* HSB Report Month/Year Selectors */}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small" sx={{ minWidth: 100 }}>
+                  <InputLabel>Månad</InputLabel>
+                  <Select
+                    value={selectedHsbMonth}
+                    label="Månad"
+                    onChange={(e) => setSelectedHsbMonth(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <MenuItem key={i + 1} value={i + 1}>
+                        {new Date(2023, i).toLocaleDateString('sv-SE', { month: 'long' })}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <InputLabel>År</InputLabel>
+                  <Select
+                    value={selectedHsbYear}
+                    label="År"
+                    onChange={(e) => setSelectedHsbYear(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <MenuItem key={2023 + i} value={2023 + i}>
+                        {2023 + i}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
               
-              {/* Format Selection Menu */}
-              <Menu
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl)}
-                onClose={handleHsbMenuClose}
+              <ButtonGroup 
+                variant="contained" 
+                color="secondary"
+                size="small"
+                disabled={hsbFormLoading}
+                sx={{ minHeight: '44px' }}
               >
-                <MenuItem onClick={handleCreateHsbForm('excel')}>
-                  <ListItemIcon>
-                    <ExcelIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText primary="Excel (XLSX)" />
-                </MenuItem>
-                <MenuItem onClick={handleCreateHsbForm('pdf')}>
-                  <ListItemIcon>
-                    <PdfIcon color="error" />
-                  </ListItemIcon>
-                  <ListItemText primary="PDF" />
-                </MenuItem>
-              </Menu>
+                <Button
+                  startIcon={<DescriptionIcon />}
+                  onClick={() => setHsbPreviewOpen(true)}
+                  sx={{ 
+                    whiteSpace: 'nowrap',
+                    px: { xs: 1.5, sm: 3 },
+                    minWidth: { xs: 'auto', sm: '150px' }
+                  }}
+                >
+                  {hsbFormLoading ? <CircularProgress size={20} /> : (
+                    isMobile ? 'HSB rapport' : 'Skapa HSB-rapport'
+                  )}
+                </Button>
+                <Button
+                  size="small"
+                  onClick={handleHsbMenuClick}
+                  sx={{ px: 1, minWidth: '30px' }}
+                >
+                  <ArrowDropDownIcon />
+                </Button>
+              </ButtonGroup>
               
               <Tooltip title={isMobile ? "Säkerhetskopiera alla bokningar" : ""}>
                 <Button
                   variant="contained"
                   color="primary"
                   startIcon={<BackupIcon />}
-                  onClick={handleBackup}
+                  onClick={handleBackupWithFormat('excel', false)}
                   disabled={backupLoading}
                   size="small"
                   sx={{ 
@@ -1473,6 +1419,48 @@ const BookingsList: React.FC = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* HSB Report Preview Dialog */}
+      <Dialog
+        open={hsbPreviewOpen}
+        onClose={() => setHsbPreviewOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            minHeight: isMobile ? '100vh' : '80vh',
+            m: isMobile ? 0 : 2
+          }
+        }}
+      >
+        <HSBReportPreview
+          onClose={() => setHsbPreviewOpen(false)}
+          onSent={(message) => {
+            setSnackbarMessage(message);
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+            setHsbPreviewOpen(false);
+          }}
+        />
+      </Dialog>
+
+      {/* HSB Report Format Menu */}
+      <Menu
+        anchorEl={hsbMenuAnchorEl}
+        open={Boolean(hsbMenuAnchorEl)}
+        onClose={handleHsbMenuClose}
+      >
+        <MenuItem onClick={handleHsbReportWithFormat('pdf', false)}>
+          📝 Ladda ner PDF (standard)
+        </MenuItem>
+        <MenuItem onClick={handleHsbReportWithFormat('excel', false)}>
+          📊 Ladda ner CSV (för Excel)
+        </MenuItem>
+        <MenuItem onClick={handleHsbReportWithFormat('excel', true)}>
+          📧 Skicka Excel via e-post
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

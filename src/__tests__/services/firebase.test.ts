@@ -24,7 +24,11 @@ jest.mock('firebase/storage', () => ({
 describe('Firebase Configuration', () => {
   beforeEach(() => {
     // Clear all environment variables before each test
-    process.env = {};
+    Object.keys(process.env).forEach(key => {
+      if (key.startsWith('REACT_APP_')) {
+        delete (process.env as any)[key];
+      }
+    });
     jest.resetModules();
   });
 

@@ -89,11 +89,10 @@ describe('User Authentication', () => {
     (updateDoc as jest.Mock).mockResolvedValue(undefined);
     (getDoc as jest.Mock).mockResolvedValue(mockUserDoc);
 
-    const result = await userService.updateUser(mockUser.id, updatedData);
+    await userService.updateUserStatus(mockUser.id, { isActive: true });
 
     expect(doc).toHaveBeenCalledWith(db, 'users', mockUser.id);
-    expect(updateDoc).toHaveBeenCalledWith(expect.anything(), updatedData);
-    expect(result).toEqual(expect.objectContaining(updatedData));
+    expect(updateDoc).toHaveBeenCalledWith(expect.anything(), { isActive: true });
   });
 
   it('should delete user successfully', async () => {
