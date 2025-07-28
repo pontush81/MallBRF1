@@ -5,7 +5,10 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "build",
+        "buildCommand": "CI=false npm run build",
+        "framework": "create-react-app",
+        "nodejs": "22.x"
       }
     }
   ],
@@ -72,8 +75,12 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "GENERATE_SOURCEMAP": "false",
+    "INLINE_RUNTIME_CHUNK": "false",
+    "BUILD_PATH": "build"
   },
+  "buildCommand": "CI=false SKIP_PREFLIGHT_CHECK=true npm run build",
   "public": true,
   "github": {
     "enabled": true
