@@ -2,6 +2,22 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Performance Optimizations
+
+### Cold Start Fix (2025-01-XX)
+Fixed slow cold start issues on production by:
+- **Removed legacy server**: Eliminated the Node.js serverless function that was causing cold start delays
+- **Migrated to Supabase Edge Functions**: All API calls now use Supabase Edge Functions instead of legacy server endpoints
+- **Implemented code splitting**: All heavy components are lazy-loaded using React.lazy()
+- **Optimized font loading**: Reduced font weight variants from 6 to 3 (400, 500, 600)
+- **Updated Vercel config**: Optimized for static-only deployment with better caching headers
+
+### Localhost Caching Fix
+Improved localhost development experience by:
+- **Enhanced version checking**: More aggressive cache-busting in development mode
+- **Better cache headers**: Additional cache-busting meta tags in index.html
+- **Content hash checking**: Detects changes more reliably in development
+
 ## Available Scripts
 
 In the project directory you can run:

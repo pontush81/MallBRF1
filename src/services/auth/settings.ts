@@ -53,29 +53,26 @@ export async function sendNewUserNotification(user: any): Promise<boolean> {
     // med null som e-postadress, vilket får servern att använda BACKUP_EMAIL
     const targetEmail = settings.newUserNotifications ? settings.notificationEmail : null;
     
-    // Since we're in a client environment, we need to use a server endpoint to send emails
-    console.log('Skickar notifikation till server...');
-    const response = await fetch('/api/notifications/new-user', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-vercel-protection-bypass': 'true'
-      },
-      body: JSON.stringify({
+    // Use Supabase Edge Function for email notifications
+    console.log('Skickar notifikation via Supabase Edge Function...');
+    const supabaseModule = await import('../supabaseClient');
+    const supabaseClient = await supabaseModule.getAuthenticatedSupabaseClient();
+    const response = await supabaseClient.functions.invoke('send-email', {
+      body: {
+        type: 'new-user',
         email: targetEmail,
         user: {
           name: user.name || 'Ny användare',
           email: user.email,
           createdAt: user.createdAt
         }
-      })
+      }
     });
     
-    const responseData = await response.json();
-    console.log('Server response:', responseData);
+    console.log('Supabase Edge Function response:', response);
     
-    if (!response.ok) {
-      throw new Error(`Failed to send notification: ${response.statusText}`);
+    if (response.error) {
+      throw new Error(`Failed to send notification: ${response.error.message}`);
     }
     
     console.log('Notifikation skickad framgångsrikt');
@@ -91,27 +88,24 @@ export async function sendUserApprovalNotification(user: any): Promise<boolean> 
   try {
     console.log('Försöker skicka godkännandenotifikation till användare:', user.email);
     
-    // Since we're in a client environment, we need to use a server endpoint to send emails
-    console.log('Skickar godkännandenotifikation till server...');
-    const response = await fetch('/api/notifications/user-approved', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-vercel-protection-bypass': 'true'
-      },
-      body: JSON.stringify({
+    // Use Supabase Edge Function for email notifications
+    console.log('Skickar godkännandenotifikation via Supabase Edge Function...');
+    const supabaseModule = await import('../supabaseClient');
+    const supabaseClient = await supabaseModule.getAuthenticatedSupabaseClient();
+    const response = await supabaseClient.functions.invoke('send-email', {
+      body: {
+        type: 'user-approved',
         user: {
-          name: user.name || '',
+          name: user.name || 'Användare',
           email: user.email
         }
-      })
+      }
     });
     
-    const responseData = await response.json();
-    console.log('Server response:', responseData);
+    console.log('Supabase Edge Function response:', response);
     
-    if (!response.ok) {
-      throw new Error(`Failed to send approval notification: ${response.statusText}`);
+    if (response.error) {
+      throw new Error(`Failed to send approval notification: ${response.error.message}`);
     }
     
     console.log('Godkännandenotifikation skickad framgångsrikt');

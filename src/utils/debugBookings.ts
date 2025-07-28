@@ -8,7 +8,7 @@ declare global {
       forceRefresh: () => Promise<void>;
       clearCache: () => void;
       clearAuthCache: () => void;
-      testAPI: () => Promise<void>;
+      testSupabase: () => Promise<any>;
       getBookings: () => Promise<any>;
     };
   }
@@ -48,32 +48,17 @@ const debugBookings = {
     }
   },
 
-  // Testa API direkt
-  testAPI: async () => {
-    console.log('🧪 Testing API directly...');
+  // Testa Supabase direkt (ersätter legacy API)
+  testSupabase: async () => {
+    console.log('🧪 Testing Supabase directly...');
     try {
-      const response = await fetch('http://localhost:3002/api/bookings', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-vercel-protection-bypass': 'true'
-        },
-        mode: 'cors',
-        credentials: 'include'
-      });
-      
-      console.log('API Response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ API working, got data:', data);
-      } else {
-        const errorText = await response.text();
-        console.log('❌ API error:', errorText);
-      }
+      const { default: bookingService } = await import('../services/bookingServiceSupabase');
+      const bookings = await bookingService.getAllBookings();
+      console.log('✅ Supabase test successful:', bookings.length, 'bookings found');
+      return bookings;
     } catch (error) {
-      console.error('❌ API test failed:', error);
+      console.error('❌ Supabase test failed:', error);
+      throw error;
     }
   },
 

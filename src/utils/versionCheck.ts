@@ -10,11 +10,14 @@ let versionCheckInterval: NodeJS.Timeout | null = null;
  */
 async function checkForUpdates(): Promise<boolean> {
   try {
-    // Try to fetch a small file that changes with each build
-    const response = await fetch('/manifest.json?t=' + Date.now(), {
+    // More aggressive cache-busting for development
+    const cacheBuster = Date.now() + Math.random().toString(36).substr(2, 9);
+    const response = await fetch(`/manifest.json?v=${cacheBuster}&_cb=${Date.now()}`, {
       cache: 'no-cache',
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     });
     
@@ -22,7 +25,23 @@ async function checkForUpdates(): Promise<boolean> {
       return false;
     }
     
-    // If we can't fetch it, there might be an update
+    // In development, be more aggressive about detecting changes
+    if (process.env.NODE_ENV === 'development') {
+      const content = await response.text();
+      const contentHash = content.length + content.substring(0, 100); // Simple content hash
+      const storedHash = localStorage.getItem('app_content_hash');
+      
+      if (storedHash && contentHash !== storedHash) {
+        localStorage.setItem('app_content_hash', contentHash);
+        return true;
+      }
+      
+      if (!storedHash) {
+        localStorage.setItem('app_content_hash', contentHash);
+      }
+    }
+    
+    // Production version checking
     const lastModified = response.headers.get('last-modified');
     const storedLastModified = localStorage.getItem('app_last_modified');
     
