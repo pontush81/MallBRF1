@@ -38,6 +38,7 @@ async function checkForUpdates(): Promise<boolean> {
       
       if (!storedHash) {
         localStorage.setItem('app_content_hash', contentHash);
+        return false; // First visit - no update notification needed
       }
     }
     
@@ -52,6 +53,7 @@ async function checkForUpdates(): Promise<boolean> {
     
     if (!storedLastModified && lastModified) {
       localStorage.setItem('app_last_modified', lastModified);
+      return false; // First visit - no update notification needed
     }
     
     return false;
@@ -163,13 +165,13 @@ function showUpdateNotification(): void {
 export function startVersionCheck(): void {
   if (typeof window === 'undefined') return;
   
-  // Initial check after 5 seconds
+  // Initial check after 30 seconds to avoid false positives on first load
   setTimeout(async () => {
     const hasUpdate = await checkForUpdates();
     if (hasUpdate) {
       showUpdateNotification();
     }
-  }, 5000);
+  }, 30000);
   
   // Periodic checks
   versionCheckInterval = setInterval(async () => {
