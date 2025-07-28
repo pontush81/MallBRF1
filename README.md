@@ -378,3 +378,4 @@ Projektet använder semantisk versionering:
 
 Privat - Alla rättigheter förbehållna
 // Force Vercel deployment - Mon Jul 28 09:17:34 CEST 2025
+// Trigger production deployment after GitHub reconnect - Mon Jul 28 09:31:28 CEST 2025
