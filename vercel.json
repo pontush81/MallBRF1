@@ -78,9 +78,13 @@
     "NODE_ENV": "production",
     "GENERATE_SOURCEMAP": "false",
     "INLINE_RUNTIME_CHUNK": "false",
-    "BUILD_PATH": "build"
+    "BUILD_PATH": "build",
+    "DISABLE_ESLINT_PLUGIN": "true",
+    "TSC_COMPILE_ON_ERROR": "true",
+    "FAST_REFRESH": "false"
   },
   "buildCommand": "CI=false SKIP_PREFLIGHT_CHECK=true npm run build",
+  "installCommand": "npm ci --no-optional --no-audit --no-fund",
   "public": true,
   "github": {
     "enabled": true
