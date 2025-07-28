@@ -377,3 +377,4 @@ Projektet använder semantisk versionering:
 ## Licens
 
 Privat - Alla rättigheter förbehållna
+// Force Vercel deployment - Mon Jul 28 09:17:34 CEST 2025
