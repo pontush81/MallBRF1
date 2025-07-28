@@ -75,12 +75,6 @@
   "github": {
     "enabled": true
   },
-  "functions": {
-    "build": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/static/(.*)",
