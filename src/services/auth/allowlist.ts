@@ -15,7 +15,7 @@ const ALLOWLIST_ID = 'email_allowlist';
  */
 export async function getAllowlist(): Promise<Allowlist> {
   try {
-    const allowlistDoc = await getDoc(doc(db, 'settings', ALLOWLIST_ID));
+    const allowlistDoc = await getDoc(doc(db(), 'settings', ALLOWLIST_ID));
     
     if (allowlistDoc.exists()) {
       const data = allowlistDoc.data() as Allowlist;
@@ -31,7 +31,7 @@ export async function getAllowlist(): Promise<Allowlist> {
         domains: [],
         lastUpdated: new Date().toISOString()
       };
-      await setDoc(doc(db, 'settings', ALLOWLIST_ID), newAllowlist);
+      await setDoc(doc(db(), 'settings', ALLOWLIST_ID), newAllowlist);
       return newAllowlist;
     }
   } catch (error) {
@@ -105,7 +105,7 @@ export async function updateAllowlist(allowlist: Allowlist): Promise<void> {
       lastUpdated: new Date().toISOString()
     };
     
-    await setDoc(doc(db, 'settings', ALLOWLIST_ID), updatedAllowlist);
+    await setDoc(doc(db(), 'settings', ALLOWLIST_ID), updatedAllowlist);
     console.log('Allowlist updated successfully');
   } catch (error) {
     console.error('Error updating allowlist:', error);

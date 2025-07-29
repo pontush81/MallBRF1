@@ -4,7 +4,7 @@
  */
 
 export const AUTO_ADMIN_EMAILS = [
-  'pontus.hberg@gmail.com',
+  'gulmaranbrf@gmail.com',
   'tinautas@gmail.com', 
   'tinautas@hotmail.com',
   'admin@example.com',

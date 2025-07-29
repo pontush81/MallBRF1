@@ -1,188 +1,244 @@
-import { Page } from '../types/Page';
-import { executeWithRLS, executePublic } from './supabaseClient';
+import supabaseClient from './supabaseClient';
+import { Page, FileInfo } from '../types/Page';
+import { logUserAccess, logAnonymousAccess } from './auditLog';
 
-// Fallback data för när Supabase inte är tillgängligt
-const FALLBACK_PAGES: Page[] = [
-  {
-    id: '1',
-    title: 'Fallback - Information',
-    content: 'Denna sida laddades från fallback-data eftersom databasen inte var tillgänglig.',
-    slug: 'fallback-information',
-    isPublished: true,
-    show: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    files: []
-  }
-];
-
-// Database table mapping
-const PAGES_TABLE = 'pages';
-
-// Helper function to transform database row to Page object
-function transformPageFromDB(row: any): Page {
+// Transform function to convert from database format to frontend format
+function transformPageFromDB(dbPage: any): Page {
   return {
-    id: row.id?.toString(),
-    title: row.title || '',
-    content: row.content || '',
-    isPublished: row.ispublished ?? row.isPublished ?? false,
-    show: row.show ?? true,
-    createdAt: row.createdat || row.createdAt || new Date().toISOString(),
-    updatedAt: row.updatedat || row.updatedAt || new Date().toISOString(),
-    files: row.files ? (typeof row.files === 'string' ? JSON.parse(row.files) : row.files) : [],
-    slug: row.slug
+    id: dbPage.id,
+    title: dbPage.title,
+    content: dbPage.content,
+    slug: dbPage.slug,
+    isPublished: dbPage.ispublished,
+    show: dbPage.show,
+    createdAt: dbPage.createdat,
+    updatedAt: dbPage.updatedat,
+    files: dbPage.files ? (typeof dbPage.files === 'string' ? JSON.parse(dbPage.files) : dbPage.files) : []
   };
 }
 
-// Helper function to transform Page object to database row
+// Transform function to convert from frontend format to database format
 function transformPageToDB(page: Partial<Page>): any {
-  return {
-    title: page.title,
-    content: page.content,
-    ispublished: page.isPublished,
-    show: page.show,
-    files: page.files ? JSON.stringify(page.files) : null,
-    slug: page.slug,
-    updatedat: new Date().toISOString()
-  };
+  const dbPage: any = {};
+  
+  if (page.title !== undefined) dbPage.title = page.title;
+  if (page.content !== undefined) dbPage.content = page.content;
+  if (page.slug !== undefined) dbPage.slug = page.slug;
+  if (page.isPublished !== undefined) dbPage.ispublished = page.isPublished;
+  if (page.show !== undefined) dbPage.show = page.show;
+  if (page.createdAt !== undefined) dbPage.createdat = page.createdAt;
+  if (page.updatedAt !== undefined) dbPage.updatedat = page.updatedAt;
+  if (page.files !== undefined) dbPage.files = JSON.stringify(page.files);
+  
+  return dbPage;
 }
 
 const pageServiceSupabase = {
-  // Hämta alla synliga sidor (published och show = true)
+  // Hämta alla synliga sidor (för public sidor)
   getVisiblePages: async (): Promise<Page[]> => {
-    return executePublic(async (supabase) => {
-      console.log('Fetching visible pages from Supabase...');
+    try {
+      console.log('🔍 Fetching visible pages from Supabase...');
       
-      const { data, error } = await supabase
-        .from(PAGES_TABLE)
+      const { data, error } = await supabaseClient
+        .from('pages')
         .select('*')
         .eq('ispublished', true)
         .eq('show', true)
-        .order('title', { ascending: true });
+        .order('createdat', { ascending: true });
 
       if (error) {
-        console.error('Error fetching visible pages:', error);
-        throw new Error('Kunde inte hämta sidor från databasen');
+        console.error('❌ Error fetching visible pages:', error);
+        throw error;
       }
 
       const pages = data?.map(transformPageFromDB) || [];
-      console.log(`Found ${pages.length} visible pages`);
       
-      if (pages.length > 0) {
-        console.log('Sample page:', {
-          id: pages[0].id,
-          title: pages[0].title,
-          isPublished: pages[0].isPublished,
-          show: pages[0].show
-        });
-      }
+      // Log anonymous access for public page viewing
+      await logAnonymousAccess('pages', 'SELECT', undefined, `get_visible_pages_${pages.length}_results`);
 
+      console.log(`✅ Found ${pages.length} visible pages`);
       return pages;
-    }, FALLBACK_PAGES);
+    } catch (error) {
+      console.error('Error in getVisiblePages:', error);
+      throw error;
+    }
   },
 
-  // Hämta alla publicerade sidor
+  // Hämta alla publicerade sidor (alias för getVisiblePages för backward compatibility)
   getPublishedPages: async (): Promise<Page[]> => {
-    return executePublic(async (supabase) => {
-      const { data, error } = await supabase
-        .from(PAGES_TABLE)
-        .select('*')
-        .eq('ispublished', true)
-        .order('title', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching published pages:', error);
-        throw error;
-      }
-
-      return data?.map(transformPageFromDB) || [];
-    }, FALLBACK_PAGES);
+    return pageServiceSupabase.getVisiblePages();
   },
 
-  // Hämta alla sidor (admin)
+  // Hämta alla sidor (för admin)
   getAllPages: async (): Promise<Page[]> => {
-    return executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from(PAGES_TABLE)
+    try {
+      console.log('🔍 Fetching all pages from Supabase...');
+      
+      const { data, error } = await supabaseClient
+        .from('pages')
         .select('*')
-        .order('title', { ascending: true });
+        .order('createdat', { ascending: true });
 
       if (error) {
-        console.error('Error fetching all pages:', error);
+        console.error('❌ Error fetching all pages:', error);
         throw error;
       }
 
-      return data?.map(transformPageFromDB) || [];
-    }, []);
+      const pages = data?.map(transformPageFromDB) || [];
+      
+      // Log admin access to all pages
+      await logUserAccess('pages', 'SELECT', undefined, `admin_get_all_pages_${pages.length}_results`);
+
+      console.log(`✅ Found ${pages.length} total pages`);
+      return pages;
+    } catch (error) {
+      console.error('Error in getAllPages:', error);
+      throw error;
+    }
   },
 
-  // Hämta en specifik sida med ID
+  // Hämta en specifik sida via ID
   getPageById: async (id: string): Promise<Page | null> => {
-    return executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from(PAGES_TABLE)
+    try {
+      console.log(`🔍 Fetching page by ID: ${id}`);
+      
+      const { data, error } = await supabaseClient
+        .from('pages')
         .select('*')
         .eq('id', id)
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // No rows returned
+          console.log(`⚠️ Page not found: ${id}`);
           return null;
         }
-        console.error('Error fetching page by ID:', error);
+        console.error('❌ Error fetching page by ID:', error);
         throw error;
       }
 
-      return data ? transformPageFromDB(data) : null;
-    }, null);
+      const page = transformPageFromDB(data);
+      
+      // Determine if this is admin access or public access
+      const currentUserData = localStorage.getItem('currentUser');
+      const isAdmin = currentUserData ? JSON.parse(currentUserData).role === 'admin' : false;
+      
+      if (isAdmin) {
+        await logUserAccess('pages', 'SELECT', String(id), 'admin_get_page_by_id');
+      } else {
+        await logAnonymousAccess('pages', 'SELECT', String(id), 'public_get_page_by_id');
+      }
+
+      console.log(`✅ Found page: ${page.title}`);
+      return page;
+    } catch (error) {
+      console.error('Error in getPageById:', error);
+      throw error;
+    }
   },
 
-  // Hämta en specifik sida med slug
+  // Hämta en specifik sida via slug
   getPageBySlug: async (slug: string): Promise<Page | null> => {
-    return executePublic(async (supabase) => {
-      const { data, error } = await supabase
-        .from(PAGES_TABLE)
+    try {
+      console.log(`🔍 Fetching page by slug: ${slug}`);
+      
+      const { data, error } = await supabaseClient
+        .from('pages')
         .select('*')
         .eq('slug', slug)
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
+          console.log(`⚠️ Page not found: ${slug}`);
           return null;
         }
-        console.error('Error fetching page by slug:', error);
+        console.error('❌ Error fetching page by slug:', error);
         throw error;
       }
 
-      return data ? transformPageFromDB(data) : null;
-    }, null);
+      const page = transformPageFromDB(data);
+      
+      // Determine if this is admin access or public access
+      const currentUserData = localStorage.getItem('currentUser');
+      const isAdmin = currentUserData ? JSON.parse(currentUserData).role === 'admin' : false;
+      
+      if (isAdmin) {
+        await logUserAccess('pages', 'SELECT', String(page.id), `admin_get_page_by_slug_${slug}`);
+      } else {
+        await logAnonymousAccess('pages', 'SELECT', String(page.id), `public_get_page_by_slug_${slug}`);
+      }
+
+      console.log(`✅ Found page: ${page.title}`);
+      return page;
+    } catch (error) {
+      console.error('Error in getPageBySlug:', error);
+      throw error;
+    }
   },
 
   // Skapa en ny sida
   createPage: async (pageData: Omit<Page, 'id' | 'createdAt' | 'updatedAt'>): Promise<Page> => {
-    return executeWithRLS(async (supabase) => {
-      const dbData = {
-        ...transformPageToDB(pageData),
-        createdat: new Date().toISOString()
-      };
+    // Check Firebase authentication and admin permissions from localStorage
+    const currentUserData = localStorage.getItem('currentUser');
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
+    if (!isLoggedIn || !currentUserData) {
+      throw new Error('Du måste vara inloggad för att skapa sidor.');
+    }
+    
+    const parsedUser = JSON.parse(currentUserData);
+    console.log('🔐 Current Firebase user:', parsedUser.email, 'Role:', parsedUser.role);
+    
+    if (parsedUser.role !== 'admin') {
+      throw new Error('Du måste vara admin för att skapa sidor.');
+    }
 
-      const { data, error } = await supabase
-        .from(PAGES_TABLE)
-        .insert(dbData)
-        .select('*');
+    try {
+      console.log('✅ Admin authentication verified, calling admin Edge Function...');
+      
+      // Transform page data to database format
+      const dbData = transformPageToDB({
+        ...pageData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      console.log('📝 Create data:', dbData);
+      
+      // Call the admin Edge Function (bypasses RLS with service role)
+      const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          pageData: dbData,
+          userEmail: parsedUser.email,
+          userRole: parsedUser.role
+        })
+      });
 
-      if (error) {
-        console.error('Error creating page:', error);
-        throw new Error('Kunde inte skapa sidan');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Admin function failed:', errorData);
+        throw new Error(errorData.error || 'Kunde inte skapa sidan');
       }
 
-      if (!data || data.length === 0) {
-        throw new Error('Kunde inte skapa sidan - ingen data returnerades');
-      }
-
-      return transformPageFromDB(data[0]);
-    });
+      const { page } = await response.json();
+      const createdPage = transformPageFromDB(page);
+      
+      // Log the page creation
+      await logUserAccess('pages', 'INSERT', createdPage.id, `admin_create_page_${createdPage.title}`);
+      
+      console.log('✅ Page created successfully via admin function');
+      return createdPage;
+      
+    } catch (error) {
+      console.error('❌ Error creating page:', error);
+      throw error;
+    }
   },
 
     // Uppdatera en befintlig sida
@@ -232,29 +288,70 @@ const pageServiceSupabase = {
       }
 
       const { page } = await response.json();
-      console.log('✅ Page updated successfully via admin function');
+      const updatedPage = transformPageFromDB(page);
       
-      return transformPageFromDB(page);
+      // Log the page update
+      await logUserAccess('pages', 'UPDATE', id, `admin_update_page_${updatedPage.title}`);
+      
+      console.log('✅ Page updated successfully via admin function');
+      return updatedPage;
       
     } catch (error) {
-      console.error('❌ Unexpected error in updatePage:', error);
+      console.error('❌ Error updating page:', error);
       throw error;
     }
   },
 
   // Ta bort en sida
   deletePage: async (id: string): Promise<void> => {
-    return executeWithRLS(async (supabase) => {
-      const { error } = await supabase
-        .from(PAGES_TABLE)
-        .delete()
-        .eq('id', id);
+    // Check Firebase authentication and admin permissions from localStorage
+    const currentUserData = localStorage.getItem('currentUser');
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
+    if (!isLoggedIn || !currentUserData) {
+      throw new Error('Du måste vara inloggad för att ta bort sidor.');
+    }
+    
+    const parsedUser = JSON.parse(currentUserData);
+    console.log('🔐 Current Firebase user:', parsedUser.email, 'Role:', parsedUser.role);
+    
+    if (parsedUser.role !== 'admin') {
+      throw new Error('Du måste vara admin för att ta bort sidor.');
+    }
 
-      if (error) {
-        console.error('Error deleting page:', error);
-        throw new Error('Kunde inte ta bort sidan');
+    try {
+      console.log('✅ Admin authentication verified, calling admin Edge Function...');
+      
+      // Call the admin Edge Function (bypasses RLS with service role)
+      const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          id,
+          userEmail: parsedUser.email,
+          userRole: parsedUser.role
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Admin function failed:', errorData);
+        throw new Error(errorData.error || 'Kunde inte ta bort sidan');
       }
-    });
+      
+      // Log the page deletion
+      await logUserAccess('pages', 'DELETE', id, 'admin_delete_page');
+      
+      console.log('✅ Page deleted successfully via admin function');
+      
+    } catch (error) {
+      console.error('❌ Error deleting page:', error);
+      throw error;
+    }
   },
 
   // Ladda upp fil med Supabase Storage

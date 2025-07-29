@@ -1,6 +1,6 @@
-import React from 'react';
-import { Typography, Box, Button, Grid, Container, Divider, Card, CardContent, Stack } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Typography, Box, Button, Grid, Container, Divider, Card, CardContent, Stack, Alert } from '@mui/material';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // Ikoner
@@ -10,9 +10,48 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const Home: React.FC = () => {
   const { isLoggedIn, isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [showGDPRGoodbye, setShowGDPRGoodbye] = useState(false);
+
+  useEffect(() => {
+    // Check if user was redirected after GDPR deletion
+    if (searchParams.get('gdpr_deleted') === 'true') {
+      setShowGDPRGoodbye(true);
+      // Clear the URL parameter after showing the message
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Hide the message after 10 seconds
+      setTimeout(() => {
+        setShowGDPRGoodbye(false);
+      }, 10000);
+    }
+  }, [searchParams]);
 
   return (
     <Container maxWidth="lg">
+      {/* GDPR Goodbye Message */}
+      {showGDPRGoodbye && (
+        <Box sx={{ my: 2 }}>
+          <Alert 
+            severity="info" 
+            sx={{ 
+              textAlign: 'center',
+              '& .MuiAlert-message': { width: '100%' }
+            }}
+            onClose={() => setShowGDPRGoodbye(false)}
+          >
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              👋 Adjö och tack!
+            </Typography>
+            <Typography variant="body2">
+              Dina personuppgifter har raderats permanent från vårt system enligt GDPR. 
+              Vi respekterar din integritet och önskar dig allt gott framöver.
+            </Typography>
+          </Alert>
+        </Box>
+      )}
+      
       <Box sx={{ my: 6, textAlign: 'center' }}>
         <Typography 
           variant="h3" 

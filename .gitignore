@@ -34,4 +34,5 @@ yarn-error.log*
 # Firebase Admin SDK
 server/serviceAccountKey.json
 *serviceAccountKey*.json
+firebase-service-account.json
 server/scripts/firebase-env.txt

@@ -17,7 +17,8 @@ interface SupabaseAuthResponse {
  */
 export async function getSupabaseAuthToken(): Promise<string | null> {
   try {
-    const currentUser = auth.currentUser;
+    const authInstance = auth();
+  const currentUser = authInstance?.currentUser;
     if (!currentUser) {
       console.warn('No Firebase user found');
       return null;

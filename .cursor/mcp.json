@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "@gannonh/firebase-mcp"],
+      "env": {
+        "SERVICE_ACCOUNT_KEY_PATH": "/Users/pontus.horberg-Local/gulmaran.com/MallBRF1/firebase-service-account.json",
+        "FIREBASE_STORAGE_BUCKET": "mallbrf.appspot.com"
+      }
+    }
+  }
+} 

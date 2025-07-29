@@ -1,50 +1,49 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { User } from '../types/User';
-import { auth } from '../services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { getFirebaseAuth, isFirebaseAvailable } from '../services/firebase';
 import { userService } from '../services/userService';
-import { syncUserToSupabase } from '../services/supabaseSync';
+import { User } from '../types/User';
 import { clearSupabaseAuthCache } from '../services/supabaseAuth';
+import { syncUserToSupabase } from '../services/supabaseSync';
+import { cookieConsentService } from '../services/cookieConsent';
 
-// Make this file a module
-export {};
-
-// Typer för context
 interface AuthContextType {
   currentUser: User | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
-  login: (user: User) => void;
-  logout: () => Promise<boolean>;
+  loading: boolean;
+  login: (user: User) => Promise<void>;
+  logout: () => void;
+  validateSession: () => Promise<void>;
+  firebaseAvailable: boolean;
 }
 
-// Skapa context
-const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  isLoggedIn: false,
-  isAdmin: false,
-  login: () => {},
-  logout: async () => false,
-});
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// Context provider
+export const useAuth = () => useContext(AuthContext);
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [firebaseAvailable, setFirebaseAvailable] = useState(isFirebaseAvailable());
   const validationInProgress = useRef(false);
 
-  // Validate session and refresh token if needed
   const validateSession = async () => {
     if (validationInProgress.current) return;
-    
+    validationInProgress.current = true;
+
     try {
-      validationInProgress.current = true;
-      
-      const firebaseUser = auth.currentUser;
+      const auth = getFirebaseAuth();
+      if (!auth) {
+        console.log('Firebase not available - user needs to give authentication consent');
+        clearUserData();
+        return;
+      }
+
+      const firebaseUser = auth?.currentUser;
       if (!firebaseUser) {
-        // No Firebase user, clear local storage
         clearUserData();
         return;
       }
@@ -67,15 +66,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (error) {
             console.error('Failed to sync user to Supabase during validation:', error);
           }
-                 } else {
-           // No saved user data, but Firebase user exists - fetch user data
-           const userData = await userService.getUserById(firebaseUser.uid);
-           if (userData) {
-             await login(userData);
-           } else {
-             clearUserData();
-           }
-         }
+        } else {
+          // No saved user data, but Firebase user exists - fetch user data
+          const userData = await userService.getUserById(firebaseUser.uid);
+          if (userData) {
+            await login(userData);
+          } else {
+            // User not found in Firestore - might be a GDPR-deleted user
+            // Try to recover the profile if they're still on allowlist
+            console.log('🔄 User profile not found, attempting recovery for:', firebaseUser.email);
+            
+            try {
+              const { recoverDeletedUserProfile } = await import('../services/supabaseSync');
+              const recoveredUser = await recoverDeletedUserProfile(firebaseUser);
+              
+              if (recoveredUser) {
+                console.log('✅ Successfully recovered user profile');
+                await login(recoveredUser);
+              } else {
+                console.log('❌ Could not recover user profile - user may not be allowed');
+                clearUserData();
+              }
+            } catch (recoveryError) {
+              console.error('Recovery attempt failed:', recoveryError);
+              clearUserData();
+            }
+          }
+        }
       } catch (tokenError) {
         console.warn('Token validation failed:', tokenError);
         clearUserData();
@@ -103,9 +120,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAdmin(false);
   };
 
+  // Handle consent changes
+  useEffect(() => {
+    const handleConsentChange = () => {
+      const newFirebaseAvailable = isFirebaseAvailable();
+      setFirebaseAvailable(newFirebaseAvailable);
+      
+      if (!newFirebaseAvailable) {
+        console.log('Firebase consent revoked - clearing auth state');
+        clearUserData();
+      } else if (newFirebaseAvailable && !currentUser) {
+        console.log('Firebase consent granted - attempting to restore session');
+        validateSession();
+      }
+    };
+
+    cookieConsentService.addListener(handleConsentChange);
+    return () => cookieConsentService.removeListener(handleConsentChange);
+  }, [currentUser]);
+
   // Initialize and validate session
   useEffect(() => {
     try {
+      const auth = getFirebaseAuth();
+      if (!auth) {
+        console.log('Firebase auth not available - waiting for consent');
+        setLoading(false);
+        return;
+      }
+
       // Listen to Firebase auth state changes
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
@@ -127,18 +170,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearUserData();
       setLoading(false);
     }
-  }, []);
+  }, [firebaseAvailable]);
 
   // Validate session when user returns to the tab/window
   useEffect(() => {
     const handleFocus = () => {
-      if (isLoggedIn) {
+      if (isLoggedIn && firebaseAvailable) {
         validateSession();
       }
     };
 
     const handleVisibilityChange = () => {
-      if (!document.hidden && isLoggedIn) {
+      if (!document.hidden && isLoggedIn && firebaseAvailable) {
         validateSession();
       }
     };
@@ -150,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, firebaseAvailable]);
   
   const login = async (user: User) => {
     setCurrentUser(user);
@@ -166,53 +209,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await syncUserToSupabase(user);
     } catch (error) {
       console.error('Failed to sync user to Supabase:', error);
-      // Don't prevent login if sync fails
+      
+      // CRITICAL: If this is a GDPR-related error, we MUST prevent login completely
+      if (error.message && error.message.includes('GDPR erasure request')) {
+        console.error('🚨 GDPR VIOLATION: Preventing login for deleted user');
+        // Reset login state
+        setCurrentUser(null);
+        setIsLoggedIn(false);
+        setIsAdmin(false);
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isLoggedIn');
+        
+        // Force logout from Firebase Auth as well
+        const auth = getFirebaseAuth();
+        if (auth) {
+          auth.signOut();
+        }
+        
+        throw new Error('Account access denied: Your account has been permanently deleted per GDPR erasure request. You cannot log in to this system. same_user_attempting_restoration');
+      }
+      
+      // For other sync errors, don't prevent login but log the issue
     }
   };
 
-  const logout = async () => {
-    try {
-      setLoading(true);
-      await auth.signOut();
-      
-      // Clear storage
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('isLoggedIn');
-      
-      // Update state
-      setCurrentUser(null);
-      setIsLoggedIn(false);
-      setIsAdmin(false);
-      
-      // Add small delay before completing logout to avoid ResizeObserver errors
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      setLoading(false);
-      return true;
-    } catch (error) {
-      console.error('Error during logout:', error);
-      setLoading(false);
-      return false;
+  const logout = () => {
+    const auth = getFirebaseAuth();
+    if (auth) {
+      auth.signOut();
     }
+    clearUserData();
   };
 
-  // Value object to provide through context
-  const value = {
+  const value: AuthContextType = {
     currentUser,
     isLoggedIn,
     isAdmin,
+    loading,
     login,
     logout,
+    validateSession,
+    firebaseAvailable
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
-
-// Hook för att använda auth-kontexten
-export const useAuth = () => useContext(AuthContext);
-
-export default AuthContext;

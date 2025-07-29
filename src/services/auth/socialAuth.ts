@@ -17,18 +17,18 @@ import { getInitialUserRole } from './adminConfig';
 export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAuthProvider): Promise<User> {
   try {
     // Försök logga in med den valda providern
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth(), provider);
     const user = result.user;
     
     // Kontrollera att användaren har en e-postadress
     if (!user.email) {
       // Logga ut om e-postadressen saknas
-      await auth.signOut();
+      await auth()?.signOut();
       throw new Error('E-postadress saknas från ditt konto. Vi behöver en e-postadress för att verifiera ditt medlemskap.');
     }
     
     // Kontrollera om användaren finns i Firestore
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userDoc = await getDoc(doc(db(), 'users', user.uid));
     const isAllowed = await isUserAllowed(user.email);
     
     if (userDoc.exists()) {
@@ -39,7 +39,7 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
       if (!userData.isActive) {
         // Aktivera användaren om e-postadressen är på tillåtna listan
         if (isAllowed) {
-          await updateDoc(doc(db, 'users', user.uid), {
+          await updateDoc(doc(db(), 'users', user.uid), {
             isActive: true,
             pendingApproval: false,
             lastLogin: new Date().toISOString()
@@ -53,13 +53,13 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
           };
         } else {
           // Om användaren inte är aktiv och inte på listan, logga ut
-          await auth.signOut();
+          await auth()?.signOut();
           throw new Error('Ditt konto väntar på godkännande. Du kommer få tillgång när ditt konto har godkänts.');
         }
       }
       
       // Uppdatera senaste inloggningstiden
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(db(), 'users', user.uid), {
         lastLogin: new Date().toISOString()
       });
       
@@ -91,7 +91,7 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
         lastLogin: new Date().toISOString()
       };
       
-      await setDoc(doc(db, 'users', user.uid), newUser);
+      await setDoc(doc(db(), 'users', user.uid), newUser);
       
       // Om användaren inte finns på listan, skicka notifikation och logga ut
       if (!isAllowed) {
@@ -99,7 +99,7 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
         await sendNewUserNotification(newUser);
         
         // Logga ut
-        await auth.signOut();
+        await auth()?.signOut();
         throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
       }
       
@@ -141,7 +141,7 @@ export async function loginWithMicrosoft(): Promise<User> {
 export async function handleGoogleRedirect(): Promise<User | null> {
   try {
     // Använd getRedirectResult som är rätt metod för att hantera omdirigeringar
-    const result = await getRedirectResult(auth);
+    const result = await getRedirectResult(auth());
     
     if (!result) {
       console.log('No redirect result found');
@@ -152,12 +152,12 @@ export async function handleGoogleRedirect(): Promise<User | null> {
     
     // Kontrollera att användaren har en e-postadress
     if (!user.email) {
-      await auth.signOut();
+      await auth()?.signOut();
       throw new Error('E-postadress saknas från ditt konto. Vi behöver en e-postadress för att verifiera ditt medlemskap.');
     }
     
     // Återanvänd samma logik som i loginWithSocialProvider
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userDoc = await getDoc(doc(db(), 'users', user.uid));
     const isAllowed = await isUserAllowed(user.email);
     
     if (userDoc.exists()) {
@@ -165,7 +165,7 @@ export async function handleGoogleRedirect(): Promise<User | null> {
       
       if (!userData.isActive) {
         if (isAllowed) {
-          await updateDoc(doc(db, 'users', user.uid), {
+          await updateDoc(doc(db(), 'users', user.uid), {
             isActive: true,
             pendingApproval: false,
             lastLogin: new Date().toISOString()
@@ -187,12 +187,12 @@ export async function handleGoogleRedirect(): Promise<User | null> {
           
           return activatedUser;
         } else {
-          await auth.signOut();
+          await auth()?.signOut();
           throw new Error('Ditt konto väntar på godkännande. Du kommer få tillgång när ditt konto har godkänts.');
         }
       }
       
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(db(), 'users', user.uid), {
         lastLogin: new Date().toISOString()
       });
       
@@ -223,11 +223,11 @@ export async function handleGoogleRedirect(): Promise<User | null> {
         lastLogin: new Date().toISOString()
       };
       
-      await setDoc(doc(db, 'users', user.uid), newUser);
+      await setDoc(doc(db(), 'users', user.uid), newUser);
       
       if (!isAllowed) {
         await sendNewUserNotification(newUser);
-        await auth.signOut();
+        await auth()?.signOut();
         throw new Error('Din registrering har tagits emot. Ditt konto behöver godkännas av administratören innan du kan logga in.');
       }
       

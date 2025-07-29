@@ -108,7 +108,8 @@ const BackupManager: React.FC = () => {
             setError(null);
             
                         // Use new Supabase Edge Function for backup with anon key
-            const user = auth.currentUser;
+            const authInstance = auth();
+            const user = authInstance?.currentUser;
             if (!user) {
                 throw new Error('Du måste vara inloggad för att skapa backup');
             }

@@ -1,8 +1,16 @@
-// Firebase konfiguration
-import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, OAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+// Firebase konfiguration med GDPR-compliance
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, OAuthProvider, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { cookieConsentService } from './cookieConsent';
+
+// Global variables for Firebase instances
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
 
 // Debug: Log environment variables (remove in production)
 console.log('Environment Variables Status:', {
@@ -30,31 +38,108 @@ if (!firebaseConfig.apiKey) {
   throw new Error('Firebase API Key saknas i miljövariablerna');
 }
 
-// Initialisera Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase only if consent is given
+function initializeFirebaseIfConsented(): boolean {
+  if (!cookieConsentService.canUseFirebase()) {
+    console.log('Firebase initialization blocked - no authentication consent');
+    return false;
+  }
 
-// Exportera Firebase-tjänster för användning i applikationen
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-export const microsoftProvider = new OAuthProvider('microsoft.com');
+  if (app) {
+    return true; // Already initialized
+  }
 
-// Configure Google provider
-googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  try {
+    console.log('Initializing Firebase with user consent...');
+    
+    // Initialisera Firebase
+    app = initializeApp(firebaseConfig);
+
+    // Initialize auth
+    auth = getAuth(app);
+    setPersistence(auth, browserLocalPersistence);
+
+    // Initialize Firestore
+    db = getFirestore(app);
+
+    // Initialize Storage
+    storage = getStorage(app);
+
+    // Initialize Google provider
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
+
+    console.log('Firebase initialized successfully with GDPR compliance');
+    return true;
+
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    return false;
+  }
+}
+
+// Safe getters that check consent before returning instances
+export function getFirebaseAuth(): Auth | null {
+  if (!initializeFirebaseIfConsented()) {
+    return null;
+  }
+  return auth;
+}
+
+export function getFirebaseDb(): Firestore | null {
+  if (!initializeFirebaseIfConsented()) {
+    return null;
+  }
+  return db;
+}
+
+export function getFirebaseStorage(): FirebaseStorage | null {
+  if (!initializeFirebaseIfConsented()) {
+    return null;
+  }
+  return storage;
+}
+
+export function getGoogleProvider(): GoogleAuthProvider | null {
+  if (!initializeFirebaseIfConsented()) {
+    return null;
+  }
+  return googleProvider;
+}
+
+// Legacy exports for backward compatibility (with consent checks)
+export { getFirebaseAuth as auth };
+export { getFirebaseDb as db };
+export { getGoogleProvider as googleProvider };
+
+// Facebook provider for social auth
+export const facebookProvider = new OAuthProvider('facebook.com');
+
+// Utility function to check if Firebase is available
+export function isFirebaseAvailable(): boolean {
+  return cookieConsentService.canUseFirebase() && app !== null;
+}
+
+// Function to re-initialize Firebase when consent changes
+export function handleConsentChange(): void {
+  if (cookieConsentService.canUseFirebase() && !app) {
+    console.log('User gave authentication consent - initializing Firebase');
+    initializeFirebaseIfConsented();
+  } else if (!cookieConsentService.canUseFirebase() && app) {
+    console.log('User revoked authentication consent - Firebase services disabled');
+    // Note: We don't actually destroy the Firebase instance as it may be in use
+    // Instead, getters will return null
+  }
+}
+
+// Listen for consent changes
+cookieConsentService.addListener(() => {
+  handleConsentChange();
 });
 
-// Configure Microsoft provider
-microsoftProvider.setCustomParameters({
-  prompt: 'select_account',
-  tenant: 'common'
-});
-
-// Set session persistence to LOCAL (will persist even after browser restart)
-setPersistence(auth, browserLocalPersistence)
-  .catch((error) => {
-    console.error('Error setting auth persistence:', error);
-  });
-
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-export default app;
+// Try to initialize immediately if consent already exists
+if (cookieConsentService.hasConsent()) {
+  initializeFirebaseIfConsented();
+}

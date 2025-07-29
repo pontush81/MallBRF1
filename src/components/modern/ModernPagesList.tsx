@@ -230,13 +230,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
       : cleanContent;
   };
 
-  const isRecentlyUpdated = (date?: string) => {
-    if (!date) return false;
-    const updatedDate = new Date(date);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return updatedDate > thirtyDaysAgo;
-  };
+  // isRecentlyUpdated function removed - NYTT badge was removed
 
   return (
     <Box>
@@ -387,25 +381,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                             flexDirection: 'column',
                             height: '100%'
                           }}>
-                            {/* NYTT badge */}
-                            {isRecentlyUpdated(page.updatedAt) && (
-                              <Box sx={{ 
-                                display: 'flex', 
-                                justifyContent: 'flex-end',
-                                marginBottom: modernTheme.spacing[3],
-                              }}>
-                                <Chip
-                                  label="NYTT"
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: modernTheme.colors.secondary[100],
-                                    color: modernTheme.colors.secondary[800],
-                                    fontWeight: modernTheme.typography.fontWeight.bold,
-                                    fontSize: modernTheme.typography.fontSize.xs,
-                                  }}
-                                />
-                              </Box>
-                            )}
+                            {/* NYTT badge removed - was confusing for users */}
 
                             {/* Title */}
                             <Typography
@@ -537,25 +513,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                         padding: modernTheme.spacing[6],
                         marginBottom: modernTheme.spacing[4],
                       }}>
-                        {/* NYTT badge */}
-                        {isRecentlyUpdated(page.updatedAt) && (
-                          <Box sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'flex-end',
-                            marginBottom: modernTheme.spacing[4],
-                          }}>
-                            <Chip
-                              label="NYTT"
-                              size="small"
-                              sx={{
-                                backgroundColor: modernTheme.colors.secondary[100],
-                                color: modernTheme.colors.secondary[800],
-                                fontWeight: modernTheme.typography.fontWeight.bold,
-                                fontSize: modernTheme.typography.fontSize.xs,
-                              }}
-                            />
-                          </Box>
-                        )}
+                        {/* NYTT badge removed */}
 
                         {/* Title */}
                         <Typography

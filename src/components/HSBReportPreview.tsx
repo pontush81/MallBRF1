@@ -41,6 +41,7 @@ interface HSBReportData {
   resident: string;
   email: string;
   phone: string;
+  period?: string;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -85,45 +86,78 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       setLoading(true);
       setError(null);
       
-      // Temporary mock data until Edge Function is fixed
-      console.log('Using mock data for HSB report preview');
+      // Try to fetch real data from HSB API, fall back to mock data for development
+      try {
+        const response = await fetch('/functions/v1/hsb-form-v2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'generate_report',
+            month: currentDate.getMonth() + 1,
+            year: currentDate.getFullYear()
+          })
+        });
+
+        if (response.ok) {
+          const realData = await response.json();
+          if (realData.hsbData && realData.residentData) {
+            console.log('Successfully fetched real HSB data from API');
+            setHsbData(realData.hsbData);
+            setResidentData(realData.residentData);
+            return;
+          }
+        }
+        
+        console.log('HSB API not available, using GDPR-compliant mock data for development');
+      } catch (apiError) {
+        console.log('HSB API call failed, falling back to mock data:', apiError);
+      }
+      
+      // Fallback: GDPR-compliant mock data for development
+      console.log('Using GDPR-compliant mock data for HSB report preview');
       
       const mockHsbData = [
         {
-          apartmentNumber: '80A',
-          resident: 'Kristina Utas',
-          email: 'tinautas@hotmail.com',
-          phone: '0705557008',
-          description: 'Hyra gästlägenhet 2 juli',
+          apartmentNumber: '1A',
+          resident: 'Test Testsson',
+          email: 'test1@example.com',
+          phone: '070XXXXXXX',
+          period: '2 juli',
+          description: 'Hyra gästlägenhet',
           quantity: 1,
           unitPrice: 600.00,
           totalAmount: 600.00
         },
         {
-          apartmentNumber: '80H',
-          resident: 'Pontus Hörberg',
-          email: 'pontus.hberg@gmail.com',
-          phone: '0702887147',
+          apartmentNumber: '2B',
+          resident: 'Anna Andersson',
+          email: 'test2@example.com',
+          phone: '070XXXXXXX',
+          period: '2 juli',
           description: 'Parkering',
           quantity: 1,
           unitPrice: 75.00,
           totalAmount: 75.00
         },
         {
-          apartmentNumber: '80A',
-          resident: 'Kristina Utas',
-          email: 'tinautas@hotmail.com',
-          phone: '0705557008',
-          description: 'Hyra gästlägenhet 3-5 juli',
+          apartmentNumber: '1A',
+          resident: 'Test Testsson',
+          email: 'test1@example.com',
+          phone: '070XXXXXXX',
+          period: '3-5 juli',
+          description: 'Hyra gästlägenhet',
           quantity: 2,
           unitPrice: 600.00,
           totalAmount: 1200.00
         },
         {
-          apartmentNumber: '80F',
-          resident: 'Jacob Adaktusson',
-          email: 'jacob@upsec.se',
-          phone: '0707962064',
+          apartmentNumber: '3C',
+          resident: 'Erik Eriksson',
+          email: 'test3@example.com',
+          phone: '070XXXXXXX',
+          period: '3-5 juli',
           description: 'Parkering',
           quantity: 3,
           unitPrice: 75.00,
@@ -133,42 +167,42 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
 
       const mockResidentData = [
         {
-          apartmentNumber: '1, 80 D',
-          resident: 'Anette Malmgren, Leif Nilsson',
-          phone: '0702360807',
-          email: 'anette-malmgren@hotmail.com',
+          apartmentNumber: '1, Lägenhet A',
+          resident: 'Test Testsson, Maria Testsson',
+          phone: '070XXXXXXX',
+          email: 'test1@example.com',
           parkingSpace: '1',
           storageSpace: '1'
         },
         {
-          apartmentNumber: '2, 80 C', 
-          resident: 'Jonas Ahlin',
-          phone: '0706255107',
-          email: 'ahlinsweden@gmail.com',
-          parkingSpace: '',
-          storageSpace: '11'
+          apartmentNumber: '2, Lägenhet B', 
+          resident: 'Anna Andersson, Björn Andersson',
+          phone: '070XXXXXXX',
+          email: 'test2@example.com',
+          parkingSpace: '2',
+          storageSpace: '2'
         },
         {
-          apartmentNumber: '3, 80 B',
-          resident: 'Kajsa Mårtensson',
-          phone: '0708123456',
-          email: 'kajsa.martensson@example.com',
-          parkingSpace: '3',
+          apartmentNumber: '3, Lägenhet C',
+          resident: 'Carl Carlsson',
+          phone: '070XXXXXXX',
+          email: 'test3@example.com',
+          parkingSpace: '',
           storageSpace: '3'
         },
         {
-          apartmentNumber: '4, 80 A',
-          resident: 'Erik Svensson',
-          phone: '0709876543',
-          email: 'erik.svensson@example.com',
+          apartmentNumber: '4, Lägenhet D',
+          resident: 'Diana Davidsson',
+          phone: '070XXXXXXX',
+          email: 'test4@example.com',
           parkingSpace: '4',
           storageSpace: '4'
         },
         {
-          apartmentNumber: '5, 80 E',
-          resident: 'Maria Andersson',
-          phone: '0701234567',
-          email: 'maria.andersson@example.com',
+          apartmentNumber: '5, Lägenhet E',
+          resident: 'Erik Eriksson, Eva Eriksson',
+          phone: '070XXXXXXX',
+          email: 'test5@example.com',
           parkingSpace: '5',
           storageSpace: '5'
         }
@@ -193,19 +227,44 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       setSending(true);
       setError(null);
       
-      // Temporary mock email sending until Edge Function is fixed
-      console.log('Simulating email sending...');
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Try to send via real HSB API first
+      try {
+        const response = await fetch('/functions/v1/hsb-form-v2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'send_report',
+            hsbData,
+            residentData,
+            month: currentMonth,
+            year: currentYear
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('HSB report sent successfully via API');
+          onSent('HSB-rapporten har skickats till HSB och administratören via e-post');
+          setConfirmDialog(false);
+          return;
+        }
+        
+        console.log('HSB API send failed, falling back to local download');
+      } catch (apiError) {
+        console.log('HSB API call failed, using local download:', apiError);
+      }
+      
+      // Fallback: Generate and download CSV file locally
+      console.log('Generating local CSV download...');
       
       // Generate CSV content
       const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
                           'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-      
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
       
       const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
       
@@ -215,18 +274,21 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       content += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
       
       content += `DEBITERINGSUNDERLAG\n`;
-      content += `Lgh nr,Namn,Vad avser avgiften,Antal,á pris,Summa\n`;
+      content += `Lgh nr,Namn,Period,Vad avser avgiften,Antal,á pris,Summa\n`;
       
       hsbData.forEach(item => {
-        content += `${item.apartmentNumber},"${item.resident}","${item.description}",${item.quantity},${item.unitPrice},${item.totalAmount}\n`;
+        content += `${item.apartmentNumber},"${item.resident}","${item.period || ''}","${item.description}",${item.quantity},${item.unitPrice},${item.totalAmount}\n`;
       });
       
-      content += `\nTOTAL SUMMA:,,,,,${totalAmount}\n\n`;
+      content += `\nTOTAL SUMMA:,,,,,,${totalAmount}\n\n`;
       
       content += `BOENDEFÖRTECKNING\n`;
       content += `Lägenhet,Namn,Telefon,E-post,P-plats,Förråd\n`;
       
-      residentData.forEach(resident => {
+      // Debug: Verify we have all residents
+      console.log(`Including ${residentData.length} residents in the report:`);
+      residentData.forEach((resident, index) => {
+        console.log(`${index + 1}. ${resident.apartmentNumber} - ${resident.resident}`);
         content += `"${resident.apartmentNumber}","${resident.resident}","${resident.phone}","${resident.email}","${resident.parkingSpace}","${resident.storageSpace}"\n`;
       });
       
@@ -353,6 +415,11 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
                     <Typography variant="body1" fontWeight="medium" sx={{ mb: 1 }}>
                       {item.resident}
                     </Typography>
+                    {item.period && (
+                      <Typography variant="body2" color="primary.main" sx={{ mb: 1, fontWeight: 'medium' }}>
+                        {item.period}
+                      </Typography>
+                    )}
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       {item.description}
                     </Typography>
@@ -370,29 +437,31 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell><strong>Lgh nr</strong></TableCell>
-                    <TableCell><strong>Namn</strong></TableCell>
-                    <TableCell><strong>Vad avser avgiften?</strong></TableCell>
-                    <TableCell align="center"><strong>Antal</strong></TableCell>
-                    <TableCell align="right"><strong>á pris</strong></TableCell>
-                    <TableCell align="right"><strong>Summa</strong></TableCell>
+                    <TableCell sx={{ width: '80px' }}><strong>Lgh nr</strong></TableCell>
+                    <TableCell sx={{ width: '150px' }}><strong>Namn</strong></TableCell>
+                    <TableCell sx={{ width: '140px', minWidth: '140px' }}><strong>Period</strong></TableCell>
+                    <TableCell><strong>Vad avser avgiften</strong></TableCell>
+                    <TableCell align="center" sx={{ width: '80px' }}><strong>Antal</strong></TableCell>
+                    <TableCell align="right" sx={{ width: '90px' }}><strong>á pris</strong></TableCell>
+                    <TableCell align="right" sx={{ width: '100px' }}><strong>Summa</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {hsbData.map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell>{item.apartmentNumber}</TableCell>
-                      <TableCell>{item.resident}</TableCell>
+                      <TableCell sx={{ width: '80px' }}>{item.apartmentNumber}</TableCell>
+                      <TableCell sx={{ width: '150px' }}>{item.resident}</TableCell>
+                      <TableCell sx={{ width: '140px', minWidth: '140px', whiteSpace: 'nowrap' }}>{item.period || '-'}</TableCell>
                       <TableCell>{item.description}</TableCell>
-                      <TableCell align="center">{item.quantity}</TableCell>
-                      <TableCell align="right">{item.unitPrice.toFixed(2)} kr</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      <TableCell align="center" sx={{ width: '80px' }}>{item.quantity}</TableCell>
+                      <TableCell align="right" sx={{ width: '90px' }}>{item.unitPrice.toFixed(2)} kr</TableCell>
+                      <TableCell align="right" sx={{ width: '100px', fontWeight: 'bold' }}>
                         {item.totalAmount.toFixed(2)} kr
                       </TableCell>
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell colSpan={5} align="right" sx={{ fontWeight: 'bold' }}>
+                    <TableCell colSpan={6} align="right" sx={{ fontWeight: 'bold' }}>
                       Total summa:
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '1.1em' }}>
@@ -410,14 +479,14 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="h6">
-            Boendeförteckning ({residentData.length} boende)
+            Boendeförteckning (Alla {residentData.length} boende)
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
           {isMobile ? (
-            // Mobile: Card layout for residents
+            // Mobile: Card layout for residents - SHOW ALL RESIDENTS
             <Box sx={{ p: 2 }}>
-              {residentData.slice(0, 5).map((resident, index) => (
+              {residentData.map((resident, index) => (
                 <Card key={index} sx={{ mb: 2 }}>
                   <CardContent>
                     <Typography variant="h6" component="div" sx={{ mb: 1 }}>
@@ -435,11 +504,6 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
                   </CardContent>
                 </Card>
               ))}
-              {residentData.length > 5 && (
-                <Typography variant="body2" color="text.secondary" align="center">
-                  ... och {residentData.length - 5} boende till
-                </Typography>
-              )}
             </Box>
           ) : (
             <TableContainer>

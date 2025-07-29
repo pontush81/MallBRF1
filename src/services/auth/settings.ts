@@ -5,7 +5,7 @@ import { NotificationSettings, defaultNotificationSettings } from '../../types/S
 // Get notification settings from Firestore
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   try {
-    const settingsDoc = await getDoc(doc(db, 'settings', 'notifications'));
+    const settingsDoc = await getDoc(doc(db(), 'settings', 'notifications'));
     
     if (settingsDoc.exists()) {
       return settingsDoc.data() as NotificationSettings;
@@ -30,7 +30,7 @@ export async function updateNotificationSettings(settings: NotificationSettings)
     };
     
     // Write to Firestore
-    await setDoc(doc(db, 'settings', 'notifications'), updatedSettings);
+    await setDoc(doc(db(), 'settings', 'notifications'), updatedSettings);
     console.log('Notification settings updated successfully');
   } catch (error) {
     console.error('Error updating notification settings:', error);

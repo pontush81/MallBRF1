@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Box } from '@mui/material';
 import ModernHeader from './modern/ModernHeader';
+import Footer from './Footer';
 import { useLocation } from 'react-router-dom';
 import { modernTheme } from '../theme/modernTheme';
 
@@ -41,6 +42,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </Container>
       </Box>
+      
+      {/* Footer - shown on all pages except auth pages */}
+      {!isAuthPage && <Footer />}
     </Box>
   );
 };

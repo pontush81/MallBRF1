@@ -267,7 +267,7 @@ function getApartmentNumberByName(bookingName: string, bookingEmail: string): st
     'kristina.utas@example.com': '4',
     'tinautas@gmail.com': '4',
     'tinautas@hotmail.com': '4',
-    'pontus.hberg@gmail.com': '5',
+    'gulmaranbrf@gmail.com': '5',
     'pgn@example.com': '6',
     'jacob@upsec.se': '7',
     'karin.hojman@example.com': '8',
@@ -313,14 +313,21 @@ function formatBookingPeriod(startDate: Date, endDate: Date, month: number): str
   
   const startDay = startDate.getDate();
   const endDay = endDate.getDate();
+  const startMonth = startDate.getMonth() + 1; // getMonth() returns 0-11
+  const endMonth = endDate.getMonth() + 1; // getMonth() returns 0-11
   
   // Check if it's a single day booking (same start and end date)
-  if (startDay === endDay) {
-    return `${startDay} ${monthNames[month - 1]}`;
+  if (startDate.toDateString() === endDate.toDateString()) {
+    return `${startDay} ${monthNames[startMonth - 1]}`;
   }
   
-  // Multi-day booking
-  return `${startDay}-${endDay} ${monthNames[month - 1]}`;
+  // Check if both dates are in the same month
+  if (startMonth === endMonth) {
+    return `${startDay}-${endDay} ${monthNames[startMonth - 1]}`;
+  }
+  
+  // Multi-month booking - show both months
+  return `${startDay} ${monthNames[startMonth - 1]} - ${endDay} ${monthNames[endMonth - 1]}`;
 }
 
 function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month: number) {
@@ -424,91 +431,91 @@ function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month
 function getResidentDirectory(): ResidentData[] {
   return [
     {
-      apartmentNumber: '1',
+      apartmentNumber: '1, 80 D',
       resident: 'Anette Malmgren, Leif Nilsson',
       phone: '0702360807',
       email: 'anette-malmgren@hotmail.com',
-      parkingSpace: '1',
+      parkingSpace: '6',
       storageSpace: '1'
     },
     {
-      apartmentNumber: '2',
+      apartmentNumber: '2, 80 C',
       resident: 'Manuela Gavrila, Cornel Oancea',
-      phone: '0706255107',
-      email: 'manuela.gavrila@example.com',
-      parkingSpace: '2',
+      phone: '0706711766',
+      email: 'cornel@telia.com',
+      parkingSpace: '4',
       storageSpace: '2'
     },
     {
-      apartmentNumber: '3',
+      apartmentNumber: '3, 80 B',
       resident: 'Solbritt Fredin',
-      phone: '0708123456', 
-      email: 'solbritt.fredin@example.com',
-      parkingSpace: '3',
+      phone: '0705917205', 
+      email: 'soli.fredin@gmail.com',
+      parkingSpace: '',
       storageSpace: '3'
     },
     {
-      apartmentNumber: '4',
+      apartmentNumber: '4, 80 A',
       resident: 'Kristina Utas',
-      phone: '0709876543',
-      email: 'kristina.utas@example.com', 
-      parkingSpace: '4',
+      phone: '0705557008',
+      email: 'tinautas@hotmail.com', 
+      parkingSpace: '9',
       storageSpace: '4'
     },
     {
-      apartmentNumber: '5',
+      apartmentNumber: '5, 80 H',
       resident: 'Annie Hörberg, Pontus Hörberg',
-      phone: '0701234567',
-      email: 'pontus.hberg@gmail.com',
-      parkingSpace: '5', 
+      phone: '0702882147',
+      email: 'annie_malmgren@hotmail.com',
+      parkingSpace: '3', 
       storageSpace: '5'
     },
     {
-      apartmentNumber: '6',
+      apartmentNumber: '6, 80 G',
       resident: 'PGN Konsult AB (Per-Göran Nilsson), Tove Nilsson',
-      phone: '0701111111',
-      email: 'pgn@example.com',
-      parkingSpace: '6', 
+      phone: '0709421449',
+      email: 'pergorannilsson@hotmail.com',
+      parkingSpace: '', 
       storageSpace: '6'
     },
     {
-      apartmentNumber: '7',
+      apartmentNumber: '7, 80 F',
       resident: 'Agnes Adaktusson, Jacob Adaktusson',
-      phone: '0702222222',
-      email: 'jacob@upsec.se',
-      parkingSpace: '7', 
+      phone: '0707953153',
+      email: 'agnes.@upsec.se',
+      parkingSpace: '5', 
       storageSpace: '7'
     },
     {
-      apartmentNumber: '8',
+      apartmentNumber: '8, 80 E',
       resident: 'Karin Höjman, Peter Höjman',
-      phone: '0703333333',
-      email: 'karin.hojman@example.com',
-      parkingSpace: '8', 
+      phone: '0706425150',
+      email: 'hojman.karin@gmail.com',
+      parkingSpace: '7', 
       storageSpace: '8'
     },
     {
-      apartmentNumber: '9',
+      apartmentNumber: '9, 80 I',
       resident: 'David Svenn',
-      phone: '0704444444',
-      email: 'david.svenn@example.com',
-      parkingSpace: '9', 
+      phone: '0703310995',
+      email: 'david.svenn@agriadvokater.se',
+      parkingSpace: '2', 
       storageSpace: '9'
     },
     {
-      apartmentNumber: '10',
+      apartmentNumber: '10, 80 J',
       resident: 'Anna-Lena Lindqvist, Anders Lindqvist',
-      phone: '0705555555',
-      email: 'anna.lindqvist@example.com',
-      parkingSpace: '10', 
+      phone: '0707960909',
+      email: 'abytorp70@icloud.com',
+      parkingSpace: '7', 
       storageSpace: '10'
     },
     {
-      apartmentNumber: '11',
+      apartmentNumber: '11, 80 K',
       resident: 'Jonas Ahlin',
       phone: '0706255107',
       email: 'ahlinsweden@gmail.com',
-      parkingSpace: '11',
+      parkingSpace: '',
       storageSpace: '11'
     }
   ];
@@ -628,8 +635,8 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   yPosition -= 30;
   
   // Table headers  
-  const colWidths = [40, 100, 80, 120, 30, 50, 60];
-  const colX = [margin, margin + 40, margin + 140, margin + 220, margin + 340, margin + 370, margin + 420];
+  const colWidths = [40, 90, 110, 110, 30, 50, 60];
+  const colX = [margin, margin + 40, margin + 130, margin + 240, margin + 350, margin + 380, margin + 430];
   const headers = ['Lgh nr', 'Namn', 'Period', 'Vad avser avgiften', 'Antal', 'à pris', 'Summa'];
   
   // Draw header row
@@ -665,9 +672,9 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
     
     const rowData = [
       item.apartmentNumber,
-      item.resident.length > 15 ? item.resident.substring(0, 12) + '...' : item.resident,
-      item.period.length > 12 ? item.period.substring(0, 9) + '...' : item.period,
-      item.description.length > 18 ? item.description.substring(0, 15) + '...' : item.description,
+      item.resident.length > 13 ? item.resident.substring(0, 10) + '...' : item.resident,
+      item.period.length > 20 ? item.period.substring(0, 17) + '...' : item.period,
+      item.description.length > 16 ? item.description.substring(0, 13) + '...' : item.description,
       item.quantity.toString(),
       `${item.unitPrice} kr`,
       `${item.totalAmount} kr`
@@ -724,9 +731,24 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   
   yPosition -= 25;
   
-  // Resident data (simplified for space)
-  residentData.slice(0, 8).forEach((resident, index) => {
-    if (yPosition < 50) return; // Skip if no space
+  // All resident data (with new page handling if needed)
+  residentData.forEach((resident, index) => {
+    // Check if we need a new page (need space for resident name + parking/storage info)
+    if (yPosition < 80) {
+      const newPage = pdfDoc.addPage([595.28, 841.89]);
+      page = newPage; // Update current page reference
+      yPosition = height - 50;
+      
+      // Add continuation header on new page
+      page.drawText('BOENDEFÖRTECKNING (fortsättning)', {
+        x: margin,
+        y: yPosition,
+        size: 14,
+        font: helveticaBoldFont,
+        color: rgb(0, 0, 0),
+      });
+      yPosition -= 30;
+    }
     
     page.drawText(`${resident.apartmentNumber} - ${resident.resident}`, {
       x: margin,
@@ -737,7 +759,8 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
     });
     
     yPosition -= 12;
-    page.drawText(`P-plats: ${resident.parkingSpace} | Förråd: ${resident.storageSpace}`, {
+    const parkingText = resident.parkingSpace ? `P-plats: ${resident.parkingSpace}` : 'P-plats: -';
+    page.drawText(`${parkingText} | Förråd: ${resident.storageSpace}`, {
       x: margin + 20,
       y: yPosition,
       size: 9,
@@ -786,7 +809,7 @@ async function sendEmailWithAttachment(
   
   const emailData = {
     from: 'BRF Gulmåran <noreply@brf-gulmaran.se>',
-    to: ['hsb@example.com', 'admin@brf-gulmaran.se'],
+    to: ['hsb@example.com', 'gulmaranbrf@gmail.com'],
     subject: `HSB Debiteringsunderlag - BRF Gulmåran - ${monthNames[month - 1]} ${year}`,
     html: `
       <h2>HSB Debiteringsunderlag</h2>

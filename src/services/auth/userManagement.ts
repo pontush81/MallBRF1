@@ -23,7 +23,7 @@ import { getInitialUserRole } from './adminConfig';
 
 export async function getUserById(userId: string): Promise<User | null> {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userDoc = await getDoc(doc(db(), 'users', userId));
     
     if (userDoc.exists()) {
       return userDoc.data() as User;
@@ -38,7 +38,7 @@ export async function getUserById(userId: string): Promise<User | null> {
 
 export async function login(email: string, password: string): Promise<User> {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth(), email, password);
     const user = userCredential.user;
     
     // Get additional user data from Firestore
@@ -51,12 +51,12 @@ export async function login(email: string, password: string): Promise<User> {
     // Check if user is active
     if (!userData.isActive) {
       // Sign out if user is not active
-      await auth.signOut();
+      await auth()?.signOut();
       throw new Error('Ditt konto är inte aktivt än. Vänta på godkännande från administratören.');
     }
     
     // Update last login time
-    await updateDoc(doc(db, 'users', user.uid), {
+    await updateDoc(doc(db(), 'users', user.uid), {
       lastLogin: serverTimestamp()
     });
     
@@ -75,7 +75,7 @@ export async function register(email: string, password: string, name: string): P
       throw new Error('Din e-postadress är inte godkänd för registrering');
     }
 
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth(), email, password);
     const user = userCredential.user;
     
     // Create user document in Firestore - kontrollera om de ska få admin-roll automatiskt
@@ -91,11 +91,11 @@ export async function register(email: string, password: string, name: string): P
       lastLogin: new Date().toISOString(),
     };
     
-    await setDoc(doc(db, 'users', user.uid), userData);
+    await setDoc(doc(db(), 'users', user.uid), userData);
     
     // If not allowed, sign out
     if (!allowed) {
-      await auth.signOut();
+      await auth()?.signOut();
       
       // Send notification to admin about new user registration
       await sendNewUserNotification(userData);
@@ -119,7 +119,7 @@ export async function register(email: string, password: string, name: string): P
 
 export async function getAllUsers(): Promise<User[]> {
   try {
-    const usersCollection = collection(db, 'users');
+    const usersCollection = collection(db(), 'users');
     const userDocs = await getDocs(usersCollection);
     
     return userDocs.docs.map(doc => ({
@@ -137,7 +137,7 @@ export async function updateUserStatus(
   updates: boolean | { isActive?: boolean; role?: 'user' | 'admin' }
 ): Promise<void> {
   try {
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(db(), 'users', userId);
     
     // If updates is a boolean, convert it to the expected object format
     const updateData = typeof updates === 'boolean' 
@@ -157,7 +157,7 @@ export const deleteUser = async (uid: string) => {
     
     // Delete user document from Firestore
     console.log('Deleting user document from Firestore');
-    await deleteDoc(doc(db, 'users', uid));
+    await deleteDoc(doc(db(), 'users', uid));
     
     // Note: Firebase Auth user deletion is now handled by Firebase Admin 
     // in production, or can be done manually via Firebase Console
@@ -184,7 +184,8 @@ export async function syncAuthUsersWithFirestore(): Promise<void> {
     const firestoreUserIds = firestoreUsers.map(user => user.id);
     
     // Get current user from Auth
-    const currentUser = auth.currentUser;
+    const authInstance = auth();
+  const currentUser = authInstance?.currentUser;
     
     if (currentUser && !firestoreUserIds.includes(currentUser.uid)) {
       // Create a Firestore record for the current user if they don't have one
@@ -200,7 +201,7 @@ export async function syncAuthUsersWithFirestore(): Promise<void> {
         lastLogin: new Date().toISOString(),
       };
       
-      await setDoc(doc(db, 'users', currentUser.uid), userData);
+      await setDoc(doc(db(), 'users', currentUser.uid), userData);
     }
     
     // Note: We can't access other Auth users from client side

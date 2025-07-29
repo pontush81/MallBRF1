@@ -19,26 +19,34 @@ import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
 
 // Lazy loaded components
-const Login = React.lazy(() => import('./pages/auth/Login'));
-const Register = React.lazy(() => import('./pages/auth/Register'));
-const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
-const DashboardHome = React.lazy(() => import('./pages/admin/DashboardHome'));
-const PagesList = React.lazy(() => import('./pages/admin/PagesList'));
-const PageEditor = React.lazy(() => import('./pages/admin/PageEditor'));
-const BookingsList = React.lazy(() => import('./pages/admin/BookingsList'));
-const UsersList = React.lazy(() => import('./pages/admin/UsersList'));
-const AllowlistManager = React.lazy(() => import('./pages/admin/AllowlistManager'));
-const NotificationSettings = React.lazy(() => import('./pages/admin/NotificationSettings'));
-const MaintenancePlanPage = React.lazy(() => import('./pages/admin/MaintenancePlanPage'));
-const PageView = React.lazy(() => import('./pages/public/PageView'));
-const PublicPages = React.lazy(() => import('./pages/ModernPublicPages'));
-const NotFound = React.lazy(() => import('./pages/NotFound'));
-const BookingPage = React.lazy(() => 
-  import('./pages/public/BookingPage').then(module => ({ default: module.default }))
-);
-const BookingStatusPage = React.lazy(() => import('./pages/public/BookingStatusPage'));
-const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
-const DataDeletion = React.lazy(() => import('./pages/DataDeletion'));
+import { 
+  LazyLogin, 
+  LazyRegister, 
+  LazyPageView, 
+  LazyPublicPages,
+  LazyBookingPage,
+  LazyBookingStatusPage,
+  LazyPrivacyPolicy,
+  LazyDataDeletion,
+  LazyAbout,
+  LazyTermsOfService,
+  LazyCookiePolicy,
+  LazyAccessibility,
+  LazyComplaints,
+  LazyContact,
+  LazyDashboard,
+  LazyDashboardHome,
+  LazyPagesList,
+  LazyPageEditor,
+  LazyBookingsList,
+  LazyUsersList,
+  LazyAllowlistManager,
+  LazyNotificationSettings,
+  LazyMaintenancePlanPage,
+  LazyDataRetentionManager,
+  LazyNotFound,
+  CookieConsentBanner
+} from './components/LazyComponents';
 
 // Loading component with timeout protection
 const LoadingFallback = () => {
@@ -118,42 +126,72 @@ function AppRoutes() {
         {/* Public routes with lazy loading */}
         <Route path="/login" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><Login /></Layout>
+            <Layout><LazyLogin /></Layout>
           </Suspense>
         } />
         <Route path="/register" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><Register /></Layout>
+            <Layout><LazyRegister /></Layout>
           </Suspense>
         } />
         <Route path="/page/:id" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><PageView /></Layout>
+            <Layout><LazyPageView /></Layout>
           </Suspense>
         } />
         <Route path="/pages" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><PublicPages /></Layout>
+            <Layout><LazyPublicPages /></Layout>
           </Suspense>
         } />
         <Route path="/booking" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><BookingPage /></Layout>
+            <Layout><LazyBookingPage /></Layout>
           </Suspense>
         } />
         <Route path="/booking/status" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><BookingStatusPage /></Layout>
+            <Layout><LazyBookingStatusPage /></Layout>
           </Suspense>
         } />
         <Route path="/privacy-policy" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><PrivacyPolicy /></Layout>
+            <Layout><LazyPrivacyPolicy /></Layout>
           </Suspense>
         } />
         <Route path="/data-deletion" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><DataDeletion /></Layout>
+            <Layout><LazyDataDeletion /></Layout>
+          </Suspense>
+        } />
+        <Route path="/about" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyAbout /></Layout>
+          </Suspense>
+        } />
+        <Route path="/terms-of-service" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyTermsOfService /></Layout>
+          </Suspense>
+        } />
+        <Route path="/cookie-policy" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyCookiePolicy /></Layout>
+          </Suspense>
+        } />
+        <Route path="/accessibility" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyAccessibility /></Layout>
+          </Suspense>
+        } />
+        <Route path="/complaints" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyComplaints /></Layout>
+          </Suspense>
+        } />
+        <Route path="/contact" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyContact /></Layout>
           </Suspense>
         } />
         
@@ -161,53 +199,58 @@ function AppRoutes() {
         <Route path="/admin" element={
           <ProtectedRoute adminOnly>
             <Suspense fallback={<LoadingFallback />}>
-              <Dashboard />
+              <LazyDashboard />
             </Suspense>
           </ProtectedRoute>
         }>
           <Route index element={
             <Suspense fallback={<LoadingFallback />}>
-              <DashboardHome />
+              <LazyDashboardHome />
             </Suspense>
           } />
           <Route path="pages" element={
             <Suspense fallback={<LoadingFallback />}>
-              <PagesList />
+              <LazyPagesList />
             </Suspense>
           } />
           <Route path="pages/new" element={
             <Suspense fallback={<LoadingFallback />}>
-              <PageEditor />
+              <LazyPageEditor />
             </Suspense>
           } />
           <Route path="pages/edit/:id" element={
             <Suspense fallback={<LoadingFallback />}>
-              <PageEditor />
+              <LazyPageEditor />
             </Suspense>
           } />
           <Route path="bookings" element={
             <Suspense fallback={<LoadingFallback />}>
-              <BookingsList />
+              <LazyBookingsList />
             </Suspense>
           } />
           <Route path="users" element={
             <Suspense fallback={<LoadingFallback />}>
-              <UsersList />
+              <LazyUsersList />
             </Suspense>
           } />
           <Route path="allowlist" element={
             <Suspense fallback={<LoadingFallback />}>
-              <AllowlistManager />
+              <LazyAllowlistManager />
             </Suspense>
           } />
           <Route path="notifications" element={
             <Suspense fallback={<LoadingFallback />}>
-              <NotificationSettings />
+              <LazyNotificationSettings />
             </Suspense>
           } />
           <Route path="maintenance" element={
             <Suspense fallback={<LoadingFallback />}>
-              <MaintenancePlanPage />
+              <LazyMaintenancePlanPage />
+            </Suspense>
+          } />
+          <Route path="data-retention" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyDataRetentionManager />
             </Suspense>
           } />
         </Route>
@@ -215,10 +258,11 @@ function AppRoutes() {
         {/* Fallback route */}
         <Route path="*" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><NotFound /></Layout>
+            <Layout><LazyNotFound /></Layout>
           </Suspense>
         } />
       </Routes>
+      <CookieConsentBanner />
     </Router>
   );
 }

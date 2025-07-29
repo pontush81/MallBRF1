@@ -12,7 +12,7 @@ export async function promoteUserToAdmin(userId: string): Promise<User | null> {
     console.log('Promoting user to admin:', userId);
     
     // Get current user data from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userDoc = await getDoc(doc(db(), 'users', userId));
     
     if (!userDoc.exists()) {
       console.error('User not found in Firestore:', userId);
@@ -22,7 +22,7 @@ export async function promoteUserToAdmin(userId: string): Promise<User | null> {
     const userData = userDoc.data() as User;
     
     // Update role to admin in Firestore
-    await updateDoc(doc(db, 'users', userId), {
+    await updateDoc(doc(db(), 'users', userId), {
       role: 'admin',
       lastLogin: new Date().toISOString()
     });
@@ -53,7 +53,7 @@ export async function demoteAdminToUser(userId: string): Promise<User | null> {
     console.log('Demoting admin to user:', userId);
     
     // Get current user data from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userDoc = await getDoc(doc(db(), 'users', userId));
     
     if (!userDoc.exists()) {
       console.error('User not found in Firestore:', userId);
@@ -63,7 +63,7 @@ export async function demoteAdminToUser(userId: string): Promise<User | null> {
     const userData = userDoc.data() as User;
     
     // Update role to user in Firestore
-    await updateDoc(doc(db, 'users', userId), {
+    await updateDoc(doc(db(), 'users', userId), {
       role: 'user',
       lastLogin: new Date().toISOString()
     });

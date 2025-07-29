@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
       {
         apartmentNumber: '80H',
         resident: 'Pontus Hörberg',
-        email: 'pontus.hberg@gmail.com',
+        email: 'gulmaranbrf@gmail.com',
         phone: '0702887147',
         description: 'Parkering',
         quantity: 1,
@@ -254,40 +254,88 @@ function getResidentDirectory(): ResidentData[] {
       resident: 'Anette Malmgren, Leif Nilsson',
       phone: '0702360807',
       email: 'anette-malmgren@hotmail.com',
-      parkingSpace: '1',
+      parkingSpace: '6',
       storageSpace: '1'
     },
     {
       apartmentNumber: '2, 80 C', 
+      resident: 'Manuela Gavrila, Cornel Oancea',
+      phone: '0706711766',
+      email: 'cornel@telia.com',
+      parkingSpace: '4',
+      storageSpace: '2'
+    },
+    {
+      apartmentNumber: '3, 80 B',
+      resident: 'Solbritt Fredin',
+      phone: '0705917205',
+      email: 'soli.fredin@gmail.com',
+      parkingSpace: '',
+      storageSpace: '3'
+    },
+    {
+      apartmentNumber: '4, 80 A',
+      resident: 'Kristina Utas',
+      phone: '0705557008',
+      email: 'tinautas@hotmail.com',
+      parkingSpace: '9',
+      storageSpace: '4'
+    },
+    {
+      apartmentNumber: '5, 80 H',
+      resident: 'Annie Hörberg, Pontus Hörberg',
+      phone: '0702882147',
+      email: 'annie_malmgren@hotmail.com',
+      parkingSpace: '3',
+      storageSpace: '5'
+    },
+    {
+      apartmentNumber: '6, 80 G',
+      resident: 'PGN Konsult AB (Per-Göran Nilsson), Tove Nilsson',
+      phone: '0709421449',
+      email: 'pergorannilsson@hotmail.com',
+      parkingSpace: '',
+      storageSpace: '6'
+    },
+    {
+      apartmentNumber: '7, 80 F',
+      resident: 'Agnes Adaktusson, Jacob Adaktusson',
+      phone: '0707953153',
+      email: 'agnes.@upsec.se',
+      parkingSpace: '5',
+      storageSpace: '7'
+    },
+    {
+      apartmentNumber: '8, 80 E',
+      resident: 'Karin Höjman, Peter Höjman',
+      phone: '0706425150',
+      email: 'hojman.karin@gmail.com',
+      parkingSpace: '7',
+      storageSpace: '8'
+    },
+    {
+      apartmentNumber: '9, 80 I',
+      resident: 'David Svenn',
+      phone: '0703310995',
+      email: 'david.svenn@agriadvokater.se',
+      parkingSpace: '2',
+      storageSpace: '9'
+    },
+    {
+      apartmentNumber: '10, 80 J',
+      resident: 'Anna-Lena Lindqvist, Anders Lindqvist',
+      phone: '0707960909',
+      email: 'abytorp70@icloud.com',
+      parkingSpace: '7',
+      storageSpace: '10'
+    },
+    {
+      apartmentNumber: '11, 80 K',
       resident: 'Jonas Ahlin',
       phone: '0706255107',
       email: 'ahlinsweden@gmail.com',
       parkingSpace: '',
       storageSpace: '11'
-    },
-    {
-      apartmentNumber: '3, 80 B',
-      resident: 'Kajsa Mårtensson',
-      phone: '0708123456',
-      email: 'kajsa.martensson@example.com',
-      parkingSpace: '3',
-      storageSpace: '3'
-    },
-    {
-      apartmentNumber: '4, 80 A',
-      resident: 'Erik Svensson',
-      phone: '0709876543',
-      email: 'erik.svensson@example.com',
-      parkingSpace: '4',
-      storageSpace: '4'
-    },
-    {
-      apartmentNumber: '5, 80 E',
-      resident: 'Maria Andersson',
-      phone: '0701234567',
-      email: 'maria.andersson@example.com',
-      parkingSpace: '5',
-      storageSpace: '5'
     }
   ];
 }
@@ -342,7 +390,7 @@ async function sendHSBReportEmail(fileContent: Uint8Array, hsbData: HSBReportIte
   
   const emailData = {
     from: 'BRF Gulmåran <noreply@brf-gulmaran.se>',
-    to: ['hsb@example.com', 'admin@brf-gulmaran.se'],
+    to: ['hsb@example.com', 'gulmaranbrf@gmail.com'],
     subject: `HSB Debiteringsunderlag - BRF Gulmåran - ${monthNames[month - 1]} ${year}`,
     html: `
       <h2>HSB Debiteringsunderlag</h2>

@@ -30,6 +30,27 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
   
+  // Add a useEffect to catch any unhandled GDPR errors
+  useEffect(() => {
+    const handleUnhandledRejection = (event: any) => {
+      console.log('🚨 Unhandled promise rejection:', event.reason);
+      if (event.reason && typeof event.reason === 'object' && event.reason.message) {
+        const errorMsg = event.reason.message;
+        if (errorMsg.includes('GDPR erasure request') || errorMsg.includes('permanently deleted')) {
+          console.log('🚨 Catching unhandled GDPR error in global handler');
+          handleAuthError(event.reason);
+          event.preventDefault(); // Prevent default error logging
+        }
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   // Redirect if already logged in
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -41,15 +62,29 @@ const Login: React.FC = () => {
   const handleGoogleLogin = async () => {
     setError(null);
     setPendingApproval(false);
+    setLoading(true);
+    
     try {
-      setLoading(true);
+      console.log('🔍 Starting Google login...');
       const user = await userService.loginWithGoogle();
+      console.log('✅ Google auth successful, user:', user?.email);
+      
       if (user) {
-        login(user);
-        navigate('/pages');
+        try {
+          console.log('🔍 Calling login function for user:', user.email);
+          await login(user);
+          console.log('✅ Login successful, navigating...');
+          navigate('/pages');
+        } catch (loginError: any) {
+          console.error('❌ Login error after Google auth:', loginError);
+          console.error('❌ Error message:', loginError.message);
+          console.error('❌ Full error object:', loginError);
+          handleAuthError(loginError);
+        }
       }
     } catch (err: any) {
-      console.error('Google login error:', err);
+      console.error('❌ Google login service error:', err);
+      console.error('❌ Service error message:', err.message);
       handleAuthError(err);
     } finally {
       setLoading(false);
@@ -59,15 +94,29 @@ const Login: React.FC = () => {
   const handleMicrosoftLogin = async () => {
     setError(null);
     setPendingApproval(false);
+    setLoading(true);
+    
     try {
-      setLoading(true);
+      console.log('🔍 Starting Microsoft login...');
       const user = await userService.loginWithMicrosoft();
+      console.log('✅ Microsoft auth successful, user:', user?.email);
+      
       if (user) {
-        login(user);
-        navigate('/pages');
+        try {
+          console.log('🔍 Calling login function for user:', user.email);
+          await login(user);
+          console.log('✅ Login successful, navigating...');
+          navigate('/pages');
+        } catch (loginError: any) {
+          console.error('❌ Login error after Microsoft auth:', loginError);
+          console.error('❌ Error message:', loginError.message);
+          console.error('❌ Full error object:', loginError);
+          handleAuthError(loginError);
+        }
       }
     } catch (err: any) {
-      console.error('Microsoft login error:', err);
+      console.error('❌ Microsoft login service error:', err);
+      console.error('❌ Service error message:', err.message);
       handleAuthError(err);
     } finally {
       setLoading(false);
@@ -75,10 +124,32 @@ const Login: React.FC = () => {
   };
   
   const handleAuthError = (err: any) => {
+    console.log('🔍 Handling auth error in UI:', err);
+    console.log('🔍 Error message:', err.message);
+    console.log('🔍 Error type:', typeof err);
+    console.log('🔍 Error keys:', Object.keys(err));
+    
     let errorMessage = 'Ett fel uppstod vid inloggning';
     
+    // Check for GDPR deletion error - show appropriate message
+    const errorMsg = err.message || err.toString();
+    
+    if (errorMsg.includes('GDPR erasure request') || errorMsg.includes('permanently deleted')) {
+      console.log('🚨 GDPR error detected in UI:', errorMsg);
+      
+      if (errorMsg.includes('same_user_attempting_restoration')) {
+        console.log('✅ Setting GDPR restoration error message');
+        setError('🚫 Ditt konto har raderats permanent enligt din GDPR-begäran om radering. Du kan inte återställa samma konto. Om du vill använda tjänsten igen kan du skapa ett nytt konto med en annan Google/Microsoft-inloggning.');
+      } else {
+        console.log('✅ Setting GDPR general error message');
+        setError('🚫 Ditt konto har raderats permanent enligt din GDPR-begäran om radering. Du kan inte längre logga in i systemet. Kontakta administratören om du har frågor.');
+      }
+      return;
+    }
+    
     // Check if the error message indicates pending approval
-    if (err.message && err.message.includes('väntar på godkännande')) {
+    if (errorMsg.includes('väntar på godkännande')) {
+      console.log('✅ Setting pending approval state');
       setPendingApproval(true);
       return;
     }
@@ -96,6 +167,7 @@ const Login: React.FC = () => {
       errorMessage = err.message;
     }
     
+    console.log('✅ Setting general error message:', errorMessage);
     setError(errorMessage);
   };
   

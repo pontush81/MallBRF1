@@ -75,6 +75,13 @@ const DashboardHome: React.FC = () => {
       icon: <NotificationIcon />,
       path: '/admin/notifications',
       color: modernTheme.colors.error[500]
+    },
+    {
+      title: 'Data Retention',
+      description: 'Hantera automatisk dataradering enligt GDPR',
+      icon: <SettingsIcon />,
+      path: '/admin/data-retention',
+      color: modernTheme.colors.primary[600]
     }
   ];
 

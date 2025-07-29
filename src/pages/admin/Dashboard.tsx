@@ -30,6 +30,7 @@ const Dashboard: React.FC = () => {
     if (path.includes('/allowlist')) return 'Tillåtna användare';
     if (path.includes('/notifications')) return 'Notifikationer';
     if (path.includes('/maintenance')) return 'Underhållsplan';
+    if (path.includes('/data-retention')) return 'Data Retention';
     return 'Översikt';
   };
 
