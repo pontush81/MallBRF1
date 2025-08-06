@@ -300,30 +300,53 @@ const SimpleMaintenancePlan: React.FC = () => {
     switch (pattern) {
       case 'monthly':
         next.setMonth(next.getMonth() + 1);
-        // 🎯 Säkerställ att vi inte hoppar över månader på grund av månadsslut
-        if (next.getDate() !== current.getDate() && next.getDate() < current.getDate()) {
-          // Om datumet ändrades (t.ex. 31 jan -> 3 mars), sätt till sista dagen i målmånaden
-          next.setDate(0); // Går tillbaka till sista dagen i föregående månad
+        // 🎯 KORREKT månadsslut-hantering
+        if (next.getDate() !== current.getDate()) {
+          // Gå till sista dagen i rätt månad
+          next.setDate(0);
           console.log(`⚠️ Month-end adjustment: ${current.getDate()} -> ${next.getDate()}`);
         }
         break;
       case 'quarterly':
-        next.setMonth(next.getMonth() + 3);
-        if (next.getDate() !== current.getDate() && next.getDate() < current.getDate()) {
+        // Korrekt kvartal (3 månader)
+        const targetMonth = current.getMonth() + 3;
+        const targetYear = current.getFullYear() + Math.floor(targetMonth / 12);
+        next.setFullYear(targetYear);
+        next.setMonth(targetMonth % 12);
+        next.setDate(current.getDate());
+        
+        // Om dagen inte finns i målmånaden, använd sista dagen
+        if (next.getDate() !== current.getDate()) {
           next.setDate(0);
           console.log(`⚠️ Quarter-end adjustment: ${current.getDate()} -> ${next.getDate()}`);
         }
         break;
       case 'semi_annually':
-        next.setMonth(next.getMonth() + 6);
-        if (next.getDate() !== current.getDate() && next.getDate() < current.getDate()) {
+        // Korrekt halvår (6 månader)
+        const semiTargetMonth = current.getMonth() + 6;
+        const semiTargetYear = current.getFullYear() + Math.floor(semiTargetMonth / 12);
+        next.setFullYear(semiTargetYear);
+        next.setMonth(semiTargetMonth % 12);
+        next.setDate(current.getDate());
+        
+        // Om dagen inte finns i målmånaden, använd sista dagen
+        if (next.getDate() !== current.getDate()) {
           next.setDate(0);
           console.log(`⚠️ Semi-annual adjustment: ${current.getDate()} -> ${next.getDate()}`);
         }
         break;
       case 'annually':
         next.setFullYear(next.getFullYear() + 1);
-        // För årlig: Behåll samma månad och dag (fungerar även för 29 feb på skottår)
+        
+        // 🎯 SPECIAL HANTERING AV SKOTTÅR (29 feb -> 28 feb)
+        if (current.getMonth() === 1 && current.getDate() === 29) {
+          // 29 februari på skottår -> 28 februari nästa år om det inte är skottår
+          const isNextYearLeap = ((next.getFullYear() % 4 === 0 && next.getFullYear() % 100 !== 0) || (next.getFullYear() % 400 === 0));
+          if (!isNextYearLeap) {
+            next.setDate(28);
+            console.log(`⚠️ Leap year adjustment: Feb 29 -> Feb 28 (${next.getFullYear()} is not a leap year)`);
+          }
+        }
         break;
       default:
         console.warn(`❌ Unknown recurrence pattern: ${pattern}`);
