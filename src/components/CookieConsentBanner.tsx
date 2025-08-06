@@ -25,7 +25,7 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onConsentChan
   const [showDetails, setShowDetails] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
     necessary: true, // Always required
-    authentication: false,
+    authentication: true, // Required for app functionality (login)
     analytics: false
   });
 
@@ -54,7 +54,7 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onConsentChan
   const handleAcceptNecessary = () => {
     const necessaryOnly: CookiePreferences = {
       necessary: true,
-      authentication: false,
+      authentication: true, // Authentication is necessary for this app to function
       analytics: false
     };
     savePreferences(necessaryOnly);
@@ -187,13 +187,14 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onConsentChan
                 <Checkbox 
                   checked={preferences.authentication} 
                   onChange={handlePreferenceChange('authentication')}
+                  disabled // Required for app functionality
                 />
               }
               label={
                 <Box>
                   <Typography variant="subtitle2">Inloggning och autentisering</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Krävs för att logga in med Google eller skapa ett konto. 
+                    Krävs för att webbplatsen ska fungera - inloggning är nödvändigt för att komma åt bokningssystemet. 
                     Hanteras säkert av Google/Firebase enligt deras integritetspolicy.
                   </Typography>
                 </Box>
