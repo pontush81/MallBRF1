@@ -153,8 +153,29 @@ const SimpleMaintenancePlan: React.FC = () => {
     await saveMaintenanceTask(updatedTask);
     
     // 🔄 ÅTERKOMMANDE LOGIK: Skapa nästa instans när uppgiften slutförs
-    if (isCompleted && taskToUpdate.is_recurring && taskToUpdate.next_due_date) {
-      await createNextRecurringInstance(taskToUpdate);
+    console.log('🔍 Task toggle debug:', {
+      isCompleted,
+      is_recurring: taskToUpdate.is_recurring,
+      next_due_date: taskToUpdate.next_due_date,
+      taskName: taskToUpdate.name
+    });
+    
+    if (isCompleted && taskToUpdate.is_recurring) {
+      console.log('🔄 Task is completed and recurring, creating next instance...');
+      
+      // Om next_due_date saknas, beräkna det från due_date
+      if (!taskToUpdate.next_due_date && taskToUpdate.due_date) {
+        console.log('⚠️ next_due_date missing, calculating from due_date');
+        taskToUpdate.next_due_date = calculateNextDueDate(taskToUpdate.due_date, taskToUpdate.recurrence_pattern);
+        console.log('✅ Calculated next_due_date:', taskToUpdate.next_due_date);
+      }
+      
+      if (taskToUpdate.next_due_date) {
+        await createNextRecurringInstance(taskToUpdate);
+      } else {
+        console.error('❌ Cannot create recurring instance: no next_due_date available');
+        alert('⚠️ Kunde inte skapa nästa återkommande instans - kontrollera förfallodatum');
+      }
     }
   };
 
@@ -266,39 +287,124 @@ const SimpleMaintenancePlan: React.FC = () => {
     }
   };
 
-  // Hjälpfunktion för att beräkna nästa förfallodatum
+  // 🗓️ FÖRBÄTTRAD hjälpfunktion för att beräkna nästa förfallodatum
   const calculateNextDueDate = (currentDueDate: string | undefined, pattern: string | undefined): string | undefined => {
     if (!currentDueDate || !pattern) return undefined;
     
     const current = new Date(currentDueDate);
     let next = new Date(current);
     
+    // 🔍 DEBUG: Logga beräkning för alla mönster
+    console.log(`🗓️ Calculating next due date from: ${currentDueDate} (pattern: ${pattern})`);
+    
     switch (pattern) {
       case 'monthly':
         next.setMonth(next.getMonth() + 1);
+        // 🎯 Säkerställ att vi inte hoppar över månader på grund av månadsslut
+        if (next.getDate() !== current.getDate() && next.getDate() < current.getDate()) {
+          // Om datumet ändrades (t.ex. 31 jan -> 3 mars), sätt till sista dagen i målmånaden
+          next.setDate(0); // Går tillbaka till sista dagen i föregående månad
+          console.log(`⚠️ Month-end adjustment: ${current.getDate()} -> ${next.getDate()}`);
+        }
         break;
       case 'quarterly':
         next.setMonth(next.getMonth() + 3);
+        if (next.getDate() !== current.getDate() && next.getDate() < current.getDate()) {
+          next.setDate(0);
+          console.log(`⚠️ Quarter-end adjustment: ${current.getDate()} -> ${next.getDate()}`);
+        }
         break;
       case 'semi_annually':
         next.setMonth(next.getMonth() + 6);
+        if (next.getDate() !== current.getDate() && next.getDate() < current.getDate()) {
+          next.setDate(0);
+          console.log(`⚠️ Semi-annual adjustment: ${current.getDate()} -> ${next.getDate()}`);
+        }
         break;
       case 'annually':
         next.setFullYear(next.getFullYear() + 1);
+        // För årlig: Behåll samma månad och dag (fungerar även för 29 feb på skottår)
         break;
       default:
+        console.warn(`❌ Unknown recurrence pattern: ${pattern}`);
         return undefined;
     }
     
-    return next.toISOString().split('T')[0];
+    const result = next.toISOString().split('T')[0];
+    console.log(`✅ Next due date calculated: ${result}`);
+    
+    return result;
+  };
+
+  // 🧪 TEST-FUNKTION för att validera alla periodiciteter
+  const testRecurrencePatterns = () => {
+    console.log('\n🧪 TESTING ALL RECURRENCE PATTERNS:');
+    
+    const testCases = [
+      // Monthly tests
+      { date: '2025-01-31', pattern: 'monthly', expected: '2025-02-28' }, // Månadsslut
+      { date: '2025-01-15', pattern: 'monthly', expected: '2025-02-15' }, // Mitten av månaden
+      { date: '2025-12-15', pattern: 'monthly', expected: '2026-01-15' }, // Årsskifte
+      
+      // Quarterly tests  
+      { date: '2025-01-31', pattern: 'quarterly', expected: '2025-04-30' }, // Q1->Q2
+      { date: '2025-03-15', pattern: 'quarterly', expected: '2025-06-15' }, // Normal kvartal
+      { date: '2025-11-30', pattern: 'quarterly', expected: '2026-02-28' }, // Årsskifte
+      
+      // Semi-annually tests
+      { date: '2025-01-31', pattern: 'semi_annually', expected: '2025-07-31' }, // Halvår
+      { date: '2025-08-31', pattern: 'semi_annually', expected: '2026-02-28' }, // Årsskifte + månadsslut
+      
+      // Annually tests
+      { date: '2024-02-29', pattern: 'annually', expected: '2025-02-28' }, // Skottår
+      { date: '2025-01-15', pattern: 'annually', expected: '2026-01-15' }, // Normal årlig
+    ];
+    
+    let passedTests = 0;
+    let totalTests = testCases.length;
+    
+    testCases.forEach((test, index) => {
+      const result = calculateNextDueDate(test.date, test.pattern);
+      const passed = result === test.expected;
+      
+      console.log(`Test ${index + 1}: ${test.date} + ${test.pattern}`);
+      console.log(`  Expected: ${test.expected}`);
+      console.log(`  Got:      ${result}`);
+      console.log(`  ${passed ? '✅ PASS' : '❌ FAIL'}\n`);
+      
+      if (passed) passedTests++;
+    });
+    
+    console.log(`🏁 RESULTS: ${passedTests}/${totalTests} tests passed`);
+    
+    if (passedTests === totalTests) {
+      alert('🎉 Alla återkommande mönster fungerar korrekt!');
+    } else {
+      alert(`⚠️ ${totalTests - passedTests} tester misslyckades. Se konsolen för detaljer.`);
+    }
   };
 
   // 🔄 SKAPA NÄSTA ÅTERKOMMANDE INSTANS
   const createNextRecurringInstance = async (completedTask: MaintenanceTask) => {
-    if (!completedTask.is_recurring || !completedTask.next_due_date) return;
+    if (!completedTask.is_recurring) {
+      console.log('❌ Task is not recurring, skipping');
+      return;
+    }
+    
+    if (!completedTask.next_due_date) {
+      console.log('❌ No next_due_date available, skipping');
+      return;
+    }
     
     try {
       console.log(`🔄 Creating next recurring instance for: ${completedTask.name}`);
+      console.log('📊 Completed task data:', {
+        name: completedTask.name,
+        due_date: completedTask.due_date,
+        next_due_date: completedTask.next_due_date,
+        recurrence_pattern: completedTask.recurrence_pattern,
+        is_recurring: completedTask.is_recurring
+      });
       
       // Beräkna nästa förfallodatum från det som redan finns
       const nextDueDate = completedTask.next_due_date;
@@ -323,24 +429,32 @@ const SimpleMaintenancePlan: React.FC = () => {
       
       console.log(`📅 Next task scheduled for: ${nextDueDate} (year: ${nextYear})`);
       console.log(`📅 Following occurrence: ${followingDueDate}`);
+      console.log('💾 Next task data to save:', nextTask);
       
       // Spara nästa instans till Supabase
       const savedNextTask = await saveMaintenanceTask(nextTask);
       
       if (savedNextTask) {
-        console.log(`✅ Next recurring instance created: ${savedNextTask.name}`);
+        console.log(`✅ Next recurring instance created successfully:`, savedNextTask);
         
         // Om nästa instans är för det aktuella året, lägg till i listan
         if (savedNextTask.year === selectedYear) {
+          console.log(`➕ Adding to current year (${selectedYear}) task list`);
           setTasks(prevTasks => [...prevTasks, savedNextTask]);
+        } else {
+          console.log(`📅 Next task is for year ${savedNextTask.year}, not adding to current view (${selectedYear})`);
         }
         
         // Visa meddelande till användaren
-        alert(`🔄 Nästa instans av "${completedTask.name}" skapades automatiskt för ${nextDueDate}!`);
+        alert(`🔄 Nästa instans av "${completedTask.name}" skapades automatiskt för ${nextDueDate}!\n\n${savedNextTask.year !== selectedYear ? `Växla till år ${savedNextTask.year} för att se den.` : 'Den syns i nuvarande års-vy.'}`);
+      } else {
+        console.error('❌ Failed to save next recurring instance');
+        alert('❌ Misslyckades med att skapa nästa återkommande instans');
       }
       
     } catch (error) {
       console.error('❌ Error creating next recurring instance:', error);
+      alert('❌ Ett fel uppstod vid skapande av nästa återkommande instans. Se konsolen för detaljer.');
     }
   };
 
@@ -619,11 +733,34 @@ const SimpleMaintenancePlan: React.FC = () => {
                   size="small" 
                   color="info"
                   variant="outlined"
-                  title="Återkommande uppgift"
+                  title={`Återkommande uppgift\n• Nästa: ${task.next_due_date || 'Saknas!'}\n• Mönster: ${task.recurrence_pattern}\n• Klicka för debug`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🔍 Recurring task debug data:', {
+                      name: task.name,
+                      is_recurring: task.is_recurring,
+                      recurrence_pattern: task.recurrence_pattern,
+                      due_date: task.due_date,
+                      next_due_date: task.next_due_date,
+                      parent_template_id: task.parent_template_id,
+                      completed: task.completed,
+                      year: task.year
+                    });
+                    alert(`🔍 Debug info för "${task.name}":\n\n` +
+                          `• Återkommande: ${task.is_recurring}\n` +
+                          `• Mönster: ${task.recurrence_pattern}\n` +
+                          `• Förfallodatum: ${task.due_date}\n` +
+                          `• Nästa förfallodatum: ${task.next_due_date || '❌ SAKNAS!'}\n` +
+                          `• År: ${task.year}\n` +
+                          `• Slutförd: ${task.completed}\n\n` +
+                          `Se konsolen för fullständig data.`);
+                  }}
                   sx={{ 
                     height: '20px',
                     fontSize: '0.7rem',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    '&:hover': { backgroundColor: 'info.light' }
                   }}
                 />
               )}
@@ -764,6 +901,20 @@ const SimpleMaintenancePlan: React.FC = () => {
               ) : (
                 '🧹 Rensa alla'
               )}
+            </Button>
+
+            {/* 🧪 TEST ÅTERKOMMANDE MÖNSTER KNAPP */}
+            <Button 
+              size="small" 
+              color="info" 
+              variant="outlined"
+              onClick={testRecurrencePatterns}
+              sx={{ 
+                minWidth: 120,
+                display: process.env.NODE_ENV === 'development' ? 'block' : 'none' // Bara i dev-miljö
+              }}
+            >
+              🧪 Testa återkommande
             </Button>
 
             <FormControl size="small" sx={{ minWidth: 120 }}>
