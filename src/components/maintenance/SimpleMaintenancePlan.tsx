@@ -151,6 +151,11 @@ const SimpleMaintenancePlan: React.FC = () => {
 
     // Spara till Supabase
     await saveMaintenanceTask(updatedTask);
+    
+    // 🔄 ÅTERKOMMANDE LOGIK: Skapa nästa instans när uppgiften slutförs
+    if (isCompleted && taskToUpdate.is_recurring && taskToUpdate.next_due_date) {
+      await createNextRecurringInstance(taskToUpdate);
+    }
   };
 
   const handleTaskNoteChange = async (taskId: string, notes: string) => {
@@ -198,12 +203,15 @@ const SimpleMaintenancePlan: React.FC = () => {
     if (!newTask.name || !newTask.category) return;
     
     try {
+      // 🎯 FIX: Använd året från förfallodatum, inte valt år!
+      const taskYear = newTask.due_date ? new Date(newTask.due_date).getFullYear() : selectedYear;
+      
       const task: Partial<MaintenanceTask> = {
         id: `task_${Date.now()}`,
         name: newTask.name,
         description: newTask.description || '',
         category: newTask.category,
-        year: selectedYear,
+        year: taskYear, // ✅ Korrekt år baserat på förfallodatum
         due_date: newTask.due_date || undefined,
         completed: false,
         // Återkommande funktionalitet enligt Perplexity
@@ -214,15 +222,21 @@ const SimpleMaintenancePlan: React.FC = () => {
       };
 
       console.log('🔍 Adding new task:', task);
+      console.log(`📅 Task year determined: ${taskYear} (from due_date: ${newTask.due_date}, selected year: ${selectedYear})`);
 
       // Spara till Supabase
       const savedTask = await saveMaintenanceTask(task);
       if (savedTask) {
         console.log('✅ Task saved successfully:', savedTask);
-        setTasks([...tasks, savedTask]);
+        
+        // 🔄 Om uppgiften är för valt år, lägg till i lista
+        if (savedTask.year === selectedYear) {
+          setTasks([...tasks, savedTask]);
+        }
         
         if (savedTask.is_recurring) {
           console.log(`🔄 Recurring task created: ${savedTask.name} (${savedTask.recurrence_pattern})`);
+          console.log(`📅 Next occurrence: ${savedTask.next_due_date}`);
         }
       } else {
         console.error('❌ Failed to save task - no response from saveMaintenanceTask');
@@ -230,6 +244,12 @@ const SimpleMaintenancePlan: React.FC = () => {
       
       setNewTaskDialog(false);
       setNewTask({});
+      
+      // 💡 Informera användaren om året ändrades
+      if (taskYear !== selectedYear && newTask.due_date) {
+        alert(`📅 Uppgiften sparades under ${taskYear} baserat på förfallodatumet. Växla till år ${taskYear} för att se den!`);
+      }
+      
     } catch (error) {
       console.error('❌ Error adding maintenance task:', error);
     }
@@ -273,6 +293,57 @@ const SimpleMaintenancePlan: React.FC = () => {
     return next.toISOString().split('T')[0];
   };
 
+  // 🔄 SKAPA NÄSTA ÅTERKOMMANDE INSTANS
+  const createNextRecurringInstance = async (completedTask: MaintenanceTask) => {
+    if (!completedTask.is_recurring || !completedTask.next_due_date) return;
+    
+    try {
+      console.log(`🔄 Creating next recurring instance for: ${completedTask.name}`);
+      
+      // Beräkna nästa förfallodatum från det som redan finns
+      const nextDueDate = completedTask.next_due_date;
+      const followingDueDate = calculateNextDueDate(nextDueDate, completedTask.recurrence_pattern);
+      const nextYear = new Date(nextDueDate).getFullYear();
+      
+      const nextTask: Partial<MaintenanceTask> = {
+        id: `task_${Date.now()}_recurring`,
+        name: completedTask.name,
+        description: completedTask.description,
+        category: completedTask.category,
+        year: nextYear, // ✅ Rätt år från nästa förfallodatum
+        due_date: nextDueDate,
+        completed: false,
+        is_recurring: true,
+        recurrence_pattern: completedTask.recurrence_pattern,
+        is_template: false,
+        next_due_date: followingDueDate,
+        // Behåll referens till ursprunglig template
+        parent_template_id: completedTask.parent_template_id || completedTask.id,
+      };
+      
+      console.log(`📅 Next task scheduled for: ${nextDueDate} (year: ${nextYear})`);
+      console.log(`📅 Following occurrence: ${followingDueDate}`);
+      
+      // Spara nästa instans till Supabase
+      const savedNextTask = await saveMaintenanceTask(nextTask);
+      
+      if (savedNextTask) {
+        console.log(`✅ Next recurring instance created: ${savedNextTask.name}`);
+        
+        // Om nästa instans är för det aktuella året, lägg till i listan
+        if (savedNextTask.year === selectedYear) {
+          setTasks(prevTasks => [...prevTasks, savedNextTask]);
+        }
+        
+        // Visa meddelande till användaren
+        alert(`🔄 Nästa instans av "${completedTask.name}" skapades automatiskt för ${nextDueDate}!`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error creating next recurring instance:', error);
+    }
+  };
+
   const handleEditTask = (task: MaintenanceTask) => {
     setEditTask(task);
     setEditTaskDialog(true);
@@ -281,31 +352,49 @@ const SimpleMaintenancePlan: React.FC = () => {
   const handleUpdateTask = async () => {
     if (!editTask.name || !editTask.category || !editTask.id) return;
     
-    // Uppdatera next_due_date om återkommande inställningar ändrats
-    const taskToUpdate = {
-      ...editTask,
-      next_due_date: editTask.is_recurring ? 
-        calculateNextDueDate(editTask.due_date, editTask.recurrence_pattern) : 
-        undefined
-    };
-    
-    console.log('🔍 Updating task with recurring data:', taskToUpdate);
-    
-    // Spara till Supabase
-    const savedTask = await saveMaintenanceTask(taskToUpdate);
-    if (savedTask) {
-      setTasks(tasks.map(task => 
-        task.id === savedTask.id ? savedTask : task
-      ));
+    try {
+      // 🎯 FIX: Uppdatera året baserat på förfallodatum
+      const taskYear = editTask.due_date ? new Date(editTask.due_date).getFullYear() : selectedYear;
+      const originalTask = tasks.find(t => t.id === editTask.id);
       
-      if (savedTask.is_recurring) {
-        console.log(`🔄 Updated recurring task: ${savedTask.name} (${savedTask.recurrence_pattern})`);
-        console.log(`📅 Next due: ${savedTask.next_due_date}`);
+      // Uppdatera next_due_date om återkommande inställningar ändrats
+      const taskToUpdate = {
+        ...editTask,
+        year: taskYear, // ✅ Uppdaterat år
+        next_due_date: editTask.is_recurring ? 
+          calculateNextDueDate(editTask.due_date, editTask.recurrence_pattern) : 
+          undefined
+      };
+      
+      console.log('🔍 Updating task with recurring data:', taskToUpdate);
+      console.log(`📅 Task year updated: ${taskYear} (from due_date: ${editTask.due_date})`);
+      
+      // Spara till Supabase
+      const savedTask = await saveMaintenanceTask(taskToUpdate);
+      if (savedTask) {
+        // Om uppgiften bytte år, ta bort från nuvarande lista
+        if (originalTask?.year !== savedTask.year && savedTask.year !== selectedYear) {
+          setTasks(tasks.filter(task => task.id !== savedTask.id));
+          alert(`📅 Uppgiften flyttades till ${savedTask.year} baserat på det nya förfallodatumet. Växla till år ${savedTask.year} för att se den!`);
+        } else {
+          // Uppdatera i nuvarande lista
+          setTasks(tasks.map(task => 
+            task.id === savedTask.id ? savedTask : task
+          ));
+        }
+        
+        if (savedTask.is_recurring) {
+          console.log(`🔄 Updated recurring task: ${savedTask.name} (${savedTask.recurrence_pattern})`);
+          console.log(`📅 Next due: ${savedTask.next_due_date}`);
+        }
       }
+      
+      setEditTaskDialog(false);
+      setEditTask({});
+      
+    } catch (error) {
+      console.error('❌ Error updating maintenance task:', error);
     }
-    
-    setEditTaskDialog(false);
-    setEditTask({});
   };
 
   const handleDeleteTask = async (taskId: string) => {
