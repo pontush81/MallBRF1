@@ -107,8 +107,18 @@ class CookieConsentService {
   }
 
   public canUseFirebase(): boolean {
-    // Allow Firebase if user has given authentication consent or no choice has been made yet
-    return !this.hasConsent() || this.hasAuthenticationConsent();
+    // Allow Firebase if user hasn't made a choice yet, or has given authentication consent
+    // For new users (no consent given), Firebase is available by default
+    const hasUserMadeChoice = this.hasConsent();
+    const hasAuthConsent = this.hasAuthenticationConsent();
+    
+    // If user hasn't made any choice yet, allow Firebase (first-time visitors)
+    if (!hasUserMadeChoice) {
+      return true;
+    }
+    
+    // If user has made a choice, respect their authentication preference
+    return hasAuthConsent;
   }
 
   public canUseGoogleOAuth(): boolean {
