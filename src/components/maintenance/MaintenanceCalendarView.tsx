@@ -80,7 +80,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             {month}
           </Typography>
           {isCurrentMonth && (
-            <Chip icon={<TodayIcon />} label="Current" size="small" color="primary" />
+            <Chip icon={<TodayIcon />} label="Aktuell" size="small" color="primary" />
           )}
           {overdueCount > 0 && (
             <Badge badgeContent={overdueCount} color="error">
@@ -93,7 +93,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         <Box display="flex" gap={1} mb={2} flexWrap="wrap">
           {statusCounts.pending > 0 && (
             <Chip 
-              label={`${statusCounts.pending} Pending`} 
+              label={`${statusCounts.pending} Ej påbörjad`} 
               size="small" 
               color="warning" 
               variant="outlined"
@@ -101,7 +101,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           )}
           {statusCounts.in_progress > 0 && (
             <Chip 
-              label={`${statusCounts.in_progress} In Progress`} 
+              label={`${statusCounts.in_progress} Pågående`} 
               size="small" 
               color="info" 
               variant="outlined"
@@ -109,7 +109,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           )}
           {statusCounts.completed > 0 && (
             <Chip 
-              label={`${statusCounts.completed} Done`} 
+              label={`${statusCounts.completed} Slutförd`} 
               size="small" 
               color="success" 
               variant="outlined"

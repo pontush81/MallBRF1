@@ -101,7 +101,12 @@ const LoadingFallback = () => {
 
 // Protected route component
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
-  const { isLoggedIn, isAdmin } = useAuth();
+  const { isLoggedIn, isAdmin, loading } = useAuth();
+  
+  // Show loading while auth state is being determined
+  if (loading) {
+    return <LoadingFallback />;
+  }
   
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;

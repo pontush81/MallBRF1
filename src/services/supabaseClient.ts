@@ -31,12 +31,19 @@ export async function getAuthenticatedSupabaseClient(): Promise<SupabaseClient> 
         return authenticatedClientCache;
       }
 
+      // Clear previous client to avoid multiple instances
+      if (authenticatedClientCache) {
+        console.log('🔄 Replacing cached Supabase client with new token');
+      }
+
       // Create new authenticated client with the secure JWT
       authenticatedClientCache = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: false,
           autoRefreshToken: false,
-          detectSessionInUrl: false
+          detectSessionInUrl: false,
+          // Unique storage key to prevent conflicts
+          storageKey: `supabase.auth.token.${Date.now()}`
         },
         global: {
           headers: {

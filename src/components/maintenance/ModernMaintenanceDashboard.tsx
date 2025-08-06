@@ -193,7 +193,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography color="text.secondary" gutterBottom variant="body2">
-                    Total Tasks
+                    Totalt Uppgifter
                   </Typography>
                   <Typography variant="h4" component="div">
                     {analytics.totalTasks}
@@ -213,7 +213,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography color="text.secondary" gutterBottom variant="body2">
-                    Completion Rate
+                    Slutförandegrad
                   </Typography>
                   <Typography variant="h4" component="div">
                     {analytics.completionRate.toFixed(1)}%
@@ -238,7 +238,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography color="text.secondary" gutterBottom variant="body2">
-                    In Progress
+                    Pågående
                   </Typography>
                   <Typography variant="h4" component="div">
                     {analytics.inProgressTasks}
@@ -258,7 +258,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography color="text.secondary" gutterBottom variant="body2">
-                    Overdue
+                    Försenade
                   </Typography>
                   <Typography variant="h4" component="div" color="error.main">
                     {analytics.overdueTasks}
@@ -276,7 +276,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
       {/* Overdue Tasks Alert */}
       {analytics.overdueTasks > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          <strong>{analytics.overdueTasks} overdue tasks</strong> need immediate attention.
+          <strong>{analytics.overdueTasks} försenade uppgifter</strong> behöver omedelbar uppmärksamhet.
         </Alert>
       )}
 
@@ -286,7 +286,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Category Progress
+                Kategori-framsteg
               </Typography>
               {Object.entries(analytics.categoryStats).map(([category, stats]) => (
                 <Box key={category} sx={{ mb: 2 }}>
@@ -313,7 +313,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Quick Actions
+                Snabbåtgärder
               </Typography>
               <List dense>
                 <ListItem button onClick={handleAddTask}>
@@ -323,8 +323,8 @@ const ModernMaintenanceDashboard: React.FC = () => {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary="Add New Task"
-                    secondary="Create maintenance task"
+                    primary="Lägg till uppgift"
+                    secondary="Skapa underhållsuppgift"
                   />
                 </ListItem>
                 <Divider />
@@ -335,8 +335,8 @@ const ModernMaintenanceDashboard: React.FC = () => {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary="Kanban Board"
-                    secondary="Manage task status"
+                    primary="Kanban-tavla"
+                    secondary="Hantera uppgiftsstatus"
                   />
                 </ListItem>
                 <Divider />
@@ -347,8 +347,8 @@ const ModernMaintenanceDashboard: React.FC = () => {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary="Calendar View"
-                    secondary="View schedule"
+                    primary="Kalendervy"
+                    secondary="Visa schema"
                   />
                 </ListItem>
               </List>
@@ -366,19 +366,19 @@ const ModernMaintenanceDashboard: React.FC = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
-              Maintenance Plan Dashboard
+              Underhållsplan
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Modern maintenance management for housing cooperatives
+              Modern underhållshantering för bostadsrättsföreningar
             </Typography>
           </Box>
           
           <Box display="flex" alignItems="center" gap={2}>
             <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Year</InputLabel>
+              <InputLabel>År</InputLabel>
               <Select
                 value={selectedYear}
-                label="Year"
+                label="År"
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
                 {years.map(year => (
@@ -389,7 +389,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
               </Select>
             </FormControl>
 
-            <Tooltip title="Notifications">
+            <Tooltip title="Notifieringar">
               <IconButton>
                 <Badge badgeContent={analytics.overdueTasks} color="error">
                   <NotificationIcon />
@@ -411,22 +411,22 @@ const ModernMaintenanceDashboard: React.FC = () => {
         >
           <Tab 
             icon={<DashboardIcon />} 
-            label="Dashboard" 
+            label="Översikt" 
             iconPosition="start"
           />
           <Tab 
             icon={<CalendarIcon />} 
-            label="Calendar View" 
+            label="Kalendervy" 
             iconPosition="start"
           />
           <Tab 
             icon={<KanbanIcon />} 
-            label="Kanban Board" 
+            label="Kanban-tavla" 
             iconPosition="start"
           />
           <Tab 
             icon={<TaskIcon />} 
-            label="Task List" 
+            label="Uppgiftslista" 
             iconPosition="start"
           />
         </Tabs>
@@ -463,7 +463,7 @@ const ModernMaintenanceDashboard: React.FC = () => {
       {/* Floating Action Button */}
       <Fab
         color="primary"
-        aria-label="add task"
+        aria-label="lägg till uppgift"
         onClick={handleAddTask}
         sx={{
           position: 'fixed',

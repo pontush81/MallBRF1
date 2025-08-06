@@ -189,7 +189,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 </Typography>
                 
                 <Box>
-                  <Tooltip title="Edit Task">
+                  <Tooltip title="Redigera uppgift">
                     <IconButton 
                       size="small" 
                       onClick={(e) => {
@@ -201,13 +201,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                     </IconButton>
                   </Tooltip>
                   
-                  <Tooltip title="Delete Task">
+                  <Tooltip title="Ta bort uppgift">
                     <IconButton 
                       size="small" 
                       color="error"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm('Are you sure you want to delete this task?')) {
+                        if (window.confirm('Är du säker på att du vill ta bort denna uppgift?')) {
                           onDeleteTask(task.id);
                         }
                       }}
@@ -232,7 +232,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
             color: 'text.secondary'
           }}
         >
-          <Typography variant="body2">No tasks in this column</Typography>
+          <Typography variant="body2">Inga uppgifter i denna kolumn</Typography>
         </Box>
       )}
     </Paper>
@@ -273,21 +273,21 @@ const MaintenanceKanbanBoard: React.FC<MaintenanceKanbanBoardProps> = ({
 
   const columns = [
     {
-      title: 'Pending',
+      title: 'Ej påbörjad',
       status: 'pending' as MaintenanceStatus,
       tasks: tasksByStatus.pending,
       color: '#ff9800',
       icon: <ScheduleIcon fontSize="small" />
     },
     {
-      title: 'In Progress',
+      title: 'Pågående',
       status: 'in_progress' as MaintenanceStatus,
       tasks: tasksByStatus.in_progress,
       color: '#2196f3',
       icon: <TimeIcon fontSize="small" />
     },
     {
-      title: 'Completed',
+      title: 'Slutförd',
       status: 'completed' as MaintenanceStatus,
       tasks: tasksByStatus.completed,
       color: '#4caf50',
@@ -298,11 +298,11 @@ const MaintenanceKanbanBoard: React.FC<MaintenanceKanbanBoardProps> = ({
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Kanban Board - {selectedYear}
+        Kanban-tavla - {selectedYear}
       </Typography>
       
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Drag and drop tasks between columns to update their status. Red borders indicate overdue tasks.
+        Dra och släpp uppgifter mellan kolumner för att uppdatera deras status. Röda ramar indikerar försenade uppgifter.
       </Typography>
 
       <Grid container spacing={3}>

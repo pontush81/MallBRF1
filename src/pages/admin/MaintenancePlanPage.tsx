@@ -1,8 +1,8 @@
 import React from 'react';
-import ModernMaintenanceDashboard from '../../components/maintenance/ModernMaintenanceDashboard';
+import SimpleMaintenancePlan from '../../components/maintenance/SimpleMaintenancePlan';
 
 const MaintenancePlanPage: React.FC = () => {
-  return <ModernMaintenanceDashboard />;
+  return <SimpleMaintenancePlan />;
 };
 
 export default MaintenancePlanPage; 

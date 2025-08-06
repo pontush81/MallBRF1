@@ -96,29 +96,29 @@ jest.mock('react-markdown', () => {
   };
 });
 
-// Mock @fullcalendar modules
-jest.mock('@fullcalendar/core/locales/sv', () => ({
-  default: {
-    code: 'sv',
-    week: {
-      dow: 1,
-      doy: 4
-    },
-    buttonText: {
-      prev: 'Förra',
-      next: 'Nästa',
-      today: 'Idag',
-      month: 'Månad',
-      week: 'Vecka',
-      day: 'Dag',
-      list: 'Program'
-    },
-    weekText: 'v.',
-    allDayText: 'Heldag',
-    moreLinkText: 'till',
-    noEventsText: 'Inga händelser att visa'
-  }
-}));
+// Mock @fullcalendar modules (commented out due to missing package)
+// jest.mock('@fullcalendar/core/locales/sv', () => ({
+//   default: {
+//     code: 'sv',
+//     week: {
+//       dow: 1,
+//       doy: 4
+//     },
+//     buttonText: {
+//       prev: 'Förra',
+//       next: 'Nästa',
+//       today: 'Idag',
+//       month: 'Månad',
+//       week: 'Vecka',
+//       day: 'Dag',
+//       list: 'Program'
+//     },
+//     weekText: 'v.',
+//     allDayText: 'Heldag',
+//     moreLinkText: 'till',
+//     noEventsText: 'Inga händelser att visa'
+//   }
+// }));
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
