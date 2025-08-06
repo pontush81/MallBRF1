@@ -51,7 +51,7 @@ import {
   saveMajorProject,
   deleteMaintenanceTask,
   deleteMajorProject,
-  createAnnualMaintenancePlan,
+  // createAnnualMaintenancePlan, // Tillfälligt inaktiverad
   uploadProjectDocument,
   getProjectDocuments,
   deleteProjectDocument
@@ -92,6 +92,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [editProject, setEditProject] = useState<Partial<MajorProject>>({});
   const [projectDocuments, setProjectDocuments] = useState<any[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [clearingData, setClearingData] = useState(false);
   const [sortBy, setSortBy] = useState<'category' | 'due_date' | 'status' | 'name' | 'created_at'>('category');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
@@ -110,13 +111,15 @@ const SimpleMaintenancePlan: React.FC = () => {
       // Ladda underhållsuppgifter för valt år
       const existingTasks = await getMaintenanceTasksByYear(selectedYear);
       
-      if (existingTasks.length === 0) {
-        // Skapa ny årlig underhållsplan om ingen finns
-        const newTasks = await createAnnualMaintenancePlan(selectedYear);
-        setTasks(newTasks);
-      } else {
+      // TILLFÄLLIGT INAKTIVERAT - Låt användaren själv välja vilka uppgifter som ska skapas
+      // Nu med återkommande funktionalitet kan användaren skapa exakt det de behöver
+      // if (existingTasks.length === 0) {
+      //   // Skapa ny årlig underhållsplan om ingen finns
+      //   const newTasks = await createAnnualMaintenancePlan(selectedYear);
+      //   setTasks(newTasks);
+      // } else {
         setTasks(existingTasks);
-      }
+      // }
 
       // Ladda större projekt
       const projects = await getMajorProjects();
@@ -202,7 +205,12 @@ const SimpleMaintenancePlan: React.FC = () => {
         category: newTask.category,
         year: selectedYear,
         due_date: newTask.due_date || undefined,
-        completed: false
+        completed: false,
+        // Återkommande funktionalitet enligt Perplexity
+        is_recurring: newTask.is_recurring || false,
+        recurrence_pattern: newTask.recurrence_pattern,
+        is_template: false,
+        next_due_date: newTask.is_recurring ? calculateNextDueDate(newTask.due_date, newTask.recurrence_pattern) : undefined,
       };
 
       console.log('🔍 Adding new task:', task);
@@ -212,6 +220,10 @@ const SimpleMaintenancePlan: React.FC = () => {
       if (savedTask) {
         console.log('✅ Task saved successfully:', savedTask);
         setTasks([...tasks, savedTask]);
+        
+        if (savedTask.is_recurring) {
+          console.log(`🔄 Recurring task created: ${savedTask.name} (${savedTask.recurrence_pattern})`);
+        }
       } else {
         console.error('❌ Failed to save task - no response from saveMaintenanceTask');
       }
@@ -223,6 +235,44 @@ const SimpleMaintenancePlan: React.FC = () => {
     }
   };
 
+  // Hjälpfunktioner för återkommande uppgifter
+  const getRecurrenceLabel = (pattern: string | undefined): string => {
+    switch (pattern) {
+      case 'monthly': return 'Månadsvis';
+      case 'quarterly': return 'Kvartalsvis';
+      case 'semi_annually': return 'Halvårsvis';
+      case 'annually': return 'Årligen';
+      default: return 'Återkommande';
+    }
+  };
+
+  // Hjälpfunktion för att beräkna nästa förfallodatum
+  const calculateNextDueDate = (currentDueDate: string | undefined, pattern: string | undefined): string | undefined => {
+    if (!currentDueDate || !pattern) return undefined;
+    
+    const current = new Date(currentDueDate);
+    let next = new Date(current);
+    
+    switch (pattern) {
+      case 'monthly':
+        next.setMonth(next.getMonth() + 1);
+        break;
+      case 'quarterly':
+        next.setMonth(next.getMonth() + 3);
+        break;
+      case 'semi_annually':
+        next.setMonth(next.getMonth() + 6);
+        break;
+      case 'annually':
+        next.setFullYear(next.getFullYear() + 1);
+        break;
+      default:
+        return undefined;
+    }
+    
+    return next.toISOString().split('T')[0];
+  };
+
   const handleEditTask = (task: MaintenanceTask) => {
     setEditTask(task);
     setEditTaskDialog(true);
@@ -231,12 +281,27 @@ const SimpleMaintenancePlan: React.FC = () => {
   const handleUpdateTask = async () => {
     if (!editTask.name || !editTask.category || !editTask.id) return;
     
+    // Uppdatera next_due_date om återkommande inställningar ändrats
+    const taskToUpdate = {
+      ...editTask,
+      next_due_date: editTask.is_recurring ? 
+        calculateNextDueDate(editTask.due_date, editTask.recurrence_pattern) : 
+        undefined
+    };
+    
+    console.log('🔍 Updating task with recurring data:', taskToUpdate);
+    
     // Spara till Supabase
-    const savedTask = await saveMaintenanceTask(editTask);
+    const savedTask = await saveMaintenanceTask(taskToUpdate);
     if (savedTask) {
       setTasks(tasks.map(task => 
         task.id === savedTask.id ? savedTask : task
       ));
+      
+      if (savedTask.is_recurring) {
+        console.log(`🔄 Updated recurring task: ${savedTask.name} (${savedTask.recurrence_pattern})`);
+        console.log(`📅 Next due: ${savedTask.next_due_date}`);
+      }
     }
     
     setEditTaskDialog(false);
@@ -387,6 +452,44 @@ const SimpleMaintenancePlan: React.FC = () => {
     }
   };
 
+  // 🧹 RENSA ALL DATA - för att starta från början
+  const handleClearAllData = async () => {
+    if (!window.confirm('🚨 Är du säker på att du vill radera ALLA uppgifter och projekt för detta år? Detta kan inte ångras!')) {
+      return;
+    }
+
+    if (!window.confirm('⚠️ SISTA VARNINGEN: Detta kommer radera ALL underhållsdata för ' + selectedYear + '. Fortsätta?')) {
+      return;
+    }
+
+    try {
+      setClearingData(true);
+      console.log('🧹 Clearing all data for year:', selectedYear);
+
+      // Radera alla uppgifter för året
+      for (const task of tasks) {
+        await deleteMaintenanceTask(task.id);
+      }
+
+      // Radera alla projekt (oavsett år - användaren får välja vad de vill behålla)
+      for (const project of majorProjects) {
+        await deleteMajorProject(project.id);
+      }
+
+      // Uppdatera lokalt state
+      setTasks([]);
+      setMajorProjects([]);
+
+      alert('✅ All data har raderats framgångsrikt!');
+
+    } catch (error) {
+      console.error('❌ Error clearing data:', error);
+      alert('❌ Ett fel uppstod vid rensning av data. Se konsolen för detaljer.');
+    } finally {
+      setClearingData(false);
+    }
+  };
+
   const renderTaskItem = (task: MaintenanceTask) => (
     <ListItem key={task.id} sx={{ pl: 0, pr: 10, flexDirection: 'column', alignItems: 'stretch' }}>
       <Box display="flex" alignItems="flex-start" width="100%">
@@ -418,6 +521,20 @@ const SimpleMaintenancePlan: React.FC = () => {
                     color: 'white',
                     height: '20px',
                     fontSize: '0.7rem'
+                  }}
+                />
+              )}
+              {task.is_recurring && (
+                <Chip 
+                  label={`🔄 ${getRecurrenceLabel(task.recurrence_pattern)}`}
+                  size="small" 
+                  color="info"
+                  variant="outlined"
+                  title="Återkommande uppgift"
+                  sx={{ 
+                    height: '20px',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold'
                   }}
                 />
               )}
@@ -538,6 +655,28 @@ const SimpleMaintenancePlan: React.FC = () => {
           </Box>
           
           <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+            {/* 🧹 RENSA ALL DATA KNAPP */}
+            <Button 
+              size="small" 
+              color="error" 
+              variant="outlined"
+              onClick={handleClearAllData}
+              disabled={clearingData || (tasks.length === 0 && majorProjects.length === 0)}
+              sx={{ 
+                minWidth: 140,
+                opacity: (tasks.length === 0 && majorProjects.length === 0) ? 0.5 : 1
+              }}
+            >
+              {clearingData ? (
+                <>
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                  Rensar...
+                </>
+              ) : (
+                '🧹 Rensa alla'
+              )}
+            </Button>
+
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>År</InputLabel>
               <Select value={selectedYear} label="År" onChange={(e) => setSelectedYear(Number(e.target.value))}>
@@ -720,6 +859,19 @@ const SimpleMaintenancePlan: React.FC = () => {
                               {project.status === 'completed' && (
                                 <Chip label="✅ Slutfört" size="small" color="success" />
                               )}
+                              
+                              {/* VISUAL CUE FÖR DOKUMENT - visar att redigering finns */}
+                              <Chip 
+                                label="📎 Redigera för dokument" 
+                                size="small" 
+                                variant="outlined" 
+                                color="info"
+                                sx={{ 
+                                  fontSize: '0.7rem',
+                                  height: '20px'
+                                }}
+                                title="Klicka på redigera-ikonen för att ladda upp dokument"
+                              />
 
                             </Box>
                           }
@@ -795,6 +947,10 @@ const SimpleMaintenancePlan: React.FC = () => {
         <DialogTitle>Lägg till större projekt</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
+            {/* GRUNDLÄGGANDE INFORMATION */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              📋 Grundläggande information
+            </Typography>
             <TextField
               fullWidth
               label="Projektnamn"
@@ -809,8 +965,13 @@ const SimpleMaintenancePlan: React.FC = () => {
               onChange={(e) => setNewProject({...newProject, description: e.target.value})}
               multiline
               rows={2}
-              sx={{ mb: 2 }}
+              sx={{ mb: 3 }}
             />
+
+            {/* PLANERING & BUDGET */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              💰 Planering & Budget
+            </Typography>
             <TextField
               fullWidth
               label="Planerat år"
@@ -825,8 +986,13 @@ const SimpleMaintenancePlan: React.FC = () => {
               type="number"
               value={newProject.estimated_cost || ''}
               onChange={(e) => setNewProject({...newProject, estimated_cost: Number(e.target.value)})}
-              sx={{ mb: 2 }}
+              sx={{ mb: 3 }}
             />
+
+            {/* KLASSIFICERING */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              🏷️ Klassificering
+            </Typography>
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Prioritet</InputLabel>
               <Select
@@ -867,12 +1033,21 @@ const SimpleMaintenancePlan: React.FC = () => {
                 <MenuItem value="agm_approved">✅ Årsstämma godkänt</MenuItem>
               </Select>
             </FormControl>
+            {/* LEVERANTÖR & GODKÄNNANDE */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              👥 Leverantör & Godkännande
+            </Typography>
             <TextField
               fullWidth
               label="Entreprenör/Leverantör"
               value={newProject.contractor || ''}
               onChange={(e) => setNewProject({...newProject, contractor: e.target.value})}
+              sx={{ mb: 2 }}
             />
+            
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+              💡 Tips: Använd ✏️ redigera-ikonen efter att projektet skapats för att ladda upp dokument som kontrakt och tillstånd.
+            </Typography>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -888,6 +1063,10 @@ const SimpleMaintenancePlan: React.FC = () => {
         <DialogTitle>Lägg till underhållsuppgift</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
+            {/* GRUNDLÄGGANDE INFORMATION */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              📋 Grundläggande information
+            </Typography>
             <TextField
               fullWidth
               label="Uppgiftsnamn"
@@ -902,8 +1081,13 @@ const SimpleMaintenancePlan: React.FC = () => {
               onChange={(e) => setNewTask({...newTask, description: e.target.value})}
               multiline
               rows={2}
-              sx={{ mb: 2 }}
+              sx={{ mb: 3 }}
             />
+
+            {/* TIDPLANERING */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              📅 Tidplanering
+            </Typography>
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Kategori</InputLabel>
               <Select
@@ -911,11 +1095,11 @@ const SimpleMaintenancePlan: React.FC = () => {
                 onChange={(e) => setNewTask({...newTask, category: e.target.value as MaintenanceTask['category']})}
                 label="Kategori"
               >
-                <MenuItem value="winter">Vinter</MenuItem>
-                <MenuItem value="spring">Vår</MenuItem>
-                <MenuItem value="summer">Sommar</MenuItem>
-                <MenuItem value="autumn">Höst</MenuItem>
-                <MenuItem value="ongoing">Löpande</MenuItem>
+                <MenuItem value="winter">❄️ Vinter</MenuItem>
+                <MenuItem value="spring">🌸 Vår</MenuItem>
+                <MenuItem value="summer">☀️ Sommar</MenuItem>
+                <MenuItem value="autumn">🍂 Höst</MenuItem>
+                <MenuItem value="ongoing">🔄 Löpande</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -927,8 +1111,55 @@ const SimpleMaintenancePlan: React.FC = () => {
               InputLabelProps={{
                 shrink: true,
               }}
-              sx={{ mb: 2 }}
+              sx={{ mb: 3 }}
             />
+
+            {/* ÅTERKOMMANDE FUNKTIONALITET */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              🔄 Återkommande underhåll
+            </Typography>
+            <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Skapa uppgifter som automatiskt planeras för framtiden enligt ett schema.
+              </Typography>
+                
+                <FormControl component="fieldset" sx={{ mb: 2 }}>
+                  <Checkbox
+                    checked={newTask.is_recurring || false}
+                    onChange={(e) => setNewTask({
+                      ...newTask, 
+                      is_recurring: e.target.checked,
+                      recurrence_pattern: e.target.checked ? 'annually' : undefined
+                    })}
+                  />
+                  <Typography component="span" sx={{ ml: 1 }}>
+                    Detta underhåll återkommer regelbundet
+                  </Typography>
+                </FormControl>
+
+                {newTask.is_recurring && (
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel>Återkommer</InputLabel>
+                    <Select
+                      value={newTask.recurrence_pattern || 'annually'}
+                      onChange={(e) => setNewTask({...newTask, recurrence_pattern: e.target.value as MaintenanceTask['recurrence_pattern']})}
+                      label="Återkommer"
+                    >
+                      <MenuItem value="monthly">🗓️ Varje månad</MenuItem>
+                      <MenuItem value="quarterly">📅 Varje kvartal (3 månader)</MenuItem>
+                      <MenuItem value="semi_annually">📆 Två gånger per år</MenuItem>
+                      <MenuItem value="annually">🗓️ En gång per år</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+
+                {newTask.is_recurring && (
+                  <Typography variant="caption" color="text.secondary">
+                    💡 <strong>Tips:</strong> Återkommande uppgifter skapar automatiskt nya instanser enligt schemat. 
+                    Perfekt för BRF-underhåll som stuprännor, ventilation, etc.
+                  </Typography>
+                )}
+              </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -985,6 +1216,49 @@ const SimpleMaintenancePlan: React.FC = () => {
               }}
               sx={{ mb: 2 }}
             />
+
+            {/* ÅTERKOMMANDE FUNKTIONALITET FÖR REDIGERING */}
+            <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                🔄 Återkommande underhåll
+              </Typography>
+              
+              <FormControl component="fieldset" sx={{ mb: 2 }}>
+                <Checkbox
+                  checked={editTask.is_recurring || false}
+                  onChange={(e) => setEditTask({
+                    ...editTask, 
+                    is_recurring: e.target.checked,
+                    recurrence_pattern: e.target.checked ? editTask.recurrence_pattern || 'annually' : undefined
+                  })}
+                />
+                <Typography component="span" sx={{ ml: 1 }}>
+                  Detta underhåll återkommer regelbundet
+                </Typography>
+              </FormControl>
+
+              {editTask.is_recurring && (
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Återkommer</InputLabel>
+                  <Select
+                    value={editTask.recurrence_pattern || 'annually'}
+                    onChange={(e) => setEditTask({...editTask, recurrence_pattern: e.target.value as MaintenanceTask['recurrence_pattern']})}
+                    label="Återkommer"
+                  >
+                    <MenuItem value="monthly">🗓️ Varje månad</MenuItem>
+                    <MenuItem value="quarterly">📅 Varje kvartal (3 månader)</MenuItem>
+                    <MenuItem value="semi_annually">📆 Två gånger per år</MenuItem>
+                    <MenuItem value="annually">🗓️ En gång per år</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+
+              {editTask.is_recurring && editTask.next_due_date && (
+                <Typography variant="caption" color="text.secondary">
+                  🗓️ <strong>Nästa planerade:</strong> {new Date(editTask.next_due_date).toLocaleDateString('sv-SE')}
+                </Typography>
+              )}
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1124,8 +1398,11 @@ const SimpleMaintenancePlan: React.FC = () => {
             />
 
             {/* DOKUMENTHANTERING - Återanvänder befintligt system! */}
-            <Typography variant="h6" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
               📄 Projektdokument
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Ladda upp kontrakt, tillstånd, foton och andra dokument relaterade till projektet.
             </Typography>
             
             <Box sx={{ mb: 2 }}>

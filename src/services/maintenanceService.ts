@@ -10,6 +10,12 @@ export interface MaintenanceTask {
   notes?: string;
   category: 'spring' | 'summer' | 'autumn' | 'winter' | 'ongoing';
   year: number;
+  // Återkommande funktionalitet
+  is_recurring?: boolean;
+  recurrence_pattern?: 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
+  is_template?: boolean;
+  parent_template_id?: string;
+  next_due_date?: string;
   created_at?: string;
   updated_at?: string;
 }
