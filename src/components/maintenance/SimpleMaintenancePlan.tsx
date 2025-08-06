@@ -767,16 +767,16 @@ const SimpleMaintenancePlan: React.FC = () => {
             </Box>
           }
           secondary={
-            <Box>
+            <Box component="span" sx={{ display: 'block' }}>
               {task.description && (
-                <Typography variant="body2" color="text.secondary" component="span">
+                <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                   {task.description}
                 </Typography>
               )}
               {task.due_date && (
                 <Typography 
                   variant="caption" 
-                  component="div"
+                  component="span"
                   color={
                     task.completed 
                       ? 'text.secondary' 
@@ -784,7 +784,10 @@ const SimpleMaintenancePlan: React.FC = () => {
                         ? 'error.main' 
                         : 'text.secondary'
                   }
-                  sx={{ mt: task.description ? 0.5 : 0 }}
+                  sx={{ 
+                    mt: task.description ? 0.5 : 0,
+                    display: 'block'
+                  }}
                 >
                   Förfaller: {task.due_date}
                 </Typography>
@@ -792,9 +795,12 @@ const SimpleMaintenancePlan: React.FC = () => {
               {task.completed && task.completed_date && (
                 <Typography 
                   variant="caption" 
-                  component="div"
+                  component="span"
                   color="success.main" 
-                  sx={{ mt: 0.5 }}
+                  sx={{ 
+                    mt: 0.5,
+                    display: 'block'
+                  }}
                 >
                   Slutfört: {task.completed_date}
                 </Typography>

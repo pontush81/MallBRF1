@@ -42,8 +42,8 @@ export async function getAuthenticatedSupabaseClient(): Promise<SupabaseClient> 
           persistSession: false,
           autoRefreshToken: false,
           detectSessionInUrl: false,
-          // Unique storage key to prevent conflicts
-          storageKey: `supabase.auth.token.${Date.now()}`
+          // Stable storage key to prevent multiple instances
+          storageKey: `supabase.auth.maintenance.${token.slice(-8)}`
         },
         global: {
           headers: {
