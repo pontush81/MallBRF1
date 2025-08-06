@@ -131,12 +131,12 @@ Deno.serve(async (req) => {
 
     // Transform real bookings to HSB format
     const hsbData: HSBReportItem[] = [];
-    transformBookingsToHSB(bookings || [], hsbData, selectedMonth);
+    await transformBookingsToHSB(bookings || [], hsbData, selectedMonth, supabase);
     
     // Demo data removed - only real database data will be used
     console.log(`Generated ${hsbData.length} HSB items from real database data only`);
 
-    const residentData = getResidentDirectory();
+    const residentData = await getResidentDirectory(supabase);
 
     if (format === 'preview') {
       return new Response(
@@ -216,91 +216,60 @@ Deno.serve(async (req) => {
   }
 });
 
-function getApartmentNumberByName(bookingName: string, bookingEmail: string): string {
-  const residentData = getResidentDirectory();
+async function getApartmentNumberByName(bookingName: string, bookingEmail: string, supabase: any): Promise<string> {
   const name = bookingName?.toLowerCase().trim() || '';
   const email = bookingEmail?.toLowerCase().trim() || '';
   
   console.log(`🔍 Looking for apartment for: "${bookingName}" (${bookingEmail})`);
   
-  // Primary mapping based on exact name/email matches
-  const nameMap: Record<string, string> = {
-    'anette malmgren': '1',
-    'leif nilsson': '1',
-    'manuela gavrila': '2',
-    'cornel oancea': '2',
-    'solbritt fredin': '3',
-    'kristina utas': '4',
-    'tina utas': '4',
-    'tina': '4',
-    'annie hörberg': '5',
-    'pontus hörberg': '5',
-    'pontus hörberg ': '5', // with trailing space
-    'pontus': '5',
-    'pgn konsult ab': '6',
-    'per-göran nilsson': '6',
-    'tove nilsson': '6',
-    'agnes adaktusson': '7',
-    'jacob adaktusson': '7',
-    'jacob  adaktusson': '7', // with double space
-    'jacob': '7',
-    'karin höjman': '8',
-    'peter höjman': '8',
-    'david svenn': '9',
-    'anna-lena lindqvist': '10',
-    'anders lindqvist': '10',
-    'jonas ahlin': '11'
-  };
-  
-  // First check exact name mapping
-  const mapped = nameMap[name];
-  if (mapped) {
-    console.log(`✅ Found by exact name mapping: ${mapped} for "${name}"`);
-    return mapped;
-  }
-  
-  // Check email match with correct addresses
-  const emailMap: Record<string, string> = {
-    'anette-malmgren@hotmail.com': '1',
-    'manuela.gavrila@example.com': '2',
-    'solbritt.fredin@example.com': '3',
-    'kristina.utas@example.com': '4',
-    'tinautas@gmail.com': '4',
-    'tinautas@hotmail.com': '4',
-    'gulmaranbrf@gmail.com': '5',
-    'pgn@example.com': '6',
-    'jacob@upsec.se': '7',
-    'karin.hojman@example.com': '8',
-    'david.svenn@example.com': '9',
-    'anna.lindqvist@example.com': '10',
-    'ahlinsweden@gmail.com': '11'
-  };
-  
-  const emailMapped = emailMap[email];
-  if (emailMapped) {
-    console.log(`✅ Found by email mapping: ${emailMapped} for "${email}"`);
-    return emailMapped;
-  }
-  
-  // Check partial name matches more carefully
-  if (name.includes('pontus') && name.includes('hörberg')) {
-    console.log(`✅ Found by partial name match: 5 for Pontus Hörberg`);
-    return '5';
-  }
-  
-  if (name.includes('jacob') && name.includes('adaktusson')) {
-    console.log(`✅ Found by partial name match: 7 for Jacob Adaktusson`);
-    return '7';
-  }
-  
-  if ((name.includes('tina') && name.includes('utas')) || name === 'tina') {
-    console.log(`✅ Found by partial name match: 4 for Tina/Kristina Utas`);
-    return '4';
-  }
-  
-  if (name.includes('jonas') && name.includes('ahlin')) {
-    console.log(`✅ Found by partial name match: 11 for Jonas Ahlin`);
-    return '11';
+  try {
+    // Try email match first (most reliable)
+    if (email) {
+      const { data: emailMatch } = await supabase
+        .from('residents')
+        .select('apartment_number')
+        .eq('primary_email', bookingEmail)
+        .eq('is_active', true)
+        .single();
+      
+      if (emailMatch) {
+        console.log(`✅ Found by email match: ${emailMatch.apartment_number} for "${email}"`);
+        return emailMatch.apartment_number;
+      }
+    }
+    
+    // Try name matching against resident names
+    if (name) {
+      const { data: residents } = await supabase
+        .from('residents')
+        .select('apartment_number, resident_names')
+        .eq('is_active', true);
+      
+      if (residents) {
+        for (const resident of residents) {
+          const residentNames = resident.resident_names.toLowerCase();
+          // Check if the booking name is contained in the resident names
+          if (residentNames.includes(name)) {
+            console.log(`✅ Found by name match: ${resident.apartment_number} for "${name}" in "${resident.resident_names}"`);
+            return resident.apartment_number;
+          }
+        }
+        
+        // Try partial matching for common name variations
+        const nameWords = name.split(' ').filter(word => word.length > 2);
+        for (const resident of residents) {
+          const residentNames = resident.resident_names.toLowerCase();
+          for (const word of nameWords) {
+            if (residentNames.includes(word)) {
+              console.log(`✅ Found by partial name match: ${resident.apartment_number} for word "${word}" in "${resident.resident_names}"`);
+              return resident.apartment_number;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in getApartmentNumberByName:', error);
   }
   
   console.log(`❌ No apartment found for: "${bookingName}" (${bookingEmail})`);
@@ -330,7 +299,7 @@ function formatBookingPeriod(startDate: Date, endDate: Date, month: number): str
   return `${startDay} ${monthNames[startMonth - 1]} - ${endDay} ${monthNames[endMonth - 1]}`;
 }
 
-function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month: number) {
+async function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month: number, supabase: any) {
   console.log('=== TRANSFORMING BOOKINGS ===');
   console.log(`Input bookings count: ${bookings.length}`);
   console.log('Raw bookings data:', JSON.stringify(bookings, null, 2));
@@ -352,7 +321,7 @@ function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month
     
     if (nights > 0) {
       // Get apartment number by matching name/email to resident directory
-      const apartmentNumber = getApartmentNumberByName(booking.name, booking.email);
+      const apartmentNumber = await getApartmentNumberByName(booking.name, booking.email, supabase);
       
       console.log(`🏠 Apartment: ${apartmentNumber} (mapped from name: "${booking.name}")`);
       
@@ -428,97 +397,32 @@ function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month
   console.log('Final HSB data:', JSON.stringify(hsbData, null, 2));
 }
 
-function getResidentDirectory(): ResidentData[] {
-  return [
-    {
-      apartmentNumber: '1, 80 D',
-      resident: 'Anette Malmgren, Leif Nilsson',
-      phone: '0702360807',
-      email: 'anette-malmgren@hotmail.com',
-      parkingSpace: '6',
-      storageSpace: '1'
-    },
-    {
-      apartmentNumber: '2, 80 C',
-      resident: 'Manuela Gavrila, Cornel Oancea',
-      phone: '0706711766',
-      email: 'cornel@telia.com',
-      parkingSpace: '4',
-      storageSpace: '2'
-    },
-    {
-      apartmentNumber: '3, 80 B',
-      resident: 'Solbritt Fredin',
-      phone: '0705917205', 
-      email: 'soli.fredin@gmail.com',
-      parkingSpace: '',
-      storageSpace: '3'
-    },
-    {
-      apartmentNumber: '4, 80 A',
-      resident: 'Kristina Utas',
-      phone: '0705557008',
-      email: 'tinautas@hotmail.com', 
-      parkingSpace: '9',
-      storageSpace: '4'
-    },
-    {
-      apartmentNumber: '5, 80 H',
-      resident: 'Annie Hörberg, Pontus Hörberg',
-      phone: '0702882147',
-      email: 'annie_malmgren@hotmail.com',
-      parkingSpace: '3', 
-      storageSpace: '5'
-    },
-    {
-      apartmentNumber: '6, 80 G',
-      resident: 'PGN Konsult AB (Per-Göran Nilsson), Tove Nilsson',
-      phone: '0709421449',
-      email: 'pergorannilsson@hotmail.com',
-      parkingSpace: '', 
-      storageSpace: '6'
-    },
-    {
-      apartmentNumber: '7, 80 F',
-      resident: 'Agnes Adaktusson, Jacob Adaktusson',
-      phone: '0707953153',
-      email: 'agnes.@upsec.se',
-      parkingSpace: '5', 
-      storageSpace: '7'
-    },
-    {
-      apartmentNumber: '8, 80 E',
-      resident: 'Karin Höjman, Peter Höjman',
-      phone: '0706425150',
-      email: 'hojman.karin@gmail.com',
-      parkingSpace: '7', 
-      storageSpace: '8'
-    },
-    {
-      apartmentNumber: '9, 80 I',
-      resident: 'David Svenn',
-      phone: '0703310995',
-      email: 'david.svenn@agriadvokater.se',
-      parkingSpace: '2', 
-      storageSpace: '9'
-    },
-    {
-      apartmentNumber: '10, 80 J',
-      resident: 'Anna-Lena Lindqvist, Anders Lindqvist',
-      phone: '0707960909',
-      email: 'abytorp70@icloud.com',
-      parkingSpace: '7', 
-      storageSpace: '10'
-    },
-    {
-      apartmentNumber: '11, 80 K',
-      resident: 'Jonas Ahlin',
-      phone: '0706255107',
-      email: 'ahlinsweden@gmail.com',
-      parkingSpace: '',
-      storageSpace: '11'
+async function getResidentDirectory(supabase: any): Promise<ResidentData[]> {
+  try {
+    const { data: residents, error } = await supabase
+      .from('residents')
+      .select('*')
+      .eq('is_active', true)
+      .order('apartment_number');
+
+    if (error) {
+      console.error('Error fetching residents:', error);
+      return []; // Return empty array on error
     }
-  ];
+
+    // Transform database format to expected interface
+    return residents.map((resident: any) => ({
+      apartmentNumber: `${resident.apartment_number}, ${resident.apartment_code}`,
+      resident: resident.resident_names,
+      phone: resident.phone || '',
+      email: resident.primary_email || '',
+      parkingSpace: resident.parking_space || '',
+      storageSpace: resident.storage_space || ''
+    }));
+  } catch (error) {
+    console.error('Error in getResidentDirectory:', error);
+    return []; // Return empty array on error
+  }
 }
 
 function generateCSVReport(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string): Uint8Array {

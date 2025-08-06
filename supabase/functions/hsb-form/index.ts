@@ -94,57 +94,13 @@ Deno.serve(async (req) => {
 
     // Transform bookings to HSB format
     const hsbData = transformBookingsForHSB(bookings || []);
-    const residentData = getResidentDirectory();
+    const residentData = await getResidentDirectory(supabase);
     
     console.log(`Processing HSB report - Found ${bookings?.length || 0} bookings, generated ${hsbData.length} HSB entries`);
     
-    // Always add demo data for testing
-    const demoData: HSBReportItem[] = [
-      {
-        apartmentNumber: '80A',
-        resident: 'Kristina Utas',
-        email: 'tinautas@hotmail.com',
-        phone: '0705557008',
-        description: 'Hyra gästlägenhet 2 juli',
-        quantity: 1,
-        unitPrice: 600.00,
-        totalAmount: 600.00
-      },
-      {
-        apartmentNumber: '80H',
-        resident: 'Pontus Hörberg',
-        email: 'gulmaranbrf@gmail.com',
-        phone: '0702887147',
-        description: 'Parkering',
-        quantity: 1,
-        unitPrice: 75.00,
-        totalAmount: 75.00
-      },
-      {
-        apartmentNumber: '80A',
-        resident: 'Kristina Utas',
-        email: 'tinautas@hotmail.com',
-        phone: '0705557008',
-        description: 'Hyra gästlägenhet 3-5 juli',
-        quantity: 2,
-        unitPrice: 600.00,
-        totalAmount: 1200.00
-      },
-      {
-        apartmentNumber: '80F',
-        resident: 'Jacob Adaktusson',
-        email: 'jacob@upsec.se',
-        phone: '0707962064',
-        description: 'Parkering',
-        quantity: 3,
-        unitPrice: 75.00,
-        totalAmount: 225.00
-      }
-    ];
-
-    // Add demo data for testing
-    hsbData.push(...demoData);
-    console.log(`Total HSB entries after adding demo data: ${hsbData.length}`);
+    // Demo data removed - GDPR compliance fix
+    // All data now comes from secure database lookups only
+    console.log(`Total HSB entries from real data: ${hsbData.length}`);
 
     if (format === 'preview') {
       // Return data for preview
@@ -247,97 +203,32 @@ function transformBookingsForHSB(bookings: any[]): HSBReportItem[] {
   return hsbItems;
 }
 
-function getResidentDirectory(): ResidentData[] {
-  return [
-    {
-      apartmentNumber: '1, 80 D',
-      resident: 'Anette Malmgren, Leif Nilsson',
-      phone: '0702360807',
-      email: 'anette-malmgren@hotmail.com',
-      parkingSpace: '6',
-      storageSpace: '1'
-    },
-    {
-      apartmentNumber: '2, 80 C', 
-      resident: 'Manuela Gavrila, Cornel Oancea',
-      phone: '0706711766',
-      email: 'cornel@telia.com',
-      parkingSpace: '4',
-      storageSpace: '2'
-    },
-    {
-      apartmentNumber: '3, 80 B',
-      resident: 'Solbritt Fredin',
-      phone: '0705917205',
-      email: 'soli.fredin@gmail.com',
-      parkingSpace: '',
-      storageSpace: '3'
-    },
-    {
-      apartmentNumber: '4, 80 A',
-      resident: 'Kristina Utas',
-      phone: '0705557008',
-      email: 'tinautas@hotmail.com',
-      parkingSpace: '9',
-      storageSpace: '4'
-    },
-    {
-      apartmentNumber: '5, 80 H',
-      resident: 'Annie Hörberg, Pontus Hörberg',
-      phone: '0702882147',
-      email: 'annie_malmgren@hotmail.com',
-      parkingSpace: '3',
-      storageSpace: '5'
-    },
-    {
-      apartmentNumber: '6, 80 G',
-      resident: 'PGN Konsult AB (Per-Göran Nilsson), Tove Nilsson',
-      phone: '0709421449',
-      email: 'pergorannilsson@hotmail.com',
-      parkingSpace: '',
-      storageSpace: '6'
-    },
-    {
-      apartmentNumber: '7, 80 F',
-      resident: 'Agnes Adaktusson, Jacob Adaktusson',
-      phone: '0707953153',
-      email: 'agnes.@upsec.se',
-      parkingSpace: '5',
-      storageSpace: '7'
-    },
-    {
-      apartmentNumber: '8, 80 E',
-      resident: 'Karin Höjman, Peter Höjman',
-      phone: '0706425150',
-      email: 'hojman.karin@gmail.com',
-      parkingSpace: '7',
-      storageSpace: '8'
-    },
-    {
-      apartmentNumber: '9, 80 I',
-      resident: 'David Svenn',
-      phone: '0703310995',
-      email: 'david.svenn@agriadvokater.se',
-      parkingSpace: '2',
-      storageSpace: '9'
-    },
-    {
-      apartmentNumber: '10, 80 J',
-      resident: 'Anna-Lena Lindqvist, Anders Lindqvist',
-      phone: '0707960909',
-      email: 'abytorp70@icloud.com',
-      parkingSpace: '7',
-      storageSpace: '10'
-    },
-    {
-      apartmentNumber: '11, 80 K',
-      resident: 'Jonas Ahlin',
-      phone: '0706255107',
-      email: 'ahlinsweden@gmail.com',
-      parkingSpace: '',
-      storageSpace: '11'
+async function getResidentDirectory(supabase: any): Promise<ResidentData[]> {
+  try {
+    const { data: residents, error } = await supabase
+      .from('residents')
+      .select('*')
+      .eq('is_active', true)
+      .order('apartment_number');
+
+    if (error) {
+      console.error('Error fetching residents:', error);
+      return []; // Return empty array on error
     }
-  ];
+
+    // Transform database format to expected interface
+    return residents.map((resident: any) => ({
+      apartmentNumber: `${resident.apartment_number}, ${resident.apartment_code}`,
+      resident: resident.resident_names,
+      phone: resident.phone || '',
+      email: resident.primary_email || '',
+      parkingSpace: resident.parking_space || '',
+      storageSpace: resident.storage_space || ''
+    }));
+  } catch (error) {
+    console.error('Error in getResidentDirectory:', error);
+    return []; // Return empty array on error
+  }
 }
 
 function generateExcelContent(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number): Uint8Array {
