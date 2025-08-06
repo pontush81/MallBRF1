@@ -19,7 +19,6 @@ import {
 import { 
   Edit as EditIcon, 
   Delete as DeleteIcon, 
-  Visibility as ViewIcon,
   Add as AddIcon,
   Article as ArticleIcon,
   CalendarToday as CalendarIcon

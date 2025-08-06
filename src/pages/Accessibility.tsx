@@ -15,8 +15,6 @@ import {
   CardContent
 } from '@mui/material';
 import {
-  Accessible as AccessibleIcon,
-  Hearing as HearingIcon,
   Visibility as VisionIcon,
   TouchApp as TouchIcon
 } from '@mui/icons-material';

@@ -32,7 +32,6 @@ import {
 } from '@mui/material';
 import {
   Storage as StorageIcon,
-  Delete as DeleteIcon,
   Security as SecurityIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,

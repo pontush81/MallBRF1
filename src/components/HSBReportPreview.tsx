@@ -79,6 +79,7 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
   
   useEffect(() => {
     fetchReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   const fetchReportData = async () => {
@@ -247,7 +248,7 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
         });
 
         if (response.ok) {
-          const result = await response.json();
+          await response.json();
           console.log('HSB report sent successfully via API');
           onSent('HSB-rapporten har skickats till HSB och administratören via e-post');
           setConfirmDialog(false);

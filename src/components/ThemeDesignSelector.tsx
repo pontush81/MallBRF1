@@ -6,26 +6,20 @@ import {
   FormControl,
   FormLabel,
   Divider,
-  Switch,
-  FormControlLabel,
   Select,
   MenuItem,
   InputLabel,
-  useMediaQuery,
   alpha,
   Card,
   CardContent
 } from '@mui/material';
-import { 
-  TextFields 
-} from '@mui/icons-material';
+
 import { useTheme as useMuiTheme } from '@mui/material/styles';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeDesign, ThemeFont, fontFamilies } from '../theme/theme';
 
 // Komponent för att visa en förhandsvisning av ett tema
 const ThemePreviewChip: React.FC<{ design: ThemeDesign }> = ({ design }) => {
-  const muiTheme = useMuiTheme();
   const { getPreviewColors } = useTheme();
   const colors = getPreviewColors(design);
   
@@ -65,7 +59,6 @@ const ThemePreviewChip: React.FC<{ design: ThemeDesign }> = ({ design }) => {
 // Designväljare för administratörsgränssnittet
 const ThemeDesignSelector: React.FC = () => {
   const muiTheme = useMuiTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   const { 
     design, 
     fontFamily,

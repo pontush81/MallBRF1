@@ -25,12 +25,9 @@ import {
     Alert,
     CircularProgress,
     Divider,
-    Chip,
     Grid
 } from '@mui/material';
 import { 
-    Download as DownloadIcon,
-    Delete as DeleteIcon,
     Add as AddIcon,
     Refresh as RefreshIcon,
     Backup as BackupIcon,
@@ -54,13 +51,12 @@ const TABLES_TO_BACKUP = [
 
 const BackupManager: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [selectedTables, setSelectedTables] = useState<string[]>(['bookings']);
     const [backups, setBackups] = useState<Backup[]>([]);
     const [loading, setLoading] = useState(false);
     const [backupName, setBackupName] = useState('');
     const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
-    const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null);
+    const [selectedBackup] = useState<Backup | null>(null);
     
     // Snackbar
     const [snackbarOpen, setSnackbarOpen] = useState(false);

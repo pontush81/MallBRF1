@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     cookieConsentService.addListener(handleConsentChange);
     return () => cookieConsentService.removeListener(handleConsentChange);
-  }, [currentUser]);
+  }, [currentUser, validateSession]);
 
   // Initialize and validate session
   useEffect(() => {
@@ -170,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearUserData();
       setLoading(false);
     }
-  }, [firebaseAvailable]);
+  }, [firebaseAvailable, validateSession]);
 
   // Validate session when user returns to the tab/window
   useEffect(() => {
@@ -193,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLoggedIn, firebaseAvailable]);
+  }, [isLoggedIn, firebaseAvailable, validateSession]);
   
   const login = async (user: User) => {
     console.log('🔍 Starting login process for:', user.email);

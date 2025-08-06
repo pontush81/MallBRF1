@@ -1,5 +1,5 @@
 import supabaseClient from './supabaseClient';
-import { Page, FileInfo } from '../types/Page';
+import { Page } from '../types/Page';
 import { logUserAccess, logAnonymousAccess } from './auditLog';
 
 // Transform function to convert from database format to frontend format

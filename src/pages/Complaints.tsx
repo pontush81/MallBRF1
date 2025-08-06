@@ -16,7 +16,6 @@ import {
   ListItemIcon
 } from '@mui/material';
 import {
-  Report as ComplaintIcon,
   Security as PrivacyIcon,
   Business as BrfIcon,
   Gavel as LegalIcon,

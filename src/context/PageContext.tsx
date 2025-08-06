@@ -63,7 +63,7 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loading,
     error,
     loadAllPages
-  }), [pages, loading, error]);
+  }), [pages, loading, error, loadAllPages]);
   
   return (
     <PageContext.Provider value={contextValue}>
