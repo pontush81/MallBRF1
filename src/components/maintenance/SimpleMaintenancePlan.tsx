@@ -287,70 +287,67 @@ const SimpleMaintenancePlan: React.FC = () => {
     }
   };
 
-  // 🗓️ FÖRBÄTTRAD hjälpfunktion för att beräkna nästa förfallodatum
+  // 🗓️ ROBUST hjälpfunktion för att beräkna nästa förfallodatum
   const calculateNextDueDate = (currentDueDate: string | undefined, pattern: string | undefined): string | undefined => {
     if (!currentDueDate || !pattern) return undefined;
     
     const current = new Date(currentDueDate);
-    let next = new Date(current);
     
     // 🔍 DEBUG: Logga beräkning för alla mönster
     console.log(`🗓️ Calculating next due date from: ${currentDueDate} (pattern: ${pattern})`);
     
+    let year = current.getFullYear();
+    let month = current.getMonth();  // 0-based (0 = Jan)
+    let day = current.getDate();
+    
     switch (pattern) {
       case 'monthly':
-        next.setMonth(next.getMonth() + 1);
-        // 🎯 KORREKT månadsslut-hantering
-        if (next.getDate() !== current.getDate()) {
-          // Gå till sista dagen i rätt månad
-          next.setDate(0);
-          console.log(`⚠️ Month-end adjustment: ${current.getDate()} -> ${next.getDate()}`);
+        month += 1;
+        if (month >= 12) {
+          year += 1;
+          month = 0;
         }
         break;
       case 'quarterly':
-        // Korrekt kvartal (3 månader)
-        const targetMonth = current.getMonth() + 3;
-        const targetYear = current.getFullYear() + Math.floor(targetMonth / 12);
-        next.setFullYear(targetYear);
-        next.setMonth(targetMonth % 12);
-        next.setDate(current.getDate());
-        
-        // Om dagen inte finns i målmånaden, använd sista dagen
-        if (next.getDate() !== current.getDate()) {
-          next.setDate(0);
-          console.log(`⚠️ Quarter-end adjustment: ${current.getDate()} -> ${next.getDate()}`);
+        month += 3;
+        while (month >= 12) {
+          year += 1;
+          month -= 12;
         }
         break;
       case 'semi_annually':
-        // Korrekt halvår (6 månader)
-        const semiTargetMonth = current.getMonth() + 6;
-        const semiTargetYear = current.getFullYear() + Math.floor(semiTargetMonth / 12);
-        next.setFullYear(semiTargetYear);
-        next.setMonth(semiTargetMonth % 12);
-        next.setDate(current.getDate());
-        
-        // Om dagen inte finns i målmånaden, använd sista dagen
-        if (next.getDate() !== current.getDate()) {
-          next.setDate(0);
-          console.log(`⚠️ Semi-annual adjustment: ${current.getDate()} -> ${next.getDate()}`);
+        month += 6;
+        while (month >= 12) {
+          year += 1;
+          month -= 12;
         }
         break;
       case 'annually':
-        next.setFullYear(next.getFullYear() + 1);
-        
-        // 🎯 SPECIAL HANTERING AV SKOTTÅR (29 feb -> 28 feb)
-        if (current.getMonth() === 1 && current.getDate() === 29) {
-          // 29 februari på skottår -> 28 februari nästa år om det inte är skottår
-          const isNextYearLeap = ((next.getFullYear() % 4 === 0 && next.getFullYear() % 100 !== 0) || (next.getFullYear() % 400 === 0));
+        year += 1;
+        // Special handling för Feb 29 på skottår
+        if (month === 1 && day === 29) {
+          const isNextYearLeap = ((year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0));
           if (!isNextYearLeap) {
-            next.setDate(28);
-            console.log(`⚠️ Leap year adjustment: Feb 29 -> Feb 28 (${next.getFullYear()} is not a leap year)`);
+            day = 28;
+            console.log(`⚠️ Leap year adjustment: Feb 29 -> Feb 28 (${year} is not a leap year)`);
           }
         }
         break;
       default:
         console.warn(`❌ Unknown recurrence pattern: ${pattern}`);
         return undefined;
+    }
+    
+    // Skapa nytt datum och hantera månadsslut
+    const next = new Date(year, month, 1);  // Börja med första dagen i månaden
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();  // Sista dagen i månaden
+    
+    if (day > lastDayOfMonth) {
+      // Om ursprungsdagen inte finns i målmånaden, använd sista dagen
+      next.setDate(lastDayOfMonth);
+      console.log(`⚠️ Month-end adjustment: ${day} -> ${lastDayOfMonth} (${year}-${month + 1})`);
+    } else {
+      next.setDate(day);
     }
     
     const result = next.toISOString().split('T')[0];
