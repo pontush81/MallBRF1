@@ -30,6 +30,21 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
   
+  // Add a cleanup effect for GDPR-deleted users
+  useEffect(() => {
+    // Clear any partial login state when login page loads
+    const clearPartialLoginState = () => {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        console.log('🧹 Clearing any existing login state on login page load');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isLoggedIn');
+      }
+    };
+    
+    clearPartialLoginState();
+  }, []);
+
   // Add a useEffect to catch any unhandled GDPR errors
   useEffect(() => {
     const handleUnhandledRejection = (event: any) => {
@@ -70,8 +85,10 @@ const Login: React.FC = () => {
       console.log('✅ Google auth successful, user:', user?.email);
       
       if (user) {
+        console.log('🔍 Calling login function for user:', user.email);
+        
+        // Wrap login call in additional try-catch to ensure GDPR errors are caught
         try {
-          console.log('🔍 Calling login function for user:', user.email);
           await login(user);
           console.log('✅ Login successful, navigating...');
           navigate('/pages');
@@ -79,7 +96,15 @@ const Login: React.FC = () => {
           console.error('❌ Login error after Google auth:', loginError);
           console.error('❌ Error message:', loginError.message);
           console.error('❌ Full error object:', loginError);
-          handleAuthError(loginError);
+          
+          // Force error display regardless of error structure
+          if (loginError && (loginError.message || loginError.toString()).includes('GDPR')) {
+            console.log('🚨 FORCING GDPR ERROR DISPLAY');
+            setError('🚫 Ditt konto har raderats permanent enligt din GDPR-begäran om radering. Du kan inte längre logga in i systemet. Kontakta administratören om du har frågor.');
+          } else {
+            handleAuthError(loginError);
+          }
+          return; // Stop execution here
         }
       }
     } catch (err: any) {
@@ -102,8 +127,10 @@ const Login: React.FC = () => {
       console.log('✅ Microsoft auth successful, user:', user?.email);
       
       if (user) {
+        console.log('🔍 Calling login function for user:', user.email);
+        
+        // Wrap login call in additional try-catch to ensure GDPR errors are caught
         try {
-          console.log('🔍 Calling login function for user:', user.email);
           await login(user);
           console.log('✅ Login successful, navigating...');
           navigate('/pages');
@@ -111,7 +138,15 @@ const Login: React.FC = () => {
           console.error('❌ Login error after Microsoft auth:', loginError);
           console.error('❌ Error message:', loginError.message);
           console.error('❌ Full error object:', loginError);
-          handleAuthError(loginError);
+          
+          // Force error display regardless of error structure
+          if (loginError && (loginError.message || loginError.toString()).includes('GDPR')) {
+            console.log('🚨 FORCING GDPR ERROR DISPLAY');
+            setError('🚫 Ditt konto har raderats permanent enligt din GDPR-begäran om radering. Du kan inte längre logga in i systemet. Kontakta administratören om du har frågor.');
+          } else {
+            handleAuthError(loginError);
+          }
+          return; // Stop execution here
         }
       }
     } catch (err: any) {

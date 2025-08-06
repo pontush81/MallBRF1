@@ -196,24 +196,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isLoggedIn, firebaseAvailable]);
   
   const login = async (user: User) => {
-    setCurrentUser(user);
-    setIsLoggedIn(true);  
-    setIsAdmin(user.role === 'admin');
+    console.log('🔍 Starting login process for:', user.email);
     
-    // Save to localStorage
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    localStorage.setItem('isLoggedIn', 'true');
-    
-    // Sync user to Supabase so RLS policies work
+    // CRITICAL: Check GDPR/Supabase sync BEFORE setting login state
+    // This prevents partial login states that confuse error handling
     try {
+      console.log('🔍 Syncing user to Supabase before login...');
       await syncUserToSupabase(user);
+      console.log('✅ Supabase sync successful, proceeding with login');
     } catch (error) {
-      console.error('Failed to sync user to Supabase:', error);
+      console.error('❌ Failed to sync user to Supabase:', error);
       
       // CRITICAL: If this is a GDPR-related error, we MUST prevent login completely
       if (error.message && error.message.includes('GDPR erasure request')) {
         console.error('🚨 GDPR VIOLATION: Preventing login for deleted user');
-        // Reset login state
+        
+        // Make sure no login state is set
         setCurrentUser(null);
         setIsLoggedIn(false);
         setIsAdmin(false);
@@ -226,11 +224,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           auth.signOut();
         }
         
+        // Throw error that will be caught by Login component
         throw new Error('Account access denied: Your account has been permanently deleted per GDPR erasure request. You cannot log in to this system. same_user_attempting_restoration');
       }
       
-      // For other sync errors, don't prevent login but log the issue
+      // For other sync errors, log but continue with login (non-critical)
+      console.warn('⚠️ Non-critical sync error, allowing login to continue:', error.message);
     }
+    
+    // Only set login state after successful GDPR/Supabase checks
+    console.log('✅ Setting user as logged in:', user.email);
+    setCurrentUser(user);
+    setIsLoggedIn(true);  
+    setIsAdmin(user.role === 'admin');
+    
+    // Save to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem('isLoggedIn', 'true');
   };
 
   const logout = () => {

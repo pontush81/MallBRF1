@@ -1,10 +1,10 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Importera den nya ThemeProvider
 import { ThemeProvider } from './context/ThemeContext';
-import { startVersionCheck } from './utils/versionCheck';
+
 
 // Debug tools för att lösa bokningsproblem
 import './utils/debugBookings';
@@ -268,11 +268,6 @@ function AppRoutes() {
 }
 
 function App() {
-  useEffect(() => {
-    // Start version checking to detect updates and prevent cache issues
-    startVersionCheck();
-  }, []);
-
   return (
     <ErrorBoundary>
       <ThemeProvider>
