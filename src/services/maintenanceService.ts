@@ -16,8 +16,45 @@ export interface MaintenanceTask {
   is_template?: boolean;
   parent_template_id?: string;
   next_due_date?: string;
+  end_date?: string; // Slutdatum för återkommande uppgifter
+  // Tilldelning och notifieringar
+  assignee_id?: string;
+  assigned_at?: string;
+  assigned_by?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UserNotificationPreferences {
+  id?: string;
+  user_id: string;
+  task_assigned: boolean;
+  task_due_reminder: boolean;
+  task_overdue: boolean;
+  task_completed: boolean;
+  email_notifications: boolean;
+  in_app_notifications: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface NotificationLog {
+  id?: string;
+  task_id: string;
+  recipient_id: string;
+  notification_type: 'TASK_ASSIGNED' | 'TASK_DUE_REMINDER' | 'TASK_OVERDUE' | 'TASK_COMPLETED';
+  channel: 'EMAIL' | 'IN_APP';
+  sent_at?: string;
+  status: 'SENT' | 'FAILED' | 'PENDING';
+  error_message?: string;
+  metadata?: any;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
 }
 
 export interface ProjectDocument {
@@ -68,6 +105,25 @@ export const getMaintenanceTasksByYear = async (year: number): Promise<Maintenan
     }, []);
   } catch (error) {
     console.error('Error fetching maintenance tasks:', error);
+    return [];
+  }
+};
+
+// Hämta ALLA underhållsuppgifter från alla år
+export const getAllMaintenanceTasks = async (): Promise<MaintenanceTask[]> => {
+  try {
+    return await executeWithRLS(async (supabase) => {
+      const { data, error } = await supabase
+        .from('maintenance_tasks')
+        .select('*')
+        .order('year', { ascending: true })
+        .order('category', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    }, []);
+  } catch (error) {
+    console.error('Error fetching all maintenance tasks:', error);
     return [];
   }
 };
@@ -183,45 +239,23 @@ export const deleteMajorProject = async (projectId: string): Promise<boolean> =>
   }
 };
 
-// Mallfunktioner för att skapa årliga uppgifter
-export const ANNUAL_MAINTENANCE_TEMPLATE = [
-  // Vinter
-  { name: 'Snöröjning', description: 'Hålla gångar och ingångar fria från snö', category: 'winter' as const },
-  { name: 'Sandning/Halkbekämpning', description: 'Sand på halka ytor', category: 'winter' as const },
-  { name: 'Kontroll av värme/ventilation', description: 'Se till att värme och ventilation fungerar', category: 'winter' as const },
-  
-  // Vår
-  { name: 'Rensa stuprör och hängrännor', description: 'Rensa från löv och skräp', category: 'spring' as const },
-  { name: 'Kontroll av tak', description: 'Kontrollera takpannor, plåt och tätningar', category: 'spring' as const },
-  { name: 'Kontroll av fasad', description: 'Leta efter sprickor, fuktskador', category: 'spring' as const },
-  { name: 'Brandskyddsrond', description: 'Kontrollera brandskydd och utrymningsvägar', category: 'spring' as const },
-  
-  // Sommar
-  { name: 'Målning/Underhåll utomhus', description: 'Måla dörrar, fönster, staket', category: 'summer' as const },
-  { name: 'Trädgårdsarbete', description: 'Klippa häckar, gräs, sköta rabatter', category: 'summer' as const },
-  { name: 'Rengöring av gemensamma utrymmen', description: 'Städa trapphus, källare, soprum', category: 'summer' as const },
-  { name: 'Kontroll av lekplatser/uteplatser', description: 'Säkerhetskontroll av gemensamma ytor', category: 'summer' as const },
-  
-  // Höst
-  { name: 'Rensa löv', description: 'Kratta löv från gångar och gräsytor', category: 'autumn' as const },
-  { name: 'Kontroll innan vinter', description: 'Vattenavstängningar, frostskydd', category: 'autumn' as const },
-  { name: 'Rengöring stuprör', description: 'Slutrengöring av stuprör inför vintern', category: 'autumn' as const },
-  
-  // Löpande
-  { name: 'Växla dörrfilter ventilation', description: 'Byt ventilationsfilter 2 gånger/år', category: 'ongoing' as const },
-  { name: 'Kontroll av gemensamma lås', description: 'Smörj och kontrollera lås', category: 'ongoing' as const },
-  { name: 'Kontroll av belysning', description: 'Byt glödlampor i gemensamma utrymmen', category: 'ongoing' as const }
-];
+// 🚫 PERMANENTLY DISABLED TEMPLATE - No automatic task creation
+// Users must manually create tasks when needed
+// 
+// Previously this would auto-create 17 tasks for every year
+// which was filling up the maintenance plan against user wishes
+//
+// OLD TEMPLATE MOVED TO COMMENTS FOR REFERENCE:
+// Winter: Snöröjning, Sandning, Kontroll värme/ventilation  
+// Spring: Rensa stuprör, Kontroll tak/fasad, Brandskyddsrond
+// Summer: Målning, Trädgård, Rengöring, Kontroll lekplatser
+// Autumn: Rensa löv, Kontroll före vinter, Rengöring stuprör
+// Ongoing: Ventilationsfilter, Lås, Belysning
 
+// 🚫 DISABLED - This function is no longer used
 export const createAnnualMaintenancePlan = async (year: number): Promise<MaintenanceTask[]> => {
-  const tasks: Omit<MaintenanceTask, 'created_at' | 'updated_at'>[] = ANNUAL_MAINTENANCE_TEMPLATE.map((template, index) => ({
-    id: `maintenance_${year}_${index}`,
-    ...template,
-    year,
-    completed: false
-  }));
-
-  return await createMaintenanceTasksForYear(tasks);
+  console.warn('⚠️ createAnnualMaintenancePlan is DISABLED - no tasks will be created automatically');
+  return []; // Return empty array instead of creating tasks
 };
 
 // Ta bort underhållsuppgift
@@ -277,5 +311,107 @@ export const deleteProjectDocument = async (filePath: string) => {
   } catch (error) {
     console.error('Error deleting project document:', error);
     return false;
+  }
+};
+
+// =============================================
+// TILLDELNING OCH NOTIFIERINGAR
+// =============================================
+
+// Hämta alla användare för tilldelning
+export const getUsers = async (): Promise<User[]> => {
+  try {
+    return await executeWithRLS(async (supabase) => {
+      // Hämta användare från auth.users via RPC-funktion eller direkt query
+      // För nu, returnera mock-data tills vi har rätt permissions
+      const { data, error } = await supabase
+        .from('profiles') // Antag att vi har en profiles-tabell
+        .select('id, email, full_name, avatar_url');
+
+      if (error) {
+        console.log('⚠️ Profiles table not found, using mock data');
+        // Returnera mock-data för utveckling
+        return [
+          {
+            id: '1',
+            email: 'admin@gulmaran.se',
+            full_name: 'Administratör',
+            avatar_url: undefined
+          },
+          {
+            id: '2', 
+            email: 'styrelse@gulmaran.se',
+            full_name: 'Styrelsen',
+            avatar_url: undefined
+          }
+        ];
+      }
+
+      return data.map(user => ({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.full_name || user.email?.split('@')[0] || 'Okänd användare',
+        avatar_url: user.avatar_url
+      }));
+    }, []);
+
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    return [];
+  }
+};
+
+// Tilldela uppgift till användare
+export const assignTask = async (taskId: string, assigneeId: string, assignedBy: string): Promise<boolean> => {
+  try {
+    return await executeWithRLS(async (supabase) => {
+      const { data, error } = await supabase
+        .from('maintenance_tasks')
+        .update({
+          assignee_id: assigneeId,
+          assigned_at: new Date().toISOString(),
+          assigned_by: assignedBy,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error assigning task:', error);
+        throw error;
+      }
+
+      console.log('✅ Task assigned successfully:', data);
+      return true;
+    }, false);
+
+  } catch (error) {
+    console.error('❌ Error in assignTask:', error);
+    return false;
+  }
+};
+
+// Hämta uppgifter tilldelade till en specifik användare
+export const getTasksAssignedToUser = async (userId: string): Promise<MaintenanceTask[]> => {
+  try {
+    return await executeWithRLS(async (supabase) => {
+      const { data, error } = await supabase
+        .from('maintenance_tasks')
+        .select('*')
+        .eq('assignee_id', userId)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error fetching assigned tasks:', error);
+        throw error;
+      }
+
+      return data || [];
+    }, []);
+
+  } catch (error) {
+    console.error('❌ Error in getTasksAssignedToUser:', error);
+    return [];
   }
 };

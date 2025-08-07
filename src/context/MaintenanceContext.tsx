@@ -57,33 +57,12 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
           convertedTasks.push(newTask);
         }
         
+        // 🚫 PERMANENTLY DISABLED - Do not auto-create maintenance tasks
+        // Let users manually create tasks when they need them
         if (convertedTasks.length === 0 && !isInitialized) {
-          // If no tasks exist, initialize with default data
-          const currentYear = new Date().getFullYear();
-          const defaultTasks: MaintenanceTask[] = [];
-          
-          for (const task of maintenanceTasksData) {
-            const taskObj = task as any;
-            const newTask: MaintenanceTask = {
-              id: taskObj.id,
-              months: taskObj.months || (taskObj.month ? [taskObj.month] : ['Januari']),
-              year: taskObj.year || currentYear,
-              task: taskObj.task,
-              description: taskObj.description,
-              responsible: taskObj.responsible,
-              status: taskObj.status,
-              comments: taskObj.comments,
-              category: taskObj.category,
-              dueDate: taskObj.dueDate,
-              createdAt: taskObj.createdAt,
-              updatedAt: taskObj.updatedAt
-            };
-            defaultTasks.push(newTask);
-          }
-          
-          await saveMaintenanceTasks(defaultTasks);
+          console.log('ℹ️ No existing tasks found, but auto-creation is disabled');
           setIsInitialized(true);
-          setTasks(defaultTasks);
+          setTasks([]); // Keep empty instead of creating default tasks
         } else {
           setTasks(convertedTasks);
         }
