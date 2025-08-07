@@ -50,7 +50,7 @@ const TABLES_TO_BACKUP = [
 ];
 
 const BackupManager: React.FC = () => {
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
     const [selectedTables, setSelectedTables] = useState<string[]>(['bookings']);
     const [backups, setBackups] = useState<Backup[]>([]);
     const [loading, setLoading] = useState(false);

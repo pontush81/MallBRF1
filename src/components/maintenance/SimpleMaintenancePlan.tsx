@@ -12,7 +12,7 @@ import {
   Checkbox,
   TextField,
   Button,
-  Divider,
+
   Chip,
   Card,
   CardContent,
@@ -60,7 +60,7 @@ import {
   MaintenanceTask,
   MajorProject,
   getMaintenanceTasksByYear,
-  getAllMaintenanceTasks,
+
   getMajorProjects,
   saveMaintenanceTask,
   saveMajorProject,
@@ -69,8 +69,12 @@ import {
   // createAnnualMaintenancePlan, // Tillfälligt inaktiverad
   uploadProjectDocument,
   getProjectDocuments,
-  deleteProjectDocument
+  deleteProjectDocument,
+  getUsers,
+
+  User
 } from '../../services/maintenanceService';
+import { sendTaskNotification } from '../../services/notificationService';
 
 
 
@@ -87,6 +91,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [majorProjects, setMajorProjects] = useState<MajorProject[]>([]);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   const [newProjectDialog, setNewProjectDialog] = useState(false);
   const [newProject, setNewProject] = useState<Partial<MajorProject>>({});
   const [newTaskDialog, setNewTaskDialog] = useState(false);
@@ -157,9 +162,13 @@ const SimpleMaintenancePlan: React.FC = () => {
         setTasks(existingTasks);
       // }
 
-      // Ladda större projekt
-      const projects = await getMajorProjects();
+      // Ladda större projekt och användare
+      const [projects, usersData] = await Promise.all([
+        getMajorProjects(),
+        getUsers()
+      ]);
       setMajorProjects(projects);
+      setUsers(usersData);
       
     } catch (err) {
       setError('Kunde inte ladda underhållsdata. Försök igen senare.');
@@ -187,6 +196,22 @@ const SimpleMaintenancePlan: React.FC = () => {
 
     // Spara till Supabase
     await saveMaintenanceTask(updatedTask);
+
+    // 📧 Skicka slutförd-notifiering om uppgiften var tilldelad
+    if (isCompleted && taskToUpdate.assignee_id) {
+      try {
+        await sendTaskNotification({
+          type: 'TASK_COMPLETED',
+          taskId: taskToUpdate.id,
+          assigneeId: taskToUpdate.assignee_id,
+          taskName: taskToUpdate.name,
+          description: taskToUpdate.description
+        });
+        console.log('✅ Task completion notification sent successfully');
+      } catch (notificationError) {
+        console.error('⚠️ Failed to send completion notification:', notificationError);
+      }
+    }
     
     // 🔄 ÅTERKOMMANDE LOGIK: Skapa nästa instans när uppgiften slutförs
     console.log('🔍 Task toggle debug:', {
@@ -282,6 +307,10 @@ const SimpleMaintenancePlan: React.FC = () => {
         is_template: false,
         next_due_date: newTask.is_recurring ? calculateNextDueDate(newTask.due_date, newTask.recurrence_pattern) : undefined,
         end_date: newTask.end_date, // Slutdatum för återkommande uppgifter
+        // Tilldelning
+        assignee_id: newTask.assignee_id,
+        assigned_at: newTask.assignee_id ? new Date().toISOString() : undefined,
+        assigned_by: newTask.assignee_id ? 'current-user-id' : undefined // TODO: Get actual current user ID
       };
 
       console.log('🔍 Adding new task:', task);
@@ -319,6 +348,25 @@ const SimpleMaintenancePlan: React.FC = () => {
           }
           // Stäng dialog för icke-återkommande uppgifter
           setNewTaskDialog(false);
+        }
+
+        // 📧 Skicka notifiering om uppgiften tilldelats någon
+        if (savedTask.assignee_id) {
+          try {
+            await sendTaskNotification({
+              type: 'TASK_ASSIGNED',
+              taskId: savedTask.id,
+              assigneeId: savedTask.assignee_id,
+              assignedBy: savedTask.assigned_by,
+              taskName: savedTask.name,
+              dueDate: savedTask.due_date,
+              description: savedTask.description
+            });
+            console.log('✅ Assignment notification sent successfully');
+          } catch (notificationError) {
+            console.error('⚠️ Failed to send assignment notification:', notificationError);
+            // Don't block the UI - notification failure is not critical
+          }
         }
       } else {
         console.error('❌ Failed to save task - no response from saveMaintenanceTask');
@@ -1005,6 +1053,25 @@ const SimpleMaintenancePlan: React.FC = () => {
           console.log(`🔄 Updated recurring task: ${savedTask.name} (${savedTask.recurrence_pattern})`);
           console.log(`📅 Next due: ${savedTask.next_due_date}`);
         }
+
+        // 📧 Skicka notifiering om tilldelning ändrats
+        const wasAssigned = originalTask?.assignee_id !== savedTask.assignee_id;
+        if (wasAssigned && savedTask.assignee_id) {
+          try {
+            await sendTaskNotification({
+              type: 'TASK_ASSIGNED',
+              taskId: savedTask.id,
+              assigneeId: savedTask.assignee_id,
+              assignedBy: 'current-user-id', // TODO: Get actual current user ID
+              taskName: savedTask.name,
+              dueDate: savedTask.due_date,
+              description: savedTask.description
+            });
+            console.log('✅ Assignment change notification sent successfully');
+          } catch (notificationError) {
+            console.error('⚠️ Failed to send assignment change notification:', notificationError);
+          }
+        }
       }
       
       setEditTaskDialog(false);
@@ -1211,6 +1278,20 @@ const SimpleMaintenancePlan: React.FC = () => {
               >
                 {task.name}
               </Typography>
+              
+              {task.assignee_id && (
+                <Chip 
+                  label={`👤 ${users.find(u => u.id === task.assignee_id)?.full_name || 'Tilldelad'}`}
+                  size="small"
+                  color="secondary"
+                  variant="outlined"
+                  sx={{ 
+                    height: isMobile ? '24px' : '20px',
+                    fontSize: isMobile ? '0.75rem' : '0.7rem',
+                    mr: isMobile ? 0.5 : 0
+                  }}
+                />
+              )}
 
               {task.is_recurring && !isMobile && (
                 <Chip 
@@ -2079,6 +2160,28 @@ const SimpleMaintenancePlan: React.FC = () => {
               />
             )}
 
+            {/* TILLDELNING */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+              👤 Tilldelning
+            </Typography>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Tilldela till användare</InputLabel>
+              <Select
+                value={newTask.assignee_id || ''}
+                onChange={(e) => setNewTask({...newTask, assignee_id: e.target.value})}
+                label="Tilldela till användare"
+              >
+                <MenuItem value="">
+                  <em>Ingen tilldelning</em>
+                </MenuItem>
+                {users.map(user => (
+                  <MenuItem key={user.id} value={user.id}>
+                    {user.full_name} ({user.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             {/* ÅTERKOMMANDE FUNKTIONALITET */}
             <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
               🔄 Återkommande underhåll
@@ -2341,6 +2444,25 @@ const SimpleMaintenancePlan: React.FC = () => {
               }}
               sx={{ mb: 2 }}
             />
+
+            {/* TILLDELNING */}
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Tilldela till användare</InputLabel>
+              <Select
+                value={editTask.assignee_id || ''}
+                onChange={(e) => setEditTask({...editTask, assignee_id: e.target.value})}
+                label="Tilldela till användare"
+              >
+                <MenuItem value="">
+                  <em>Ingen tilldelning</em>
+                </MenuItem>
+                {users.map(user => (
+                  <MenuItem key={user.id} value={user.id}>
+                    {user.full_name} ({user.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             {/* ÅTERKOMMANDE FUNKTIONALITET FÖR REDIGERING */}
             <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>

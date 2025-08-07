@@ -8,7 +8,7 @@ export interface MaintenanceTask {
   completed_date?: string;
   due_date?: string;
   notes?: string;
-
+  category: 'spring' | 'summer' | 'autumn' | 'winter' | 'ongoing';
   year: number;
   // Återkommande funktionalitet
   is_recurring?: boolean;
@@ -83,7 +83,7 @@ export interface MajorProject {
   approval_status?: 'pending' | 'board_approved' | 'agm_approved';
   approval_date?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-
+  category?: 'structure' | 'heating' | 'plumbing' | 'electrical' | 'exterior' | 'interior';
   notes?: string;
   documents?: ProjectDocument[];
   created_at?: string;
