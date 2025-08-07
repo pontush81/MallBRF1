@@ -23,10 +23,22 @@ import {
   DialogContent,
   DialogActions,
   FormControl,
+  FormControlLabel,
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Tooltip,
+  Backdrop,
+  LinearProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  useMediaQuery,
+  useTheme,
+  Collapse,
+  SpeedDial,
+  SpeedDialAction
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -40,12 +52,15 @@ import {
   AttachFile as AttachFileIcon,
   PictureAsPdf as PictureAsPdfIcon,
   Photo as PhotoIcon,
-  OpenInNew as OpenInNewIcon
+  OpenInNew as OpenInNewIcon,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 import {
   MaintenanceTask,
   MajorProject,
   getMaintenanceTasksByYear,
+  getAllMaintenanceTasks,
   getMajorProjects,
   saveMaintenanceTask,
   saveMajorProject,
@@ -78,10 +93,14 @@ const CATEGORY_COLORS = {
 };
 
 const SimpleMaintenancePlan: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const currentYear = new Date().getFullYear();
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [majorProjects, setMajorProjects] = useState<MajorProject[]>([]);
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [newProjectDialog, setNewProjectDialog] = useState(false);
   const [newProject, setNewProject] = useState<Partial<MajorProject>>({});
   const [newTaskDialog, setNewTaskDialog] = useState(false);
@@ -97,8 +116,39 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGeneratingRecurring, setIsGeneratingRecurring] = useState(false);
+  const [recurringProgress, setRecurringProgress] = useState({
+    isVisible: false,
+    currentStep: 0,
+    totalSteps: 0,
+    stepDescription: '',
+    percentage: 0,
+    instancesCreated: 0,
+    estimatedTimeRemaining: ''
+  });
 
-  // Ladda eller skapa årets underhållslista
+  // 🎹 Keyboard navigation för år-väljare
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Bara om vi inte är i en input/textarea
+      if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as Element).tagName)) {
+        return;
+      }
+      
+      if (event.key === 'ArrowLeft' && selectedYear > currentYear - 3) {
+        setSelectedYear(selectedYear - 1);
+        event.preventDefault();
+      } else if (event.key === 'ArrowRight' && selectedYear < currentYear + 6) {
+        setSelectedYear(selectedYear + 1);
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedYear, currentYear]);
+
+  // Ladda årets underhållslista - ENKEL VERSION utan on-demand generering
   useEffect(() => {
     loadMaintenanceData();
   }, [selectedYear]);
@@ -221,7 +271,12 @@ const SimpleMaintenancePlan: React.FC = () => {
   };
 
   const handleAddMaintenanceTask = async () => {
-    if (!newTask.name || !newTask.category) return;
+    console.log('🚀 handleAddMaintenanceTask called with:', newTask);
+    
+    if (!newTask.name || !newTask.category) {
+      console.warn('❌ Missing required fields:', { name: newTask.name, category: newTask.category });
+      return;
+    }
     
     try {
       // 🎯 FIX: Använd året från förfallodatum, inte valt år!
@@ -240,6 +295,7 @@ const SimpleMaintenancePlan: React.FC = () => {
         recurrence_pattern: newTask.recurrence_pattern,
         is_template: false,
         next_due_date: newTask.is_recurring ? calculateNextDueDate(newTask.due_date, newTask.recurrence_pattern) : undefined,
+        end_date: newTask.end_date, // Slutdatum för återkommande uppgifter
       };
 
       console.log('🔍 Adding new task:', task);
@@ -250,20 +306,40 @@ const SimpleMaintenancePlan: React.FC = () => {
       if (savedTask) {
         console.log('✅ Task saved successfully:', savedTask);
         
-        // 🔄 Om uppgiften är för valt år, lägg till i lista
-        if (savedTask.year === selectedYear) {
-          setTasks([...tasks, savedTask]);
-        }
-        
+        // 🔄 ÅTERKOMMANDE: Skapa alla instanser direkt i databasen!
         if (savedTask.is_recurring) {
-          console.log(`🔄 Recurring task created: ${savedTask.name} (${savedTask.recurrence_pattern})`);
-          console.log(`📅 Next occurrence: ${savedTask.next_due_date}`);
+          console.log(`🔄 Creating ALL recurring instances for: ${savedTask.name} (${savedTask.recurrence_pattern})`);
+          
+          // Stäng dialog för att progress UI ska synas bättre
+          setNewTaskDialog(false);
+          
+          const allInstances = await createAllRecurringInstances(savedTask);
+          console.log(`✅ Created ${allInstances.length} recurring instances in database`);
+          
+          // Lägg till alla instanser för aktuellt år i UI
+          const currentYearInstances = allInstances.filter(instance => instance.year === selectedYear);
+          setTasks([...tasks, ...currentYearInstances]);
+          
+          // Mer informativt meddelande
+          const yearSpread = [...new Set(allInstances.map(i => i.year))].sort();
+          const yearRange = yearSpread.length > 1 ? `${yearSpread[0]}-${yearSpread[yearSpread.length - 1]}` : yearSpread[0];
+          const endDateInfo = savedTask.end_date ? `\n🏁 Slutar: ${savedTask.end_date}` : '';
+          
+          // Progress UI visar redan all information - ingen extra alert behövs
+        } else {
+          // Inte återkommande - lägg bara till om det är för valt år
+          if (savedTask.year === selectedYear) {
+            setTasks([...tasks, savedTask]);
+          }
+          // Stäng dialog för icke-återkommande uppgifter
+          setNewTaskDialog(false);
         }
       } else {
         console.error('❌ Failed to save task - no response from saveMaintenanceTask');
+        setNewTaskDialog(false);
       }
       
-      setNewTaskDialog(false);
+      // Rensa formulär (dialog stängs redan för återkommande)
       setNewTask({});
       
       // 💡 Informera användaren om året ändrades
@@ -287,18 +363,19 @@ const SimpleMaintenancePlan: React.FC = () => {
     }
   };
 
-  // 🗓️ ROBUST hjälpfunktion för att beräkna nästa förfallodatum
+  // 🗓️ ROBUST hjälpfunktion för att beräkna nästa förfallodatum (timezone-säker)
   const calculateNextDueDate = (currentDueDate: string | undefined, pattern: string | undefined): string | undefined => {
     if (!currentDueDate || !pattern) return undefined;
     
-    const current = new Date(currentDueDate);
+    // 🛡️ Parse datum på timezone-säkert sätt
+    const [currentYear, currentMonth, currentDay] = currentDueDate.split('-').map(Number);
     
     // 🔍 DEBUG: Logga beräkning för alla mönster
     console.log(`🗓️ Calculating next due date from: ${currentDueDate} (pattern: ${pattern})`);
     
-    let year = current.getFullYear();
-    let month = current.getMonth();  // 0-based (0 = Jan)
-    let day = current.getDate();
+    let year = currentYear;
+    let month = currentMonth - 1;  // Konvertera till 0-based (0 = Jan)  
+    let day = currentDay;
     
     switch (pattern) {
       case 'monthly':
@@ -338,23 +415,26 @@ const SimpleMaintenancePlan: React.FC = () => {
         return undefined;
     }
     
-    // Skapa nytt datum och hantera månadsslut
-    const next = new Date(year, month, 1);  // Börja med första dagen i månaden
-    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();  // Sista dagen i månaden
+    // 🗓️ Hantera månadsslut på timezone-säkert sätt
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
     
     if (day > lastDayOfMonth) {
       // Om ursprungsdagen inte finns i målmånaden, använd sista dagen
-      next.setDate(lastDayOfMonth);
-      console.log(`⚠️ Month-end adjustment: ${day} -> ${lastDayOfMonth} (${year}-${month + 1})`);
-    } else {
-      next.setDate(day);
+      day = lastDayOfMonth;
+      console.log(`⚠️ Month-end adjustment: ${currentDay} -> ${day} (${year}-${month + 1})`);
     }
     
-    const result = next.toISOString().split('T')[0];
+    // 🛡️ Formatera datum på timezone-säkert sätt
+    const nextMonth = String(month + 1).padStart(2, '0');  // Konvertera tillbaka till 1-based
+    const nextDay = String(day).padStart(2, '0');
+    const result = `${year}-${nextMonth}-${nextDay}`;
+    
     console.log(`✅ Next due date calculated: ${result}`);
     
     return result;
   };
+
+
 
   // 🧪 TEST-FUNKTION för att validera alla periodiciteter
   const testRecurrencePatterns = () => {
@@ -401,6 +481,424 @@ const SimpleMaintenancePlan: React.FC = () => {
       alert('🎉 Alla återkommande mönster fungerar korrekt!');
     } else {
       alert(`⚠️ ${totalTests - passedTests} tester misslyckades. Se konsolen för detaljer.`);
+    }
+  };
+
+  // 🔢 HJÄLPFUNKTION: Beräkna förväntade instanser per år
+  const getExpectedInstancesPerYear = (pattern: string): number => {
+    switch (pattern) {
+      case 'monthly': return 12;
+      case 'quarterly': return 4; 
+      case 'semi_annually': return 2;
+      case 'annually': return 1;
+      default: return 1;
+    }
+  };
+
+  // 🔍 HJÄLPFUNKTION: Hitta första saknade datum för ett specifikt år
+  const findFirstMissingDateForYear = (template: MaintenanceTask, existingInstances: MaintenanceTask[], targetYear: number): string | undefined => {
+    if (!template.due_date) return undefined;
+    
+    // Om det är samma år som template, börja från template datum
+    if (template.year === targetYear) {
+      return template.due_date;
+    }
+    
+    // Annars, räkna framåt till målåret
+    const templateYear = template.year;
+    const yearDifference = targetYear - templateYear;
+    
+    if (yearDifference <= 0) return undefined;
+    
+    // Beräkna första datum för målåret
+    let currentDate = template.due_date;
+    
+    // Räkna framåt år för år tills vi når målåret
+    for (let year = templateYear; year < targetYear; year++) {
+      // För det här året, räkna framåt tills vi når nästa år
+      while (currentDate && new Date(currentDate).getFullYear() === year) {
+        currentDate = calculateNextDueDate(currentDate, template.recurrence_pattern);
+      }
+    }
+    
+    // Nu ska vi vara i målåret - hitta första datum som inte redan finns
+    while (currentDate && new Date(currentDate).getFullYear() === targetYear) {
+      const dateExists = existingInstances.some(instance => instance.due_date === currentDate);
+      
+      if (!dateExists) {
+        return currentDate; // Detta är första saknade datum
+      }
+      
+      currentDate = calculateNextDueDate(currentDate, template.recurrence_pattern);
+    }
+    
+    return undefined; // Alla datum för året finns redan eller vi gick förbi året
+  };
+
+  // 🔄 SKAPA ALLA ÅTERKOMMANDE INSTANSER direkt vid skapande
+  const createAllRecurringInstances = async (template: MaintenanceTask): Promise<MaintenanceTask[]> => {
+    const instances: MaintenanceTask[] = [];
+    
+    if (!template.is_recurring || !template.due_date || !template.recurrence_pattern) {
+      console.warn('❌ Invalid recurring task template:', template);
+      return instances;
+    }
+    
+    console.log(`🔄 Creating all instances for: ${template.name} (${template.recurrence_pattern})`);
+    
+    // 🎯 PROGRESS UI: Initiera progress tracking
+    const startTime = Date.now();
+    setRecurringProgress({
+      isVisible: true,
+      currentStep: 1,
+      totalSteps: 4,
+      stepDescription: 'Beräknar tidshorisonter...',
+      percentage: 0,
+      instancesCreated: 0,
+      estimatedTimeRemaining: 'Beräknar...'
+    });
+    
+    // 📅 Bestäm slutdatum - antingen från användaren eller standard tidshorisonter
+    let endDate: Date;
+    
+    if (template.end_date) {
+      // Användaren har satt ett slutdatum
+      endDate = new Date(template.end_date);
+      console.log(`📅 Using user-specified end date: ${template.end_date}`);
+    } else {
+      // Använd standard tidshorisonter från industry best practices
+      const getDefaultTimeHorizon = (pattern: string): { months: number, description: string } => {
+        switch (pattern) {
+          case 'monthly': 
+            return { months: 18, description: '18 månader framåt' }; // 1.5 år
+          case 'quarterly': 
+            return { months: 24, description: '2 år framåt' }; // 2 år
+          case 'semi_annually': 
+            return { months: 24, description: '2 år framåt' }; // 2 år
+          case 'annually': 
+            return { months: 36, description: '3 år framåt' }; // 3 år
+          default: 
+            return { months: 12, description: '1 år framåt' };
+        }
+      };
+      
+      const horizon = getDefaultTimeHorizon(template.recurrence_pattern);
+      endDate = new Date(template.due_date);
+      endDate.setMonth(endDate.getMonth() + horizon.months);
+      
+      console.log(`📅 Using default time horizon: ${horizon.description} (until ${endDate.toISOString().split('T')[0]})`);
+    }
+    
+    // 🎯 PROGRESS UI: Steg 2 - Räkna ut totalt antal instanser
+    setRecurringProgress(prev => ({
+      ...prev,
+      currentStep: 2,
+      stepDescription: 'Räknar ut antal instanser...',
+      percentage: 25
+    }));
+    
+    // Pre-calculate total instances for accurate progress
+    let totalInstancesEstimate = 0;
+    let tempDate = template.due_date;
+    while (tempDate && new Date(tempDate) <= endDate && totalInstancesEstimate < 100) {
+      totalInstancesEstimate++;
+      tempDate = calculateNextDueDate(tempDate, template.recurrence_pattern);
+    }
+    
+    // 🔄 Generera instanser fram till slutdatum
+    let currentDate = template.due_date;
+    let instanceCount = 0;
+    const maxSafetyInstances = 100; // Säkerhetsgräns för att undvika oändliga loopar
+    
+    // 🛡️ DEDUPLICATION: Hämta alla befintliga uppgifter för alla relevanta år
+    const yearsToCheck = Array.from(new Set(
+      Array.from({length: totalInstancesEstimate}, (_, i) => {
+        let tempDate = template.due_date;
+        for (let j = 0; j < i; j++) {
+          tempDate = calculateNextDueDate(tempDate, template.recurrence_pattern);
+        }
+        return tempDate ? new Date(tempDate).getFullYear() : null;
+      }).filter(Boolean)
+    ));
+    
+    console.log(`🛡️ Checking for existing tasks in years: ${yearsToCheck.join(', ')}`);
+    const allExistingTasks: MaintenanceTask[] = [];
+    for (const year of yearsToCheck) {
+      const yearTasks = await getMaintenanceTasksByYear(year);
+      allExistingTasks.push(...yearTasks);
+    }
+    
+    // 🎯 PROGRESS UI: Steg 3 - Börja skapa instanser
+    setRecurringProgress(prev => ({
+      ...prev,
+      currentStep: 3,
+      stepDescription: `Skapar ${totalInstancesEstimate} instanser...`,
+      percentage: 50,
+      estimatedTimeRemaining: `~${Math.ceil(totalInstancesEstimate * 0.1)} sekunder`
+    }));
+    
+    while (currentDate && new Date(currentDate) <= endDate && instanceCount < maxSafetyInstances) {
+      const instanceYear = new Date(currentDate).getFullYear();
+      
+      // Skapa instans för detta datum
+      const instance: Partial<MaintenanceTask> = {
+        id: `task_${Date.now()}_${instanceCount}_recurring`,
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        year: instanceYear,
+        due_date: currentDate,
+        completed: false,
+        is_recurring: true,
+        recurrence_pattern: template.recurrence_pattern,
+        is_template: false,
+        parent_template_id: template.id, // Referera till ursprunglig template
+        next_due_date: calculateNextDueDate(currentDate, template.recurrence_pattern),
+        end_date: template.end_date, // Behåll samma slutdatum för alla instanser
+      };
+      
+      console.log(`📅 Creating instance ${instanceCount + 1}: ${instance.name} for ${currentDate}`);
+      
+      // 🛡️ DEDUPLICATION: Kolla om instansen redan finns (använd cache)
+      const existingDuplicate = allExistingTasks.find(task => 
+        task.name === instance.name && 
+        task.due_date === instance.due_date && 
+        (task.parent_template_id === template.id || task.id === template.id)
+      );
+      
+      if (existingDuplicate) {
+        console.log(`⚠️ Skipping duplicate instance: ${instance.name} for ${currentDate} (already exists with ID: ${existingDuplicate.id})`);
+        instances.push(existingDuplicate); // Använd befintlig instans
+        instanceCount++;
+      } else {
+        // Spara till databas
+        const savedInstance = await saveMaintenanceTask(instance);
+        if (savedInstance) {
+          instances.push(savedInstance);
+          allExistingTasks.push(savedInstance); // Lägg till i cache för nästa iteration
+          instanceCount++;
+          console.log(`✅ Created new instance: ${savedInstance.id} for ${currentDate}`);
+        }
+      }
+      
+      // 🎯 PROGRESS UI: Uppdatera progress under skapande
+      const progressPercentage = 50 + (instanceCount / totalInstancesEstimate) * 40; // 50-90%
+      const elapsedTime = (Date.now() - startTime) / 1000;
+      const estimatedTotal = (elapsedTime / instanceCount) * totalInstancesEstimate;
+      const remainingTime = Math.max(0, estimatedTotal - elapsedTime);
+      
+      const actionText = existingDuplicate ? 'Hittade befintlig' : 'Skapade ny';
+      setRecurringProgress(prev => ({
+        ...prev,
+        stepDescription: `${actionText} instans ${instanceCount} av ${totalInstancesEstimate}...`,
+        percentage: Math.round(progressPercentage),
+        instancesCreated: instanceCount,
+        estimatedTimeRemaining: remainingTime > 1 ? `~${Math.ceil(remainingTime)}s kvar` : 'Nästan klar...'
+      }));
+      
+      // Beräkna nästa datum
+      currentDate = calculateNextDueDate(currentDate, template.recurrence_pattern);
+      
+      // Liten fördröjning för att undvika samma timestamp
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    // 🎯 PROGRESS UI: Steg 4 - Slutför
+    setRecurringProgress(prev => ({
+      ...prev,
+      currentStep: 4,
+      stepDescription: `✅ Skapade ${instances.length} instanser!`,
+      percentage: 100,
+      estimatedTimeRemaining: 'Klar!'
+    }));
+    
+    // Dölj progress efter 2 sekunder
+    setTimeout(() => {
+      setRecurringProgress(prev => ({ ...prev, isVisible: false }));
+    }, 2000);
+    
+    console.log(`✅ Created ${instances.length} recurring instances successfully`);
+    return instances;
+  };
+
+  // 🧹 RENSA DUBBLETTER AV ÅTERKOMMANDE UPPGIFTER
+  const cleanupDuplicateRecurringTasks = async (showAlert: boolean = true) => {
+    try {
+      console.log('🧹 Checking for duplicate recurring tasks...');
+      
+      const allTasks = await getMaintenanceTasksByYear(selectedYear);
+      const recurringTasks = allTasks.filter(task => task.is_recurring && !task.is_template);
+      
+      // Gruppera efter namn + datum + parent_template_id
+      const taskGroups = recurringTasks.reduce((groups, task) => {
+        const key = `${task.name}_${task.due_date}_${task.parent_template_id || task.id}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(task);
+        return groups;
+      }, {} as Record<string, MaintenanceTask[]>);
+      
+      // Hitta grupper med dubbletter
+      let deletedCount = 0;
+      for (const [key, duplicates] of Object.entries(taskGroups)) {
+        if (duplicates.length > 1) {
+          console.log(`🔍 Found ${duplicates.length} duplicates for: ${key}`);
+          
+          // Behåll den första, radera resten
+          const [keepTask, ...deleteThese] = duplicates.sort((a, b) => 
+            new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
+          );
+          
+          console.log(`✅ Keeping task: ${keepTask.id} (created: ${keepTask.created_at})`);
+          
+          for (const taskToDelete of deleteThese) {
+            console.log(`🗑️ Deleting duplicate: ${taskToDelete.id} (created: ${taskToDelete.created_at})`);
+            await deleteMaintenanceTask(taskToDelete.id);
+            deletedCount++;
+          }
+        }
+      }
+      
+      if (deletedCount > 0) {
+        console.log(`🧹 Cleaned up ${deletedCount} duplicate tasks`);
+        // Uppdatera local state genom att ladda om data
+        await loadMaintenanceData();
+        
+        // Visa användarvänligt meddelande (bara för manuell körning)
+        if (showAlert) {
+          alert(`🧹 Rensade ${deletedCount} dubbletter!\n\nUppdaterar listan...`);
+        }
+        return true; // Indikerar att dubbletter togs bort
+      } else {
+        console.log('✅ No duplicates found');
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error cleaning up duplicates:', error);
+      return false;
+    }
+  };
+
+  // 🔄 GENERERA SAKNADE ÅTERKOMMANDE INSTANSER för valt år
+  const generateMissingRecurringInstances = async () => {
+    // 🛡️ Förhindra parallella körningar
+    if (isGeneratingRecurring) {
+      console.log('🔄 Generation already running, skipping...');
+      return;
+    }
+    setIsGeneratingRecurring(true);
+    try {
+      console.log(`🔄 Checking for missing recurring instances for year ${selectedYear}...`);
+      
+      // 0️⃣ Rensa dubbletter bara första gången per session för detta år
+      const cleanupKey = `cleanup_done_${selectedYear}`;
+      if (!sessionStorage.getItem(cleanupKey)) {
+        console.log('🧹 First time loading this year - checking for duplicates...');
+        const hadDuplicates = await cleanupDuplicateRecurringTasks(false); // Tyst automatisk cleanup
+        if (hadDuplicates) {
+          console.log('🔄 Duplicates cleaned up, recalculating...');
+        }
+        sessionStorage.setItem(cleanupKey, 'done');
+      }
+      
+      // 1️⃣ Hitta alla återkommande templates från flera år (kolla bakåt och framåt)
+      const currentYear = new Date().getFullYear();
+      const yearsToCheck = [currentYear - 2, currentYear - 1, currentYear, selectedYear, selectedYear + 1, selectedYear + 2];
+      const allTasks: MaintenanceTask[] = [];
+      
+      for (const year of yearsToCheck) {
+        const yearTasks = await getMaintenanceTasksByYear(year);
+        allTasks.push(...yearTasks);
+      }
+      const recurringTemplates = allTasks.filter(task => 
+        task.is_recurring && 
+        (task.is_template || !task.parent_template_id) // Templates eller ursprungsuppgifter
+      );
+      
+      console.log(`📋 Found ${recurringTemplates.length} recurring templates:`, recurringTemplates.map(t => t.name));
+      
+      // 2️⃣ För varje template, generera alla saknade instanser för selectedYear
+      for (const template of recurringTemplates) {
+        const existingInstancesThisYear = allTasks.filter(task => 
+          task.year === selectedYear && 
+          (task.parent_template_id === template.id || task.id === template.id)
+        );
+        
+        console.log(`🔍 Template "${template.name}" (${template.recurrence_pattern}): ${existingInstancesThisYear.length} existing instances in ${selectedYear}`);
+        
+        // 3️⃣ Bestäm hur många instanser som behövs per år baserat på frekvens
+        const expectedInstancesPerYear = getExpectedInstancesPerYear(template.recurrence_pattern);
+        const missingInstancesCount = expectedInstancesPerYear - existingInstancesThisYear.length;
+        
+        console.log(`📊 Expected: ${expectedInstancesPerYear}, Existing: ${existingInstancesThisYear.length}, Missing: ${missingInstancesCount}`);
+        
+        if (missingInstancesCount > 0) {
+          console.log(`🔄 Generating ${missingInstancesCount} missing instances for "${template.name}"`);
+          
+          // 4️⃣ Hitta första saknade datum för detta år
+          let currentDate = findFirstMissingDateForYear(template, existingInstancesThisYear, selectedYear);
+          
+          // 5️⃣ Generera saknade instanser
+          for (let i = 0; i < missingInstancesCount && currentDate; i++) {
+            if (new Date(currentDate).getFullYear() === selectedYear) {
+              // 🔍 STRÄNGARE DEDUPLICERING - kontrollera unik kombination
+              const existingTasksNow = await getMaintenanceTasksByYear(selectedYear);
+              const uniqueKey = `${template.name}_${currentDate}_${template.id}`;
+              const alreadyExists = existingTasksNow.some(task => {
+                const taskKey = `${task.name}_${task.due_date}_${task.parent_template_id || task.id}`;
+                return taskKey === uniqueKey;
+              });
+              
+              if (alreadyExists) {
+                console.log(`⏭️ Instance already exists: ${template.name} for ${currentDate}, skipping`);
+              } else {
+                console.log(`📅 Creating missing instance: ${template.name} for ${currentDate}`);
+                
+                const newInstance: Partial<MaintenanceTask> = {
+                  id: `task_${Date.now()}_${i}_auto_generated`,
+                  name: template.name,
+                  description: template.description,
+                  category: template.category,
+                  year: selectedYear,
+                  due_date: currentDate,
+                  completed: false,
+                  is_recurring: true,
+                  recurrence_pattern: template.recurrence_pattern,
+                  is_template: false,
+                  next_due_date: calculateNextDueDate(currentDate, template.recurrence_pattern),
+                  parent_template_id: template.id,
+                };
+                
+                const savedInstance = await saveMaintenanceTask(newInstance);
+                if (savedInstance) {
+                  console.log(`✅ Auto-generated recurring instance: ${savedInstance.name} for ${currentDate}`);
+                  setTasks(prevTasks => [...prevTasks, savedInstance]);
+                }
+                
+                // Små fördröjningar för att undvika samma timestamp
+                await new Promise(resolve => setTimeout(resolve, 50));
+              }
+            }
+            
+            // Beräkna nästa datum
+            currentDate = calculateNextDueDate(currentDate, template.recurrence_pattern);
+          }
+          
+          // Visa diskret notifikation (bara första gången per session)
+          if (!sessionStorage.getItem(`recurring_notification_${selectedYear}`)) {
+            setTimeout(() => {
+              console.log(`🔄 Automatiskt genererat ${missingInstancesCount} återkommande instanser för ${selectedYear}`);
+            }, 1000);
+            sessionStorage.setItem(`recurring_notification_${selectedYear}`, 'shown');
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Error generating missing recurring instances:', error);
+    } finally {
+      // 🔓 Släpp låset
+      setIsGeneratingRecurring(false);
     }
   };
 
@@ -714,19 +1212,29 @@ const SimpleMaintenancePlan: React.FC = () => {
   };
 
   const renderTaskItem = (task: MaintenanceTask) => (
-    <ListItem key={task.id} sx={{ pl: 0, pr: 10, flexDirection: 'column', alignItems: 'stretch' }}>
+    <ListItem 
+      key={task.id} 
+      sx={{ 
+        pl: 0, 
+        pr: isMobile ? 1 : 10, 
+        flexDirection: 'column', 
+        alignItems: 'stretch',
+        py: isMobile ? 1.5 : 1
+      }}
+    >
       <Box display="flex" alignItems="flex-start" width="100%">
-        <ListItemIcon sx={{ minWidth: '42px', mt: '9px' }}>
+        <ListItemIcon sx={{ minWidth: isMobile ? '36px' : '42px', mt: '9px' }}>
           <Checkbox
             checked={task.completed}
             onChange={() => handleTaskToggle(task.id)}
             color="primary"
+            size={isMobile ? 'medium' : 'medium'}
           />
         </ListItemIcon>
         <ListItemText
           sx={{ flex: 1 }}
           primary={
-            <Box display="flex" alignItems="center" gap={1}>
+            <Box display="flex" alignItems="center" gap={isMobile ? 0.5 : 1} flexWrap="wrap">
               <Typography 
                 sx={{ 
                   textDecoration: task.completed ? 'line-through' : 'none',
@@ -738,16 +1246,17 @@ const SimpleMaintenancePlan: React.FC = () => {
               {sortBy !== 'category' && (
                 <Chip 
                   label={CATEGORY_LABELS[task.category]}
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
                   sx={{ 
                     backgroundColor: CATEGORY_COLORS[task.category],
                     color: 'white',
-                    height: '20px',
-                    fontSize: '0.7rem'
+                    height: isMobile ? '24px' : '20px',
+                    fontSize: isMobile ? '0.75rem' : '0.7rem',
+                    mr: isMobile ? 0.5 : 0
                   }}
                 />
               )}
-              {task.is_recurring && (
+              {task.is_recurring && !isMobile && (
                 <Chip 
                   label={`🔄 ${getRecurrenceLabel(task.recurrence_pattern)}`}
                   size="small" 
@@ -828,24 +1337,40 @@ const SimpleMaintenancePlan: React.FC = () => {
             </Box>
           }
         />
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', ml: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'flex-start', 
+          ml: isMobile ? 0.5 : 1,
+          gap: isMobile ? 0.25 : 0.5
+        }}>
           <IconButton
-            size="small"
+            size={isMobile ? "medium" : "small"}
             onClick={() => handleEditTask(task)}
-            sx={{ mr: 0.5 }}
+            sx={{ 
+              minWidth: isMobile ? 44 : 'auto',
+              minHeight: isMobile ? 44 : 'auto'
+            }}
           >
-            <EditIcon fontSize="small" />
+            <EditIcon fontSize={isMobile ? "medium" : "small"} />
           </IconButton>
           <IconButton
-            size="small"
+            size={isMobile ? "medium" : "small"}
             onClick={() => handleDeleteTask(task.id)}
             color="error"
+            sx={{ 
+              minWidth: isMobile ? 44 : 'auto',
+              minHeight: isMobile ? 44 : 'auto'
+            }}
           >
-            <DeleteIcon fontSize="small" />
+            <DeleteIcon fontSize={isMobile ? "medium" : "small"} />
           </IconButton>
         </Box>
       </Box>
-      <Box sx={{ ml: '42px', mr: '88px', mt: 1 }}>
+      <Box sx={{ 
+        ml: isMobile ? '36px' : '42px', 
+        mr: isMobile ? '10px' : '88px', 
+        mt: 1 
+      }}>
         <TextField
           fullWidth
           size="small"
@@ -854,6 +1379,11 @@ const SimpleMaintenancePlan: React.FC = () => {
           onChange={(e) => handleTaskNoteChange(task.id, e.target.value)}
           multiline
           rows={1}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              fontSize: isMobile ? '0.875rem' : '0.875rem'
+            }
+          }}
         />
       </Box>
     </ListItem>
@@ -866,7 +1396,9 @@ const SimpleMaintenancePlan: React.FC = () => {
   };
 
   const stats = getCompletionStats();
-  const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  
+  // 📅 Utökad års-range för återkommande uppgifter (nu när vi skapar 3+ år framåt)
+  const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - 3 + i);
 
   if (loading) {
     return (
@@ -895,18 +1427,21 @@ const SimpleMaintenancePlan: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Header */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-          <Box>
-            <Typography variant="h4" gutterBottom>
+      <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, mb: 3 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexDirection={isMobile ? "column" : "row"} gap={2}>
+          <Box sx={{ mb: isMobile ? 2 : 0 }}>
+            <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
               Underhållsplan
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Enkel översikt över årets underhållsarbeten och större projekt
+              {isMobile ? "Översikt av underhåll och projekt" : "Enkel översikt över årets underhållsarbeten och större projekt"}
             </Typography>
           </Box>
           
-          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+          {/* Desktop Controls */}
+          {!isMobile && (
+            <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+              {/* Keep all the existing buttons for desktop */}
             {/* 🧹 RENSA ALL DATA KNAPP */}
             <Button 
               size="small" 
@@ -943,14 +1478,90 @@ const SimpleMaintenancePlan: React.FC = () => {
               🧪 Testa återkommande
             </Button>
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>År</InputLabel>
-              <Select value={selectedYear} label="År" onChange={(e) => setSelectedYear(Number(e.target.value))}>
-                {availableYears.map(year => (
-                  <MenuItem key={year} value={year}>{year}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* 🔄 GENERERA SAKNADE INSTANSER KNAPP */}
+            <Button 
+              size="small" 
+              color="success" 
+              variant="outlined"
+              onClick={generateMissingRecurringInstances}
+              sx={{ 
+                minWidth: 150,
+                ml: 1,
+                display: process.env.NODE_ENV === 'development' ? 'block' : 'none' // Bara i dev-miljö
+              }}
+            >
+              🔄 Generera saknade
+            </Button>
+
+            {/* 🧹 RENSA DUBBLETTER KNAPP */}
+            <Button 
+              size="small" 
+              color="error" 
+              variant="outlined"
+              onClick={() => cleanupDuplicateRecurringTasks(true)}
+              sx={{ 
+                minWidth: 120,
+                ml: 1,
+                display: process.env.NODE_ENV === 'development' ? 'block' : 'none' // Bara i dev-miljö
+              }}
+            >
+              🧹 Rensa dubbletter
+            </Button>
+
+
+
+            {/* 🎯 MODERN ÅR-VÄLJARE MED PILAR */}
+            <Tooltip title="Använd pilar eller tangentbord (←/→) för att navigera mellan år">
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                px: 1.5,
+                py: 0.5,
+                backgroundColor: 'background.paper',
+                cursor: 'pointer'
+              }}>
+              <IconButton 
+                size="small" 
+                onClick={() => setSelectedYear(selectedYear - 1)}
+                disabled={selectedYear <= currentYear - 3}
+                sx={{ 
+                  '&:hover': { backgroundColor: 'action.hover' },
+                  '&:disabled': { opacity: 0.3 }
+                }}
+              >
+                <ChevronLeft />
+              </IconButton>
+              
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  minWidth: 60, 
+                  textAlign: 'center',
+                  fontWeight: selectedYear === currentYear ? 'bold' : 'normal',
+                  color: selectedYear === currentYear ? 'primary.main' : 'text.primary'
+                }}
+              >
+                {selectedYear}
+                {selectedYear === currentYear && ' 📅'}
+              </Typography>
+              
+              <IconButton 
+                size="small" 
+                onClick={() => setSelectedYear(selectedYear + 1)}
+                disabled={selectedYear >= currentYear + 6}
+                sx={{ 
+                  '&:hover': { backgroundColor: 'action.hover' },
+                  '&:disabled': { opacity: 0.3 }
+                }}
+              >
+                <ChevronRight />
+              </IconButton>
+              </Box>
+            </Tooltip>
             
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Visa som</InputLabel>
@@ -972,7 +1583,131 @@ const SimpleMaintenancePlan: React.FC = () => {
                 </Select>
               </FormControl>
             )}
-          </Box>
+            </Box>
+          )}
+          
+          {/* Mobile Controls */}
+          {isMobile && (
+            <Box sx={{ width: '100%' }}>
+              {/* Essential mobile controls */}
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                {/* Year Selector - Simplified for mobile */}
+                <Tooltip title="Navigera mellan år">
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    px: 1,
+                    py: 0.5,
+                    backgroundColor: 'background.paper'
+                  }}>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => setSelectedYear(selectedYear - 1)}
+                      disabled={selectedYear <= currentYear - 3}
+                    >
+                      <ChevronLeft />
+                    </IconButton>
+                    
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        minWidth: 50, 
+                        textAlign: 'center',
+                        fontWeight: selectedYear === currentYear ? 'bold' : 'normal',
+                        color: selectedYear === currentYear ? 'primary.main' : 'text.primary'
+                      }}
+                    >
+                      {selectedYear}
+                    </Typography>
+                    
+                    <IconButton 
+                      size="small" 
+                      onClick={() => setSelectedYear(selectedYear + 1)}
+                      disabled={selectedYear >= currentYear + 6}
+                    >
+                      <ChevronRight />
+                    </IconButton>
+                  </Box>
+                </Tooltip>
+                
+                {/* Filters Toggle */}
+                <Button 
+                  size="small" 
+                  variant="outlined" 
+                  onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                  sx={{ minWidth: 100 }}
+                >
+                  {mobileFiltersOpen ? 'Dölj filter' : 'Visa filter'}
+                </Button>
+              </Box>
+              
+              {/* Collapsible Mobile Filters */}
+              <Collapse in={mobileFiltersOpen}>
+                <Box sx={{ 
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  p: 2,
+                  backgroundColor: 'grey.50'
+                }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Visa som</InputLabel>
+                        <Select value={sortBy} label="Visa som" onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+                          <MenuItem value="category">📂 Per kategori</MenuItem>
+                          <MenuItem value="due_date">🗓️ Efter datum</MenuItem>
+                          <MenuItem value="status">✅ Efter status</MenuItem>
+                          <MenuItem value="name">📝 Efter namn</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    
+                    {sortBy !== 'category' && (
+                      <Grid item xs={12}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Ordning</InputLabel>
+                          <Select value={sortOrder} label="Ordning" onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}>
+                            <MenuItem value="asc">Stigande</MenuItem>
+                            <MenuItem value="desc">Fallande</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    )}
+                    
+                    {/* Essential actions for mobile */}
+                    <Grid item xs={6}>
+                      <Button 
+                        fullWidth
+                        size="small" 
+                        color="error" 
+                        variant="outlined"
+                        onClick={handleClearAllData}
+                        disabled={clearingData || (tasks.length === 0 && majorProjects.length === 0)}
+                      >
+                        {clearingData ? 'Rensar...' : '🧹 Rensa'}
+                      </Button>
+                    </Grid>
+                    
+                    <Grid item xs={6}>
+                      <Button 
+                        fullWidth
+                        size="small" 
+                        variant="outlined"
+                        onClick={() => setNewTaskDialog(true)}
+                      >
+                        + Uppgift
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Collapse>
+            </Box>
+          )}
         </Box>
 
         {/* Progress Stats */}
@@ -1209,7 +1944,13 @@ const SimpleMaintenancePlan: React.FC = () => {
       </Grid>
 
       {/* Dialog för nytt större projekt */}
-      <Dialog open={newProjectDialog} onClose={() => setNewProjectDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={newProjectDialog} 
+        onClose={() => setNewProjectDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+      >
         <DialogTitle>Lägg till större projekt</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
@@ -1325,7 +2066,13 @@ const SimpleMaintenancePlan: React.FC = () => {
       </Dialog>
 
       {/* Dialog för ny underhållsuppgift */}
-      <Dialog open={newTaskDialog} onClose={() => setNewTaskDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={newTaskDialog} 
+        onClose={() => setNewTaskDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+      >
         <DialogTitle>Lägg till underhållsuppgift</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
@@ -1368,17 +2115,19 @@ const SimpleMaintenancePlan: React.FC = () => {
                 <MenuItem value="ongoing">🔄 Löpande</MenuItem>
               </Select>
             </FormControl>
-            <TextField
-              fullWidth
-              label="Förfallodatum"
-              type="date"
-              value={newTask.due_date || ''}
-              onChange={(e) => setNewTask({...newTask, due_date: e.target.value})}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              sx={{ mb: 3 }}
-            />
+            {!newTask.is_recurring && (
+              <TextField
+                fullWidth
+                label="Förfallodatum"
+                type="date"
+                value={newTask.due_date || ''}
+                onChange={(e) => setNewTask({...newTask, due_date: e.target.value})}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{ mb: 3 }}
+              />
+            )}
 
             {/* ÅTERKOMMANDE FUNKTIONALITET */}
             <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
@@ -1389,34 +2138,79 @@ const SimpleMaintenancePlan: React.FC = () => {
                 Skapa uppgifter som automatiskt planeras för framtiden enligt ett schema.
               </Typography>
                 
-                <FormControl component="fieldset" sx={{ mb: 2 }}>
-                  <Checkbox
-                    checked={newTask.is_recurring || false}
-                    onChange={(e) => setNewTask({
-                      ...newTask, 
-                      is_recurring: e.target.checked,
-                      recurrence_pattern: e.target.checked ? 'annually' : undefined
-                    })}
-                  />
-                  <Typography component="span" sx={{ ml: 1 }}>
-                    Detta underhåll återkommer regelbundet
-                  </Typography>
-                </FormControl>
+                <FormControlLabel
+                  sx={{ mb: 2 }}
+                  control={
+                    <Checkbox
+                      checked={newTask.is_recurring || false}
+                      onChange={(e) => setNewTask({
+                        ...newTask, 
+                        is_recurring: e.target.checked,
+                        recurrence_pattern: e.target.checked ? 'annually' : undefined
+                      })}
+                      color="primary"
+                    />
+                  }
+                  label="Detta underhåll återkommer regelbundet"
+                />
 
                 {newTask.is_recurring && (
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Återkommer</InputLabel>
-                    <Select
-                      value={newTask.recurrence_pattern || 'annually'}
-                      onChange={(e) => setNewTask({...newTask, recurrence_pattern: e.target.value as MaintenanceTask['recurrence_pattern']})}
-                      label="Återkommer"
-                    >
-                      <MenuItem value="monthly">🗓️ Varje månad</MenuItem>
-                      <MenuItem value="quarterly">📅 Varje kvartal (3 månader)</MenuItem>
-                      <MenuItem value="semi_annually">📆 Två gånger per år</MenuItem>
-                      <MenuItem value="annually">🗓️ En gång per år</MenuItem>
-                    </Select>
-                  </FormControl>
+                  <Box sx={{ mb: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, backgroundColor: 'grey.50' }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      ⚙️ Återkommande schema
+                    </Typography>
+                    
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Frekvens</InputLabel>
+                      <Select
+                        value={newTask.recurrence_pattern || 'annually'}
+                        onChange={(e) => setNewTask({...newTask, recurrence_pattern: e.target.value as MaintenanceTask['recurrence_pattern']})}
+                        label="Frekvens"
+                      >
+                        <MenuItem value="monthly">🗓️ Varje månad</MenuItem>
+                        <MenuItem value="quarterly">📅 Varje kvartal (3 månader)</MenuItem>
+                        <MenuItem value="semi_annually">📆 Två gånger per år</MenuItem>
+                        <MenuItem value="annually">🗓️ En gång per år</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                      <TextField
+                        label="Startdatum"
+                        type="date"
+                        value={newTask.due_date || ''}
+                        onChange={(e) => setNewTask({...newTask, due_date: e.target.value})}
+                        InputLabelProps={{ shrink: true }}
+                        helperText="Första uppgiften"
+                        sx={{ flex: 1 }}
+                      />
+                      
+                      <TextField
+                        label="Slutdatum (valfritt)"
+                        type="date"
+                        value={newTask.end_date || ''}
+                        onChange={(e) => setNewTask({...newTask, end_date: e.target.value})}
+                        InputLabelProps={{ shrink: true }}
+                        helperText="Sista uppgiften"
+                        sx={{ flex: 1 }}
+                      />
+                    </Box>
+
+                    {/* Smart Preview */}
+                    {newTask.due_date && newTask.recurrence_pattern && (
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        <Typography variant="body2">
+                          📅 <strong>Förhandsgranskning:</strong> {' '}
+                          {newTask.recurrence_pattern === 'monthly' && 'Månadsvis från'} 
+                          {newTask.recurrence_pattern === 'quarterly' && 'Kvartalsvis från'} 
+                          {newTask.recurrence_pattern === 'semi_annually' && 'Halvårsvis från'} 
+                          {newTask.recurrence_pattern === 'annually' && 'Årsvis från'} 
+                          {' '}{newTask.due_date}
+                          {newTask.end_date ? ` till ${newTask.end_date}` : ' (pågående)'}
+                        </Typography>
+                      </Alert>
+                    )}
+                  </Box>
                 )}
 
                 {newTask.is_recurring && (
@@ -1436,8 +2230,136 @@ const SimpleMaintenancePlan: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* 🎯 PROGRESS UI MODAL för återkommande uppgifter */}
+      <Backdrop
+        sx={{
+          color: '#fff',
+          zIndex: 9999, // Mycket hög z-index för att hamna över allt
+          backdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }}
+        open={recurringProgress.isVisible}
+      >
+        <Card sx={{ 
+          p: 4, 
+          minWidth: 400, 
+          maxWidth: 500,
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          zIndex: 10000, // Ännu högre z-index för kortet
+          position: 'relative'
+        }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BuildIcon color="primary" />
+              Skapar återkommande uppgifter
+            </Typography>
+            
+            {/* Progress Steps */}
+            <Stepper activeStep={recurringProgress.currentStep - 1} sx={{ mb: 3 }}>
+              <Step>
+                <StepLabel>Planerar</StepLabel>
+              </Step>
+              <Step>
+                <StepLabel>Beräknar</StepLabel>
+              </Step>
+              <Step>
+                <StepLabel>Skapar</StepLabel>
+              </Step>
+              <Step>
+                <StepLabel>Slutför</StepLabel>
+              </Step>
+            </Stepper>
+            
+            {/* Current Step Description */}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {recurringProgress.stepDescription}
+            </Typography>
+            
+            {/* Progress Bar */}
+            <LinearProgress 
+              variant="determinate" 
+              value={recurringProgress.percentage} 
+              sx={{ 
+                mb: 2, 
+                height: 8, 
+                borderRadius: 4,
+                backgroundColor: 'grey.200',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 4,
+                  transition: 'transform 0.4s ease-in-out'
+                }
+              }}
+            />
+            
+            {/* Progress Details */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {recurringProgress.instancesCreated > 0 && (
+                  `${recurringProgress.instancesCreated} instanser skapade`
+                )}
+              </Typography>
+              <Typography variant="body2" color="primary.main" fontWeight="medium">
+                {recurringProgress.percentage}% • {recurringProgress.estimatedTimeRemaining}
+              </Typography>
+            </Box>
+            
+            {/* Success Animation & OK Button */}
+            {recurringProgress.percentage === 100 && (
+              <>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 2 }}>
+                  <CheckIcon sx={{ fontSize: 48, color: 'success.main' }} />
+                </Box>
+                
+                {/* Summary Information */}
+                <Box sx={{ mb: 2, p: 2, backgroundColor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="success.dark" textAlign="center">
+                    ✅ <strong>Klart!</strong> {recurringProgress.instancesCreated} återkommande instanser skapade
+                  </Typography>
+                </Box>
+                
+                {/* OK Button */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    onClick={() => {
+                      setRecurringProgress({ 
+                        isVisible: false, 
+                        currentStep: 1, 
+                        totalSteps: 4,
+                        percentage: 0, 
+                        stepDescription: '',
+                        instancesCreated: 0,
+                        estimatedTimeRemaining: ''
+                      });
+                    }}
+                    sx={{ minWidth: 120 }}
+                  >
+                    OK
+                  </Button>
+                </Box>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </Backdrop>
+
       {/* Dialog för redigering av underhållsuppgift */}
-      <Dialog open={editTaskDialog} onClose={() => setEditTaskDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={editTaskDialog} 
+        onClose={() => setEditTaskDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+      >
         <DialogTitle>Redigera underhållsuppgift</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
@@ -1536,7 +2458,13 @@ const SimpleMaintenancePlan: React.FC = () => {
       </Dialog>
 
       {/* Dialog för redigering av större projekt */}
-      <Dialog open={editProjectDialog} onClose={() => setEditProjectDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={editProjectDialog} 
+        onClose={() => setEditProjectDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+      >
         <DialogTitle>Redigera större projekt</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
@@ -1746,6 +2674,50 @@ const SimpleMaintenancePlan: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Mobile Floating Action Button */}
+      {isMobile && (
+        <SpeedDial
+          ariaLabel="Snabbåtgärder"
+          sx={{ 
+            position: 'fixed', 
+            bottom: 16, 
+            right: 16,
+            '& .MuiSpeedDial-fab': {
+              backgroundColor: 'primary.main',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'primary.dark'
+              }
+            }
+          }}
+          icon={<AddIcon />}
+          direction="up"
+        >
+          <SpeedDialAction
+            icon={<CheckIcon />}
+            tooltipTitle="Lägg till uppgift"
+            onClick={() => setNewTaskDialog(true)}
+            sx={{
+              '& .MuiSpeedDialAction-fab': {
+                backgroundColor: 'success.main',
+                color: 'white'
+              }
+            }}
+          />
+          <SpeedDialAction
+            icon={<BuildIcon />}
+            tooltipTitle="Lägg till projekt"
+            onClick={() => setNewProjectDialog(true)}
+            sx={{
+              '& .MuiSpeedDialAction-fab': {
+                backgroundColor: 'warning.main',
+                color: 'white'
+              }
+            }}
+          />
+        </SpeedDial>
+      )}
     </Container>
   );
 };
