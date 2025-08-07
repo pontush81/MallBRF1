@@ -76,21 +76,7 @@ import {
 
 
 
-const CATEGORY_LABELS = {
-  spring: 'Vår',
-  summer: 'Sommar', 
-  autumn: 'Höst',
-  winter: 'Vinter',
-  ongoing: 'Löpande'
-};
 
-const CATEGORY_COLORS = {
-  spring: '#4caf50',
-  summer: '#ff9800',
-  autumn: '#f44336', 
-  winter: '#2196f3',
-  ongoing: '#9c27b0'
-};
 
 const SimpleMaintenancePlan: React.FC = () => {
   const theme = useTheme();
@@ -112,7 +98,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [projectDocuments, setProjectDocuments] = useState<any[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [clearingData, setClearingData] = useState(false);
-  const [sortBy, setSortBy] = useState<'category' | 'due_date' | 'status' | 'name' | 'created_at'>('category');
+  const [sortBy, setSortBy] = useState<'due_date' | 'status' | 'name' | 'created_at'>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,7 +240,7 @@ const SimpleMaintenancePlan: React.FC = () => {
       estimated_year: newProject.estimated_year,
       estimated_cost: newProject.estimated_cost,
       priority: newProject.priority || 'medium',
-      category: newProject.category,
+
       approval_status: newProject.approval_status || 'pending',
       contractor: newProject.contractor,
       status: 'planned'
@@ -273,8 +259,8 @@ const SimpleMaintenancePlan: React.FC = () => {
   const handleAddMaintenanceTask = async () => {
     console.log('🚀 handleAddMaintenanceTask called with:', newTask);
     
-    if (!newTask.name || !newTask.category) {
-      console.warn('❌ Missing required fields:', { name: newTask.name, category: newTask.category });
+    if (!newTask.name) {
+      console.warn('❌ Missing required fields:', { name: newTask.name });
       return;
     }
     
@@ -286,7 +272,7 @@ const SimpleMaintenancePlan: React.FC = () => {
         id: `task_${Date.now()}`,
         name: newTask.name,
         description: newTask.description || '',
-        category: newTask.category,
+
         year: taskYear, // ✅ Korrekt år baserat på förfallodatum
         due_date: newTask.due_date || undefined,
         completed: false,
@@ -645,7 +631,7 @@ const SimpleMaintenancePlan: React.FC = () => {
         id: `task_${Date.now()}_${instanceCount}_recurring`,
         name: template.name,
         description: template.description,
-        category: template.category,
+
         year: instanceYear,
         due_date: currentDate,
         completed: false,
@@ -858,7 +844,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                   id: `task_${Date.now()}_${i}_auto_generated`,
                   name: template.name,
                   description: template.description,
-                  category: template.category,
+          
                   year: selectedYear,
                   due_date: currentDate,
                   completed: false,
@@ -933,7 +919,7 @@ const SimpleMaintenancePlan: React.FC = () => {
         id: `task_${Date.now()}_recurring`,
         name: completedTask.name,
         description: completedTask.description,
-        category: completedTask.category,
+
         year: nextYear, // ✅ Rätt år från nästa förfallodatum
         due_date: nextDueDate,
         completed: false,
@@ -982,7 +968,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   };
 
   const handleUpdateTask = async () => {
-    if (!editTask.name || !editTask.category || !editTask.id) return;
+    if (!editTask.name || !editTask.id) return;
     
     try {
       // 🎯 FIX: Uppdatera året baserat på förfallodatum
@@ -1063,13 +1049,8 @@ const SimpleMaintenancePlan: React.FC = () => {
           const bCreated = b.created_at ? new Date(b.created_at) : new Date(0);
           comparison = aCreated.getTime() - bCreated.getTime();
           break;
-        case 'category':
         default:
-          const categoryOrder = ['winter', 'spring', 'summer', 'autumn', 'ongoing'];
-          comparison = categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
-          if (comparison === 0) {
-            comparison = a.name.localeCompare(b.name, 'sv');
-          }
+          comparison = a.name.localeCompare(b.name, 'sv');
           break;
       }
       
@@ -1077,10 +1058,7 @@ const SimpleMaintenancePlan: React.FC = () => {
     });
   };
 
-  const getTasksByCategory = (category: keyof typeof CATEGORY_LABELS) => {
-    const filteredTasks = tasks.filter(task => task.category === category);
-    return sortBy === 'category' ? filteredTasks : sortTasks(filteredTasks);
-  };
+
 
   const getAllTasksSorted = () => {
     return sortTasks(tasks);
@@ -1098,17 +1076,7 @@ const SimpleMaintenancePlan: React.FC = () => {
     return statusLabels[status as keyof typeof statusLabels] || status;
   };
 
-  const getProjectCategoryLabel = (category: string) => {
-    const categoryLabels = {
-      'structure': 'Byggnad',
-      'heating': 'Värme',
-      'plumbing': 'VVS', 
-      'electrical': 'El',
-      'exterior': 'Exteriör',
-      'interior': 'Interiör'
-    };
-    return categoryLabels[category as keyof typeof categoryLabels] || category;
-  };
+
 
   const handleEditProject = async (project: MajorProject) => {
     setEditProject(project);
@@ -1243,19 +1211,7 @@ const SimpleMaintenancePlan: React.FC = () => {
               >
                 {task.name}
               </Typography>
-              {sortBy !== 'category' && (
-                <Chip 
-                  label={CATEGORY_LABELS[task.category]}
-                  size={isMobile ? "medium" : "small"}
-                  sx={{ 
-                    backgroundColor: CATEGORY_COLORS[task.category],
-                    color: 'white',
-                    height: isMobile ? '24px' : '20px',
-                    fontSize: isMobile ? '0.75rem' : '0.7rem',
-                    mr: isMobile ? 0.5 : 0
-                  }}
-                />
-              )}
+
               {task.is_recurring && !isMobile && (
                 <Chip 
                   label={`🔄 ${getRecurrenceLabel(task.recurrence_pattern)}`}
@@ -1565,24 +1521,21 @@ const SimpleMaintenancePlan: React.FC = () => {
             
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Visa som</InputLabel>
-              <Select value={sortBy} label="Visa som" onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
-                <MenuItem value="category">📂 Grupperat per kategori</MenuItem>
-                <MenuItem value="due_date">🗓️ Sorterat efter förfallodatum</MenuItem>
-                <MenuItem value="status">✅ Sorterat efter status</MenuItem>
-                <MenuItem value="name">📝 Sorterat efter namn</MenuItem>
-                <MenuItem value="created_at">📅 Sorterat efter skapad</MenuItem>
-              </Select>
+                                      <Select value={sortBy} label="Visa som" onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+                          <MenuItem value="due_date">🗓️ Sorterat efter förfallodatum</MenuItem>
+                          <MenuItem value="status">✅ Sorterat efter status</MenuItem>
+                          <MenuItem value="name">📝 Sorterat efter namn</MenuItem>
+                          <MenuItem value="created_at">📅 Sorterat efter skapad</MenuItem>
+                        </Select>
             </FormControl>
             
-{sortBy !== 'category' && (
-              <FormControl size="small" sx={{ minWidth: 100 }}>
-                <InputLabel>Ordning</InputLabel>
-                <Select value={sortOrder} label="Ordning" onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}>
-                  <MenuItem value="asc">Stigande</MenuItem>
-                  <MenuItem value="desc">Fallande</MenuItem>
-                </Select>
-              </FormControl>
-            )}
+<FormControl size="small" sx={{ minWidth: 100 }}>
+              <InputLabel>Ordning</InputLabel>
+              <Select value={sortOrder} label="Ordning" onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}>
+                <MenuItem value="asc">Stigande</MenuItem>
+                <MenuItem value="desc">Fallande</MenuItem>
+              </Select>
+            </FormControl>
             </Box>
           )}
           
@@ -1659,25 +1612,23 @@ const SimpleMaintenancePlan: React.FC = () => {
                       <FormControl fullWidth size="small">
                         <InputLabel>Visa som</InputLabel>
                         <Select value={sortBy} label="Visa som" onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
-                          <MenuItem value="category">📂 Per kategori</MenuItem>
                           <MenuItem value="due_date">🗓️ Efter datum</MenuItem>
                           <MenuItem value="status">✅ Efter status</MenuItem>
                           <MenuItem value="name">📝 Efter namn</MenuItem>
+                          <MenuItem value="created_at">📅 Efter skapad</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
                     
-                    {sortBy !== 'category' && (
-                      <Grid item xs={12}>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Ordning</InputLabel>
-                          <Select value={sortOrder} label="Ordning" onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}>
-                            <MenuItem value="asc">Stigande</MenuItem>
-                            <MenuItem value="desc">Fallande</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                    )}
+                    <Grid item xs={12}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Ordning</InputLabel>
+                        <Select value={sortOrder} label="Ordning" onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}>
+                          <MenuItem value="asc">Stigande</MenuItem>
+                          <MenuItem value="desc">Fallande</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
                     
                     {/* Essential actions for mobile */}
                     <Grid item xs={6}>
@@ -1710,17 +1661,7 @@ const SimpleMaintenancePlan: React.FC = () => {
           )}
         </Box>
 
-        {/* Progress Stats */}
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="h6" color="primary">
-            Framsteg {selectedYear}: {stats.completed} av {stats.total} uppgifter slutförda ({stats.percentage}%)
-          </Typography>
-          {stats.percentage === 100 && (
-            <Alert severity="success" sx={{ mt: 1 }}>
-              Fantastiskt! Alla underhållsuppgifter för {selectedYear} är slutförda!
-            </Alert>
-          )}
-        </Box>
+
       </Paper>
 
       <Grid container spacing={3}>
@@ -1742,40 +1683,62 @@ const SimpleMaintenancePlan: React.FC = () => {
                 </Button>
               </Box>
               
-{sortBy === 'category' ? (
-                // Kategorivy - grupperat per kategori
-                Object.entries(CATEGORY_LABELS).map(([category, label]) => {
-                  const categoryTasks = getTasksByCategory(category as keyof typeof CATEGORY_LABELS);
-                  if (categoryTasks.length === 0) return null;
-
-                  return (
-                    <Box key={category} sx={{ mb: 3 }}>
-                      <Box display="flex" alignItems="center" gap={1} mb={2}>
-                        <Chip 
-                          label={label}
-                          size="small"
-                          sx={{ 
-                            backgroundColor: CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS],
-                            color: 'white'
-                          }}
-                        />
-                        <Typography variant="body2" color="text.secondary">
-                          {categoryTasks.filter(t => t.completed).length} av {categoryTasks.length} slutförda
-                        </Typography>
-                      </Box>
-                      
-                      <List dense>
-                        {categoryTasks.map(task => renderTaskItem(task))}
-                      </List>
-                      <Divider sx={{ mt: 2 }} />
-                    </Box>
-                  );
-                })
+{tasks.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <Typography variant="h4" sx={{ mb: 2 }}>📋</Typography>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Välkommen till Underhållsplanen!
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
+                    Skapa och hantera underhållsuppgifter för {selectedYear}. 
+                    Håll koll på vad som behöver göras och när.
+                  </Typography>
+                  <Button 
+                    variant="contained" 
+                    size="large"
+                    startIcon={<AddIcon />}
+                    onClick={() => setNewTaskDialog(true)}
+                    sx={{ mb: 2 }}
+                  >
+                    Skapa första uppgiften
+                  </Button>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    💡 Tips: Börja med återkommande uppgifter som rengöring eller kontroller
+                  </Typography>
+                </Box>
               ) : (
-                // Sorterad listvy - alla uppgifter i en lista
-                <List dense>
-                  {getAllTasksSorted().map(task => renderTaskItem(task))}
-                </List>
+                <>
+                  {/* Progress indicator */}
+                  <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                      <Typography variant="body2" fontWeight="medium">
+                        Framsteg {selectedYear}
+                      </Typography>
+                      <Typography variant="body2" color="primary.main" fontWeight="bold">
+                        {stats.completed} av {stats.total} slutförda
+                      </Typography>
+                    </Box>
+                    <Box sx={{ width: '100%', bgcolor: 'grey.300', borderRadius: 1, height: 8 }}>
+                      <Box
+                        sx={{
+                          width: `${stats.percentage}%`,
+                          bgcolor: stats.percentage === 100 ? 'success.main' : 'primary.main',
+                          height: 8,
+                          borderRadius: 1,
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      {stats.percentage}% slutfört
+                    </Typography>
+                  </Box>
+                  
+                  {/* Alla uppgifter i en sorterad lista */}
+                  <List dense>
+                    {getAllTasksSorted().map(task => renderTaskItem(task))}
+                  </List>
+                </>
               )}
             </CardContent>
           </Card>
@@ -1801,9 +1764,23 @@ const SimpleMaintenancePlan: React.FC = () => {
               </Box>
 
               {majorProjects.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  Inga större projekt planerade än.
-                </Typography>
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>🏗️</Typography>
+                  <Typography variant="body1" sx={{ mb: 1, fontWeight: 'medium' }}>
+                    Inga projekt planerade
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Planera framtida renoveringar och större underhållsarbeten
+                  </Typography>
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    startIcon={<AddIcon />}
+                    onClick={() => setNewProjectDialog(true)}
+                  >
+                    Skapa första projektet
+                  </Button>
+                </Box>
               ) : (
                 <List dense>
                   {majorProjects
@@ -1895,7 +1872,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                               </Typography>
                               <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
                                 Status: {getProjectStatusLabel(project.status)}
-                                {project.category && <> • Kategori: {getProjectCategoryLabel(project.category)}</>}
+    
                               </Typography>
                             </Box>
                           }
@@ -2013,21 +1990,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                 <MenuItem value="urgent">🚨 Akut</MenuItem>
               </Select>
             </FormControl>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Kategori</InputLabel>
-              <Select
-                value={newProject.category || ''}
-                onChange={(e) => setNewProject({...newProject, category: e.target.value as MajorProject['category']})}
-                label="Kategori"
-              >
-                <MenuItem value="structure">🏗️ Byggnad</MenuItem>
-                <MenuItem value="heating">🔥 Värme</MenuItem>
-                <MenuItem value="plumbing">🚰 VVS</MenuItem>
-                <MenuItem value="electrical">⚡ El</MenuItem>
-                <MenuItem value="exterior">🏠 Exteriör</MenuItem>
-                <MenuItem value="interior">🏡 Interiör</MenuItem>
-              </Select>
-            </FormControl>
+
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Godkännandestatus</InputLabel>
               <Select
@@ -2101,20 +2064,7 @@ const SimpleMaintenancePlan: React.FC = () => {
             <Typography variant="subtitle2" gutterBottom sx={{ mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
               📅 Tidplanering
             </Typography>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Kategori</InputLabel>
-              <Select
-                value={newTask.category || ''}
-                onChange={(e) => setNewTask({...newTask, category: e.target.value as MaintenanceTask['category']})}
-                label="Kategori"
-              >
-                <MenuItem value="winter">❄️ Vinter</MenuItem>
-                <MenuItem value="spring">🌸 Vår</MenuItem>
-                <MenuItem value="summer">☀️ Sommar</MenuItem>
-                <MenuItem value="autumn">🍂 Höst</MenuItem>
-                <MenuItem value="ongoing">🔄 Löpande</MenuItem>
-              </Select>
-            </FormControl>
+
             {!newTask.is_recurring && (
               <TextField
                 fullWidth
@@ -2379,20 +2329,7 @@ const SimpleMaintenancePlan: React.FC = () => {
               rows={2}
               sx={{ mb: 2 }}
             />
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Kategori</InputLabel>
-              <Select
-                value={editTask.category || ''}
-                onChange={(e) => setEditTask({...editTask, category: e.target.value as MaintenanceTask['category']})}
-                label="Kategori"
-              >
-                <MenuItem value="winter">Vinter</MenuItem>
-                <MenuItem value="spring">Vår</MenuItem>
-                <MenuItem value="summer">Sommar</MenuItem>
-                <MenuItem value="autumn">Höst</MenuItem>
-                <MenuItem value="ongoing">Löpande</MenuItem>
-              </Select>
-            </FormControl>
+
             <TextField
               fullWidth
               label="Förfallodatum"
@@ -2527,21 +2464,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                 <MenuItem value="urgent">🚨 Akut</MenuItem>
               </Select>
             </FormControl>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Kategori</InputLabel>
-              <Select
-                value={editProject.category || ''}
-                onChange={(e) => setEditProject({...editProject, category: e.target.value as MajorProject['category']})}
-                label="Kategori"
-              >
-                <MenuItem value="structure">🏗️ Byggnad</MenuItem>
-                <MenuItem value="heating">🔥 Värme</MenuItem>
-                <MenuItem value="plumbing">🚰 VVS</MenuItem>
-                <MenuItem value="electrical">⚡ El</MenuItem>
-                <MenuItem value="exterior">🏠 Exteriör</MenuItem>
-                <MenuItem value="interior">🏡 Interiör</MenuItem>
-              </Select>
-            </FormControl>
+
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Godkännandestatus</InputLabel>
               <Select
