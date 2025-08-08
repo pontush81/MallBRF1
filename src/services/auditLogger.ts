@@ -44,6 +44,7 @@ export type LegalBasis =
 
 export interface AuditLogEntry {
   event_type: AuditEventType;
+  action?: string;
   user_id?: string;
   user_email?: string;
   ip_address?: string;
@@ -87,6 +88,7 @@ export class AuditLogger {
 
     const entry: AuditLogEntry = {
       event_type: eventType,
+      action: this.getActionFromEventType(eventType, success),
       user_id: userId,
       user_email: userEmail,
       ip_address: await this.getClientIP(),
@@ -329,6 +331,33 @@ export class AuditLogger {
       
       default:
         return 'low';
+    }
+  }
+
+  /**
+   * Get action description from event type
+   */
+  private getActionFromEventType(eventType: AuditEventType, success: boolean): string {
+    const prefix = success ? 'successful' : 'failed';
+    
+    switch (eventType) {
+      case 'auth_login_success':
+      case 'auth_login_failure':
+        return success ? 'successful_login' : 'failed_login';
+      case 'auth_logout':
+        return 'logout';
+      case 'unauthorized_access_attempt':
+        return 'unauthorized_access_attempt';
+      case 'admin_action':
+        return 'admin_action';
+      case 'data_access':
+        return 'data_access';
+      case 'gdpr_request':
+        return 'gdpr_request';
+      case 'security_incident':
+        return 'security_incident';
+      default:
+        return `${prefix}_${eventType}`;
     }
   }
 
