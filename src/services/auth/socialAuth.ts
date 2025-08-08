@@ -10,7 +10,8 @@ import { User } from '../../types/User';
 import { getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { sendNewUserNotification } from './settings';
-import { syncUserToSupabase } from '../supabaseSync';
+// MIGRATION: Removed syncUserToSupabase - using native Supabase auth
+// import { syncUserToSupabase } from '../supabaseSync';
 import { getInitialUserRole } from './adminConfig';
 
 // Generisk funktion för inloggning med social tjänst
@@ -70,7 +71,8 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
       
       // Sync user to Supabase for RLS policies
       try {
-        await syncUserToSupabase(updatedUser);
+        // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+      // await syncUserToSupabase(updatedUser);
       } catch (error) {
         console.error('Failed to sync user to Supabase:', error);
       }
@@ -105,7 +107,8 @@ export async function loginWithSocialProvider(provider: GoogleAuthProvider | OAu
       
       // Sync user to Supabase for RLS policies
       try {
-        await syncUserToSupabase(newUser);
+        // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+        // await syncUserToSupabase(newUser);
       } catch (error) {
         console.error('Failed to sync new user to Supabase:', error);
       }
@@ -180,7 +183,8 @@ export async function handleGoogleRedirect(): Promise<User | null> {
           
           // Sync user to Supabase for RLS policies
           try {
-            await syncUserToSupabase(activatedUser);
+            // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+        // await syncUserToSupabase(activatedUser);
           } catch (error) {
             console.error('Failed to sync activated user to Supabase:', error);
           }
@@ -203,7 +207,8 @@ export async function handleGoogleRedirect(): Promise<User | null> {
       
       // Sync user to Supabase for RLS policies
       try {
-        await syncUserToSupabase(redirectUser);
+        // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+      // await syncUserToSupabase(redirectUser);
       } catch (error) {
         console.error('Failed to sync redirect user to Supabase:', error);
       }
@@ -233,7 +238,8 @@ export async function handleGoogleRedirect(): Promise<User | null> {
       
       // Sync user to Supabase for RLS policies
       try {
-        await syncUserToSupabase(newUser);
+        // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+        // await syncUserToSupabase(newUser);
       } catch (error) {
         console.error('Failed to sync new redirect user to Supabase:', error);
       }

@@ -76,9 +76,8 @@ export async function executeWithRLS<T>(
       authenticatedClientCache = null;
       cachedTokenForClient = null;
       
-      // Import and clear supabase auth cache
-      const { clearSupabaseAuthCache } = await import('./supabaseAuth');
-      clearSupabaseAuthCache();
+      // Native Supabase auth cache clearing handled automatically
+      console.log('🔄 Using native Supabase auth session management');
       
       // Retry once
       try {

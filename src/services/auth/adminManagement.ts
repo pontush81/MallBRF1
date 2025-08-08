@@ -1,7 +1,8 @@
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User } from '../../types/User';
-import { syncUserToSupabase } from '../supabaseSync';
+// MIGRATION: Removed syncUserToSupabase - using native Supabase auth
+// import { syncUserToSupabase } from '../supabaseSync';
 import { AUTO_ADMIN_EMAILS, shouldBeAdmin } from './adminConfig';
 
 /**
@@ -34,7 +35,8 @@ export async function promoteUserToAdmin(userId: string): Promise<User | null> {
     };
     
     // Sync to Supabase so RLS policies work
-    await syncUserToSupabase(updatedUser);
+    // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+    // await syncUserToSupabase(updatedUser);
     
     console.log('✅ User promoted to admin successfully:', userData.email);
     return updatedUser;
@@ -75,7 +77,8 @@ export async function demoteAdminToUser(userId: string): Promise<User | null> {
     };
     
     // Sync to Supabase so RLS policies work
-    await syncUserToSupabase(updatedUser);
+    // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+    // await syncUserToSupabase(updatedUser);
     
     console.log('✅ Admin demoted to user successfully:', userData.email);
     return updatedUser;

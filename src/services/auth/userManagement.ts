@@ -17,7 +17,8 @@ import {
 import { User } from '../../types/User';
 import { isUserAllowed } from './allowlist';
 import { sendNewUserNotification } from './settings';
-import { syncUserToSupabase } from '../supabaseSync';
+// MIGRATION: Removed syncUserToSupabase - using native Supabase auth
+// import { syncUserToSupabase } from '../supabaseSync';
 import { getInitialUserRole } from './adminConfig';
 // Removed apiRequest import - no longer needed after Express migration
 
@@ -105,7 +106,8 @@ export async function register(email: string, password: string, name: string): P
     
     // Sync user to Supabase for RLS policies
     try {
-      await syncUserToSupabase(userData);
+      // MIGRATION: Disabled syncUserToSupabase - using native Supabase auth
+      // await syncUserToSupabase(userData);
     } catch (error) {
       console.error('Failed to sync registered user to Supabase:', error);
     }
