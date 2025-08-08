@@ -1,0 +1,18 @@
+KOPIERA DESSA URLs TILL SUPABASE REDIRECT URLs:
+
+http://localhost:3000/auth/callback
+http://localhost:3001/auth/callback
+http://localhost:5173/auth/callback
+https://gulmaran.vercel.app/auth/callback
+https://gulmaran-git-development-pontush81.vercel.app/auth/callback
+https://www.gulmaran.com/auth/callback
+https://gulmaran.com/auth/callback
+https://stage.gulmaran.com/auth/callback
+https://www.stage.gulmaran.com/auth/callback
+https://mallbrf.firebaseapp.com/auth/callback
+
+INSTRUKTIONER:
+1. Radera ALLA gamla URLs i Supabase
+2. Copy-pasta varje URL ovan (en i taget)
+3. Klicka "Add URL" för varje
+4. Spara inställningarna
