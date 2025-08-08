@@ -27,7 +27,7 @@ import {
   Pause as RestrictionIcon,
   Block as ObjectionIcon
 } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextNew';
 
 type RequestType = 'access' | 'rectification' | 'erasure' | 'portability' | 'restriction' | 'objection';
 

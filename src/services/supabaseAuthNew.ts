@@ -1,12 +1,12 @@
 // New Pure Supabase Auth Service (replaces Firebase)
+// Modern implementation following Supabase best practices
 import supabase from './supabaseClient';
-import { User } from '../types/User';
 
 export interface AuthUser {
   id: string;
   email: string;
   name?: string;
-  role: string;
+  role: 'user' | 'admin';
   isActive: boolean;
 }
 
@@ -128,7 +128,7 @@ async function getUserProfile(userId: string): Promise<AuthUser> {
     id: data.id,
     email: data.email,
     name: data.name,
-    role: data.role,
+    role: data.role as 'user' | 'admin',
     isActive: data.isactive
   };
 }
@@ -161,7 +161,7 @@ async function createUserProfile(userId: string, email: string, name: string): P
     id: data.id,
     email: data.email,
     name: data.name,
-    role: data.role,
+    role: data.role as 'user' | 'admin',
     isActive: data.isactive
   };
 }
@@ -189,24 +189,166 @@ export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
 }
 
 /**
- * Handle OAuth callback (for Google/other social logins)
+ * Handle OAuth callback - Modern Supabase approach
+ * Let Supabase automatically detect and process OAuth sessions
  */
 export async function handleAuthCallback(): Promise<AuthUser | null> {
-  const { data, error } = await supabase.auth.getSession();
+  console.log('🔄 Handling OAuth callback (modern approach)...');
   
-  if (error) {
-    console.error('Auth callback error:', error);
-    return null;
-  }
-
-  if (data.session?.user) {
-    try {
-      return await getUserProfile(data.session.user.id);
-    } catch (error) {
-      console.error('Error getting user profile after callback:', error);
+  try {
+    // Let Supabase automatically detect session from URL
+    // This is handled by detectSessionInUrl: true in client config
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('❌ Error getting OAuth session:', error);
       return null;
     }
+    
+    if (!data.session?.user) {
+      console.log('❌ No OAuth session found after callback');
+      return null;
+    }
+    
+    const userData = data.session.user;
+    console.log('✅ OAuth session established:', userData.email);
+    
+    // Clean URL for security (remove OAuth parameters)
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    try {
+      // Try to get existing profile by Supabase auth ID
+      const existingProfile = await getUserProfile(userData.id);
+      console.log('✅ Found existing profile:', existingProfile.email);
+      console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
+      return existingProfile;
+    } catch (error) {
+      console.log('ℹ️ No profile found by auth ID, checking by email...');
+      
+      // Handle Firebase-to-Supabase migration case
+      // Look for existing user by email (from Firebase migration)  
+      try {
+        const { data: existingByEmail } = await supabase
+          .from('users')
+          .select('id, email, name, role, isactive')  
+          .eq('email', userData.email)
+          .single();
+        
+        if (existingByEmail) {
+          console.log('✅ Found existing user by email:', existingByEmail.email);
+          
+          // If ID already matches, just return the user
+          if (existingByEmail.id === userData.id) {
+            console.log('✅ User ID already updated, returning profile');
+            return {
+              id: existingByEmail.id,
+              email: existingByEmail.email,
+              name: existingByEmail.name,
+              role: existingByEmail.role as 'user' | 'admin',
+              isActive: existingByEmail.isactive
+            };
+          }
+          
+          // If ID doesn't match, this is a migration case - update the ID atomically
+          console.log('🔄 Migrating user ID from Firebase to Supabase auth (atomic)');
+          
+          const { data: migrationResult, error: migrationError } = await supabase
+            .rpc('migrate_user_id_atomic', {
+              old_user_id: existingByEmail.id,
+              new_user_id: userData.id,
+              user_email: userData.email
+            });
+          
+          if (migrationError) {
+            console.error('❌ Atomic migration failed:', migrationError);
+            throw new Error(`Migration failed: ${migrationError.message}`);
+          }
+          
+          console.log('✅ Successfully migrated user ID atomically:', migrationResult.migration_status);
+          return {
+            id: migrationResult.id,
+            email: migrationResult.email,
+            name: migrationResult.name,
+            role: migrationResult.role as 'user' | 'admin',
+            isActive: migrationResult.isactive
+          };
+        }
+      } catch (emailError) {
+        console.log('ℹ️ User not found by email, will create new profile');
+      }
+      
+      // Create new user profile (should be rare with modern implementation)
+      console.log('🆕 Creating new user profile for OAuth user');
+      return await createUserProfileFromOAuth(userData);
+    }
+    
+  } catch (error) {
+    console.error('❌ OAuth callback error:', error);
+    return null;
+  }
+}
+
+/**
+ * Create user profile from OAuth user data
+ */
+async function createUserProfileFromOAuth(oauthUser: any): Promise<AuthUser> {
+  console.log('🆕 Creating profile for OAuth user:', oauthUser.email);
+  
+  const userData = {
+    id: oauthUser.id,  // Use Supabase auth ID directly as primary key
+    email: oauthUser.email,
+    name: oauthUser.user_metadata?.full_name || oauthUser.email?.split('@')[0] || 'User',
+    password: 'oauth_user', // Placeholder since OAuth users don't have passwords
+    role: 'user',
+    isactive: true,
+    createdat: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from('users')
+    .insert([userData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating OAuth user profile:', error);
+    
+    // Handle duplicate email constraint violation (user already exists)
+    if (error.code === '23505' && error.message.includes('users_email_key')) {
+      console.log('🔄 User already exists, attempting to fetch existing profile...');
+      
+      try {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id, email, name, role, isactive')
+          .eq('email', oauthUser.email)
+          .single();
+        
+        if (existingUser) {
+          console.log('✅ Found existing user profile:', existingUser.email);
+          return {
+            id: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.name,
+            role: existingUser.role as 'user' | 'admin',
+            isActive: existingUser.isactive
+          };
+        }
+      } catch (fetchError) {
+        console.error('Could not fetch existing user:', fetchError);
+      }
+    }
+    
+    throw new Error(`Failed to create user profile: ${error.message}`);
   }
 
-  return null;
+  console.log('✅ Created new user profile:', data.email);
+  
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    role: data.role as 'user' | 'admin',
+    isActive: data.isactive
+  };
 }

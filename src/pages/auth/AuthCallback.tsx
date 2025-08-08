@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography, Alert } from '@mui/material';
-import { useAuth } from '../../context/AuthContextNew';
 import { handleAuthCallback } from '../../services/supabaseAuthNew';
+import { useAuth } from '../../context/AuthContextNew';
 
 export const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -19,10 +19,13 @@ export const AuthCallback: React.FC = () => {
         
         if (user) {
           console.log('OAuth callback successful:', user.email);
+          console.log('🔧 User role:', user.role, '| isActive:', user.isActive);
+          
+          // CRITICAL: Update the AuthContext state explicitly
           login(user);
           
-          // Redirect to dashboard or home
-          navigate('/');
+          // Redirect to main pages after successful login (same as original behavior)
+          navigate('/pages');
         } else {
           throw new Error('No user data received from authentication callback');
         }

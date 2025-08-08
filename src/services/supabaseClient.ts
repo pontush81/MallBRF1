@@ -2,12 +2,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 import { getCachedSupabaseToken } from './supabaseAuth';
 
-// Initialize Supabase client with minimal config (no Firebase token integration)
+// Initialize Supabase client with full auth config (MIGRATION: Updated for pure Supabase auth)
 const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'mallbrf-supabase-auth'
   },
   realtime: {
     params: {

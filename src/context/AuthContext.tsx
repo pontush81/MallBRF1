@@ -4,7 +4,8 @@ import { getFirebaseAuth, isFirebaseAvailable } from '../services/firebase';
 import { userService } from '../services/userService';
 import { User } from '../types/User';
 import { clearSupabaseAuthCache } from '../services/supabaseAuth';
-import { syncUserToSupabase } from '../services/supabaseSync';
+// MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
+// import { syncUserToSupabase } from '../services/supabaseSync';
 import { cookieConsentService } from '../services/cookieConsent';
 
 interface AuthContextType {
@@ -60,12 +61,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoggedIn(true);
           setIsAdmin(parsedUser.role === 'admin');
           
+          // MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
+          // TODO: Remove this entire section after migration is complete
+          /*
           // Sync user to Supabase to ensure RLS policies work
           try {
             await syncUserToSupabase(parsedUser);
           } catch (error) {
             console.error('Failed to sync user to Supabase during validation:', error);
           }
+          */
         } else {
           // No saved user data, but Firebase user exists - fetch user data
           const userData = await userService.getUserById(firebaseUser.uid);
@@ -76,6 +81,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Try to recover the profile if they're still on allowlist
             console.log('🔄 User profile not found, attempting recovery for:', firebaseUser.email);
             
+            // MIGRATION: Temporarily disabled old recovery system during Supabase migration
+            // TODO: Implement recovery in new Supabase auth system
+            /*
             try {
               const { recoverDeletedUserProfile } = await import('../services/supabaseSync');
               const recoveredUser = await recoverDeletedUserProfile(firebaseUser);
@@ -91,6 +99,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error('Recovery attempt failed:', recoveryError);
               clearUserData();
             }
+            */
+            
+            // For now, just clear data if user not found
+            clearUserData();
           }
         }
       } catch (tokenError) {
@@ -198,6 +210,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (user: User) => {
     console.log('🔍 Starting login process for:', user.email);
     
+    // MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
+    // TODO: Remove this entire section after migration is complete
+    /*
     // CRITICAL: Check GDPR/Supabase sync BEFORE setting login state
     // This prevents partial login states that confuse error handling
     try {
@@ -231,6 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // For other sync errors, log but continue with login (non-critical)
       console.warn('⚠️ Non-critical sync error, allowing login to continue:', error.message);
     }
+    */
     
     // Only set login state after successful GDPR/Supabase checks
     console.log('✅ Setting user as logged in:', user.email);

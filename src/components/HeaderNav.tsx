@@ -16,7 +16,7 @@ import {
   Menu as MenuIcon
 } from '@mui/icons-material';
 import DesktopMenu from './DesktopMenu';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextNew';
 
 interface HeaderNavProps {
   pages: Array<{id: string, title: string}>;

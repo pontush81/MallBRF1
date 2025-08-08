@@ -50,7 +50,7 @@ import { sv } from 'date-fns/locale';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContextNew';
 
 
 import { toast, Toaster } from 'react-hot-toast';

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Box, Button, Grid, Container, Divider, Card, CardContent, Stack, Alert } from '@mui/material';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextNew';
 
 // Ikoner
 import ArticleIcon from '@mui/icons-material/Article';

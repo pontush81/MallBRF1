@@ -1,13 +1,30 @@
 // Quick test component for new Supabase Auth
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, Alert, Paper } from '@mui/material';
-import { getCurrentUser, logout } from '../services/supabaseAuthNew';
+import { getCurrentUser, logout, loginWithGoogle } from '../services/supabaseAuthNew';
 import type { AuthUser } from '../services/supabaseAuthNew';
 
 export const TestAuth: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Auto-load current user when component mounts
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          setMessage(`✅ User found: ${currentUser.email}`);
+        }
+      } catch (error) {
+        console.log('No user logged in initially');
+      }
+    };
+    
+    loadCurrentUser();
+  }, []);
 
   const testGetCurrentUser = async () => {
     setLoading(true);
@@ -37,6 +54,19 @@ export const TestAuth: React.FC = () => {
     }
   };
 
+  const testGoogleLogin = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      await loginWithGoogle();
+      setMessage('🚀 Redirecting to Google...');
+      // Redirect happens automatically - user will come back via callback
+    } catch (error: any) {
+      setMessage(`❌ Google login error: ${error.message}`);
+      setLoading(false);
+    }
+  };
+
   return (
     <Paper sx={{ p: 3, m: 2, maxWidth: 600 }}>
       <Typography variant="h5" gutterBottom>
@@ -57,7 +87,7 @@ export const TestAuth: React.FC = () => {
           onClick={testGetCurrentUser} 
           disabled={loading}
           variant="outlined"
-          sx={{ mr: 2 }}
+          sx={{ mr: 2, mb: 1 }}
         >
           Test getCurrentUser()
         </Button>
@@ -67,16 +97,29 @@ export const TestAuth: React.FC = () => {
           disabled={loading || !user}
           variant="outlined"
           color="secondary"
+          sx={{ mr: 2, mb: 1 }}
+          data-testid="logout-btn"
         >
           Test logout()
+        </Button>
+        
+        <Button 
+          onClick={testGoogleLogin} 
+          disabled={loading}
+          variant="contained"
+          color="primary"
+          sx={{ mb: 1 }}
+          data-testid="google-login-btn"
+        >
+          🎯 Test Google OAuth
         </Button>
       </Box>
 
       {user && (
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }}>
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }} data-testid="user-info">
           <Typography variant="h6">Current User:</Typography>
           <Typography><strong>ID:</strong> {user.id}</Typography>
-          <Typography><strong>Email:</strong> {user.email}</Typography>
+          <Typography data-testid="user-email"><strong>Email:</strong> {user.email}</Typography>
           <Typography><strong>Name:</strong> {user.name}</Typography>
           <Typography><strong>Role:</strong> {user.role}</Typography>
           <Typography><strong>Active:</strong> {user.isActive ? 'Yes' : 'No'}</Typography>

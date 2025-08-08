@@ -13,7 +13,7 @@ import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingStatus from '../../components/booking/BookingStatus';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContextNew';
 
 const BookingStatusPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);

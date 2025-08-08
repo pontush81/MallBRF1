@@ -55,7 +55,7 @@ import BookingSkeleton from '../../components/common/BookingSkeleton';
 import HSBReportPreview from '../../components/HSBReportPreview';
 
 import { adminUtils } from '../../utils/adminUtils';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContextNew';
 import { useNavigate } from 'react-router-dom';
 
 const BookingsList: React.FC = () => {

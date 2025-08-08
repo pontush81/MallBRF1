@@ -17,8 +17,8 @@ import {
   Microsoft as MicrosoftIcon
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { userService } from '../../services/userService';
-import { useAuth } from '../../context/AuthContext';
+import { loginWithGoogle } from '../../services/supabaseAuthNew';
+import { useAuth } from '../../context/AuthContextNew';
 import Logo from '../../components/Logo';
 
 const Register: React.FC = () => {
@@ -36,11 +36,9 @@ const Register: React.FC = () => {
     setPendingApproval(false);
     try {
       setLoading(true);
-      const user = await userService.loginWithGoogle();
-      if (user) {
-        login(user);
-        navigate('/pages');
-      }
+      await loginWithGoogle();
+      // OAuth will redirect automatically, no need to call login() here
+      console.log('✅ Google OAuth initiated successfully - redirecting...');
     } catch (err: any) {
       console.error('Google register error:', err);
       handleAuthError(err);
@@ -50,21 +48,8 @@ const Register: React.FC = () => {
   };
   
   const handleMicrosoftSignUp = async () => {
-    setError(null);
-    setPendingApproval(false);
-    try {
-      setLoading(true);
-      const user = await userService.loginWithMicrosoft();
-      if (user) {
-        login(user);
-        navigate('/pages');
-      }
-    } catch (err: any) {
-      console.error('Microsoft register error:', err);
-      handleAuthError(err);
-    } finally {
-      setLoading(false);
-    }
+    setError('Microsoft login is not implemented yet. Please use Google login.');
+    // TODO: Implement Microsoft OAuth with Supabase when needed
   };
   
   const handleAuthError = (err: any) => {

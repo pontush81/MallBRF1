@@ -5,29 +5,25 @@ import {
   Typography, 
   Container, 
   Paper, 
-  Grid,
   Alert,
   AlertTitle,
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import { 
-  Google as GoogleIcon, 
-  Microsoft as MicrosoftIcon
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { userService } from '../../services/userService';
-import { useAuth } from '../../context/AuthContext';
 import Logo from '../../components/Logo';
+import { loginWithGoogle } from '../../services/supabaseAuthNew';
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  // MIGRATION: Functions not needed since we redirect to new auth system
+  // const { login } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // MIGRATION: State not needed since we redirect to new auth system  
+  // const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
   
   // Add a cleanup effect for GDPR-deleted users
@@ -77,84 +73,15 @@ const Login: React.FC = () => {
   const handleGoogleLogin = async () => {
     setError(null);
     setPendingApproval(false);
-    setLoading(true);
     
     try {
-      console.log('🔍 Starting Google login...');
-      const user = await userService.loginWithGoogle();
-      console.log('✅ Google auth successful, user:', user?.email);
-      
-      if (user) {
-        console.log('🔍 Calling login function for user:', user.email);
-        
-        // Wrap login call in additional try-catch to ensure GDPR errors are caught
-        try {
-          await login(user);
-          console.log('✅ Login successful, navigating...');
-          navigate('/pages');
-        } catch (loginError: any) {
-          console.error('❌ Login error after Google auth:', loginError);
-          console.error('❌ Error message:', loginError.message);
-          console.error('❌ Full error object:', loginError);
-          
-          // Force error display regardless of error structure
-          if (loginError && (loginError.message || loginError.toString()).includes('GDPR')) {
-            console.log('🚨 FORCING GDPR ERROR DISPLAY');
-            setError('🚫 Ditt konto har raderats permanent enligt din GDPR-begäran om radering. Du kan inte längre logga in i systemet. Kontakta administratören om du har frågor.');
-          } else {
-            handleAuthError(loginError);
-          }
-          return; // Stop execution here
-        }
-      }
+      console.log('🔐 Starting Google OAuth login...');
+      await loginWithGoogle();
+      console.log('✅ Google OAuth initiated successfully - redirecting to Google...');
+      // OAuth will redirect to Google, then to /auth/callback, which will handle the rest
     } catch (err: any) {
-      console.error('❌ Google login service error:', err);
-      console.error('❌ Service error message:', err.message);
-      handleAuthError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleMicrosoftLogin = async () => {
-    setError(null);
-    setPendingApproval(false);
-    setLoading(true);
-    
-    try {
-      console.log('🔍 Starting Microsoft login...');
-      const user = await userService.loginWithMicrosoft();
-      console.log('✅ Microsoft auth successful, user:', user?.email);
-      
-      if (user) {
-        console.log('🔍 Calling login function for user:', user.email);
-        
-        // Wrap login call in additional try-catch to ensure GDPR errors are caught
-        try {
-          await login(user);
-          console.log('✅ Login successful, navigating...');
-          navigate('/pages');
-        } catch (loginError: any) {
-          console.error('❌ Login error after Microsoft auth:', loginError);
-          console.error('❌ Error message:', loginError.message);
-          console.error('❌ Full error object:', loginError);
-          
-          // Force error display regardless of error structure
-          if (loginError && (loginError.message || loginError.toString()).includes('GDPR')) {
-            console.log('🚨 FORCING GDPR ERROR DISPLAY');
-            setError('🚫 Ditt konto har raderats permanent enligt din GDPR-begäran om radering. Du kan inte längre logga in i systemet. Kontakta administratören om du har frågor.');
-          } else {
-            handleAuthError(loginError);
-          }
-          return; // Stop execution here
-        }
-      }
-    } catch (err: any) {
-      console.error('❌ Microsoft login service error:', err);
-      console.error('❌ Service error message:', err.message);
-      handleAuthError(err);
-    } finally {
-      setLoading(false);
+      console.error('❌ Google login error:', err);
+      setError('An error occurred during Google login. Please try again.');
     }
   };
   
@@ -244,35 +171,19 @@ const Login: React.FC = () => {
         )}
         
         <Typography variant="body1" align="center" sx={{ mb: 3 }}>
-          Logga in med ditt sociala konto:
+          Logga in med ditt Google-konto:
         </Typography>
         
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GoogleIcon />}
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              sx={{ py: 1 }}
-            >
-              Google
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<MicrosoftIcon />}
-              onClick={handleMicrosoftLogin}
-              disabled={loading}
-              sx={{ py: 1 }}
-            >
-              Microsoft
-            </Button>
-          </Grid>
-        </Grid>
+        <Button
+          fullWidth
+          variant="contained"
+          color="primary"
+          startIcon={<span>🔐</span>}
+          onClick={handleGoogleLogin}
+          sx={{ py: 2, mb: 2, fontSize: '1.1rem' }}
+        >
+          🔐 Logga in med Google
+        </Button>
 
         <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Button

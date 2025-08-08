@@ -13,7 +13,9 @@ import './utils/debugBookings';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
-import { AuthProvider, useAuth } from './context/AuthContext';
+// MIGRATION: Using new Supabase Auth system instead of Firebase
+// import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContextNew';
 import { PageProvider } from './context/PageContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -47,6 +49,11 @@ import {
   LazyNotFound,
   CookieConsentBanner
 } from './components/LazyComponents';
+
+// Import AuthTest for testing (disabled, uncomment for debugging)
+// import AuthTest from './AuthTest';
+// Import AuthCallback for OAuth redirects
+import { AuthCallback } from './pages/auth/AuthCallback';
 
 // Loading component with timeout protection
 const LoadingFallback = () => {
@@ -197,6 +204,22 @@ function AppRoutes() {
         <Route path="/contact" element={
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyContact /></Layout>
+          </Suspense>
+        } />
+        
+        {/* 🧪 AUTH TEST ROUTE - DISABLED (uncomment for debugging) */}
+        {/* 
+        <Route path="/auth-test" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><AuthTest /></Layout>
+          </Suspense>
+        } />
+        */}
+        
+        {/* 🔐 OAuth Callback Route */}
+        <Route path="/auth/callback" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><AuthCallback /></Layout>
           </Suspense>
         } />
         
