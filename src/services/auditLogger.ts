@@ -419,8 +419,9 @@ export class AuditLogger {
           'repeated_unauthorized_access',
           'high',
           `User ${userEmail || userId} made ${recentAttempts.length} unauthorized access attempts in 15 minutes`,
-          userId ? { user_id: userId } : { user_email: userEmail },
+          userId, // Pass userId as string, not object
           {
+            user_email: userEmail,
             attempt_count: recentAttempts.length,
             time_window: '15_minutes',
             recommendation: 'Consider temporary account lock'
