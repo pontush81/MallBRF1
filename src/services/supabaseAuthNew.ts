@@ -1,6 +1,7 @@
 // New Pure Supabase Auth Service (replaces Firebase)
 // Modern implementation following Supabase best practices
 import supabase from './supabaseClient';
+import { auditLogger, logLogin, logLogout } from './auditLogger';
 
 export interface AuthUser {
   id: string;
@@ -99,10 +100,18 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
  * Logout current user
  */
 export async function logout(): Promise<void> {
+  // Get current user for logging before logout
+  const currentUser = await getCurrentUser().catch(() => null);
+  
   const { error } = await supabase.auth.signOut();
   
   if (error) {
     throw new Error(`Logout failed: ${error.message}`);
+  }
+  
+  // Log logout event for audit trail
+  if (currentUser) {
+    await logLogout(currentUser.id, currentUser.email);
   }
 }
 
@@ -221,6 +230,10 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
       const existingProfile = await getUserProfile(userData.id);
       console.log('✅ Found existing profile:', existingProfile.email);
       console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
+      
+      // Log successful login event
+      await logLogin(existingProfile.id, existingProfile.email, true);
+      
       return existingProfile;
     } catch (error) {
       console.log('ℹ️ No profile found by auth ID, checking by email...');
@@ -265,13 +278,32 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
           }
           
           console.log('✅ Successfully migrated user ID atomically:', migrationResult.migration_status);
-          return {
+          
+          const migratedUser = {
             id: migrationResult.id,
             email: migrationResult.email,
             name: migrationResult.name,
             role: migrationResult.role as 'user' | 'admin',
             isActive: migrationResult.isactive
           };
+          
+          // Log successful login after migration
+          await logLogin(migratedUser.id, migratedUser.email, true);
+          
+          // Log admin action for user ID migration
+          await auditLogger.logAdminAction(
+            'system',
+            'system@supabase.com',
+            'user_id_migration',
+            'users',
+            migratedUser.id,
+            {
+              old_user_id: existingByEmail.id,
+              migration_status: migrationResult.migration_status
+            }
+          );
+          
+          return migratedUser;
         }
       } catch (emailError) {
         console.log('ℹ️ User not found by email, will create new profile');
@@ -344,11 +376,29 @@ async function createUserProfileFromOAuth(oauthUser: any): Promise<AuthUser> {
 
   console.log('✅ Created new user profile:', data.email);
   
-  return {
+  const newUser = {
     id: data.id,
     email: data.email,
     name: data.name,
     role: data.role as 'user' | 'admin',
     isActive: data.isactive
   };
+  
+  // Log successful login for new user
+  await logLogin(newUser.id, newUser.email, true);
+  
+  // Log user creation event
+  await auditLogger.logAdminAction(
+    'system',
+    'system@supabase.com', 
+    'user_profile_creation',
+    'users',
+    newUser.id,
+    {
+      auth_provider: 'google_oauth',
+      created_via: 'oauth_callback'
+    }
+  );
+  
+  return newUser;
 }
