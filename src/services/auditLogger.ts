@@ -335,12 +335,13 @@ export class AuditLogger {
   /**
    * Get client IP address
    */
-  private async getClientIP(): Promise<string> {
+  private async getClientIP(): Promise<string | null> {
     try {
       // In production, this would get real client IP from headers
-      return 'client_ip_placeholder';
+      // For now, return null since we don't have real IP detection
+      return null;
     } catch {
-      return 'unknown';
+      return null;
     }
   }
 
