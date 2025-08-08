@@ -5,6 +5,8 @@ import { userService } from '../services/userService';
 import { User } from '../types/User';
 import { clearSupabaseAuthCache } from '../services/supabaseAuth';
 // MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
+// // MIGRATION: Disabled Firebase sync - using pure Supabase auth system
+// MIGRATION: Disabled Firebase sync - using pure Supabase auth system
 // import { syncUserToSupabase } from '../services/supabaseSync';
 import { cookieConsentService } from '../services/cookieConsent';
 
@@ -85,8 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // TODO: Implement recovery in new Supabase auth system
             /*
             try {
-              const { recoverDeletedUserProfile } = await import('../services/supabaseSync');
-              const recoveredUser = await recoverDeletedUserProfile(firebaseUser);
+                          // MIGRATION: Disabled Firebase user recovery - using pure Supabase auth system
+            // const { recoverDeletedUserProfile } = await import('../services/supabaseSync');
+            // const recoveredUser = await recoverDeletedUserProfile(firebaseUser);
               
               if (recoveredUser) {
                 console.log('✅ Successfully recovered user profile');
