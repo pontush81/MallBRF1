@@ -49,6 +49,9 @@ export async function loginWithGoogle(): Promise<void> {
   } else if (hostname.includes('vercel.app')) {
     // Staging/Preview (Vercel deployments)
     redirectTo = `${origin}/auth/callback`;
+  } else if (hostname.includes('stage.gulmaran.com')) {
+    // Staging environment 
+    redirectTo = `${origin}/auth/callback`;
   } else {
     // Production (custom domain)
     redirectTo = `https://www.gulmaran.com/auth/callback`;
