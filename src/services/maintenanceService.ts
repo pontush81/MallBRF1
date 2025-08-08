@@ -322,14 +322,13 @@ export const deleteProjectDocument = async (filePath: string) => {
 export const getUsers = async (): Promise<User[]> => {
   try {
     return await executeWithRLS(async (supabase) => {
-      // Hämta användare från auth.users via RPC-funktion eller direkt query
-      // För nu, returnera mock-data tills vi har rätt permissions
+      // Hämta användare från users tabell (Supabase migration)
       const { data, error } = await supabase
-        .from('profiles') // Antag att vi har en profiles-tabell
+        .from('users') // Använd users tabell från Supabase migration
         .select('id, email, full_name, avatar_url');
 
       if (error) {
-        console.log('⚠️ Profiles table not found, using mock data');
+        console.log('⚠️ Users table query failed, using mock data:', error);
         // Returnera mock-data för utveckling
         return [
           {

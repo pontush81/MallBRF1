@@ -3,7 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseAuth, isFirebaseAvailable } from '../services/firebase';
 import { userService } from '../services/userService';
 import { User } from '../types/User';
-import { clearSupabaseAuthCache } from '../services/supabaseAuth';
+// MIGRATION: Removed clearSupabaseAuthCache - using pure Supabase auth system
 // MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
 // // MIGRATION: Disabled Firebase sync - using pure Supabase auth system
 // MIGRATION: Disabled Firebase sync - using pure Supabase auth system
@@ -124,11 +124,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('pages_last_load');
-    clearSupabaseAuthCache(); // Clear Supabase auth tokens
     
-    // Also clear all Supabase client caches
-    const { clearAllAuthCaches } = require('../services/supabaseClient');
-    clearAllAuthCaches();
+    // MIGRATION: Using native Supabase auth clearing instead of Firebase bridge
+    // Note: Actual Supabase logout is handled in the new auth system
     
     setCurrentUser(null);
     setIsLoggedIn(false);

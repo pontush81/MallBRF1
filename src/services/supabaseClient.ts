@@ -1,6 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
-import { getCachedSupabaseToken } from './supabaseAuth';
 
 // Initialize Supabase client with full auth config (MIGRATION: Updated for pure Supabase auth)
 const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -21,48 +20,23 @@ const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_
 let authenticatedClientCache: SupabaseClient | null = null;
 let cachedTokenForClient: string | null = null;
 
-// Helper function to get authenticated Supabase client using secure JWT bridge
+// Helper function to get authenticated Supabase client using native Supabase auth
 export async function getAuthenticatedSupabaseClient(): Promise<SupabaseClient> {
   try {
-    const token = await getCachedSupabaseToken();
-
-    if (token) {
-      // Reuse cached client if token hasn't changed
-      if (authenticatedClientCache && cachedTokenForClient === token) {
-        return authenticatedClientCache;
-      }
-
-      // Clear previous client to avoid multiple instances
-      if (authenticatedClientCache) {
-        console.log('🔄 Replacing cached Supabase client with new token');
-      }
-
-      // Create new authenticated client with the secure JWT
-      authenticatedClientCache = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-          // Stable storage key to prevent multiple instances
-          storageKey: `supabase.auth.maintenance.${token.slice(-8)}`
-        },
-        global: {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      });
-
-      cachedTokenForClient = token;
-      return authenticatedClientCache;
+    // Use the main client which already has session management
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
+    if (session?.access_token) {
+      console.log('✅ Using authenticated Supabase client with valid session');
+      return supabaseClient; // The main client already has the session
     }
 
-    // Fallback to anon client if no token available
-    console.warn('No auth token available, using anon client');
+    // Fallback to anon client if no session available
+    console.log('⚠️ No active session, using anon client');
     return supabaseClient;
 
   } catch (error) {
-    console.error('Error creating authenticated client:', error);
+    console.error('Error getting authenticated client:', error);
     return supabaseClient;
   }
 }
