@@ -22,6 +22,7 @@ export type AuditEventType =
   | 'user_profile_access'
   | 'user_profile_update'
   | 'admin_action'
+  | 'data_access'
   | 'data_export'
   | 'data_deletion'
   | 'gdpr_request'
