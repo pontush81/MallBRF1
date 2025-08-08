@@ -1,14 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { getFirebaseAuth, isFirebaseAvailable } from '../services/firebase';
+// MIGRATION: Replaced Firebase auth with native Supabase auth
+import { supabaseClient } from '../services/supabaseClient';
 import { userService } from '../services/userService';
 import { User } from '../types/User';
-// MIGRATION: Removed clearSupabaseAuthCache - using pure Supabase auth system
-// MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
-// // MIGRATION: Disabled Firebase sync - using pure Supabase auth system
-// MIGRATION: Disabled Firebase sync - using pure Supabase auth system
-// import { syncUserToSupabase } from '../services/supabaseSync';
-import { cookieConsentService } from '../services/cookieConsent';
+// MIGRATION: Using native Supabase auth - all Firebase references removed
+import { auditLogger } from '../services/auditLogger';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -18,7 +14,7 @@ interface AuthContextType {
   login: (user: User) => Promise<void>;
   logout: () => void;
   validateSession: () => Promise<void>;
-  firebaseAvailable: boolean;
+  supabaseReady: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -30,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [firebaseAvailable, setFirebaseAvailable] = useState(isFirebaseAvailable());
+  const [supabaseReady, setSupabaseReady] = useState(true);
   const validationInProgress = useRef(false);
 
   const validateSession = async () => {
@@ -38,78 +34,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     validationInProgress.current = true;
 
     try {
-      const auth = getFirebaseAuth();
-      if (!auth) {
-        console.log('Firebase not available - user needs to give authentication consent');
+      // Check Supabase auth session
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      
+      if (error) {
+        console.error('Session validation error:', error);
         clearUserData();
         return;
       }
 
-      const firebaseUser = auth?.currentUser;
-      if (!firebaseUser) {
+      if (!session?.user) {
         clearUserData();
         return;
       }
 
-      // Check if token is still valid by trying to refresh it
-      try {
-        await firebaseUser.getIdToken(true); // Force refresh
-        
-        // If successful, validate user data from local storage
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
+      // Session is valid, now get user data from Supabase
+      const supabaseUser = session.user;
+      
+      // Check if we have cached user data first
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        try {
           const parsedUser = JSON.parse(savedUser);
-          setCurrentUser(parsedUser);
-          setIsLoggedIn(true);
-          setIsAdmin(parsedUser.role === 'admin');
-          
-          // MIGRATION: Temporarily disabled old Firebase sync during Supabase migration
-          // TODO: Remove this entire section after migration is complete
-          /*
-          // Sync user to Supabase to ensure RLS policies work
-          try {
-            await syncUserToSupabase(parsedUser);
-          } catch (error) {
-            console.error('Failed to sync user to Supabase during validation:', error);
+          // Verify the cached user matches current auth user
+          if (parsedUser.id === supabaseUser.id) {
+            setCurrentUser(parsedUser);
+            setIsLoggedIn(true);
+            setIsAdmin(parsedUser.role === 'admin');
+            console.log('✅ Using cached user data:', parsedUser.email);
+            return;
           }
-          */
+        } catch (parseError) {
+          console.warn('Invalid cached user data, will fetch from database');
+        }
+      }
+
+      // Fetch user data from Supabase database
+      try {
+        const userData = await userService.getUserById(supabaseUser.id);
+        if (userData) {
+          await login(userData);
+          console.log('✅ User validated from Supabase database:', userData.email);
         } else {
-          // No saved user data, but Firebase user exists - fetch user data
-          const userData = await userService.getUserById(firebaseUser.uid);
-          if (userData) {
-            await login(userData);
-          } else {
-            // User not found in Firestore - might be a GDPR-deleted user
-            // Try to recover the profile if they're still on allowlist
-            console.log('🔄 User profile not found, attempting recovery for:', firebaseUser.email);
-            
-            // MIGRATION: Temporarily disabled old recovery system during Supabase migration
-            // TODO: Implement recovery in new Supabase auth system
-            /*
-            try {
-                          // MIGRATION: Disabled Firebase user recovery - using pure Supabase auth system
-            // const { recoverDeletedUserProfile } = await import('../services/supabaseSync');
-            // const recoveredUser = await recoverDeletedUserProfile(firebaseUser);
-              
-              if (recoveredUser) {
-                console.log('✅ Successfully recovered user profile');
-                await login(recoveredUser);
-              } else {
-                console.log('❌ Could not recover user profile - user may not be allowed');
-                clearUserData();
-              }
-            } catch (recoveryError) {
-              console.error('Recovery attempt failed:', recoveryError);
-              clearUserData();
-            }
-            */
-            
-            // For now, just clear data if user not found
+          // User exists in auth but not in users table - create profile
+          console.log('🔄 Creating user profile for authenticated user:', supabaseUser.email);
+          const newUser: User = {
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+            role: 'user', // Default role
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          // Save to database
+          try {
+            await userService.createUser(newUser);
+            await login(newUser);
+            console.log('✅ Created and logged in new user:', newUser.email);
+          } catch (createError) {
+            console.error('Failed to create user profile:', createError);
             clearUserData();
           }
         }
-      } catch (tokenError) {
-        console.warn('Token validation failed:', tokenError);
+      } catch (dbError) {
+        console.error('Database error during session validation:', dbError);
         clearUserData();
       }
     } catch (error) {
@@ -133,62 +122,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAdmin(false);
   };
 
-  // Handle consent changes
+  // Supabase is always ready - no consent needed for authentication
   useEffect(() => {
-    const handleConsentChange = () => {
-      const newFirebaseAvailable = isFirebaseAvailable();
-      setFirebaseAvailable(newFirebaseAvailable);
-      
-      if (!newFirebaseAvailable) {
-        console.log('Firebase consent revoked - clearing auth state');
-        clearUserData();
-      } else if (newFirebaseAvailable && !currentUser) {
-        console.log('Firebase consent granted - attempting to restore session');
-        validateSession();
+    setSupabaseReady(true);
+  }, []);
+
+  // Initialize and validate session with Supabase
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Listen to Supabase auth state changes
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+          async (event, session) => {
+            if (!mounted) return;
+            
+            console.log('🔐 Supabase auth event:', event, session?.user?.email);
+            
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+              if (session?.user) {
+                await validateSession();
+                // Log successful auth event
+                await auditLogger.logAuthEvent('auth_login_success', session.user.id, true);
+              }
+            } else if (event === 'SIGNED_OUT') {
+              clearUserData();
+              // Log logout event
+              await auditLogger.logAuthEvent('auth_logout', currentUser?.id, true);
+            }
+            
+            if (mounted) {
+              setLoading(false);
+            }
+          }
+        );
+
+        // Initial session check
+        await validateSession();
+        if (mounted) {
+          setLoading(false);
+        }
+
+        // Return cleanup function
+        return () => {
+          mounted = false;
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          clearUserData();
+          setLoading(false);
+        }
       }
     };
 
-    cookieConsentService.addListener(handleConsentChange);
-    return () => cookieConsentService.removeListener(handleConsentChange);
-  }, [currentUser, validateSession]);
-
-  // Initialize and validate session
-  useEffect(() => {
-    try {
-      const auth = getFirebaseAuth();
-      if (!auth) {
-        console.log('Firebase auth not available - waiting for consent');
-        setLoading(false);
-        return;
-      }
-
-      // Listen to Firebase auth state changes
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          await validateSession();
-        } else {
-          clearUserData();
-        }
-        setLoading(false);
-      });
-
-      // Cleanup function
-      return () => {
-        if (typeof unsubscribe === 'function') {
-          unsubscribe();
-        }
-      };
-    } catch (error) {
-      console.error('Auth initialization error:', error);
-      clearUserData();
-      setLoading(false);
-    }
-  }, [firebaseAvailable, validateSession]);
+    const cleanup = initializeAuth();
+    
+    return () => {
+      mounted = false;
+      cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+    };
+  }, [supabaseReady, validateSession]);
 
   // Validate session when user returns to the tab/window
   useEffect(() => {
     const handleFocus = () => {
-      if (isLoggedIn && firebaseAvailable) {
+      if (isLoggedIn && supabaseReady) {
         validateSession();
       }
     };
@@ -260,12 +261,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('isLoggedIn', 'true');
   };
 
-  const logout = () => {
-    const auth = getFirebaseAuth();
-    if (auth) {
-      auth.signOut();
+  const logout = async () => {
+    try {
+      // Log audit event before logout
+      if (currentUser) {
+        await auditLogger.logAuthEvent('auth_logout', currentUser.id, true);
+      }
+      
+      // Sign out from Supabase
+      await supabaseClient.auth.signOut();
+      
+      // Clear local data
+      clearUserData();
+      
+      console.log('✅ Successfully logged out');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local data even if signOut fails
+      clearUserData();
     }
-    clearUserData();
   };
 
   const value: AuthContextType = {
@@ -276,7 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     validateSession,
-    firebaseAvailable
+    supabaseReady
   };
 
   return (
