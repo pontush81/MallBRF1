@@ -38,12 +38,23 @@ export async function loginWithEmail(email: string, password: string): Promise<A
  */
 export async function loginWithGoogle(): Promise<void> {
   // Determine correct redirect URL based on environment
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const redirectTo = isLocalhost 
-    ? `${window.location.origin}/auth/callback`  // localhost:3001/auth/callback
-    : `https://www.gulmaran.com/auth/callback`;   // Production domain
+  const hostname = window.location.hostname;
+  const origin = window.location.origin;
+  
+  let redirectTo: string;
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Development
+    redirectTo = `${origin}/auth/callback`;
+  } else if (hostname.includes('vercel.app')) {
+    // Staging/Preview (Vercel deployments)
+    redirectTo = `${origin}/auth/callback`;
+  } else {
+    // Production (custom domain)
+    redirectTo = `https://www.gulmaran.com/auth/callback`;
+  }
     
-  console.log('🔧 OAuth Redirect URL:', redirectTo);
+  console.log('🔧 OAuth Environment:', { hostname, origin, redirectTo });
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
