@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 
 // Auth Components
-export const LazyLogin = lazy(() => import('../pages/auth/Login'));
+export const LazyLogin = lazy(() => import('../pages/auth/LoginNew').then(module => ({ default: module.LoginNew })));
 export const LazyRegister = lazy(() => import('../pages/auth/Register'));
 
 // Public Pages
@@ -27,11 +27,9 @@ export const LazyDashboardHome = lazy(() => import('../pages/admin/DashboardHome
 export const LazyPagesList = lazy(() => import('../pages/admin/PagesList'));
 export const LazyPageEditor = lazy(() => import('../pages/admin/PageEditor'));
 export const LazyBookingsList = lazy(() => import('../pages/admin/BookingsList'));
-// MIGRATION: UsersList & AllowlistManager disabled - depend on Firebase
-// export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
-// export const LazyAllowlistManager = lazy(() => import('../pages/admin/AllowlistManager'));
-// MIGRATION: NotificationSettings disabled - depends on Firebase
-// export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));
+export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
+export const LazyAllowlistManager = lazy(() => import('../pages/admin/AllowlistManager'));
+export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));
 export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/MaintenancePlanPage'));
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));
 

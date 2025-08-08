@@ -606,9 +606,8 @@ const BookingsList: React.FC = () => {
 
 
 
-  // Rendera bokning beroende på skärmstorlek
-  const renderBookingItem = (booking: Booking) => {
-    if (isMobile) {
+  // Rendera bokning för mobil vy
+  const renderMobileBookingItem = (booking: Booking) => {
       const nights = calculateNights(booking);
       
       // Beräkna veckonummer och bestäm färg
@@ -703,9 +702,10 @@ const BookingsList: React.FC = () => {
           </Grid>
         </Paper>
       );
-    }
-    
-    // Standard table row for desktop
+  };
+
+  // Rendera bokning för desktop vy (table row)
+  const renderDesktopBookingItem = (booking: Booking) => {
     return (
       <TableRow key={booking.id}>
         <TableCell>{booking.name}</TableCell>
@@ -1217,7 +1217,7 @@ const BookingsList: React.FC = () => {
                           </TableHead>
                           <TableBody>
                             {monthBookings.map(booking => (
-                              renderBookingItem(booking)
+                              renderDesktopBookingItem(booking)
                             ))}
                             <TableRow 
                               sx={{ 
@@ -1239,7 +1239,7 @@ const BookingsList: React.FC = () => {
                     {/* Mobil vy med cards */}
                     <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                       {monthBookings.map(booking => (
-                        renderBookingItem(booking)
+                        renderMobileBookingItem(booking)
                       ))}
                       
                       {/* Mobile summary */}

@@ -16,14 +16,14 @@ import {
   Google as GoogleIcon, 
   Microsoft as MicrosoftIcon
 } from '@mui/icons-material';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { loginWithGoogle } from '../../services/supabaseAuthNew';
-import { useAuth } from '../../context/AuthContextNew';
+// import { useAuth } from '../../context/AuthContextNew'; // Not used in Register
 import Logo from '../../components/Logo';
 
 const Register: React.FC = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  // const { login } = useAuth(); // Unused in Register component
+  // const navigate = useNavigate(); // Unused in Register component
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   

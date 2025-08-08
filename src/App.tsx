@@ -41,9 +41,9 @@ import {
   LazyPagesList,
   LazyPageEditor,
   LazyBookingsList,
-  // LazyUsersList, // MIGRATION: disabled
-  // LazyAllowlistManager, // MIGRATION: disabled
-  // LazyNotificationSettings, // MIGRATION: disabled
+  LazyUsersList,
+  LazyAllowlistManager,
+  LazyNotificationSettings,
   LazyMaintenancePlanPage,
   LazyDataRetentionManager,
   LazyNotFound,
@@ -256,7 +256,6 @@ function AppRoutes() {
               <LazyBookingsList />
             </Suspense>
           } />
-          {/* MIGRATION: Disabled Firebase-dependent admin routes
           <Route path="users" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyUsersList />
@@ -272,7 +271,6 @@ function AppRoutes() {
               <LazyNotificationSettings />
             </Suspense>
           } />
-          */}
           <Route path="maintenance" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyMaintenancePlanPage />
