@@ -7,7 +7,7 @@ import {
     Typography,
     Paper
 } from '@mui/material';
-import BackupManager from '../components/BackupManager';
+// MIGRATION: BackupManager disabled - depends on Firebase
 
 const AdminPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
@@ -43,7 +43,7 @@ const AdminPage: React.FC = () => {
                         <Typography>Användarhantering kommer här</Typography>
                     )}
                     {activeTab === 3 && (
-                        <BackupManager />
+                        <Typography>Backup hantering ej tillgänglig under migration</Typography>
                     )}
                 </Box>
             </Box>

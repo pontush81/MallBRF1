@@ -27,14 +27,17 @@ export const LazyDashboardHome = lazy(() => import('../pages/admin/DashboardHome
 export const LazyPagesList = lazy(() => import('../pages/admin/PagesList'));
 export const LazyPageEditor = lazy(() => import('../pages/admin/PageEditor'));
 export const LazyBookingsList = lazy(() => import('../pages/admin/BookingsList'));
-export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
-export const LazyAllowlistManager = lazy(() => import('../pages/admin/AllowlistManager'));
-export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));
+// MIGRATION: UsersList & AllowlistManager disabled - depend on Firebase
+// export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
+// export const LazyAllowlistManager = lazy(() => import('../pages/admin/AllowlistManager'));
+// MIGRATION: NotificationSettings disabled - depends on Firebase
+// export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));
 export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/MaintenancePlanPage'));
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));
 
 // Component Exports
-export const LazyBackupManager = lazy(() => import('./BackupManager'));
+// MIGRATION: BackupManager disabled - depends on Firebase
+// export const LazyBackupManager = lazy(() => import('./BackupManager'));
 export const LazyBookingDetails = lazy(() => import('./booking/BookingDetails'));
 export const LazyBookingStatus = lazy(() => import('./booking/BookingStatus'));
 export const LazyErrorBoundary = lazy(() => import('./ErrorBoundary'));

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 // MIGRATION: Replaced Firebase auth with native Supabase auth
-import { supabaseClient } from '../services/supabaseClient';
-import { userService } from '../services/userService';
+import supabaseClient from '../services/supabaseClient';
+// import { userService } from '../services/userService'; // MIGRATION: disabled
 import { User } from '../types/User';
 // MIGRATION: Using native Supabase auth - all Firebase references removed
 import { auditLogger } from '../services/auditLogger';
@@ -69,10 +69,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Fetch user data from Supabase database
+      // Fetch user data from Supabase database directly
       try {
-        const userData = await userService.getUserById(supabaseUser.id);
-        if (userData) {
+        const { data: userData, error } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('id', supabaseUser.id)
+          .single();
+          
+        if (userData && !error) {
           await login(userData);
           console.log('✅ User validated from Supabase database:', userData.email);
         } else {
@@ -82,16 +87,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: supabaseUser.id,
             email: supabaseUser.email || '',
             name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-            role: 'user', // Default role
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            role: 'user' as const, // Default role
+            createdAt: new Date().toISOString()
           };
           
-          // Save to database
+          // Save to database directly
           try {
-            await userService.createUser(newUser);
-            await login(newUser);
-            console.log('✅ Created and logged in new user:', newUser.email);
+            const { error: insertError } = await supabaseClient
+              .from('users')
+              .insert([newUser]);
+              
+            if (!insertError) {
+              await login(newUser);
+              console.log('✅ Created and logged in new user:', newUser.email);
+            } else {
+              console.error('Failed to create user profile:', insertError);
+              clearUserData();
+            }
           } catch (createError) {
             console.error('Failed to create user profile:', createError);
             clearUserData();
@@ -143,13 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
               if (session?.user) {
                 await validateSession();
-                // Log successful auth event
-                await auditLogger.logAuthEvent('auth_login_success', session.user.id, true);
+                // Log successful auth event (moved to validateSession to avoid duplicate logging)
               }
             } else if (event === 'SIGNED_OUT') {
               clearUserData();
-              // Log logout event
-              await auditLogger.logAuthEvent('auth_logout', currentUser?.id, true);
+              // Logout audit logging is handled in the logout function
             }
             
             if (mounted) {
@@ -195,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const handleVisibilityChange = () => {
-      if (!document.hidden && isLoggedIn && firebaseAvailable) {
+      if (!document.hidden && isLoggedIn && supabaseReady) {
         validateSession();
       }
     };
@@ -207,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLoggedIn, firebaseAvailable, validateSession]);
+  }, [isLoggedIn, supabaseReady, validateSession]);
   
   const login = async (user: User) => {
     console.log('🔍 Starting login process for:', user.email);
@@ -265,7 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Log audit event before logout
       if (currentUser) {
-        await auditLogger.logAuthEvent('auth_logout', currentUser.id, true);
+        await auditLogger.logAuthEvent('auth_logout', currentUser.id);
       }
       
       // Sign out from Supabase
