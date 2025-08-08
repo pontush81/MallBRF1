@@ -325,7 +325,7 @@ export const getUsers = async (): Promise<User[]> => {
       // Hämta användare från users tabell (Supabase migration)
       const { data, error } = await supabase
         .from('users') // Använd users tabell från Supabase migration
-        .select('id, email, name, avatar_url');
+        .select('id, email, name');
 
       if (error) {
         console.log('⚠️ Users table query failed, using mock data:', error);
@@ -350,7 +350,7 @@ export const getUsers = async (): Promise<User[]> => {
         id: user.id,
         email: user.email || '',
         full_name: user.name || user.email?.split('@')[0] || 'Okänd användare',
-        avatar_url: user.avatar_url
+        avatar_url: null // Avatar inte implementerat än i Supabase users tabell
       }));
     }, []);
 
