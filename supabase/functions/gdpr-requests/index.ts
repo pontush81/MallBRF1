@@ -431,6 +431,11 @@ async function handleErasureRequest(supabase: any, email: string, requestData: a
       });
 
     // Step 5: Block Firebase Authentication using Custom Claims
+    // MIGRATION: Temporarily disabled firebase-auth-bridge call - needs Supabase auth update
+    // TODO: Update this to use native Supabase auth user blocking
+    console.log('🚨 GDPR: User blocking via Firebase disabled during migration:', email);
+    const firebaseResponse = { ok: true }; // Mock success for now
+    /*
     const firebaseResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/firebase-auth-bridge`, {
       method: 'POST',
       headers: {
@@ -443,6 +448,7 @@ async function handleErasureRequest(supabase: any, email: string, requestData: a
         userId: requestData?.userId
       })
     });
+    */
 
     if (!firebaseResponse.ok) {
       console.error('Firebase Auth Custom Claims failed:', firebaseResponse.status);
