@@ -227,12 +227,58 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
   console.log('🔄 Handling OAuth callback (modern approach)...');
   
   try {
-    // Add timeout to prevent hanging in production (same issue as pages)
+    // First try to parse tokens directly from URL (bypass SDK hanging)
+    const urlParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = urlParams.get('access_token');
+    const refreshToken = urlParams.get('refresh_token');
+    
+    if (accessToken && refreshToken) {
+      console.log('🚀 Found OAuth tokens in URL, parsing directly...');
+      
+      try {
+        // Parse the JWT to get user info
+        const tokenPayload = JSON.parse(atob(accessToken.split('.')[1]));
+        console.log('✅ Parsed OAuth token:', tokenPayload.email);
+        
+        // Clean URL immediately
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Set the session in Supabase client (so other parts of app work)
+        try {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          console.log('✅ Set Supabase session from parsed tokens');
+        } catch (sessionError) {
+          console.warn('⚠️ Failed to set Supabase session:', sessionError);
+          // Continue anyway, we have the user data
+        }
+        
+        // Create user data from token
+        const userData = {
+          id: tokenPayload.sub,
+          email: tokenPayload.email,
+          user_metadata: {
+            full_name: tokenPayload.user_metadata?.full_name || tokenPayload.user_metadata?.name,
+            email: tokenPayload.email
+          }
+        };
+        
+        return await processOAuthUser(userData);
+        
+      } catch (tokenError) {
+        console.error('❌ Failed to parse OAuth token:', tokenError);
+        // Fall back to SDK method
+      }
+    }
+    
+    // Fallback to SDK with timeout (if direct parsing fails)
     console.log('🔍 Getting OAuth session with timeout...');
     
     const sessionPromise = supabase.auth.getSession();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('OAuth session timeout after 8 seconds')), 8000)
+      setTimeout(() => reject(new Error('OAuth session timeout after 5 seconds')), 5000)
     );
     
     const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
