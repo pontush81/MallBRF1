@@ -5,7 +5,7 @@ export const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJ
 // API configuration
 export const API_BASE_URL = `${SUPABASE_URL}/functions/v1`;
 
-// Debug: Log which environment we're using
+// Debug: Log which environment we're using (force redeploy for Supavisor migration)
 console.log('🔧 Supabase Config:', {
   url: SUPABASE_URL,
   anonKey: SUPABASE_ANON_KEY.substring(0, 20) + '...',
