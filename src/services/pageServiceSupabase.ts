@@ -39,12 +39,20 @@ const pageServiceSupabase = {
     try {
       console.log('🔍 Fetching visible pages from Supabase... (v2.0)');
       
-      const { data, error } = await supabaseClient
+      // Add timeout to prevent hanging in production
+      const queryPromise = supabaseClient
         .from('pages')
         .select('*')
         .eq('ispublished', true)
         .eq('show', true)
         .order('createdat', { ascending: true });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Pages query timeout after 10 seconds')), 10000)
+      );
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+      const { data, error } = result;
 
       if (error) {
         console.error('❌ Error fetching visible pages:', error);
@@ -60,6 +68,13 @@ const pageServiceSupabase = {
       return pages;
     } catch (error) {
       console.error('Error in getVisiblePages:', error);
+      
+      // If timeout or network error, return empty array to prevent infinite loading
+      if (error.message?.includes('timeout') || error.message?.includes('network')) {
+        console.log('⚠️ Network/timeout error, returning empty pages array');
+        return [];
+      }
+      
       throw error;
     }
   },
