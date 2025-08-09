@@ -100,20 +100,67 @@ export async function registerUser(email: string, password: string, name: string
 }
 
 /**
- * Get current authenticated user
+ * Get current authenticated user - with timeout protection and localStorage fallback
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  console.log('🔍 Getting current user with timeout protection...');
   
-  if (!user) {
-    return null;
-  }
-
+  // First try to get user from localStorage (fast fallback)
   try {
-    const userProfile = await getUserProfile(user.id);
-    return userProfile;
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      console.log('✅ Found user in localStorage:', user.email);
+      return user;
+    }
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    console.log('ℹ️ No valid user in localStorage');
+  }
+  
+  // Try Supabase SDK with timeout
+  try {
+    const getUserPromise = supabase.auth.getUser();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('getCurrentUser timeout after 3 seconds')), 3000)
+    );
+    
+    const result = await Promise.race([getUserPromise, timeoutPromise]) as any;
+    const { data: { user } } = result;
+    
+    if (!user) {
+      console.log('ℹ️ No authenticated user found');
+      return null;
+    }
+
+    console.log('✅ Got user from Supabase SDK:', user.email);
+    
+    try {
+      const userProfile = await getUserProfile(user.id);
+      
+      // Save to localStorage for next time
+      localStorage.setItem('currentUser', JSON.stringify(userProfile));
+      
+      return userProfile;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+    
+  } catch (error) {
+    console.warn('⚠️ getCurrentUser failed or timed out:', error.message);
+    
+    // Final fallback - try to reconstruct from localStorage if available
+    try {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        console.log('🔄 Using localStorage fallback user:', user.email);
+        return user;
+      }
+    } catch (fallbackError) {
+      console.log('ℹ️ No localStorage fallback available');
+    }
+    
     return null;
   }
 }

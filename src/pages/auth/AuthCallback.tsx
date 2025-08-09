@@ -21,6 +21,10 @@ export const AuthCallback: React.FC = () => {
           console.log('OAuth callback successful:', user.email);
           console.log('🔧 User role:', user.role, '| isActive:', user.isActive);
           
+          // CRITICAL: Save to localStorage immediately for persistence
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          localStorage.setItem('isLoggedIn', 'true');
+          
           // CRITICAL: Update the AuthContext state explicitly
           login(user);
           
