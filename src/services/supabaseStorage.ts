@@ -3,6 +3,35 @@ import { v4 as uuidv4 } from 'uuid';
 
 const STORAGE_BUCKET = 'page-files';
 
+// Direct REST API helper for storage operations
+const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE';
+
+// Direct storage API calls to bypass hanging SDK
+async function directStorageCall(method: string, endpoint: string, body?: any, timeout: number = 10000) {
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/${endpoint}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      ...(method !== 'GET' && body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {})
+    },
+    body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+    signal: AbortSignal.timeout(timeout)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Direct storage API error: ${response.status} ${errorText}`);
+  }
+
+  if (method === 'DELETE') {
+    return null;
+  }
+
+  return await response.json();
+}
+
 export interface UploadedFile {
   id: string;
   url: string;
@@ -30,33 +59,26 @@ const supabaseStorage = {
   // Ladda upp fil till Supabase Storage
   uploadFile: async (file: File, pageId?: string): Promise<UploadedFile> => {
     try {
-      console.log('Uploading file to Supabase Storage:', file.name);
+      console.log('🚀 Uploading file via direct storage API:', file.name);
 
       // Generera säkert filnamn
       const safeFilename = generateSafeFilename(file.name);
       const filePath = pageId ? `pages/${pageId}/${safeFilename}` : `general/${safeFilename}`;
 
-      // Ladda upp filen
-      const { data, error } = await supabaseClient.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // Skapa FormData för file upload
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (error) {
-        console.error('Error uploading file:', error);
-        throw new Error(`Kunde inte ladda upp filen: ${error.message}`);
-      }
+      // Ladda upp filen via direct storage API
+      const endpoint = `object/${STORAGE_BUCKET}/${filePath}`;
+      await directStorageCall('POST', endpoint, formData, 30000); // 30s timeout for uploads
 
-      // Hämta den publika URL:en
-      const { data: urlData } = supabaseClient.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath);
+      // Generera public URL direkt
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${filePath}`;
 
       const uploadedFile: UploadedFile = {
-        id: data.path, // Använd storage-path som ID
-        url: urlData.publicUrl,
+        id: filePath, // Använd filePath som ID
+        url: publicUrl,
         originalName: file.name,
         filename: safeFilename,
         mimetype: file.type,
@@ -64,11 +86,11 @@ const supabaseStorage = {
         uploadedAt: new Date().toISOString()
       };
 
-      console.log('File uploaded successfully:', uploadedFile);
+      console.log('✅ File uploaded successfully via direct API (FAST!):', uploadedFile);
       return uploadedFile;
 
     } catch (error) {
-      console.error('File upload error:', error);
+      console.error('❌ File upload error via direct API:', error);
       throw error;
     }
   },
@@ -76,22 +98,16 @@ const supabaseStorage = {
   // Ta bort fil från Supabase Storage
   deleteFile: async (filePath: string): Promise<boolean> => {
     try {
-      console.log('Deleting file from Supabase Storage:', filePath);
+      console.log('🚀 Deleting file via direct storage API:', filePath);
 
-      const { error } = await supabaseClient.storage
-        .from(STORAGE_BUCKET)
-        .remove([filePath]);
+      const endpoint = `object/${STORAGE_BUCKET}/${filePath}`;
+      await directStorageCall('DELETE', endpoint);
 
-      if (error) {
-        console.error('Error deleting file:', error);
-        return false;
-      }
-
-      console.log('File deleted successfully:', filePath);
+      console.log('✅ File deleted successfully via direct API (FAST!):', filePath);
       return true;
 
     } catch (error) {
-      console.error('File deletion error:', error);
+      console.error('❌ File deletion error via direct API:', error);
       return false;
     }
   },
@@ -99,27 +115,19 @@ const supabaseStorage = {
   // Lista filer för en specifik sida
   listFiles: async (pageId: string): Promise<UploadedFile[]> => {
     try {
-      const { data, error } = await supabaseClient.storage
-        .from(STORAGE_BUCKET)
-        .list(`pages/${pageId}`, {
-          limit: 100,
-          offset: 0
-        });
+      console.log('🚀 Listing files via direct storage API for page:', pageId);
 
-      if (error) {
-        console.error('Error listing files:', error);
-        return [];
-      }
+      const endpoint = `object/list/${STORAGE_BUCKET}?prefix=pages/${pageId}&limit=100`;
+      const data = await directStorageCall('POST', endpoint, { prefix: `pages/${pageId}`, limit: 100 });
 
-      const files: UploadedFile[] = data?.map(file => {
+      const files: UploadedFile[] = data?.map((file: any) => {
         const filePath = `pages/${pageId}/${file.name}`;
-        const { data: urlData } = supabaseClient.storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(filePath);
+        // Generate public URL directly
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${filePath}`;
 
         return {
           id: filePath,
-          url: urlData.publicUrl,
+          url: publicUrl,
           originalName: file.name,
           filename: file.name,
           mimetype: file.metadata?.mimetype || 'application/octet-stream',
@@ -128,10 +136,11 @@ const supabaseStorage = {
         };
       }) || [];
 
+      console.log(`✅ Listed ${files.length} files via direct API (FAST!) for page:`, pageId);
       return files;
 
     } catch (error) {
-      console.error('Error listing files:', error);
+      console.error('❌ Error listing files via direct API:', error);
       return [];
     }
   },
@@ -139,19 +148,16 @@ const supabaseStorage = {
   // Hämta fil-URL (för privata filer)
   getFileUrl: async (filePath: string, expiresIn: number = 3600): Promise<string | null> => {
     try {
-      const { data, error } = await supabaseClient.storage
-        .from(STORAGE_BUCKET)
-        .createSignedUrl(filePath, expiresIn);
+      console.log('🚀 Creating signed URL via direct storage API:', filePath);
 
-      if (error) {
-        console.error('Error creating signed URL:', error);
-        return null;
-      }
+      const endpoint = `object/sign/${STORAGE_BUCKET}/${filePath}`;
+      const data = await directStorageCall('POST', endpoint, { expiresIn });
 
+      console.log('✅ Created signed URL via direct API (FAST!):', filePath);
       return data.signedUrl;
 
     } catch (error) {
-      console.error('Error getting file URL:', error);
+      console.error('❌ Error creating signed URL via direct API:', error);
       return null;
     }
   },
@@ -159,38 +165,34 @@ const supabaseStorage = {
   // Kontrollera om bucket existerar, annars skapa den
   ensureBucketExists: async (): Promise<boolean> => {
     try {
+      console.log('🚀 Checking bucket existence via direct storage API...');
+
       // Lista buckets för att se om vår bucket finns
-      const { data: buckets, error: listError } = await supabaseClient.storage.listBuckets();
+      const buckets = await directStorageCall('GET', 'bucket');
 
-      if (listError) {
-        console.error('Error listing buckets:', listError);
-        return false;
-      }
-
-      const bucketExists = buckets?.some(bucket => bucket.name === STORAGE_BUCKET);
+      const bucketExists = buckets?.some((bucket: any) => bucket.name === STORAGE_BUCKET);
 
       if (!bucketExists) {
-        console.log(`Creating storage bucket: ${STORAGE_BUCKET}`);
+        console.log(`🔨 Creating storage bucket via direct API: ${STORAGE_BUCKET}`);
         
         // Skapa bucket om den inte finns
-        const { error: createError } = await supabaseClient.storage.createBucket(STORAGE_BUCKET, {
+        await directStorageCall('POST', 'bucket', {
+          id: STORAGE_BUCKET,
+          name: STORAGE_BUCKET,
           public: true,
-          allowedMimeTypes: ['image/*', 'application/pdf', 'text/*'],
-          fileSizeLimit: 10485760 // 10MB
+          allowed_mime_types: ['image/*', 'application/pdf', 'text/*'],
+          file_size_limit: 10485760 // 10MB
         });
 
-        if (createError) {
-          console.error('Error creating bucket:', createError);
-          return false;
-        }
-
-        console.log(`Storage bucket created: ${STORAGE_BUCKET}`);
+        console.log(`✅ Storage bucket created via direct API (FAST!): ${STORAGE_BUCKET}`);
+      } else {
+        console.log(`✅ Storage bucket exists: ${STORAGE_BUCKET}`);
       }
 
       return true;
 
     } catch (error) {
-      console.error('Error ensuring bucket exists:', error);
+      console.error('❌ Error ensuring bucket exists via direct API:', error);
       return false;
     }
   }

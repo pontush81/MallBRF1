@@ -137,7 +137,7 @@ const UsersList: React.FC = () => {
           {error}
         </Alert>
       )}
-
+      
       <Paper>
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
@@ -206,8 +206,8 @@ const UsersList: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          )}
-        </Box>
+            )}
+          </Box>
       </Paper>
 
       <Snackbar
@@ -220,4 +220,4 @@ const UsersList: React.FC = () => {
   );
 };
 
-export default UsersList;
+export default UsersList; 

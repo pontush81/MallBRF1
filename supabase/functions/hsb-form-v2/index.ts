@@ -294,11 +294,11 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
     if (error) {
     console.error('❌ Error fetching residents:', error);
     return [];
-  }
-  
+    }
+
   const residentData = residents?.map((resident: any) => ({
     apartmentNumber: resident.apartment_number,
-    resident: resident.resident_names,
+      resident: resident.resident_names,
     email: resident.primary_email,
       parkingSpace: resident.parking_space || '',
       storageSpace: resident.storage_space || ''
@@ -426,32 +426,32 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
     
     // Draw items for this apartment
     for (const item of items) {
-      if (yPosition < 100) {
-        // Add new page if needed
+    if (yPosition < 100) {
+      // Add new page if needed
         page = pdfDoc.addPage([595.28, 841.89]);
-        yPosition = height - 50;
-      }
-      
-      const rowData = [
-        item.apartmentNumber,
+      yPosition = height - 50;
+    }
+    
+    const rowData = [
+      item.apartmentNumber,
         item.resident, // Full name without truncation
         item.period,   // Full period without truncation
         item.description, // Full description without truncation
-        item.quantity.toString(),
-        `${item.unitPrice} kr`,
-        `${item.totalAmount} kr`
-      ];
-      
-      rowData.forEach((data, i) => {
-        page.drawText(data, {
-          x: colX[i],
-          y: yPosition,
-          size: 9,
-          font: helveticaFont,
-          color: rgb(0, 0, 0),
-        });
+      item.quantity.toString(),
+      `${item.unitPrice} kr`,
+      `${item.totalAmount} kr`
+    ];
+    
+    rowData.forEach((data, i) => {
+      page.drawText(data, {
+        x: colX[i],
+        y: yPosition,
+        size: 9,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
       });
-      
+    });
+    
       apartmentSubtotal += item.totalAmount;
       yPosition -= 12;
     }

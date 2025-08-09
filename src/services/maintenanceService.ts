@@ -143,18 +143,20 @@ export const getMaintenanceTasksByYear = async (year: number): Promise<Maintenan
 // Hämta ALLA underhållsuppgifter från alla år
 export const getAllMaintenanceTasks = async (): Promise<MaintenanceTask[]> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from('maintenance_tasks')
-        .select('*')
-        .order('year', { ascending: true })
-        .order('category', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    }, []);
+    console.log('🚀 Fetching all maintenance tasks via direct REST API...');
+    
+    const params = new URLSearchParams();
+    params.append('select', '*');
+    params.append('order', 'year.asc,category.asc');
+    
+    const endpoint = `maintenance_tasks?${params.toString()}`;
+    const data = await directRestCall('GET', endpoint);
+    
+    console.log(`✅ Found ${data?.length || 0} maintenance tasks via direct API (FAST!)`);
+    return data || [];
+    
   } catch (error) {
-    console.error('Error fetching all maintenance tasks:', error);
+    console.error('❌ Error fetching all maintenance tasks via direct API:', error);
     return [];
   }
 };
