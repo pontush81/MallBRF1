@@ -244,18 +244,26 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // Set the session in Supabase client (so other parts of app work)
+        // Add timeout to prevent hanging here too
         try {
-          await supabase.auth.setSession({
+          const setSessionPromise = supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
+          
+          const sessionTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('setSession timeout')), 3000)
+          );
+          
+          await Promise.race([setSessionPromise, sessionTimeoutPromise]);
           console.log('✅ Set Supabase session from parsed tokens');
         } catch (sessionError) {
-          console.warn('⚠️ Failed to set Supabase session:', sessionError);
-          // Continue anyway, we have the user data
+          console.warn('⚠️ Failed to set Supabase session (skipping):', sessionError.message);
+          // Continue anyway, we have the user data from token
         }
         
         // Create user data from token
+        console.log('🔄 Creating user data from parsed token...');
         const userData = {
           id: tokenPayload.sub,
           email: tokenPayload.email,
@@ -265,7 +273,17 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
           }
         };
         
-        return await processOAuthUser(userData);
+        console.log('🔄 Processing OAuth user with parsed data...');
+        
+        // Add timeout to processOAuthUser to prevent hanging on DB operations
+        const processPromise = processOAuthUser(userData);
+        const processTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('processOAuthUser timeout after 10 seconds')), 10000)
+        );
+        
+        const result = await Promise.race([processPromise, processTimeoutPromise]);
+        console.log('✅ OAuth callback completed successfully!');
+        return result;
         
       } catch (tokenError) {
         console.error('❌ Failed to parse OAuth token:', tokenError);
