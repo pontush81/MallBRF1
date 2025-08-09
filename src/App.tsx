@@ -47,13 +47,14 @@ import {
   LazyMaintenancePlanPage,
   LazyDataRetentionManager,
   LazyNotFound,
+  LazyAuthCallback,
+  LazyHSBReportEditor,
   CookieConsentBanner
 } from './components/LazyComponents';
 
 // Import AuthTest for testing (disabled, uncomment for debugging)
 // import AuthTest from './AuthTest';
-// Import AuthCallback for OAuth redirects
-import { AuthCallback } from './pages/auth/AuthCallback';
+// Import LazyAuthCallback for OAuth redirects
 
 // Loading component with timeout protection
 const LoadingFallback = () => {
@@ -219,7 +220,7 @@ function AppRoutes() {
         {/* 🔐 OAuth Callback Route */}
         <Route path="/auth/callback" element={
           <Suspense fallback={<LoadingFallback />}>
-            <Layout><AuthCallback /></Layout>
+            <Layout><LazyAuthCallback /></Layout>
           </Suspense>
         } />
         
@@ -271,6 +272,11 @@ function AppRoutes() {
           <Route path="data-retention" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyDataRetentionManager />
+            </Suspense>
+          } />
+          <Route path="hsb-report" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyHSBReportEditor />
             </Suspense>
           } />
         </Route>

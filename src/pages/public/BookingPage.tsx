@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -357,6 +357,8 @@ const CustomPickersDay = ({
 };
 
 const BookingPage: React.FC = () => {
+  const navigate = useNavigate();
+  
   // State för formulärdata
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -414,13 +416,11 @@ const BookingPage: React.FC = () => {
   
   // Admin toolbar state
   const [backupLoading, setBackupLoading] = useState(false);
-  const [hsbLoading, setHsbLoading] = useState(false);
+
   const [backupMenuAnchorEl, setBackupMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [hsbMenuAnchorEl, setHsbMenuAnchorEl] = useState<null | HTMLElement>(null);
+
   
-  // HSB Report month/year selection
-  const [selectedHsbMonth, setSelectedHsbMonth] = useState<number>(7); // Juli som default
-  const [selectedHsbYear, setSelectedHsbYear] = useState<number>(2025);
+
 
   // Admin handler functions
   const handleBackupMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1593,25 +1593,7 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  const handleHsbMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setHsbMenuAnchorEl(event.currentTarget);
-  };
 
-  const handleHsbMenuClose = () => {
-    setHsbMenuAnchorEl(null);
-  };
-
-  const handleHsbReportWithFormat = (format: 'excel' | 'pdf', sendEmail: boolean = false) => async () => {
-    setHsbLoading(true);
-    handleHsbMenuClose();
-    
-    try {
-      await adminUtils.createHsbReportWithFormat(format, sendEmail, selectedHsbMonth, selectedHsbYear, currentUser, { isMobile });
-      // Resultat hanteras redan av adminUtils (toast-meddelanden)
-    } finally {
-      setHsbLoading(false);
-    }
-  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
@@ -1671,38 +1653,7 @@ const BookingPage: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {/* HSB Report Month/Year Selectors */}
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mr: 1 }}>
-                    <FormControl size="small" sx={{ minWidth: 100 }}>
-                      <InputLabel>Månad</InputLabel>
-                      <Select
-                        value={selectedHsbMonth}
-                        label="Månad"
-                        onChange={(e) => setSelectedHsbMonth(Number(e.target.value))}
-                      >
-                        {Array.from({ length: 12 }, (_, i) => (
-                          <MenuItem key={i + 1} value={i + 1}>
-                            {new Date(2023, i).toLocaleDateString('sv-SE', { month: 'long' })}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    
-                    <FormControl size="small" sx={{ minWidth: 80 }}>
-                      <InputLabel>År</InputLabel>
-                      <Select
-                        value={selectedHsbYear}
-                        label="År"
-                        onChange={(e) => setSelectedHsbYear(Number(e.target.value))}
-                      >
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <MenuItem key={2023 + i} value={2023 + i}>
-                            {2023 + i}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
+
                   
                   <Button
                     variant="outlined"
@@ -1718,11 +1669,10 @@ const BookingPage: React.FC = () => {
                     variant="outlined"
                     size="small"
                     startIcon={<DescriptionIcon />}
-                    onClick={handleHsbMenuClick}
-                    disabled={hsbLoading}
+                    onClick={() => navigate('/admin/hsb-report')}
                     sx={{ fontSize: '0.875rem' }}
                   >
-                    {hsbLoading ? <CircularProgress size={16} /> : 'HSB-rapport'}
+                    HSB-rapport (Redigera)
                   </Button>
                 </Box>
               </Box>
@@ -1749,22 +1699,7 @@ const BookingPage: React.FC = () => {
             </MenuItem>
           </Menu>
 
-          {/* HSB Report Menu */}
-          <Menu
-            anchorEl={hsbMenuAnchorEl}
-            open={Boolean(hsbMenuAnchorEl)}
-            onClose={handleHsbMenuClose}
-          >
-            <MenuItem onClick={handleHsbReportWithFormat('pdf', false)}>
-              📝 Ladda ner PDF (standard)
-            </MenuItem>
-            <MenuItem onClick={handleHsbReportWithFormat('excel', false)}>
-              📊 Ladda ner CSV (för Excel)
-            </MenuItem>
-            <MenuItem onClick={handleHsbReportWithFormat('excel', true)}>
-              📧 Skicka Excel via e-post
-            </MenuItem>
-          </Menu>
+
           
           <ModernCard sx={{ marginBottom: modernTheme.spacing[6] }}>
 

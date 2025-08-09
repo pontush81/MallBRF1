@@ -950,13 +950,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           position: 'fixed', 
           bottom: 16, 
           right: 16,
-          zIndex: 1000
+          zIndex: 1000,
+          '& .MuiSpeedDial-fab': {
+            opacity: saving ? 0.5 : 1,
+            pointerEvents: saving ? 'none' : 'auto'
+          }
         }}
         icon={<SpeedDialIcon />}
-        open={speedDialOpen}
-        onOpen={() => setSpeedDialOpen(true)}
+        open={speedDialOpen && !saving}
+        onOpen={() => !saving && setSpeedDialOpen(true)}
         onClose={() => setSpeedDialOpen(false)}
-        disabled={saving}
       >
         <SpeedDialAction
           key="pdf"
@@ -964,11 +967,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           tooltipTitle="Skapa PDF"
           tooltipPlacement="left"
           onClick={() => {
-            setSpeedDialOpen(false);
-            setConfirmDialog('pdf');
+            if (!saving) {
+              setSpeedDialOpen(false);
+              setConfirmDialog('pdf');
+            }
           }}
-          disabled={saving}
           aria-label="Skapa PDF-rapport"
+          sx={{ 
+            opacity: saving ? 0.5 : 1,
+            pointerEvents: saving ? 'none' : 'auto'
+          }}
         />
         
         <SpeedDialAction
@@ -977,11 +985,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           tooltipTitle="Skicka till HSB"
           tooltipPlacement="left"
           onClick={() => {
-            setSpeedDialOpen(false);
-            setConfirmDialog('email');
+            if (!saving) {
+              setSpeedDialOpen(false);
+              setConfirmDialog('email');
+            }
           }}
-          disabled={saving}
           aria-label="Skicka rapport via e-post"
+          sx={{ 
+            opacity: saving ? 0.5 : 1,
+            pointerEvents: saving ? 'none' : 'auto'
+          }}
         />
         
         {isModified && (
@@ -991,11 +1004,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             tooltipTitle="Återställ ändringar"
             tooltipPlacement="left"
             onClick={() => {
-              setSpeedDialOpen(false);
-              setConfirmDialog('reset');
+              if (!saving) {
+                setSpeedDialOpen(false);
+                setConfirmDialog('reset');
+              }
             }}
-            disabled={saving}
             aria-label="Återställ alla ändringar"
+            sx={{ 
+              opacity: saving ? 0.5 : 1,
+              pointerEvents: saving ? 'none' : 'auto'
+            }}
           />
         )}
       </SpeedDial>

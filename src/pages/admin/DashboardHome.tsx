@@ -16,7 +16,8 @@ import {
   Settings as SettingsIcon,
   Notifications as NotificationIcon,
   Add as AddIcon,
-  List as ListIcon
+  List as ListIcon,
+  Assessment as ReportIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -76,6 +77,13 @@ const DashboardHome: React.FC = () => {
       icon: <SettingsIcon />,
       path: '/admin/data-retention',
       color: modernTheme.colors.primary[600]
+    },
+    {
+      title: 'HSB-rapport',
+      description: 'Skapa och redigera HSB-rapporter med anpassade data',
+      icon: <ReportIcon />,
+      path: '/admin/hsb-report',
+      color: modernTheme.colors.secondary[600]
     }
   ];
 
