@@ -169,19 +169,56 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
  * Logout current user
  */
 export async function logout(): Promise<void> {
-  // Get current user for logging before logout
-  const currentUser = await getCurrentUser().catch(() => null);
+  console.log('🔄 Starting logout process...');
   
-  const { error } = await supabase.auth.signOut();
-  
-  if (error) {
-    throw new Error(`Logout failed: ${error.message}`);
+  // Get current user for logging before logout (from localStorage to avoid hanging)
+  let currentUser = null;
+  try {
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      currentUser = JSON.parse(storedUser);
+      console.log('📋 Found user for logout logging:', currentUser.email);
+    }
+  } catch (error) {
+    console.log('ℹ️ No user found for logout logging');
   }
   
-  // Log logout event for audit trail
+  // CRITICAL: Clear localStorage immediately (don't wait for Supabase)
+  console.log('🧹 Clearing localStorage...');
+  localStorage.removeItem('currentUser');
+  localStorage.removeItem('isLoggedIn');
+  
+  // Try to logout from Supabase SDK (with timeout to prevent hanging)
+  try {
+    console.log('🔄 Signing out from Supabase...');
+    const signOutPromise = supabase.auth.signOut();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Logout timeout after 3 seconds')), 3000)
+    );
+    
+    await Promise.race([signOutPromise, timeoutPromise]);
+    console.log('✅ Supabase logout successful');
+  } catch (error) {
+    console.warn('⚠️ Supabase logout failed or timed out (continuing anyway):', error.message);
+    // Continue with logout even if Supabase fails - localStorage is already cleared
+  }
+  
+  // Log logout event for audit trail (with timeout)
   if (currentUser) {
-    await logLogout(currentUser.id, currentUser.email);
+    try {
+      const logPromise = logLogout(currentUser.id, currentUser.email);
+      const logTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Logout logging timeout')), 2000)
+      );
+      
+      await Promise.race([logPromise, logTimeoutPromise]);
+      console.log('✅ Logout event logged');
+    } catch (logError) {
+      console.warn('⚠️ Failed to log logout event (continuing anyway):', logError.message);
+    }
   }
+  
+  console.log('✅ Logout process completed');
 }
 
 /**
