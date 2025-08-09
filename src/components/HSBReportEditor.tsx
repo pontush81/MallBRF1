@@ -390,13 +390,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       setSaving(true);
       
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-      
-      // For now, we'll download the PDF directly
-      // In a real implementation, you might want to send the edited data to the backend
+      // Use selected month and year from state
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${currentMonth}&year=${currentYear}&reporterName=${reporterName}`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${selectedMonth}&year=${selectedYear}&reporterName=${reporterName}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -440,10 +436,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       setSaving(true);
       
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-      
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&month=${currentMonth}&year=${currentYear}`, {
+      // Use selected month and year from state
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&month=${selectedMonth}&year=${selectedYear}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
