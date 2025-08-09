@@ -1145,11 +1145,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               {residentData.map((resident, index) => (
                 <Card key={index} sx={{ mb: 2 }}>
                   <CardContent>
-                    <Typography variant="h6" component="div" sx={{ mb: 1 }}>
-                      {resident.apartmentNumber}
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 1 }}>
-                      {resident.resident}
+                    <Typography variant="body1" sx={{ mb: 1, fontWeight: 'bold' }}>
+                      {resident.apartmentNumber} - {resident.resident}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Tel: {resident.phone || 'Ej angivet'}

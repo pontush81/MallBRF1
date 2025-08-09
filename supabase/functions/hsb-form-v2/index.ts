@@ -304,7 +304,14 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
       storageSpace: resident.storage_space || ''
   })) || [];
   
-  console.log(`✅ Found ${residentData.length} residents`);
+  // Sort numerically by apartment number
+  residentData.sort((a, b) => {
+    const numA = parseInt(a.apartmentNumber) || 999;
+    const numB = parseInt(b.apartmentNumber) || 999;
+    return numA - numB;
+  });
+  
+  console.log(`✅ Found ${residentData.length} residents (sorted numerically)`);
   return residentData;
 }
 
