@@ -11,6 +11,7 @@ declare global {
       testAuth: () => Promise<any>;
       testRLS: () => Promise<any>;
       fullDiagnostic: () => Promise<void>;
+      quickTest: () => Promise<void>;
       forceReload: () => void;
     };
   }
@@ -71,8 +72,15 @@ const debugPages = {
       const supabaseClient = await import('../services/supabaseClient');
       const supabase = supabaseClient.default;
       
-      console.log('📡 Getting session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('📡 Getting session with timeout...');
+      
+      // Add timeout to prevent hanging
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session timeout after 5 seconds')), 5000)
+      );
+      
+      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
       
       if (error) {
         console.error('❌ Session error:', error);
@@ -86,6 +94,29 @@ const debugPages = {
       return session;
     } catch (error) {
       console.error('❌ Auth test failed:', error);
+      
+      // Try fallback - check localStorage directly
+      try {
+        console.log('🔄 Trying localStorage fallback...');
+        const keys = Object.keys(localStorage).filter(k => k.includes('supabase'));
+        console.log('🔍 Supabase localStorage keys:', keys);
+        
+        for (const key of keys) {
+          const value = localStorage.getItem(key);
+          if (value && value.includes('access_token')) {
+            console.log('🔑 Found auth token in localStorage:', key);
+            try {
+              const authData = JSON.parse(value);
+              console.log('📊 Auth data from localStorage:', authData);
+            } catch (parseError) {
+              console.log('📊 Raw auth data:', value.substring(0, 100) + '...');
+            }
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+      }
+      
       throw error;
     }
   },
@@ -148,6 +179,28 @@ const debugPages = {
       
     } catch (error) {
       console.error('❌ Diagnostic failed:', error);
+    }
+  },
+
+  // Snabb test som hoppar över auth
+  quickTest: async () => {
+    console.log('⚡ Running quick test (skipping auth)...');
+    console.log('=================================');
+    
+    try {
+      // 1. Service test
+      console.log('1️⃣ Testing page service...');
+      await debugPages.testPages();
+      
+      // 2. Context check
+      console.log('2️⃣ Checking localStorage...');
+      const pagesCacheTime = localStorage.getItem('pages_last_load');
+      console.log('📅 Pages last load:', pagesCacheTime ? new Date(parseInt(pagesCacheTime)).toISOString() : 'Never');
+      
+      console.log('✅ Quick test complete!');
+      
+    } catch (error) {
+      console.error('❌ Quick test failed:', error);
     }
   },
 
