@@ -227,12 +227,54 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
   console.log('🔄 Handling OAuth callback (modern approach)...');
   
   try {
-    // Let Supabase automatically detect session from URL
-    // This is handled by detectSessionInUrl: true in client config
-    const { data, error } = await supabase.auth.getSession();
+    // Add timeout to prevent hanging in production (same issue as pages)
+    console.log('🔍 Getting OAuth session with timeout...');
+    
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('OAuth session timeout after 8 seconds')), 8000)
+    );
+    
+    const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+    const { data, error } = result;
     
     if (error) {
       console.error('❌ Error getting OAuth session:', error);
+      
+      // If timeout, try one more time with shorter timeout
+      if (error.message?.includes('timeout')) {
+        console.log('🔄 Retrying OAuth session with shorter timeout...');
+        try {
+          const retryPromise = supabase.auth.getSession();
+          const shortTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('OAuth retry timeout after 4 seconds')), 4000)
+          );
+          
+          const retryResult = await Promise.race([retryPromise, shortTimeoutPromise]) as any;
+          const { data: retryData, error: retryError } = retryResult;
+          
+          if (retryError || !retryData.session?.user) {
+            console.error('❌ OAuth retry also failed:', retryError);
+            return null;
+          }
+          
+          console.log('✅ OAuth retry successful!');
+          // Continue with retryData
+          const userData = retryData.session.user;
+          console.log('✅ OAuth session established (retry):', userData.email);
+          
+          // Clean URL for security (remove OAuth parameters)
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          // Continue with user profile logic...
+          return await processOAuthUser(userData);
+          
+        } catch (retryError) {
+          console.error('❌ OAuth retry failed:', retryError);
+          return null;
+        }
+      }
+      
       return null;
     }
     
@@ -247,9 +289,23 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
     // Clean URL for security (remove OAuth parameters)
     window.history.replaceState({}, document.title, window.location.pathname);
     
-    try {
-      // Try to get existing profile by Supabase auth ID
-      const existingProfile = await getUserProfile(userData.id);
+    return await processOAuthUser(userData);
+    
+  } catch (error) {
+    console.error('❌ OAuth callback error:', error);
+    return null;
+  }
+}
+
+/**
+ * Process OAuth user data and handle profile creation/migration
+ */
+async function processOAuthUser(userData: any): Promise<AuthUser> {
+  try {
+    // Try to get existing profile by Supabase auth ID
+    const existingProfile = await getUserProfile(userData.id);
+    
+    if (existingProfile) {
       console.log('✅ Found existing profile:', existingProfile.email);
       console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
       
@@ -257,7 +313,8 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
       await logLogin(existingProfile.id, existingProfile.email, true);
       
       return existingProfile;
-    } catch (error) {
+    }
+  } catch (error) {
       console.log('ℹ️ No profile found by auth ID, checking by email...');
       
       // Handle Firebase-to-Supabase migration case
