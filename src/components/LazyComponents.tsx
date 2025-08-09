@@ -3,6 +3,7 @@ import { lazy } from 'react';
 // Auth Components
 export const LazyLogin = lazy(() => import('../pages/auth/LoginNew').then(module => ({ default: module.LoginNew })));
 export const LazyRegister = lazy(() => import('../pages/auth/Register'));
+export const LazyAuthCallback = lazy(() => import('../pages/auth/AuthCallback').then(module => ({ default: module.AuthCallback })));
 
 // Public Pages
 export const LazyPageView = lazy(() => import('../pages/public/PageView'));  
@@ -40,6 +41,7 @@ export const LazyBookingDetails = lazy(() => import('./booking/BookingDetails'))
 export const LazyBookingStatus = lazy(() => import('./booking/BookingStatus'));
 export const LazyErrorBoundary = lazy(() => import('./ErrorBoundary'));
 export const LazyHSBReportPreview = lazy(() => import('./HSBReportPreview'));
+export const LazyHSBReportEditor = lazy(() => import('./HSBReportEditor'));
 export const LazyLayout = lazy(() => import('./Layout'));
 export const LazyLogo = lazy(() => import('./Logo'));
 export const LazyStyledMarkdown = lazy(() => import('./StyledMarkdown'));
