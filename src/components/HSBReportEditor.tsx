@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContextNew';
 import {
   Box,
   Typography,
@@ -83,6 +84,7 @@ interface HSBReportEditorProps {
 
 const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   
   const [originalHsbData, setOriginalHsbData] = useState<HSBReportData[]>([]);
   const [editableHsbData, setEditableHsbData] = useState<HSBReportData[]>([]);
@@ -121,7 +123,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}`, {
+      const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}&reporterName=${reporterName}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -391,7 +394,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       
       // For now, we'll download the PDF directly
       // In a real implementation, you might want to send the edited data to the backend
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${currentMonth}&year=${currentYear}`, {
+      const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${currentMonth}&year=${currentYear}&reporterName=${reporterName}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
