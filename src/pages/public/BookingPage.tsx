@@ -1672,7 +1672,7 @@ const BookingPage: React.FC = () => {
                     onClick={() => navigate('/admin/hsb-report')}
                     sx={{ fontSize: '0.875rem' }}
                   >
-                    HSB-rapport (Redigera)
+                    HSB-rapport
                   </Button>
                 </Box>
               </Box>
