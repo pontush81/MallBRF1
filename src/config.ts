@@ -8,6 +8,11 @@ export const API_BASE_URL = `${SUPABASE_URL}/functions/v1`;
 // Debug: Log which environment we're using
 console.log('🔧 Supabase Config:', {
   url: SUPABASE_URL,
+  anonKey: SUPABASE_ANON_KEY.substring(0, 20) + '...',
   isLocal: SUPABASE_URL.includes('127.0.0.1'),
-  environment: process.env.NODE_ENV
+  environment: process.env.NODE_ENV,
+  envVarUrl: process.env.REACT_APP_SUPABASE_URL ? 'SET' : 'FALLBACK',
+  envVarKey: process.env.REACT_APP_SUPABASE_ANON_KEY ? 'SET' : 'FALLBACK',
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+  origin: typeof window !== 'undefined' ? window.location.origin : 'server'
 }); 
