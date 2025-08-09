@@ -369,9 +369,9 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
   
   yPosition -= 30;
   
-  // Table headers - Increased column widths for full text display
-  const colX = [margin, margin + 45, margin + 170, margin + 295, margin + 440, margin + 475, margin + 530];
-  const headers = ['Lgh nr', 'Namn', 'Period', 'Vad avser avgiften', 'Antal', 'à pris', 'Summa'];
+  // Table headers - Optimized layout with better spacing and room for all columns
+  const colX = [margin, margin + 40, margin + 135, margin + 220, margin + 360, margin + 405, margin + 470];
+  const headers = ['Lgh nr', 'Namn', 'Period', 'Beskrivning', 'Antal', 'á pris', 'Summa'];
   
   // Draw header row
   headers.forEach((header, i) => {
@@ -396,36 +396,89 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
   
   yPosition -= 10;
   
-  // Data rows
-  hsbData.forEach((item, index) => {
-    if (yPosition < 100) {
-      // Add new page if needed
-      page = pdfDoc.addPage([595.28, 841.89]);
-      yPosition = height - 50;
+  // Group data by apartment and create table with subtotals
+  const apartmentGroups: { [key: string]: HSBReportItem[] } = {};
+  hsbData.forEach(item => {
+    if (!apartmentGroups[item.apartmentNumber]) {
+      apartmentGroups[item.apartmentNumber] = [];
+    }
+    apartmentGroups[item.apartmentNumber].push(item);
+  });
+  
+  // Sort apartments numerically
+  const sortedApartments = Object.keys(apartmentGroups).sort((a, b) => {
+    const numA = parseInt(a) || 999;
+    const numB = parseInt(b) || 999;
+    return numA - numB;
+  });
+  
+  // Data rows with grouping and subtotals
+  for (const apartmentNumber of sortedApartments) {
+    const items = apartmentGroups[apartmentNumber];
+    let apartmentSubtotal = 0;
+    
+    // Draw items for this apartment
+    for (const item of items) {
+      if (yPosition < 100) {
+        // Add new page if needed
+        page = pdfDoc.addPage([595.28, 841.89]);
+        yPosition = height - 50;
+      }
+      
+      const rowData = [
+        item.apartmentNumber,
+        item.resident, // Full name without truncation
+        item.period,   // Full period without truncation
+        item.description, // Full description without truncation
+        item.quantity.toString(),
+        `${item.unitPrice} kr`,
+        `${item.totalAmount} kr`
+      ];
+      
+      rowData.forEach((data, i) => {
+        page.drawText(data, {
+          x: colX[i],
+          y: yPosition,
+          size: 9,
+          font: helveticaFont,
+          color: rgb(0, 0, 0),
+        });
+      });
+      
+      apartmentSubtotal += item.totalAmount;
+      yPosition -= 12;
     }
     
-    const rowData = [
-      item.apartmentNumber,
-      item.resident, // Full name without truncation
-      item.period,   // Full period without truncation
-      item.description, // Full description without truncation
-      item.quantity.toString(),
-      `${item.unitPrice} kr`,
-      `${item.totalAmount} kr`
-    ];
-    
-    rowData.forEach((data, i) => {
-      page.drawText(data, {
-        x: colX[i],
+    // Add subtotal row if more than one item for this apartment
+    if (items.length > 1) {
+      if (yPosition < 100) {
+        // Add new page if needed for subtotal
+        page = pdfDoc.addPage([595.28, 841.89]);
+        yPosition = height - 50;
+      }
+      
+      // Draw subtotal row with italics style
+      page.drawText(`Subtotal ${items[0].resident}`, {
+        x: colX[1],
         y: yPosition,
         size: 9,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
+        font: helveticaBoldFont,
+        color: rgb(0.4, 0.4, 0.4),
       });
-    });
-    
-    yPosition -= 12;
-  });
+      
+      page.drawText(`${apartmentSubtotal.toLocaleString('sv-SE')} kr`, {
+        x: colX[6],
+        y: yPosition,
+        size: 9,
+        font: helveticaBoldFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+      
+      yPosition -= 18; // Extra space after subtotal
+    } else {
+      yPosition -= 6; // Small space between different apartments
+    }
+  }
   
   // Total line
   const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
@@ -440,7 +493,7 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
   
   yPosition -= 15;
   page.drawText(`TOTAL SUMMA: ${totalAmount.toLocaleString('sv-SE')} kr`, {
-    x: margin + 440, // Adjusted to align with new column layout
+    x: margin + 320, // Adjusted to align with new Summa column position
     y: yPosition,
     size: 12,
     font: helveticaBoldFont,
@@ -491,8 +544,8 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
     });
     
     yPosition -= 12;
-    const parkingText = resident.parkingSpace ? `P-plats: ${resident.parkingSpace}` : 'P-plats: -';
-    page.drawText(`${parkingText} | Förråd: ${resident.storageSpace}`, {
+    const parkingText = resident.parkingSpace ? `${resident.parkingSpace}` : '-';
+    page.drawText(`${parkingText}`, {
       x: margin + 20,
       y: yPosition,
       size: 9,
