@@ -68,8 +68,16 @@ const debugPages = {
   testAuth: async () => {
     console.log('🔐 Testing auth status...');
     try {
-      const { default: supabase } = await import('../services/supabaseClient');
-      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseClient = await import('../services/supabaseClient');
+      const supabase = supabaseClient.default;
+      
+      console.log('📡 Getting session...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ Session error:', error);
+        throw error;
+      }
       
       console.log('📊 Auth session:', session);
       console.log('👤 User:', session?.user?.email || 'No user');
@@ -86,9 +94,10 @@ const debugPages = {
   testRLS: async () => {
     console.log('🛡️ Testing RLS policies...');
     try {
-      const { default: supabase } = await import('../services/supabaseClient');
+      const supabaseClient = await import('../services/supabaseClient');
+      const supabase = supabaseClient.default;
       
-      // Testa direkt query
+      console.log('📡 Querying pages table...');
       const { data, error } = await supabase
         .from('pages')
         .select('id, title, ispublished, show')
