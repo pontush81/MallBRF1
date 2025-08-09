@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { Page } from '../types/Page';
 import pageServiceSupabase from '../services/pageServiceSupabase';
 
@@ -27,7 +27,7 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
   
   // Simplified to just load all pages at once, with protection against repeated calls
-  const loadAllPages = async () => {
+  const loadAllPages = useCallback(async () => {
     // Om laddning redan pågår, avbryt
     if (loadingRef.current) return;
     
@@ -55,7 +55,7 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
       loadingRef.current = false;
     }
-  };
+  }, [pages.length, loading]);
   
   // Memoize context value to prevent unnecessary renders
   const contextValue = React.useMemo(() => ({
@@ -63,7 +63,7 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loading,
     error,
     loadAllPages
-  }), [pages, loading, error, loadAllPages]);
+  }), [pages, loading, error]);
   
   return (
     <PageContext.Provider value={contextValue}>
