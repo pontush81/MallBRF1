@@ -9,9 +9,18 @@ export const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [error, setError] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const handleCallback = async () => {
+      // Prevent double execution
+      if (isProcessing) {
+        console.log('⚠️ OAuth callback already processing, skipping...');
+        return;
+      }
+      
+      setIsProcessing(true);
+      
       try {
         console.log('Handling OAuth callback...');
         
@@ -42,11 +51,13 @@ export const AuthCallback: React.FC = () => {
         setTimeout(() => {
           navigate('/login');
         }, 3000);
+      } finally {
+        setIsProcessing(false);
       }
     };
 
     handleCallback();
-  }, [navigate, login]);
+  }, [navigate, login, isProcessing]);
 
   return (
     <Box 
