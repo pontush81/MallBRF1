@@ -107,6 +107,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const currentDate = new Date();
   const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
@@ -540,41 +541,63 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
 
   return (
     <Box sx={{ pb: 10 }}>
-      {/* Period Selector Header - Prominent Design */}
+      {/* Period Selector Header - Mobile Optimized */}
       <Box sx={{ 
         bgcolor: 'primary.lighter',
-        p: 3, 
+        p: { xs: 2, sm: 3 }, 
         borderRadius: 2,
         mb: 3,
         border: '2px solid',
         borderColor: 'primary.main'
       }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" sx={{ 
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', sm: 'center' }, 
+          mb: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
+          <Typography variant={isSmallMobile ? "h6" : "h5"} sx={{ 
             fontWeight: 'bold',
             color: 'primary.dark',
             display: 'flex',
             alignItems: 'center',
-            gap: 1
+            gap: 1,
+            fontSize: { xs: '1.1rem', sm: '1.5rem' }
           }}>
             📊 HSB Debiteringsunderlag - Redigera
           </Typography>
           
-          {/* Primary Actions */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* Primary Actions - Mobile Optimized */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1,
+            width: { xs: '100%', sm: 'auto' },
+            justifyContent: { xs: 'stretch', sm: 'flex-end' }
+          }}>
             <Button 
               variant="contained" 
               startIcon={saving ? <CircularProgress size={16} /> : <PictureAsPdfIcon />}
               onClick={() => setConfirmDialog('pdf')}
               disabled={saving || editableHsbData.length === 0}
+              size={isSmallMobile ? "small" : "medium"}
+              sx={{ 
+                flex: { xs: 1, sm: 'none' },
+                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+              }}
             >
               {saving ? 'Skapar PDF...' : 'Skapa PDF'}
             </Button>
             
             <IconButton 
               onClick={(event) => setMoreMenuAnchorEl(event.currentTarget)}
-              sx={{ ml: 1 }}
+              sx={{ 
+                ml: 1,
+                minWidth: { xs: 40, sm: 48 }
+              }}
               aria-label="Fler åtgärder"
+              size={isSmallMobile ? "small" : "medium"}
             >
               <MoreVertIcon />
             </IconButton>
@@ -583,40 +606,64 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         
         <Box sx={{ 
           display: 'flex', 
-          gap: 2, 
+          gap: { xs: 1, sm: 2 }, 
           alignItems: 'center',
-          flexWrap: 'wrap',
-          mb: 2
+          flexDirection: { xs: 'column', sm: 'row' },
+          mb: 2,
+          width: '100%'
         }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Månad</InputLabel>
-            <Select 
-              value={selectedMonth}
-              label="Månad"
-              onChange={(e) => handlePeriodChange(Number(e.target.value), selectedYear)}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: { xs: 1, sm: 2 }, 
+            width: { xs: '100%', sm: 'auto' },
+            alignItems: 'center'
+          }}>
+            <FormControl 
+              size="small" 
+              sx={{ 
+                minWidth: { xs: 100, sm: 120 },
+                flex: { xs: 1, sm: 'none' }
+              }}
+              fullWidth={isSmallMobile}
             >
-              {monthNames.map((month, index) => (
-                <MenuItem key={index + 1} value={index + 1}>
-                  {month}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          <FormControl size="small" sx={{ minWidth: 80 }}>
-            <InputLabel>År</InputLabel>
-            <Select 
-              value={selectedYear}
-              label="År"
-              onChange={(e) => handlePeriodChange(selectedMonth, Number(e.target.value))}
+              <InputLabel>Månad</InputLabel>
+              <Select 
+                value={selectedMonth}
+                label="Månad"
+                onChange={(e) => handlePeriodChange(Number(e.target.value), selectedYear)}
+                sx={{ minHeight: 48 }} // Ensure touch target size
+              >
+                {monthNames.map((month, index) => (
+                  <MenuItem key={index + 1} value={index + 1}>
+                    {month}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <FormControl 
+              size="small" 
+              sx={{ 
+                minWidth: { xs: 80, sm: 100 },
+                flex: { xs: 0.6, sm: 'none' }
+              }}
+              fullWidth={isSmallMobile}
             >
-              {Array.from({ length: 5 }, (_, i) => (
-                <MenuItem key={2023 + i} value={2023 + i}>
-                  {2023 + i}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <InputLabel>År</InputLabel>
+              <Select 
+                value={selectedYear}
+                label="År"
+                onChange={(e) => handlePeriodChange(selectedMonth, Number(e.target.value))}
+                sx={{ minHeight: 48 }} // Ensure touch target size
+              >
+                {Array.from({ length: 5 }, (_, i) => (
+                  <MenuItem key={2023 + i} value={2023 + i}>
+                    {2023 + i}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         </Box>
         
         <Box sx={{ 
@@ -675,7 +722,12 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                   sx={{ 
                     mb: 2, 
                     border: editingRow === index ? 2 : 1,
-                    borderColor: editingRow === index ? 'primary.main' : 'divider'
+                    borderColor: editingRow === index ? 'primary.main' : 'divider',
+                    '&:hover': {
+                      boxShadow: 2,
+                      borderColor: 'primary.light'
+                    },
+                    cursor: editingRow === index ? 'default' : 'pointer'
                   }}
                 >
                   <CardContent>
@@ -732,17 +784,26 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                           Summa: {item.totalAmount.toFixed(2)} kr
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                          <IconButton 
+                          <Button
                             onClick={() => setEditingRow(null)}
                             color="primary"
+                            variant="contained"
                             size="small"
+                            startIcon={<SaveIcon />}
+                            sx={{ minHeight: 48, flex: 1 }}
                           >
-                            <SaveIcon />
-                          </IconButton>
+                            Spara
+                          </Button>
                           <IconButton 
                             onClick={() => handleDeleteRow(index)}
                             color="error"
-                            size="small"
+                            sx={{ 
+                              minWidth: 48,
+                              minHeight: 48,
+                              border: 1,
+                              borderColor: 'error.main',
+                              '&:hover': { bgcolor: 'error.lighter' }
+                            }}
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -795,8 +856,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             </Box>
           ) : (
             // Desktop: Table layout with inline editing
-            <TableContainer component={Paper}>
-              <Table size="small">
+            <TableContainer 
+              component={Paper}
+              sx={{ 
+                overflowX: 'auto',
+                '& .MuiTable-root': {
+                  minWidth: { xs: 800, sm: 'auto' } // Ensure table has minimum width on mobile
+                }
+              }}
+            >
+              <Table size={isMobile ? "small" : "medium"}>
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Lgh nr</strong></TableCell>
@@ -1304,11 +1373,31 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         </DialogActions>
       </Dialog>
 
+      {/* Floating Action Button for mobile PDF creation */}
+      {isSmallMobile && (
+        <Fab
+          color="primary"
+          aria-label="Skapa PDF"
+          onClick={() => setConfirmDialog('pdf')}
+          disabled={saving || editableHsbData.length === 0}
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            zIndex: 1000
+          }}
+        >
+          {saving ? <CircularProgress size={24} color="inherit" /> : <PictureAsPdfIcon />}
+        </Fab>
+      )}
+
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: isSmallMobile ? 10 : 0 }} // Account for FAB
       >
         <Alert 
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
