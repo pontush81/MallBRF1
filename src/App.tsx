@@ -40,7 +40,7 @@ import {
   LazyDashboardHome,
   LazyPagesList,
   LazyPageEditor,
-  LazyBookingsList,
+
   LazyUsersList,
   LazyAllowlistManager,
   LazyNotificationSettings,
@@ -251,11 +251,7 @@ function AppRoutes() {
               <LazyPageEditor />
             </Suspense>
           } />
-          <Route path="bookings" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyBookingsList />
-            </Suspense>
-          } />
+
           <Route path="users" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyUsersList />

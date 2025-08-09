@@ -45,7 +45,7 @@ const DashboardHome: React.FC = () => {
       title: 'Bokningar',
       description: 'Visa och hantera alla bokningar',
       icon: <EventIcon />,
-      path: '/admin/bookings',
+      path: '/booking',
       color: modernTheme.colors.secondary[500]
     },
     {
@@ -229,7 +229,7 @@ const DashboardHome: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<ListIcon />}
-            onClick={() => navigate('/admin/bookings')}
+            onClick={() => navigate('/booking')}
             sx={{
               borderColor: modernTheme.colors.secondary[500],
               color: modernTheme.colors.secondary[500],

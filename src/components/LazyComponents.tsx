@@ -26,7 +26,7 @@ export const LazyDashboard = lazy(() => import('../pages/admin/Dashboard'));
 export const LazyDashboardHome = lazy(() => import('../pages/admin/DashboardHome'));
 export const LazyPagesList = lazy(() => import('../pages/admin/PagesList'));
 export const LazyPageEditor = lazy(() => import('../pages/admin/PageEditor'));
-export const LazyBookingsList = lazy(() => import('../pages/admin/BookingsList'));
+
 export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
 export const LazyAllowlistManager = lazy(() => import('../pages/admin/AllowlistManager'));
 export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));

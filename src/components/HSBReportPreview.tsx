@@ -89,7 +89,7 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       
       // Try to fetch real data from HSB API, fall back to mock data for development
       try {
-        const response = await fetch('/functions/v1/hsb-form-v2', {
+        const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/functions/v1/hsb-form-v2', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       
       // Try to send via real HSB API first
       try {
-        const response = await fetch('/functions/v1/hsb-form-v2', {
+        const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/functions/v1/hsb-form-v2', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
