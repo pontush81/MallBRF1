@@ -304,13 +304,13 @@ async function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[],
   console.log(`Input bookings count: ${bookings.length}`);
   console.log('Raw bookings data:', JSON.stringify(bookings, null, 2));
   
-  bookings.forEach((booking, index) => {
+  for (const [index, booking] of bookings.entries()) {
     console.log(`\n--- Processing booking ${index + 1} ---`);
     console.log('Booking data:', JSON.stringify(booking, null, 2));
     
     if (!booking.startdate || !booking.enddate) {
       console.log('❌ Missing dates, skipping');
-      return;
+      continue;
     }
     
     const startDate = new Date(booking.startdate);
@@ -390,7 +390,7 @@ async function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[],
         hsbData.push(parkingItem);
       }
     }
-  });
+  }
   
   console.log(`\n=== TRANSFORMATION COMPLETE ===`);
   console.log(`Final HSB data count: ${hsbData.length}`);

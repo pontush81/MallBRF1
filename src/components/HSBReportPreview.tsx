@@ -89,16 +89,17 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       
       // Try to fetch real data from HSB API, fall back to mock data for development
       try {
-        const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/functions/v1/hsb-form-v2', {
-          method: 'POST',
+        const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+        const currentMonth = currentDate.getMonth() + 1;
+        const currentYear = currentDate.getFullYear();
+        
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${currentMonth}&year=${currentYear}`, {
+          method: 'GET',
           headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'generate_report',
-            month: currentDate.getMonth() + 1,
-            year: currentDate.getFullYear()
-          })
+          }
         });
 
         if (response.ok) {
@@ -233,18 +234,14 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       
       // Try to send via real HSB API first
       try {
-        const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/functions/v1/hsb-form-v2', {
-          method: 'POST',
+        const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&month=${currentMonth}&year=${currentYear}`, {
+          method: 'GET',
           headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'send_report',
-            hsbData,
-            residentData,
-            month: currentMonth,
-            year: currentYear
-          })
+          }
         });
 
         if (response.ok) {
