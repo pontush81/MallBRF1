@@ -160,10 +160,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Route: DELETE /admin-pages/:id (delete page)
+    // Route: DELETE /admin-pages (delete page with ID in request body)
     if (method === 'DELETE') {
-      const pathParts = url.pathname.split('/');
-      const pageId = pathParts[pathParts.length - 1];
+      const requestBody = await req.json();
+      const pageId = requestBody.id;
       
       if (!pageId) {
         return new Response(JSON.stringify({ error: 'Page ID required' }), {
@@ -173,6 +173,15 @@ Deno.serve(async (req) => {
       }
 
       console.log('🗑️ Admin: Deleting page:', pageId);
+      console.log('👤 User:', requestBody.userEmail, 'Role:', requestBody.userRole);
+
+      // Basic admin check
+      if (!requestBody.userEmail || requestBody.userRole !== 'admin') {
+        return new Response(JSON.stringify({ error: 'Admin access required' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       // Delete the page using service role (bypasses RLS)
       const { error } = await supabase
