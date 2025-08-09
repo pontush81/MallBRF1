@@ -277,7 +277,7 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
         
         // Add timeout to processOAuthUser to prevent hanging on DB operations
         const processPromise = processOAuthUser(userData);
-        const processTimeoutPromise = new Promise((_, reject) => 
+        const processTimeoutPromise = new Promise<AuthUser>((_, reject) => 
           setTimeout(() => reject(new Error('processOAuthUser timeout after 10 seconds')), 10000)
         );
         
