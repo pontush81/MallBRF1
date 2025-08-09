@@ -32,10 +32,6 @@ interface NotificationSettingsData {
   maintenance_reminders: boolean;
   system_alerts: boolean;
   admin_email: string;
-  smtp_host: string;
-  smtp_port: number;
-  smtp_user: string;
-  smtp_password: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -46,11 +42,7 @@ const NotificationSettings: React.FC = () => {
     booking_confirmations: true,
     maintenance_reminders: true,
     system_alerts: true,
-    admin_email: '',
-    smtp_host: '',
-    smtp_port: 587,
-    smtp_user: '',
-    smtp_password: ''
+    admin_email: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,10 +117,9 @@ const NotificationSettings: React.FC = () => {
   };
 
   const handleTextChange = (field: keyof NotificationSettingsData) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = field === 'smtp_port' ? parseInt(event.target.value) || 587 : event.target.value;
     setSettings(prev => ({
       ...prev,
-      [field]: value
+      [field]: event.target.value
     }));
   };
 
@@ -238,43 +229,11 @@ const NotificationSettings: React.FC = () => {
                 
                 <Divider sx={{ my: 1 }} />
                 
-                <Typography variant="subtitle2" color="text.secondary">
-                  SMTP-inställningar
-                </Typography>
-                
-                <TextField
-                  label="SMTP Server"
-                  value={settings.smtp_host}
-                  onChange={handleTextChange('smtp_host')}
-                  fullWidth
-                  placeholder="smtp.gmail.com"
-                />
-                
-                <TextField
-                  label="SMTP Port"
-                  value={settings.smtp_port}
-                  onChange={handleTextChange('smtp_port')}
-                  fullWidth
-                  type="number"
-                  placeholder="587"
-                />
-                
-                <TextField
-                  label="SMTP Användarnamn"
-                  value={settings.smtp_user}
-                  onChange={handleTextChange('smtp_user')}
-                  fullWidth
-                  placeholder="ditt-email@domain.se"
-                />
-                
-                <TextField
-                  label="SMTP Lösenord"
-                  value={settings.smtp_password}
-                  onChange={handleTextChange('smtp_password')}
-                  fullWidth
-                  type="password"
-                  placeholder="Ditt lösenord eller app-specifikt lösenord"
-                />
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    📧 E-post skickas via Resend API. Inga SMTP-inställningar behövs.
+                  </Typography>
+                </Alert>
               </Box>
             </CardContent>
           </Card>

@@ -28,7 +28,7 @@ export const LazyPagesList = lazy(() => import('../pages/admin/PagesList'));
 export const LazyPageEditor = lazy(() => import('../pages/admin/PageEditor'));
 
 export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
-export const LazyAllowlistManager = lazy(() => import('../pages/admin/AllowlistManager'));
+
 export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));
 export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/MaintenancePlanPage'));
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));

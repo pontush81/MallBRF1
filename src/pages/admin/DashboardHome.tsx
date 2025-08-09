@@ -62,13 +62,7 @@ const DashboardHome: React.FC = () => {
       path: '/admin/maintenance',
       color: modernTheme.colors.warning[500]
     },
-    {
-      title: 'Tillåtna Användare',
-      description: 'Hantera vem som får registrera sig',
-      icon: <SettingsIcon />,
-      path: '/admin/allowlist',
-      color: modernTheme.colors.secondary[600]
-    },
+
     {
       title: 'Notifikationer',
       description: 'Konfigurera systemmeddelanden',

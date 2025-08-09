@@ -42,7 +42,7 @@ import {
   LazyPageEditor,
 
   LazyUsersList,
-  LazyAllowlistManager,
+
   LazyNotificationSettings,
   LazyMaintenancePlanPage,
   LazyDataRetentionManager,
@@ -257,11 +257,7 @@ function AppRoutes() {
               <LazyUsersList />
             </Suspense>
           } />
-          <Route path="allowlist" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyAllowlistManager />
-            </Suspense>
-          } />
+
           <Route path="notifications" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyNotificationSettings />
