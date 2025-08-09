@@ -298,8 +298,8 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
   
   const residentData = residents?.map((resident: any) => ({
     apartmentNumber: resident.apartment_number,
-    resident: resident.name,
-    email: resident.email,
+    resident: resident.resident_names,
+    email: resident.primary_email,
       parkingSpace: resident.parking_space || '',
       storageSpace: resident.storage_space || ''
   })) || [];
