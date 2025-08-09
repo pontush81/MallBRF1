@@ -36,14 +36,47 @@ function transformPageToDB(page: Partial<Page>): any {
 const pageServiceSupabase = {
   // Hämta alla synliga sidor (för public sidor)
   getVisiblePages: async (): Promise<Page[]> => {
-    const maxRetries = 3;
+    const maxRetries = 2;
     const baseDelay = 1000; // 1 second
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🔍 Fetching visible pages from Supabase... (attempt ${attempt}/${maxRetries})`);
+        console.log(`🔍 Fetching visible pages... (attempt ${attempt}/${maxRetries})`);
         
-        // Create query with timeout
+        // Try direct fetch first (bypass SDK issues in production)
+        if (attempt === 1) {
+          try {
+            console.log('🚀 Trying direct REST API call...');
+            const startTime = Date.now();
+            
+            const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/pages?ispublished=eq.true&show=eq.true&order=createdat.asc&select=*`, {
+              method: 'GET',
+              headers: {
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              signal: AbortSignal.timeout(5000) // 5 second timeout
+            });
+            
+            const duration = Date.now() - startTime;
+            
+            if (response.ok) {
+              const data = await response.json();
+              const pages = data?.map(transformPageFromDB) || [];
+              console.log(`✅ Direct API success! Found ${pages.length} pages (${duration}ms)`);
+              return pages;
+            } else {
+              console.log(`⚠️ Direct API failed: ${response.status} ${response.statusText} (${duration}ms)`);
+            }
+          } catch (fetchError) {
+            console.log('⚠️ Direct API call failed:', fetchError);
+          }
+        }
+        
+        // Fallback to SDK with shorter timeout
+        console.log('🔄 Falling back to Supabase SDK...');
         const queryPromise = supabaseClient
           .from('pages')
           .select('*')
@@ -52,22 +85,20 @@ const pageServiceSupabase = {
           .order('createdat', { ascending: true });
         
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Pages query timeout after 8 seconds')), 8000)
+          setTimeout(() => reject(new Error('SDK query timeout after 4 seconds')), 4000)
         );
         
         const result = await Promise.race([queryPromise, timeoutPromise]) as any;
         const { data, error } = result;
 
         if (error) {
-          console.error(`❌ Error fetching visible pages (attempt ${attempt}):`, error);
+          console.error(`❌ SDK error (attempt ${attempt}):`, error);
           
-          // If it's the last attempt, fall back to empty array
           if (attempt === maxRetries) {
-            console.log('⚠️ All retry attempts failed, returning empty pages array');
+            console.log('⚠️ All attempts failed, returning empty pages array');
             return [];
           }
           
-          // Wait before retrying (exponential backoff)
           const delay = baseDelay * Math.pow(2, attempt - 1);
           console.log(`⏳ Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -75,30 +106,23 @@ const pageServiceSupabase = {
         }
 
         const pages = data?.map(transformPageFromDB) || [];
-        
-        // Log anonymous access for public page viewing (temporarily disabled to fix loading issues)
-        // await logAnonymousAccess('pages', 'SELECT', undefined, `get_visible_pages_${pages.length}_results`);
-
-        console.log(`✅ Found ${pages.length} visible pages on attempt ${attempt}`);
+        console.log(`✅ SDK success! Found ${pages.length} pages on attempt ${attempt}`);
         return pages;
         
       } catch (error) {
         console.error(`Error in getVisiblePages (attempt ${attempt}):`, error);
         
-        // If it's the last attempt or a non-network error, handle appropriately
-        if (attempt === maxRetries || (!error.message?.includes('timeout') && !error.message?.includes('network'))) {
-          console.log('⚠️ Final attempt failed or non-network error, returning empty pages array');
+        if (attempt === maxRetries) {
+          console.log('⚠️ Final attempt failed, returning empty pages array');
           return [];
         }
         
-        // Wait before retrying (exponential backoff)
         const delay = baseDelay * Math.pow(2, attempt - 1);
         console.log(`⏳ Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
-    // Fallback (should never reach here)
     return [];
   },
 

@@ -85,6 +85,7 @@
   },
   "buildCommand": "CI=false SKIP_PREFLIGHT_CHECK=true npm run build",
   "installCommand": "npm ci --no-optional --no-audit --no-fund --legacy-peer-deps",
+  "regions": ["lhr1"],
   "public": true,
   "github": {
     "enabled": true
