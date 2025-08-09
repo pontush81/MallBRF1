@@ -53,8 +53,8 @@ const pageServiceSupabase = {
 
       const pages = data?.map(transformPageFromDB) || [];
       
-      // Log anonymous access for public page viewing
-      await logAnonymousAccess('pages', 'SELECT', undefined, `get_visible_pages_${pages.length}_results`);
+      // Log anonymous access for public page viewing (temporarily disabled to fix loading issues)
+      // await logAnonymousAccess('pages', 'SELECT', undefined, `get_visible_pages_${pages.length}_results`);
 
       console.log(`✅ Found ${pages.length} visible pages`);
       return pages;
@@ -126,7 +126,7 @@ const pageServiceSupabase = {
       if (isAdmin) {
         await logUserAccess('pages', 'SELECT', String(id), 'admin_get_page_by_id');
       } else {
-        await logAnonymousAccess('pages', 'SELECT', String(id), 'public_get_page_by_id');
+        // await logAnonymousAccess('pages', 'SELECT', String(id), 'public_get_page_by_id');
       }
 
       console.log(`✅ Found page: ${page.title}`);
@@ -166,7 +166,7 @@ const pageServiceSupabase = {
       if (isAdmin) {
         await logUserAccess('pages', 'SELECT', String(page.id), `admin_get_page_by_slug_${slug}`);
       } else {
-        await logAnonymousAccess('pages', 'SELECT', String(page.id), `public_get_page_by_slug_${slug}`);
+        // await logAnonymousAccess('pages', 'SELECT', String(page.id), `public_get_page_by_slug_${slug}`);
       }
 
       console.log(`✅ Found page: ${page.title}`);
