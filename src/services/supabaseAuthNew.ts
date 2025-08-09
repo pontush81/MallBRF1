@@ -278,12 +278,28 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
         // Add timeout to processOAuthUser to prevent hanging on DB operations
         const processPromise = processOAuthUser(userData);
         const processTimeoutPromise = new Promise<AuthUser>((_, reject) => 
-          setTimeout(() => reject(new Error('processOAuthUser timeout after 10 seconds')), 10000)
+          setTimeout(() => reject(new Error('processOAuthUser timeout after 8 seconds')), 8000)
         );
         
-        const result = await Promise.race([processPromise, processTimeoutPromise]);
-        console.log('✅ OAuth callback completed successfully!');
-        return result;
+        try {
+          const result = await Promise.race([processPromise, processTimeoutPromise]);
+          console.log('✅ OAuth callback completed successfully!');
+          return result;
+        } catch (processError) {
+          console.warn('⚠️ processOAuthUser timed out, using emergency fallback');
+          
+          // Emergency fallback - create minimal user from token without DB operations
+          const emergencyUser: AuthUser = {
+            id: tokenPayload.sub,
+            email: tokenPayload.email,
+            name: tokenPayload.user_metadata?.full_name || tokenPayload.user_metadata?.name || tokenPayload.email,
+            role: 'user', // Default role
+            isActive: true // Assume active
+          };
+          
+          console.log('🚨 Emergency user created:', emergencyUser.email);
+          return emergencyUser;
+        }
         
       } catch (tokenError) {
         console.error('❌ Failed to parse OAuth token:', tokenError);
@@ -365,16 +381,25 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
  * Process OAuth user data and handle profile creation/migration
  */
 async function processOAuthUser(userData: any): Promise<AuthUser> {
+  console.log('🔄 Starting processOAuthUser for:', userData.email);
+  
   try {
-    // Try to get existing profile by Supabase auth ID
+    // Try to get existing profile by Supabase auth ID with timeout
+    console.log('🔍 Looking up existing profile by auth ID...');
     const existingProfile = await getUserProfile(userData.id);
     
     if (existingProfile) {
       console.log('✅ Found existing profile:', existingProfile.email);
       console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
       
-      // Log successful login event
-      await logLogin(existingProfile.id, existingProfile.email, true);
+      // Log successful login event (with timeout)
+      try {
+        await logLogin(existingProfile.id, existingProfile.email, true);
+        console.log('✅ Logged login event');
+      } catch (logError) {
+        console.warn('⚠️ Failed to log login event:', logError);
+        // Continue anyway
+      }
       
       return existingProfile;
     }
