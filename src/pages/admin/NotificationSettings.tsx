@@ -88,6 +88,9 @@ const NotificationSettings: React.FC = () => {
   const saveSettings = async () => {
     try {
       setSaving(true);
+      setError(null);
+      
+      console.log('💾 Sparar notifikationsinställningar:', settings);
       
       const { data, error } = await supabaseClient
         .from('notification_settings')
@@ -98,11 +101,16 @@ const NotificationSettings: React.FC = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Databasfel:', error);
+        throw error;
+      }
 
       setSettings(data);
-      setSuccess('Notifikationsinställningar sparade');
+      console.log('✅ Inställningar sparade:', data);
+      setSuccess(`✅ Sparade! Admin e-post: ${data.admin_email || settings.admin_email}`);
     } catch (err: any) {
+      console.error('❌ Sparfel:', err);
       setError('Kunde inte spara inställningar: ' + err.message);
     } finally {
       setSaving(false);
@@ -168,42 +176,68 @@ const NotificationSettings: React.FC = () => {
             />
             <CardContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.email_notifications}
-                      onChange={handleToggle('email_notifications')}
-                    />
-                  }
-                  label="E-postnotifikationer"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.booking_confirmations}
-                      onChange={handleToggle('booking_confirmations')}
-                    />
-                  }
-                  label="Bokningsbekräftelser"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.maintenance_reminders}
-                      onChange={handleToggle('maintenance_reminders')}
-                    />
-                  }
-                  label="Underhållspåminnelser"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.system_alerts}
-                      onChange={handleToggle('system_alerts')}
-                    />
-                  }
-                  label="Systemvarningar"
-                />
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.email_notifications}
+                        onChange={handleToggle('email_notifications')}
+                      />
+                    }
+                    label="E-postnotifikationer"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
+                    🔑 Huvudswitch - Stänger av ALLA e-postnotifikationer från systemet
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.booking_confirmations}
+                        onChange={handleToggle('booking_confirmations')}
+                        disabled={!settings.email_notifications}
+                      />
+                    }
+                    label="Bokningsbekräftelser"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
+                    📅 Skickar e-post till admin när någon gör en ny bokning av gästlägenheten
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.maintenance_reminders}
+                        onChange={handleToggle('maintenance_reminders')}
+                        disabled={!settings.email_notifications}
+                      />
+                    }
+                    label="Underhållspåminnelser"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
+                    🔧 Skickar e-post när underhållsuppgifter behöver utföras eller är försenade
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.system_alerts}
+                        onChange={handleToggle('system_alerts')}
+                        disabled={!settings.email_notifications}
+                      />
+                    }
+                    label="Systemvarningar"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
+                    🚨 Skickar e-post vid systemfel, säkerhetsproblem eller viktiga uppdateringar
+                  </Typography>
+                </Box>
               </Box>
             </CardContent>
           </Card>
