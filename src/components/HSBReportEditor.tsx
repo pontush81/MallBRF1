@@ -31,14 +31,13 @@ import {
   Paper,
   Tooltip,
   Snackbar,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
+
   FormHelperText,
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Menu
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -52,7 +51,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 
 interface HSBReportData {
@@ -97,7 +97,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     open: false, message: '', severity: 'success'
   });
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
-  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState<null | HTMLElement>(null);
   
   // Month/Year selection state
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
@@ -504,15 +504,47 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         border: '2px solid',
         borderColor: 'primary.main'
       }}>
-        <Typography variant="h5" gutterBottom sx={{ 
-          fontWeight: 'bold',
-          color: 'primary.dark',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
-        }}>
-          📊 HSB Debiteringsunderlag - Redigera
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" sx={{ 
+            fontWeight: 'bold',
+            color: 'primary.dark',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}>
+            📊 HSB Debiteringsunderlag - Redigera
+          </Typography>
+          
+          {/* Primary Actions */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="contained" 
+              startIcon={saving ? <CircularProgress size={16} /> : <PictureAsPdfIcon />}
+              onClick={() => setConfirmDialog('pdf')}
+              disabled={saving || editableHsbData.length === 0}
+            >
+              {saving ? 'Skapar PDF...' : 'Skapa PDF'}
+            </Button>
+            
+            <Button 
+              variant="outlined" 
+              color="secondary"
+              startIcon={saving ? <CircularProgress size={16} /> : <EmailIcon />}
+              onClick={() => setConfirmDialog('email')}
+              disabled={saving || editableHsbData.length === 0}
+            >
+              {saving ? 'Skickar...' : 'Skicka till HSB'}
+            </Button>
+            
+            <IconButton 
+              onClick={(event) => setMoreMenuAnchorEl(event.currentTarget)}
+              sx={{ ml: 1 }}
+              aria-label="Fler åtgärder"
+            >
+              <MoreVertIcon />
+            </IconButton>
+          </Box>
+        </Box>
         
         <Box sx={{ 
           display: 'flex', 
@@ -1026,100 +1058,46 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         </AccordionDetails>
       </Accordion>
 
-      {/* SpeedDial Actions */}
-      <SpeedDial
-        ariaLabel="HSB-rapport åtgärder"
-        sx={{ 
-          position: 'fixed', 
-          bottom: 16, 
-          right: 16,
-          zIndex: 1000,
-          '& .MuiSpeedDial-fab': {
-            opacity: saving ? 0.5 : 1,
-            pointerEvents: saving ? 'none' : 'auto'
-          }
+      {/* Secondary Actions Menu */}
+      <Menu
+        anchorEl={moreMenuAnchorEl}
+        open={Boolean(moreMenuAnchorEl)}
+        onClose={() => setMoreMenuAnchorEl(null)}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
         }}
-        icon={<SpeedDialIcon />}
-        open={speedDialOpen && !saving}
-        onOpen={() => !saving && setSpeedDialOpen(true)}
-        onClose={() => setSpeedDialOpen(false)}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
       >
-        <SpeedDialAction
-          key="pdf"
-          icon={saving ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
-          tooltipTitle="Skapa PDF"
-          tooltipPlacement="left"
-          onClick={() => {
-            if (!saving) {
-              setSpeedDialOpen(false);
-              setConfirmDialog('pdf');
-            }
-          }}
-          aria-label="Skapa PDF-rapport"
-          sx={{ 
-            opacity: saving ? 0.5 : 1,
-            pointerEvents: saving ? 'none' : 'auto'
-          }}
-        />
-        
-        <SpeedDialAction
-          key="email"
-          icon={saving ? <CircularProgress size={20} /> : <EmailIcon />}
-          tooltipTitle="Skicka till HSB"
-          tooltipPlacement="left"
-          onClick={() => {
-            if (!saving) {
-              setSpeedDialOpen(false);
-              setConfirmDialog('email');
-            }
-          }}
-          aria-label="Skicka rapport via e-post"
-          sx={{ 
-            opacity: saving ? 0.5 : 1,
-            pointerEvents: saving ? 'none' : 'auto'
-          }}
-        />
-        
         {isModified && (
-          <SpeedDialAction
-            key="reset"
-            icon={<RestoreIcon />}
-            tooltipTitle="Återställ ändringar"
-            tooltipPlacement="left"
+          <MenuItem 
             onClick={() => {
-              if (!saving) {
-                setSpeedDialOpen(false);
-                setConfirmDialog('reset');
-              }
+              setMoreMenuAnchorEl(null);
+              setConfirmDialog('reset');
             }}
-            aria-label="Återställ alla ändringar"
-            sx={{ 
-              opacity: saving ? 0.5 : 1,
-              pointerEvents: saving ? 'none' : 'auto'
-            }}
-          />
+            disabled={saving}
+          >
+            <RestoreIcon sx={{ mr: 1 }} />
+            Återställ ändringar
+          </MenuItem>
         )}
         
         {!onClose && (
-          <SpeedDialAction
-            key="back"
-            icon={<ArrowBackIcon />}
-            tooltipTitle="Tillbaka till Dashboard"
-            tooltipPlacement="left"
+          <MenuItem 
             onClick={() => {
-              if (!saving) {
-                setSpeedDialOpen(false);
-                navigate('/admin');
-              }
+              setMoreMenuAnchorEl(null);
+              navigate('/admin');
             }}
-            aria-label="Tillbaka till admin dashboard"
-            sx={{ 
-              opacity: saving ? 0.5 : 1,
-              pointerEvents: saving ? 'none' : 'auto'
-            }}
-          />
+            disabled={saving}
+          >
+            <ArrowBackIcon sx={{ mr: 1 }} />
+            Tillbaka till Dashboard
+          </MenuItem>
         )}
-      </SpeedDial>
+      </Menu>
 
       {/* Confirmation Dialogs */}
       <Dialog 
@@ -1128,18 +1106,31 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Skapa PDF-rapport?</DialogTitle>
+        <DialogTitle>
+          {isModified ? 'Osparade ändringar' : 'Skapa PDF-rapport'}
+        </DialogTitle>
         <DialogContent>
-          <Typography paragraph>
-            En PDF-rapport kommer att skapas med de aktuella värdena och laddas ner till din enhet.
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
-          </Typography>
-          {isModified && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Du har gjort ändringar som kommer att inkluderas i PDF:en.
-            </Alert>
+          {isModified ? (
+            <>
+              <Typography paragraph>
+                Du har osparade ändringar för {monthNames[selectedMonth - 1]} {selectedYear}.
+              </Typography>
+              <Typography paragraph>
+                Vill du fortsätta utan att spara, eller avbryta för att spara ändringarna först?
+              </Typography>
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                Om du fortsätter kommer dina ändringar att inkluderas i PDF:en men inte sparas permanent.
+              </Alert>
+            </>
+          ) : (
+            <>
+              <Typography paragraph>
+                En PDF-rapport kommer att skapas för {monthNames[selectedMonth - 1]} {selectedYear} och laddas ner till din enhet.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
+              </Typography>
+            </>
           )}
         </DialogContent>
         <DialogActions>
@@ -1151,8 +1142,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             variant="contained"
             disabled={saving}
             startIcon={saving ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
+            color={isModified ? "warning" : "primary"}
           >
-            {saving ? 'Skapar...' : 'Skapa PDF'}
+            {saving ? 'Skapar PDF...' : (isModified ? 'Fortsätt ändå' : 'Skapa PDF')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1163,22 +1155,35 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Skicka HSB-rapport via e-post?</DialogTitle>
+        <DialogTitle>
+          {isModified ? 'Osparade ändringar' : 'Skicka HSB-rapport via e-post'}
+        </DialogTitle>
         <DialogContent>
-          <Typography paragraph>
-            Rapporten kommer att skickas till:
-          </Typography>
-          <Box sx={{ pl: 2 }}>
-            <Typography variant="body2">• HSB</Typography>
-            <Typography variant="body2">• Administratör</Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
-          </Typography>
-          {isModified && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              Du har gjort ändringar som kommer att inkluderas i den skickade rapporten.
-            </Alert>
+          {isModified ? (
+            <>
+              <Typography paragraph>
+                Du har osparade ändringar för {monthNames[selectedMonth - 1]} {selectedYear}.
+              </Typography>
+              <Typography paragraph>
+                Vill du fortsätta utan att spara, eller avbryta för att spara ändringarna först?
+              </Typography>
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                Om du fortsätter kommer dina ändringar att inkluderas i den skickade rapporten men inte sparas permanent.
+              </Alert>
+            </>
+          ) : (
+            <>
+              <Typography paragraph>
+                Rapporten för {monthNames[selectedMonth - 1]} {selectedYear} kommer att skickas till:
+              </Typography>
+              <Box sx={{ pl: 2 }}>
+                <Typography variant="body2">• HSB</Typography>
+                <Typography variant="body2">• Administratör</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
+              </Typography>
+            </>
           )}
         </DialogContent>
         <DialogActions>
@@ -1190,8 +1195,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             variant="contained"
             disabled={saving}
             startIcon={saving ? <CircularProgress size={20} /> : <EmailIcon />}
+            color={isModified ? "warning" : "primary"}
           >
-            {saving ? 'Skickar...' : 'Skicka rapport'}
+            {saving ? 'Skickar...' : (isModified ? 'Fortsätt ändå' : 'Skicka rapport')}
           </Button>
         </DialogActions>
       </Dialog>
