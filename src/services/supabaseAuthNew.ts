@@ -386,10 +386,24 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
   try {
     // Try to get existing profile by Supabase auth ID with timeout
     console.log('🔍 Looking up existing profile by auth ID...');
-    const existingProfile = await getUserProfile(userData.id);
     
-    if (existingProfile) {
-      console.log('✅ Found existing profile:', existingProfile.email);
+    // Use direct query with anon key since session might not be established yet
+    const { data: profileData, error: profileError } = await supabase
+      .from('users')
+      .select('id, email, name, role, isactive')
+      .eq('id', userData.id)
+      .single();
+    
+    if (profileData && !profileError) {
+      const existingProfile = {
+        id: profileData.id,
+        email: profileData.email,
+        name: profileData.name,
+        role: profileData.role as 'user' | 'admin',
+        isActive: profileData.isactive
+      };
+      
+      console.log('✅ Found existing profile via direct query:', existingProfile.email);
       console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
       
       // Log successful login event (with timeout)
@@ -402,9 +416,11 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
       }
       
       return existingProfile;
+    } else {
+      console.log('ℹ️ No profile found by auth ID via direct query');
     }
   } catch (error) {
-    console.log('ℹ️ No profile found by auth ID, checking by email...');
+    console.log('ℹ️ Error looking up profile by auth ID:', error);
   }
   
   // Handle Firebase-to-Supabase migration case
