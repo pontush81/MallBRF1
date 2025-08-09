@@ -384,53 +384,91 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
   console.log('🔄 Starting processOAuthUser for:', userData.email);
   
   try {
-    // Try to get existing profile by Supabase auth ID with timeout
-    console.log('🔍 Looking up existing profile by auth ID...');
+    // Try to get existing profile by Supabase auth ID via direct REST API (bypass SDK hanging)
+    console.log('🔍 Looking up existing profile by auth ID via direct API...');
     
-    // Use direct query with anon key since session might not be established yet
-    const { data: profileData, error: profileError } = await supabase
-      .from('users')
-      .select('id, email, name, role, isactive')
-      .eq('id', userData.id)
-      .single();
-    
-    if (profileData && !profileError) {
-      const existingProfile = {
-        id: profileData.id,
-        email: profileData.email,
-        name: profileData.name,
-        role: profileData.role as 'user' | 'admin',
-        isActive: profileData.isactive
-      };
-      
-      console.log('✅ Found existing profile via direct query:', existingProfile.email);
-      console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
-      
-      // Log successful login event (with timeout)
-      try {
-        await logLogin(existingProfile.id, existingProfile.email, true);
-        console.log('✅ Logged login event');
-      } catch (logError) {
-        console.warn('⚠️ Failed to log login event:', logError);
-        // Continue anyway
+    const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?id=eq.${userData.id}&select=id,email,name,role,isactive`, {
+      method: 'GET',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(3000) // 3 second timeout
+    });
+
+    if (response.ok) {
+      const profileArray = await response.json();
+      if (profileArray && profileArray.length > 0) {
+        const profileData = profileArray[0];
+        const existingProfile = {
+          id: profileData.id,
+          email: profileData.email,
+          name: profileData.name,
+          role: profileData.role as 'user' | 'admin',
+          isActive: profileData.isactive
+        };
+        
+        console.log('✅ Found existing profile via direct API (FAST!):', existingProfile.email);
+        console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
+        
+        // Log successful login event via direct API (bypass SDK hanging)
+        try {
+          await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/data_access_log`, {
+            method: 'POST',
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: existingProfile.id,
+              user_email: existingProfile.email,
+              action: 'login',
+              success: true,
+              timestamp: new Date().toISOString()
+            }),
+            signal: AbortSignal.timeout(2000)
+          });
+          console.log('✅ Logged login event via direct API (FAST!)');
+        } catch (logError) {
+          console.warn('⚠️ Failed to log login event via direct API:', logError);
+          // Continue anyway
+        }
+        
+        return existingProfile;
+      } else {
+        console.log('ℹ️ No profile found by auth ID via direct API');
       }
-      
-      return existingProfile;
     } else {
-      console.log('ℹ️ No profile found by auth ID via direct query');
+      console.log('ℹ️ Direct API query failed with status:', response.status);
     }
   } catch (error) {
-    console.log('ℹ️ Error looking up profile by auth ID:', error);
+    console.log('ℹ️ Error looking up profile by auth ID via direct API:', error);
   }
   
   // Handle Firebase-to-Supabase migration case
-  // Look for existing user by email (from Firebase migration)  
+  // Look for existing user by email (from Firebase migration) via direct API
   try {
-        const { data: existingByEmail } = await supabase
-          .from('users')
-          .select('id, email, name, role, isactive')  
-          .eq('email', userData.email)
-          .single();
+        console.log('🔍 Looking up user by email via direct API for migration...');
+        const emailResponse = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?email=eq.${encodeURIComponent(userData.email)}&select=id,email,name,role,isactive`, {
+          method: 'GET',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+            'Content-Type': 'application/json'
+          },
+          signal: AbortSignal.timeout(3000)
+        });
+        
+        let existingByEmail = null;
+        if (emailResponse.ok) {
+          const emailArray = await emailResponse.json();
+          if (emailArray && emailArray.length > 0) {
+            existingByEmail = emailArray[0];
+            console.log('✅ Found user by email via direct API:', existingByEmail.email);
+          }
+        }
         
         if (existingByEmail) {
           console.log('✅ Found existing user by email:', existingByEmail.email);
