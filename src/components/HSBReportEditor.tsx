@@ -526,16 +526,6 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               {saving ? 'Skapar PDF...' : 'Skapa PDF'}
             </Button>
             
-            <Button 
-              variant="outlined" 
-              color="secondary"
-              startIcon={saving ? <CircularProgress size={16} /> : <EmailIcon />}
-              onClick={() => setConfirmDialog('email')}
-              disabled={saving || editableHsbData.length === 0}
-            >
-              {saving ? 'Skickar...' : 'Skicka till HSB'}
-            </Button>
-            
             <IconButton 
               onClick={(event) => setMoreMenuAnchorEl(event.currentTarget)}
               sx={{ ml: 1 }}
@@ -1072,6 +1062,17 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           horizontal: 'right',
         }}
       >
+        <MenuItem 
+          onClick={() => {
+            setMoreMenuAnchorEl(null);
+            setConfirmDialog('email');
+          }}
+          disabled={saving || editableHsbData.length === 0}
+        >
+          <EmailIcon sx={{ mr: 1 }} />
+          Skicka till HSB
+        </MenuItem>
+        
         {isModified && (
           <MenuItem 
             onClick={() => {
