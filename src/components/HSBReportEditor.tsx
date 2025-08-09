@@ -405,7 +405,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `HSB-rapport-${currentYear}-${String(currentMonth).padStart(2, '0')}.pdf`;
+        a.download = `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
