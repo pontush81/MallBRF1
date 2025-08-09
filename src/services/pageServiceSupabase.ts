@@ -36,47 +36,70 @@ function transformPageToDB(page: Partial<Page>): any {
 const pageServiceSupabase = {
   // Hämta alla synliga sidor (för public sidor)
   getVisiblePages: async (): Promise<Page[]> => {
-    try {
-      console.log('🔍 Fetching visible pages from Supabase... (v2.0)');
-      
-      // Add timeout to prevent hanging in production
-      const queryPromise = supabaseClient
-        .from('pages')
-        .select('*')
-        .eq('ispublished', true)
-        .eq('show', true)
-        .order('createdat', { ascending: true });
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Pages query timeout after 10 seconds')), 10000)
-      );
-      
-      const result = await Promise.race([queryPromise, timeoutPromise]) as any;
-      const { data, error } = result;
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔍 Fetching visible pages from Supabase... (attempt ${attempt}/${maxRetries})`);
+        
+        // Create query with timeout
+        const queryPromise = supabaseClient
+          .from('pages')
+          .select('*')
+          .eq('ispublished', true)
+          .eq('show', true)
+          .order('createdat', { ascending: true });
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Pages query timeout after 8 seconds')), 8000)
+        );
+        
+        const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+        const { data, error } = result;
 
-      if (error) {
-        console.error('❌ Error fetching visible pages:', error);
-        throw error;
+        if (error) {
+          console.error(`❌ Error fetching visible pages (attempt ${attempt}):`, error);
+          
+          // If it's the last attempt, fall back to empty array
+          if (attempt === maxRetries) {
+            console.log('⚠️ All retry attempts failed, returning empty pages array');
+            return [];
+          }
+          
+          // Wait before retrying (exponential backoff)
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          console.log(`⏳ Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        const pages = data?.map(transformPageFromDB) || [];
+        
+        // Log anonymous access for public page viewing (temporarily disabled to fix loading issues)
+        // await logAnonymousAccess('pages', 'SELECT', undefined, `get_visible_pages_${pages.length}_results`);
+
+        console.log(`✅ Found ${pages.length} visible pages on attempt ${attempt}`);
+        return pages;
+        
+      } catch (error) {
+        console.error(`Error in getVisiblePages (attempt ${attempt}):`, error);
+        
+        // If it's the last attempt or a non-network error, handle appropriately
+        if (attempt === maxRetries || (!error.message?.includes('timeout') && !error.message?.includes('network'))) {
+          console.log('⚠️ Final attempt failed or non-network error, returning empty pages array');
+          return [];
+        }
+        
+        // Wait before retrying (exponential backoff)
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-
-      const pages = data?.map(transformPageFromDB) || [];
-      
-      // Log anonymous access for public page viewing (temporarily disabled to fix loading issues)
-      // await logAnonymousAccess('pages', 'SELECT', undefined, `get_visible_pages_${pages.length}_results`);
-
-      console.log(`✅ Found ${pages.length} visible pages`);
-      return pages;
-    } catch (error) {
-      console.error('Error in getVisiblePages:', error);
-      
-      // If timeout or network error, return empty array to prevent infinite loading
-      if (error.message?.includes('timeout') || error.message?.includes('network')) {
-        console.log('⚠️ Network/timeout error, returning empty pages array');
-        return [];
-      }
-      
-      throw error;
     }
+    
+    // Fallback (should never reach here)
+    return [];
   },
 
   // Hämta alla publicerade sidor (alias för getVisiblePages för backward compatibility)
