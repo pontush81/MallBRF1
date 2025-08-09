@@ -222,39 +222,63 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Get user profile from users table
+ * Get user profile from users table - using direct REST API
  */
 async function getUserProfile(userId: string): Promise<AuthUser> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, email, name, role, isactive')
-    .eq('id', userId)
-    .single();
+  console.log('🚀 Getting user profile via direct REST API...', userId);
 
-  if (error || !data) {
+  try {
+    const params = new URLSearchParams();
+    params.append('id', `eq.${userId}`);
+    params.append('select', 'id,email,name,role,isactive');
+
+    const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(3000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user profile: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data || data.length === 0) {
+      throw new Error('User profile not found in database');
+    }
+
+    const profile = data[0];
+    if (!profile.isactive) {
+      throw new Error('Your account has been deactivated. Please contact an administrator.');
+    }
+
+    console.log('✅ Got user profile via direct API (FAST!):', profile.email);
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role as 'user' | 'admin',
+      isActive: profile.isactive
+    };
+
+  } catch (error) {
+    console.error('❌ Error getting user profile via direct API:', error);
     throw new Error('User profile not found in database');
   }
-
-  if (!data.isactive) {
-    throw new Error('Your account has been deactivated. Please contact an administrator.');
-  }
-
-  return {
-    id: data.id,
-    email: data.email,
-    name: data.name,
-    role: data.role as 'user' | 'admin',
-    isActive: data.isactive
-  };
 }
 
 /**
- * Create user profile in users table
+ * Create user profile in users table - using direct REST API
  */
 async function createUserProfile(userId: string, email: string, name: string): Promise<AuthUser> {
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
+  console.log('🚀 Creating user profile via direct REST API...', email);
+
+  try {
+    const userData = {
       id: userId,
       email: email,
       name: name,
@@ -263,22 +287,44 @@ async function createUserProfile(userId: string, email: string, name: string): P
       createdat: new Date().toISOString(),
       lastlogin: new Date().toISOString(),
       password: '' // Supabase Auth handles passwords
-    })
-    .select()
-    .single();
+    };
 
-  if (error) {
-    console.error('Error creating user profile:', error);
+    const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users', {
+      method: 'POST',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(userData),
+      signal: AbortSignal.timeout(3000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create user profile: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data || data.length === 0) {
+      throw new Error('Failed to create user profile');
+    }
+
+    const profile = data[0];
+    console.log('✅ Created user profile via direct API (FAST!):', profile.email);
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role as 'user' | 'admin',
+      isActive: profile.isactive
+    };
+
+  } catch (error) {
+    console.error('❌ Error creating user profile via direct API:', error);
     throw new Error('Failed to create user profile');
   }
-
-  return {
-    id: data.id,
-    email: data.email,
-    name: data.name,
-    role: data.role as 'user' | 'admin',
-    isActive: data.isactive
-  };
 }
 
 /**
@@ -616,40 +662,78 @@ async function createUserProfileFromOAuth(oauthUser: any): Promise<AuthUser> {
     createdat: new Date().toISOString()
   };
 
-  const { data, error } = await supabase
-    .from('users')
-    .insert([userData])
-    .select()
-    .single();
+  console.log('🚀 Creating OAuth user profile via direct REST API...');
+  
+  try {
+    const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users', {
+      method: 'POST',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(userData),
+      signal: AbortSignal.timeout(3000)
+    });
 
-  if (error) {
-    console.error('Error creating OAuth user profile:', error);
-    
-    // Handle duplicate email constraint violation (user already exists)
-    if (error.code === '23505' && error.message.includes('users_email_key')) {
-      console.log('🔄 User already exists, attempting to fetch existing profile...');
-      
-      try {
-        const { data: existingUser } = await supabase
-          .from('users')
-          .select('id, email, name, role, isactive')
-          .eq('email', oauthUser.email)
-          .single();
-        
-        if (existingUser) {
-          console.log('✅ Found existing user profile:', existingUser.email);
-          return {
-            id: existingUser.id,
-            email: existingUser.email,
-            name: existingUser.name,
-            role: existingUser.role as 'user' | 'admin',
-            isActive: existingUser.isactive
-          };
-        }
-      } catch (fetchError) {
-        console.error('Could not fetch existing user:', fetchError);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const profile = data[0];
+        console.log('✅ Created OAuth user profile via direct API (FAST!):', profile.email);
+        return {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role as 'user' | 'admin',
+          isActive: profile.isactive
+        };
       }
     }
+
+    // Handle duplicate email constraint violation (user already exists)
+    if (response.status === 409) {
+      console.log('🔄 User already exists, attempting to fetch existing profile via direct API...');
+      
+      try {
+        const params = new URLSearchParams();
+        params.append('email', `eq.${oauthUser.email}`);
+        params.append('select', 'id,email,name,role,isactive');
+
+        const fetchResponse = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?${params.toString()}`, {
+          method: 'GET',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+            'Content-Type': 'application/json'
+          },
+          signal: AbortSignal.timeout(3000)
+        });
+        
+        if (fetchResponse.ok) {
+          const existingData = await fetchResponse.json();
+          if (existingData && existingData.length > 0) {
+            const existingUser = existingData[0];
+            console.log('✅ Found existing user profile via direct API (FAST!):', existingUser.email);
+            return {
+              id: existingUser.id,
+              email: existingUser.email,
+              name: existingUser.name,
+              role: existingUser.role as 'user' | 'admin',
+              isActive: existingUser.isactive
+            };
+          }
+        }
+      } catch (fetchError) {
+        console.error('❌ Could not fetch existing user via direct API:', fetchError);
+      }
+    }
+
+    console.error('❌ Error creating OAuth user profile via direct API:', response.status);
+  } catch (error) {
+    console.error('❌ Network error creating OAuth user profile:', error);
+  }
     
     throw new Error(`Failed to create user profile: ${error.message}`);
   }

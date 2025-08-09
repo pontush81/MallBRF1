@@ -4,6 +4,34 @@ import { executeWithRLS, executePublic } from './supabaseClient';
 // Database table mapping
 const BOOKINGS_TABLE = 'bookings';
 
+// Direct REST API helper to bypass hanging Supabase SDK
+const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE';
+
+async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 5000) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : 'return=minimal'
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(timeout)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Direct REST API error: ${response.status} ${response.statusText}`);
+  }
+
+  if (method === 'DELETE') {
+    return null;
+  }
+
+  return await response.json();
+}
+
 // Helper function to transform database row to Booking object (using legacy schema)
 function transformBookingFromDB(row: any): Booking {
   // Databasen har startdate/enddate (legacy format)
@@ -116,43 +144,44 @@ const bookingServiceSupabase = {
     dateRange?: { start: string; end: string };
     limit?: number;
   } = {}): Promise<Booking[]> => {
-    return executePublic(async (supabase) => {
-      console.log('Fetching bookings from Supabase...', options);
+    console.log('🚀 Fetching bookings via direct REST API...', options);
 
-      let query = supabase
-        .from(BOOKINGS_TABLE)
-        .select('*')
-        .order('createdat', { ascending: false });
+    try {
+      // Build query parameters
+      let params = new URLSearchParams();
+      params.append('order', 'createdat.desc');
+      params.append('select', '*');
 
-      // Lägg till datum-filter om specificerat
+      // Add date range filter if specified
       if (options.dateRange) {
-        query = query
-          .gte('date', options.dateRange.start)
-          .lte('date', options.dateRange.end);
+        params.append('date', `gte.${options.dateRange.start}`);
+        params.append('date', `lte.${options.dateRange.end}`);
       }
 
-      // Lägg till limit om specificerat
+      // Add limit if specified
       if (options.limit && options.limit > 0) {
-        query = query.limit(options.limit);
+        params.append('limit', options.limit.toString());
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching bookings:', error);
-        throw new Error('Kunde inte hämta bokningar från databasen');
-      }
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      const data = await directRestCall('GET', endpoint);
 
       const bookings = data?.map(transformBookingFromDB) || [];
-      console.log(`Found ${bookings.length} bookings`);
+      console.log(`✅ Found ${bookings.length} bookings via direct API (FAST!)`);
 
       return bookings;
-    }, []);
+
+    } catch (error) {
+      console.error('❌ Error fetching bookings via direct API:', error);
+      throw new Error('Kunde inte hämta bokningar från databasen');
+    }
   },
 
   // Hämta bokningar för ett specifikt datum (använder legacy schema)
   getBookingsByDate: async (date: string): Promise<Booking[]> => {
-    return executePublic(async (supabase) => {
+    console.log('🚀 Fetching bookings by date via direct REST API...', date);
+
+    try {
       // Konvertera datum till rätt format för jämförelse
       const targetDate = new Date(date);
       const startOfDay = new Date(targetDate);
@@ -160,25 +189,27 @@ const bookingServiceSupabase = {
       const endOfDay = new Date(targetDate);  
       endOfDay.setHours(23, 59, 59, 999);
 
-      const { data, error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .select('*')
-        .gte('startdate', startOfDay.toISOString())
-        .lte('startdate', endOfDay.toISOString())
-        .order('startdate', { ascending: true });
+      const params = new URLSearchParams();
+      params.append('select', '*');
+      params.append('startdate', `gte.${startOfDay.toISOString()}`);
+      params.append('startdate', `lte.${endOfDay.toISOString()}`);
+      params.append('order', 'startdate.asc');
 
-      if (error) {
-        console.error('Error fetching bookings by date:', error);
-        throw error;
-      }
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      const data = await directRestCall('GET', endpoint);
 
+      console.log(`✅ Found ${data?.length || 0} bookings for date ${date} via direct API (FAST!)`);
       return data?.map(transformBookingFromDB) || [];
-    }, []);
+
+    } catch (error) {
+      console.error('❌ Error fetching bookings by date via direct API:', error);
+      throw error;
+    }
   },
 
   // Kontrollera tillgänglighet för ett datum och tid (använder legacy schema)
   checkAvailability: async (date: string, startTime: string, endTime: string, weeks: number = 1): Promise<boolean> => {
-    return executePublic(async (supabase) => {
+    try {
       // Validera datum format först
       if (!date || typeof date !== 'string') {
         console.error('Invalid date provided to checkAvailability:', date);
@@ -211,15 +242,17 @@ const bookingServiceSupabase = {
       newBookingEndDate.setDate(newBookingStartDate.getDate() + nights);
 
       // Hämta alla befintliga bokningar för att kontrollera överlappning
-      const { data, error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .select('startdate, enddate')
-        .neq('status', 'cancelled');
+      console.log('🚀 Checking availability via direct REST API...');
+      
+      const params = new URLSearchParams();
+      params.append('select', 'startdate,enddate');
+      params.append('status', 'neq.cancelled');
 
-      if (error) {
-        console.error('Error checking availability:', error);
-        throw error;
-      }
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      const data = await directRestCall('GET', endpoint);
+
+      console.log(`✅ Retrieved ${data?.length || 0} bookings for availability check via direct API (FAST!)`);
+      
 
       // Kontrollera överlappningar med befintliga bokningar
       if (data && data.length > 0) {
@@ -244,14 +277,17 @@ const bookingServiceSupabase = {
       }
 
       return true; // Tiden är tillgänglig
-    });
+    } catch (error) {
+      console.error('❌ Error checking availability via direct API:', error);
+      throw error;
+    }
   },
 
   // Skapa en ny bokning
   createBooking: async (bookingData: CreateBookingData): Promise<Booking | null> => {
-    return executeWithRLS(async (supabase) => {
-      console.log('Creating new booking:', bookingData);
+    console.log('🚀 Creating new booking via direct REST API...', bookingData);
 
+    try {
       // Kontrollera tillgänglighet först - använd faktiska datum
       // startDateForCheck removed as unused
       let endDateForCheck = bookingData.endDate;
@@ -273,98 +309,111 @@ const bookingServiceSupabase = {
         createdat: new Date().toISOString() // Använd createdat istället för created_at
       };
 
-      const { data, error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .insert(dbData)
-        .select()
-        .single();
+      const data = await directRestCall('POST', BOOKINGS_TABLE, dbData);
 
-      if (error) {
-        console.error('Error creating booking:', error);
-        if (error.code === '23505') {
-          throw new Error('En bokning finns redan för denna tid');
-        }
+      if (!data || data.length === 0) {
         throw new Error('Kunde inte skapa bokningen');
       }
 
-      console.log('Created booking:', data);
-      return transformBookingFromDB(data);
-    });
+      console.log('✅ Created booking via direct API (FAST!):', data[0]);
+      return transformBookingFromDB(data[0]);
+
+    } catch (error: any) {
+      console.error('❌ Error creating booking via direct API:', error);
+      if (error.message?.includes('23505')) {
+        throw new Error('En bokning finns redan för denna tid');
+      }
+      throw new Error('Kunde inte skapa bokningen');
+    }
   },
 
   // Uppdatera en befintlig bokning
   updateBooking: async (id: string, bookingData: UpdateBookingData): Promise<Booking | null> => {
-    return executeWithRLS(async (supabase) => {
+    console.log('🚀 Updating booking via direct REST API...', id, bookingData);
+
+    try {
       const dbData = transformBookingToDB(bookingData);
 
-      const { data, error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .update(dbData)
-        .eq('id', id)
-        .select()
-        .single();
+      const params = new URLSearchParams();
+      params.append('id', `eq.${id}`);
 
-      if (error) {
-        console.error('Error updating booking:', error);
-        throw new Error('Kunde inte uppdatera bokningen');
-      }
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      const data = await directRestCall('PATCH', endpoint, dbData);
 
-      return data ? transformBookingFromDB(data) : null;
-    });
+      console.log('✅ Updated booking via direct API (FAST!):', data);
+      return data && data.length > 0 ? transformBookingFromDB(data[0]) : null;
+
+    } catch (error) {
+      console.error('❌ Error updating booking via direct API:', error);
+      throw new Error('Kunde inte uppdatera bokningen');
+    }
   },
 
   // Ta bort en bokning
   deleteBooking: async (id: string): Promise<void> => {
-    return executeWithRLS(async (supabase) => {
-      const { error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .delete()
-        .eq('id', id);
+    console.log('🚀 Deleting booking via direct REST API...', id);
 
-      if (error) {
-        console.error('Error deleting booking:', error);
-        throw new Error('Kunde inte ta bort bokningen');
-      }
-    });
+    try {
+      const params = new URLSearchParams();
+      params.append('id', `eq.${id}`);
+
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      await directRestCall('DELETE', endpoint);
+
+      console.log('✅ Deleted booking via direct API (FAST!):', id);
+
+    } catch (error) {
+      console.error('❌ Error deleting booking via direct API:', error);
+      throw new Error('Kunde inte ta bort bokningen');
+    }
   },
 
   // Hämta bokning via ID
   getBookingById: async (id: string): Promise<Booking | null> => {
-    return executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .select('*')
-        .eq('id', id)
-        .single();
+    console.log('🚀 Fetching booking by ID via direct REST API...', id);
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        console.error('Error fetching booking by ID:', error);
-        throw error;
+    try {
+      const params = new URLSearchParams();
+      params.append('id', `eq.${id}`);
+      params.append('select', '*');
+
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      const data = await directRestCall('GET', endpoint);
+
+      if (!data || data.length === 0) {
+        console.log('ℹ️ No booking found with ID:', id);
+        return null;
       }
 
-      return data ? transformBookingFromDB(data) : null;
-    }, null);
+      console.log('✅ Found booking by ID via direct API (FAST!):', data[0]);
+      return transformBookingFromDB(data[0]);
+
+    } catch (error) {
+      console.error('❌ Error fetching booking by ID via direct API:', error);
+      throw error;
+    }
   },
 
   // Hämta bokningar för en specifik användare (via e-post)
   getBookingsByEmail: async (email: string): Promise<Booking[]> => {
-    return executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from(BOOKINGS_TABLE)
-        .select('*')
-        .eq('email', email)
-        .order('created_at', { ascending: false });
+    console.log('🚀 Fetching bookings by email via direct REST API...', email);
 
-      if (error) {
-        console.error('Error fetching bookings by email:', error);
-        throw error;
-      }
+    try {
+      const params = new URLSearchParams();
+      params.append('email', `eq.${email}`);
+      params.append('select', '*');
+      params.append('order', 'created_at.desc');
 
+      const endpoint = `${BOOKINGS_TABLE}?${params.toString()}`;
+      const data = await directRestCall('GET', endpoint);
+
+      console.log(`✅ Found ${data?.length || 0} bookings for email ${email} via direct API (FAST!)`);
       return data?.map(transformBookingFromDB) || [];
-    }, []);
+
+    } catch (error) {
+      console.error('❌ Error fetching bookings by email via direct API:', error);
+      throw error;
+    }
   }
 };
 

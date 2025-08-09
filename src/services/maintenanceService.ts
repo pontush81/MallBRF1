@@ -1,5 +1,33 @@
 import { executeWithRLS } from './supabaseClient';
 
+// Direct REST API helper to bypass hanging Supabase SDK
+const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE';
+
+async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 5000) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : 'return=minimal'
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(timeout)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Direct REST API error: ${response.status} ${response.statusText}`);
+  }
+
+  if (method === 'DELETE') {
+    return null;
+  }
+
+  return await response.json();
+}
+
 export interface MaintenanceTask {
   id: string;
   name: string;
@@ -93,18 +121,21 @@ export interface MajorProject {
 // Underhållsuppgifter
 export const getMaintenanceTasksByYear = async (year: number): Promise<MaintenanceTask[]> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from('maintenance_tasks')
-        .select('*')
-        .eq('year', year)
-        .order('category', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    }, []);
+    console.log('🚀 Fetching maintenance tasks by year via direct REST API...', year);
+    
+    const params = new URLSearchParams();
+    params.append('year', `eq.${year}`);
+    params.append('select', '*');
+    params.append('order', 'category.asc');
+    
+    const endpoint = `maintenance_tasks?${params.toString()}`;
+    const data = await directRestCall('GET', endpoint);
+    
+    console.log(`✅ Found ${data?.length || 0} maintenance tasks for year ${year} via direct API (FAST!)`);
+    return data || [];
+    
   } catch (error) {
-    console.error('Error fetching maintenance tasks:', error);
+    console.error('❌ Error fetching maintenance tasks via direct API:', error);
     return [];
   }
 };
