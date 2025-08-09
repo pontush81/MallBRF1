@@ -37,7 +37,7 @@ const pageServiceSupabase = {
   // Hämta alla synliga sidor (för public sidor)
   getVisiblePages: async (): Promise<Page[]> => {
     try {
-      console.log('🔍 Fetching visible pages from Supabase...');
+      console.log('🔍 Fetching visible pages from Supabase... (v2.0)');
       
       const { data, error } = await supabaseClient
         .from('pages')
