@@ -34,7 +34,11 @@ import {
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
-  FormHelperText
+  FormHelperText,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -95,6 +99,10 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   
+  // Month/Year selection state
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -104,18 +112,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   
   useEffect(() => {
     fetchReportData();
-  }, []);
+  }, [selectedMonth, selectedYear]);
 
-  const fetchReportData = async () => {
+    const fetchReportData = async () => {
     try {
       setLoading(true);
       setError(null);
       
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-      
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${currentMonth}&year=${currentYear}`, {
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -327,6 +333,27 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     setSnackbar({ open: true, message, severity });
   };
 
+  // Handle period change with unsaved changes warning
+  const handlePeriodChange = (newMonth: number, newYear: number) => {
+    if (isModified) {
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        `Du har osparade ändringar för ${monthNames[selectedMonth - 1]} ${selectedYear}.\nVill du byta till ${monthNames[newMonth - 1]} ${newYear}? Osparade ändringar går förlorade.`
+      );
+      
+      if (!confirmed) {
+        return; // User cancelled, don't change period
+      }
+    }
+    
+    // Change period and reload data
+    setSelectedMonth(newMonth);
+    setSelectedYear(newYear);
+    setIsModified(false); // Reset modification state
+    setEditingRow(null); // Exit edit mode
+    setFieldErrors({}); // Clear field errors
+  };
+
   const validateData = (): string[] => {
     const errors: string[] = [];
     
@@ -448,7 +475,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         gap: 2
       }}>
         <CircularProgress size={60} />
-        <Typography>Laddar rapportdata...</Typography>
+        <Typography>Laddar data för {monthNames[selectedMonth - 1]} {selectedYear}...</Typography>
       </Box>
     );
   }
@@ -468,49 +495,101 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
 
   return (
     <Box sx={{ pb: 10 }}>
-      {/* Header */}
-      <Card sx={{ mb: 3 }}>
-        <CardHeader
-          title="HSB Debiteringsunderlag - Redigera"
-          subheader={`${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
-          action={
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              {isModified && (
-                <Chip 
-                  icon={<WarningIcon />} 
-                  label="Ändrat"
-                  color="warning"
-                  size="small"
-                />
-              )}
-              <Chip 
-                icon={<CheckIcon />} 
-                label={`${editableHsbData.length} poster`}
-                color="primary"
-                variant="outlined"
-              />
-            </Box>
-          }
-        />
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Total summa
-            </Typography>
-            <Typography 
-              variant="h6" 
-              color={isModified ? "warning.main" : "primary.main"}
-              fontWeight="bold"
+      {/* Period Selector Header - Prominent Design */}
+      <Box sx={{ 
+        bgcolor: 'primary.lighter',
+        p: 3, 
+        borderRadius: 2,
+        mb: 3,
+        border: '2px solid',
+        borderColor: 'primary.main'
+      }}>
+        <Typography variant="h5" gutterBottom sx={{ 
+          fontWeight: 'bold',
+          color: 'primary.dark',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          📊 HSB Debiteringsunderlag - Redigera
+        </Typography>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 2, 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 2
+        }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Månad</InputLabel>
+            <Select 
+              value={selectedMonth}
+              label="Månad"
+              onChange={(e) => handlePeriodChange(Number(e.target.value), selectedYear)}
             >
-              {totalAmount.toFixed(2)} kr
-            </Typography>
-          </Box>
+              {monthNames.map((month, index) => (
+                <MenuItem key={index + 1} value={index + 1}>
+                  {month}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            💡 Klicka på en rad för att redigera. Använd knapparna nedan för att lägga till nya poster eller återställa ändringar.
+          <FormControl size="small" sx={{ minWidth: 80 }}>
+            <InputLabel>År</InputLabel>
+            <Select 
+              value={selectedYear}
+              label="År"
+              onChange={(e) => handlePeriodChange(selectedMonth, Number(e.target.value))}
+            >
+              {Array.from({ length: 5 }, (_, i) => (
+                <MenuItem key={2023 + i} value={2023 + i}>
+                  {2023 + i}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <Chip 
+            icon={<CheckIcon />} 
+            label={`${editableHsbData.length} poster`}
+            color="primary"
+            size="small"
+          />
+          
+          {isModified && (
+            <Chip 
+              icon={<WarningIcon />} 
+              label="Ändrat"
+              color="warning"
+              size="small"
+            />
+          )}
+          
+          <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto', mr: 1 }}>
+            Total summa:
           </Typography>
-        </CardContent>
-      </Card>
+          <Typography 
+            variant="h6" 
+            color={isModified ? "warning.main" : "primary.main"}
+            fontWeight="bold"
+          >
+            {totalAmount.toFixed(2)} kr
+          </Typography>
+        </Box>
+      </Box>
+      
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        💡 Klicka på en rad för att redigera. Använd knapparna nedan för att lägga till nya poster eller återställa ändringar.
+      </Typography>
 
       {/* Editable Data Table */}
       <Accordion defaultExpanded>
