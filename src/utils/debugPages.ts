@@ -80,7 +80,8 @@ const debugPages = {
         setTimeout(() => reject(new Error('Session timeout after 5 seconds')), 5000)
       );
       
-      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+      const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+      const { data: { session }, error } = result;
       
       if (error) {
         console.error('❌ Session error:', error);
