@@ -13,8 +13,52 @@ const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_
     params: {
       eventsPerSecond: 10
     }
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'x-application-name': 'mallbrf-production'
+    }
   }
 });
+
+// Test connection on initialization (production debugging)
+if (typeof window !== 'undefined') {
+  // Only run in browser environment
+  const testConnection = async () => {
+    try {
+      console.log('🔗 Testing Supabase connection on initialization...');
+      const startTime = Date.now();
+      
+      // Simple query to test connection
+      const { data, error } = await supabaseClient
+        .from('pages')
+        .select('id')
+        .limit(1);
+      
+      const duration = Date.now() - startTime;
+      
+      if (error) {
+        console.error('❌ Supabase connection test failed:', error);
+        console.error('📊 Connection details:', {
+          url: SUPABASE_URL,
+          duration: `${duration}ms`,
+          environment: process.env.NODE_ENV,
+          userAgent: navigator.userAgent
+        });
+      } else {
+        console.log(`✅ Supabase connection test successful (${duration}ms)`);
+      }
+    } catch (error) {
+      console.error('❌ Supabase connection test error:', error);
+    }
+  };
+  
+  // Run test after a short delay to allow app to initialize
+  setTimeout(testConnection, 2000);
+}
 
 // Cache for authenticated client to avoid creating multiple instances
 let authenticatedClientCache: SupabaseClient | null = null;

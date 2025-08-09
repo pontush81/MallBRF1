@@ -12,6 +12,7 @@ declare global {
       testRLS: () => Promise<any>;
       fullDiagnostic: () => Promise<void>;
       quickTest: () => Promise<void>;
+      networkDiagnostic: () => Promise<void>;
       forceReload: () => void;
     };
   }
@@ -202,6 +203,72 @@ const debugPages = {
       
     } catch (error) {
       console.error('❌ Quick test failed:', error);
+    }
+  },
+
+  // Network diagnostic för produktionsproblem
+  networkDiagnostic: async () => {
+    console.log('🌐 Running network diagnostic...');
+    console.log('===============================');
+    
+    try {
+      // 1. Basic connectivity test
+      console.log('1️⃣ Testing basic connectivity to Supabase...');
+      const supabaseUrl = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+      
+      const connectivityTest = async (url: string, timeout: number) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+          const startTime = Date.now();
+          const response = await fetch(url + '/rest/v1/', {
+            method: 'HEAD',
+            signal: controller.signal,
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE'
+            }
+          });
+          const duration = Date.now() - startTime;
+          clearTimeout(timeoutId);
+          
+          console.log(`✅ Connectivity test successful: ${response.status} (${duration}ms)`);
+          return { success: true, duration, status: response.status };
+        } catch (error) {
+          clearTimeout(timeoutId);
+          console.error(`❌ Connectivity test failed:`, error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      // Test with different timeouts
+      await connectivityTest(supabaseUrl, 5000);
+      await connectivityTest(supabaseUrl, 10000);
+      
+      // 2. Environment info
+      console.log('2️⃣ Environment information:');
+      console.log('📍 Location:', window.location.href);
+      console.log('🌍 User Agent:', navigator.userAgent);
+      console.log('🔗 Connection:', (navigator as any).connection ? {
+        effectiveType: (navigator as any).connection.effectiveType,
+        downlink: (navigator as any).connection.downlink,
+        rtt: (navigator as any).connection.rtt
+      } : 'Not available');
+      
+      // 3. DNS resolution test
+      console.log('3️⃣ Testing DNS resolution...');
+      try {
+        const dnsStart = Date.now();
+        await fetch(`${supabaseUrl}/rest/v1/`, { method: 'HEAD', mode: 'no-cors' });
+        console.log(`✅ DNS resolution: ${Date.now() - dnsStart}ms`);
+      } catch (error) {
+        console.error('❌ DNS resolution failed:', error);
+      }
+      
+      console.log('✅ Network diagnostic complete!');
+      
+    } catch (error) {
+      console.error('❌ Network diagnostic failed:', error);
     }
   },
 
