@@ -315,11 +315,12 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
       return existingProfile;
     }
   } catch (error) {
-      console.log('ℹ️ No profile found by auth ID, checking by email...');
-      
-      // Handle Firebase-to-Supabase migration case
-      // Look for existing user by email (from Firebase migration)  
-      try {
+    console.log('ℹ️ No profile found by auth ID, checking by email...');
+  }
+  
+  // Handle Firebase-to-Supabase migration case
+  // Look for existing user by email (from Firebase migration)  
+  try {
         const { data: existingByEmail } = await supabase
           .from('users')
           .select('id, email, name, role, isactive')  
@@ -384,19 +385,13 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
           
           return migratedUser;
         }
-      } catch (emailError) {
-        console.log('ℹ️ User not found by email, will create new profile');
-      }
-      
-      // Create new user profile (should be rare with modern implementation)
-      console.log('🆕 Creating new user profile for OAuth user');
-      return await createUserProfileFromOAuth(userData);
-    }
-    
-  } catch (error) {
-    console.error('❌ OAuth callback error:', error);
-    return null;
+  } catch (emailError) {
+    console.log('ℹ️ User not found by email, will create new profile');
   }
+  
+  // Create new user profile (should be rare with modern implementation)
+  console.log('🆕 Creating new user profile for OAuth user');
+  return await createUserProfileFromOAuth(userData);
 }
 
 /**
