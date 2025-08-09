@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -46,7 +47,8 @@ import {
   Restore as RestoreIcon,
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 
 interface HSBReportData {
@@ -71,11 +73,13 @@ interface ResidentData {
 }
 
 interface HSBReportEditorProps {
-  onClose: () => void;
-  onSent: (message: string) => void;
+  onClose?: () => void;
+  onSent?: (message: string) => void;
 }
 
 const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) => {
+  const navigate = useNavigate();
+  
   const [originalHsbData, setOriginalHsbData] = useState<HSBReportData[]>([]);
   const [editableHsbData, setEditableHsbData] = useState<HSBReportData[]>([]);
   const [residentData, setResidentData] = useState<ResidentData[]>([]);
@@ -416,7 +420,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       });
 
       if (response.ok) {
-        onSent('HSB-rapporten har skickats till HSB och administratören via e-post');
+        onSent?.('HSB-rapporten har skickats till HSB och administratören via e-post');
         showSnackbar('Rapport skickad via e-post', 'success');
         setConfirmDialog(null);
       } else {
@@ -1010,6 +1014,26 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               }
             }}
             aria-label="Återställ alla ändringar"
+            sx={{ 
+              opacity: saving ? 0.5 : 1,
+              pointerEvents: saving ? 'none' : 'auto'
+            }}
+          />
+        )}
+        
+        {!onClose && (
+          <SpeedDialAction
+            key="back"
+            icon={<ArrowBackIcon />}
+            tooltipTitle="Tillbaka till Dashboard"
+            tooltipPlacement="left"
+            onClick={() => {
+              if (!saving) {
+                setSpeedDialOpen(false);
+                navigate('/admin');
+              }
+            }}
+            aria-label="Tillbaka till admin dashboard"
             sx={{ 
               opacity: saving ? 0.5 : 1,
               pointerEvents: saving ? 'none' : 'auto'
