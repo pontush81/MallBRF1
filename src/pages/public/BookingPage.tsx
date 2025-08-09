@@ -1278,7 +1278,7 @@ const BookingPage: React.FC = () => {
         const start = new Date(booking.startDate);
         const end = new Date(booking.endDate);
         const nights = dateFns.differenceInDays(end, start);
-        const weekNumber = parseInt(dateFns.format(start, 'w'));
+        const weekNumber = dateFns.getISOWeek(start);
         
         let nightlyRate = 400;
         if (weekNumber >= 24 && weekNumber <= 32) {
@@ -1459,7 +1459,7 @@ const BookingPage: React.FC = () => {
             const start = new Date(booking.startDate);
             const end = new Date(booking.endDate);
             const nights = dateFns.differenceInDays(end, start);
-            const weekNumber = parseInt(dateFns.format(start, 'w'));
+            const weekNumber = dateFns.getISOWeek(start);
             
             let nightlyRate = 400;
             if (weekNumber >= 24 && weekNumber <= 32) {
@@ -1480,14 +1480,14 @@ const BookingPage: React.FC = () => {
 
           const guestData = bookings.map(booking => {
             const startDate = new Date(booking.startDate);
-            const week = Math.ceil((startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / 86400000 / 7);
+            const week = dateFns.getISOWeek(startDate);
             
             return {
               id: booking.id,
               name: booking.name,
               arrival: dateFns.format(new Date(booking.startDate), 'E d MMM', { locale: sv }),
               departure: dateFns.format(new Date(booking.endDate), 'E d MMM', { locale: sv }),
-              week: week.toString(),
+              week: `v.${week}`,
               notes: booking.notes,
               parking: booking.parking
             };

@@ -101,9 +101,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState<null | HTMLElement>(null);
   
-  // Month/Year selection state - Default to July 2025 for testing
-  const [selectedMonth, setSelectedMonth] = useState<number>(7);
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  // Month/Year selection state
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -136,8 +136,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       if (response.ok) {
         const data = await response.json();
         if (data.hsbData && data.residentData) {
-          console.log('Successfully fetched HSB data for editing:', data.hsbData.length, 'items');
-          console.log('HSB Data details:', data.hsbData);
+          console.log('Successfully fetched HSB data for editing');
           setOriginalHsbData(data.hsbData);
           setEditableHsbData([...data.hsbData]); // Create a copy for editing
           setResidentData(data.residentData);
@@ -258,6 +257,43 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       delete newErrors[fieldKey];
       return newErrors;
     });
+  };
+
+  // Group data by apartment number
+  const groupDataByApartment = (data: HSBReportData[]) => {
+    const grouped: Record<string, HSBReportData[]> = {};
+    
+    data.forEach(item => {
+      const apt = item.apartmentNumber || '0';
+      if (!grouped[apt]) {
+        grouped[apt] = [];
+      }
+      grouped[apt].push(item);
+    });
+    
+    // Sort apartments numerically
+    const sortedGrouped: Record<string, HSBReportData[]> = {};
+    Object.keys(grouped)
+      .sort((a, b) => {
+        const numA = parseInt(a) || 999;
+        const numB = parseInt(b) || 999;
+        return numA - numB;
+      })
+      .forEach(key => {
+        sortedGrouped[key] = grouped[key];
+      });
+    
+    return sortedGrouped;
+  };
+
+  // Format date consistently
+  const formatPeriod = (period: string) => {
+    // Try to parse and reformat dates
+    const dateRange = period.split('-');
+    if (dateRange.length === 2) {
+      return `${dateRange[0].trim()}–${dateRange[1].trim()}`;
+    }
+    return period;
   };
 
   // Set field error
@@ -468,52 +504,6 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   };
 
   const totalAmount = editableHsbData.reduce((sum, item) => sum + item.totalAmount, 0);
-
-  // Group data by apartment for subtotals
-  const apartmentGroups = editableHsbData.reduce((groups: Record<string, HSBReportData[]>, item) => {
-    const apt = item.apartmentNumber || '0';
-    if (!groups[apt]) {
-      groups[apt] = [];
-    }
-    groups[apt].push(item);
-    return groups;
-  }, {});
-
-  // Create array with items and subtotal markers
-  const getTableRowsWithSubtotals = () => {
-    const rows: Array<{ type: 'data' | 'subtotal', item?: HSBReportData, apartmentNumber?: string, subtotal?: number, resident?: string }> = [];
-    
-    // Sort apartments numerically
-    const sortedApartments = Object.keys(apartmentGroups).sort((a, b) => {
-      const numA = parseInt(a) || 999;
-      const numB = parseInt(b) || 999;
-      return numA - numB;
-    });
-
-    sortedApartments.forEach(apt => {
-      const items = apartmentGroups[apt];
-      
-      // Add all items for this apartment
-      items.forEach(item => {
-        rows.push({ type: 'data', item });
-      });
-      
-      // Add subtotal if more than one item
-      if (items.length > 1) {
-        const subtotal = items.reduce((sum, item) => sum + item.totalAmount, 0);
-        const resident = items[0]?.resident || 'Okänd';
-        console.log(`🧮 Subtotal for apt ${apt} (${resident}): ${items.length} items = ${subtotal}kr`, items.map(i => `${i.totalAmount}kr`));
-        rows.push({ 
-          type: 'subtotal', 
-          apartmentNumber: apt, 
-          subtotal, 
-          resident 
-        });
-      }
-    });
-    
-    return rows;
-  };
   
   if (loading) {
     return (
@@ -800,268 +790,213 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               </Button>
             </Box>
           ) : (
-            // Desktop: Table layout with inline editing
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell><strong>Lgh nr</strong></TableCell>
-                    <TableCell><strong>Namn</strong></TableCell>
-                    <TableCell><strong>Period</strong></TableCell>
-                    <TableCell><strong>Beskrivning</strong></TableCell>
-                    <TableCell align="center"><strong>Antal</strong></TableCell>
-                    <TableCell align="right"><strong>á pris</strong></TableCell>
-                    <TableCell align="right"><strong>Summa</strong></TableCell>
-                    <TableCell align="center"><strong>Åtgärder</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                                 <TableBody>
-                   {getTableRowsWithSubtotals().map((row, displayIndex) => {
-                     if (row.type === 'subtotal') {
-                       return (
-                         <TableRow key={`subtotal-${row.apartmentNumber}`} sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)' }}>
-                           <TableCell sx={{ fontWeight: 'bold' }}>
-                             {row.apartmentNumber === '0' ? 'Okänd' : row.apartmentNumber}
-                           </TableCell>
-                           <TableCell sx={{ fontWeight: 'bold', fontStyle: 'italic' }}>
-                             Subtotal {row.resident}
-                           </TableCell>
-                           <TableCell></TableCell>
-                           <TableCell></TableCell>
-                           <TableCell></TableCell>
-                           <TableCell></TableCell>
-                           <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '1.05em' }}>
-                             {row.subtotal?.toLocaleString('sv-SE')} kr
-                           </TableCell>
-                           <TableCell></TableCell>
-                         </TableRow>
-                       );
-                     }
-                     
-                     const item = row.item!;
-                     const index = editableHsbData.findIndex(originalItem => originalItem === item);
-                     
-                     return (
-                    <TableRow 
-                      key={index}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`Redigera rad ${index + 1}: ${item.resident || 'Tom rad'}, ${item.totalAmount.toFixed(2)} kr`}
-                      onClick={() => editingRow !== index && setEditingRow(index)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          if (editingRow !== index) setEditingRow(index);
-                        }
-                        if (e.key === 'Escape') {
-                          setEditingRow(null);
-                        }
-                      }}
-                      sx={{ 
-                        backgroundColor: editingRow === index ? 'action.hover' : 'inherit',
-                        '&:hover': { backgroundColor: 'action.hover' },
-                        '&:focus': { 
-                          backgroundColor: 'action.focus',
-                          outline: `2px solid ${theme.palette.primary.main}`,
-                          outlineOffset: -2
-                        },
-                        cursor: editingRow === index ? 'default' : 'pointer'
-                      }}
-                    >
-                      <TableCell>
-                        {editingRow === index ? (
-                          <Box>
-                            <TextField
-                              value={item.apartmentNumber}
-                              onChange={(e) => handleFieldChange(index, 'apartmentNumber', e.target.value)}
-                              size="small"
-                              variant="standard"
-                              error={!!fieldErrors[`${index}-apartmentNumber`]}
-                              aria-label="Lägenhetsnummer"
-                              autoFocus={index === editingRow}
-                            />
-                            {fieldErrors[`${index}-apartmentNumber`] && (
-                              <FormHelperText error>
-                                {fieldErrors[`${index}-apartmentNumber`]}
-                              </FormHelperText>
-                            )}
-                          </Box>
-                        ) : (
-                          item.apartmentNumber
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingRow === index ? (
-                          <Box>
-                            <TextField
-                              value={item.resident}
-                              onChange={(e) => handleFieldChange(index, 'resident', e.target.value)}
-                              size="small"
-                              variant="standard"
-                              error={!!fieldErrors[`${index}-resident`]}
-                              aria-label="Namn"
-                            />
-                            {fieldErrors[`${index}-resident`] && (
-                              <FormHelperText error>
-                                {fieldErrors[`${index}-resident`]}
-                              </FormHelperText>
-                            )}
-                          </Box>
-                        ) : (
-                          item.resident
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingRow === index ? (
-                          <TextField
-                            value={item.period || ''}
-                            onChange={(e) => handleFieldChange(index, 'period', e.target.value)}
-                            size="small"
-                            variant="standard"
-                          />
-                        ) : (
-                          item.period || '-'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingRow === index ? (
-                          <TextField
-                            value={item.description}
-                            onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
-                            size="small"
-                            variant="standard"
-                          />
-                        ) : (
-                          item.description
-                        )}
-                      </TableCell>
-                      <TableCell align="center">
-                        {editingRow === index ? (
-                          <Box>
-                            <TextField
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => handleFieldChange(index, 'quantity', e.target.value)}
-                              size="small"
-                              variant="standard"
-                              sx={{ width: 80 }}
-                              error={!!fieldErrors[`${index}-quantity`]}
-                              aria-label="Antal"
-                            />
-                            {fieldErrors[`${index}-quantity`] && (
-                              <FormHelperText error sx={{ fontSize: '0.7rem' }}>
-                                {fieldErrors[`${index}-quantity`]}
-                              </FormHelperText>
-                            )}
-                          </Box>
-                        ) : (
-                          item.quantity
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        {editingRow === index ? (
-                          <Box>
-                            <TextField
-                              type="number"
-                              value={item.unitPrice}
-                              onChange={(e) => handleFieldChange(index, 'unitPrice', e.target.value)}
-                              size="small"
-                              variant="standard"
-                              sx={{ width: 80 }}
-                              error={!!fieldErrors[`${index}-unitPrice`]}
-                              aria-label="Pris per enhet"
-                            />
-                            {fieldErrors[`${index}-unitPrice`] && (
-                              <FormHelperText error sx={{ fontSize: '0.7rem' }}>
-                                {fieldErrors[`${index}-unitPrice`]}
-                              </FormHelperText>
-                            )}
-                          </Box>
-                        ) : (
-                          `${item.unitPrice.toFixed(2)} kr`
-                        )}
-                      </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                        {item.totalAmount.toFixed(2)} kr
-                      </TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                          {editingRow === index ? (
-                            <>
-                              <Tooltip title="Spara">
-                                <IconButton 
-                                  onClick={() => setEditingRow(null)}
-                                  color="primary"
-                                  size="small"
-                                >
-                                  <SaveIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Avbryt">
-                                <IconButton 
-                                  onClick={() => {
-                                    // Reset the row to original data
-                                    setEditableHsbData(prev => {
-                                      const newData = [...prev];
-                                      newData[index] = { ...originalHsbData[index] } || newData[index];
-                                      return newData;
-                                    });
-                                    setEditingRow(null);
-                                  }}
-                                  color="default"
-                                  size="small"
-                                >
-                                  <CancelIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          ) : (
-                            <Tooltip title="Redigera">
-                              <IconButton 
-                                onClick={() => setEditingRow(index)}
-                                color="primary"
-                                size="small"
+            // Desktop: Grouped table layout with summary cards
+            <Box>
+              {/* Summary Cards */}
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+              <Card sx={{ flex: '1 1 200px', minWidth: 200 }}>
+                <CardContent>
+                  <Typography variant="h6" component="div" color="primary">
+                    {editableHsbData.reduce((sum, item) => sum + item.totalAmount, 0).toLocaleString('sv-SE')} kr
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total summa
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card sx={{ flex: '1 1 200px', minWidth: 200 }}>
+                <CardContent>
+                  <Typography variant="h6" component="div" color="secondary">
+                    {Object.keys(groupDataByApartment(editableHsbData)).length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Lägenheter
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card sx={{ flex: '1 1 200px', minWidth: 200 }}>
+                <CardContent>
+                  <Typography variant="h6" component="div">
+                    {editableHsbData.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Poster totalt
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Grouped Table by Apartment */}
+            {Object.entries(groupDataByApartment(editableHsbData)).map(([apartmentNumber, items]) => {
+              const apartmentTotal = items.reduce((sum, item) => sum + item.totalAmount, 0);
+              const apartmentIndex = editableHsbData.findIndex(item => item.apartmentNumber === apartmentNumber);
+              const residentName = items[0]?.resident || 'Okänd';
+              
+              return (
+                <Accordion key={apartmentNumber} defaultExpanded sx={{ mb: 2 }}>
+                  <AccordionSummary 
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{ 
+                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                      '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mr: 2 }}>
+                      <Box>
+                        <Typography variant="h6" component="div">
+                          Lägenhet {apartmentNumber === '0' ? 'Okänd' : apartmentNumber}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {residentName} • {items.length} {items.length === 1 ? 'post' : 'poster'}
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        label={`${apartmentTotal.toLocaleString('sv-SE')} kr`}
+                        color="primary"
+                        variant="filled"
+                        size="medium"
+                      />
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 0 }}>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
+                            <TableCell><strong>Period</strong></TableCell>
+                            <TableCell><strong>Beskrivning</strong></TableCell>
+                            <TableCell align="center"><strong>Antal</strong></TableCell>
+                            <TableCell align="right"><strong>á pris</strong></TableCell>
+                            <TableCell align="right"><strong>Summa</strong></TableCell>
+                            <TableCell align="center"><strong>Åtgärder</strong></TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {items.map((item) => {
+                            const originalIndex = editableHsbData.findIndex(originalItem => 
+                              originalItem === item
+                            );
+                            return (
+                              <TableRow 
+                                key={originalIndex}
+                                sx={{
+                                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' }
+                                }}
                               >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="Ta bort">
-                            <IconButton 
-                              onClick={() => handleDeleteRow(index)}
-                              color="error"
-                              size="small"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                     );
-                   })}
-                  <TableRow>
-                    <TableCell colSpan={6} align="right" sx={{ fontWeight: 'bold' }}>
-                      Total summa:
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '1.1em' }}>
-                      {totalAmount.toFixed(2)} kr
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Lägg till ny post">
-                        <IconButton 
-                          onClick={handleAddRow}
-                          color="primary"
-                          size="small"
-                        >
-                          <AddIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
+                                <TableCell>
+                                  {formatPeriod(item.period || '')}
+                                </TableCell>
+                                <TableCell>
+                                  {editingRow === originalIndex ? (
+                                    <TextField
+                                      value={item.description}
+                                      onChange={(e) => handleFieldChange(originalIndex, 'description', e.target.value)}
+                                      size="small"
+                                      variant="standard"
+                                      fullWidth
+                                    />
+                                  ) : (
+                                    item.description
+                                  )}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {editingRow === originalIndex ? (
+                                    <TextField
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => handleFieldChange(originalIndex, 'quantity', e.target.value)}
+                                      size="small"
+                                      variant="standard"
+                                      sx={{ width: 60 }}
+                                    />
+                                  ) : (
+                                    item.quantity
+                                  )}
+                                </TableCell>
+                                <TableCell align="right">
+                                  {editingRow === originalIndex ? (
+                                    <TextField
+                                      type="number"
+                                      value={item.unitPrice}
+                                      onChange={(e) => handleFieldChange(originalIndex, 'unitPrice', e.target.value)}
+                                      size="small"
+                                      variant="standard"
+                                      sx={{ width: 80 }}
+                                    />
+                                  ) : (
+                                    `${item.unitPrice.toLocaleString('sv-SE')} kr`
+                                  )}
+                                </TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                                  {item.totalAmount.toLocaleString('sv-SE')} kr
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                                    {editingRow === originalIndex ? (
+                                      <>
+                                        <Tooltip title="Spara">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => setEditingRow(null)}
+                                            color="primary"
+                                          >
+                                            <SaveIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Avbryt">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => setEditingRow(null)}
+                                            color="secondary"
+                                          >
+                                            <CancelIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Tooltip title="Redigera">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => setEditingRow(originalIndex)}
+                                          >
+                                            <EditIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Ta bort">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => handleDeleteRow(originalIndex)}
+                                            color="error"
+                                          >
+                                            <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </>
+                                    )}
+                                  </Box>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </AccordionDetails>
+                </Accordion>
+              );
+            })}
+
+            {/* Add New Entry Button */}
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Button
+                onClick={handleAddRow}
+                variant="outlined"
+                startIcon={<AddIcon />}
+                color="primary"
+              >
+                Lägg till ny post
+              </Button>
+            </Box>
           )}
         </AccordionDetails>
       </Accordion>

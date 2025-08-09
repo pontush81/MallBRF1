@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { PDFDocument, StandardFonts, rgb } from 'https://cdn.skypack.dev/pdf-lib@1.17.1';
 
-// Correct CORS setup according to Perplexity recommendations
+// CORS setup
 function getCorsHeaders(origin?: string | null) {
   const allowedOrigins = [
     'http://localhost:3000',
@@ -15,21 +15,18 @@ function getCorsHeaders(origin?: string | null) {
   
   const requestOrigin = origin || '';
   
-  // Only allow known origins - no wildcard
   if (!allowedOrigins.includes(requestOrigin)) {
     return {
-      'Access-Control-Allow-Origin': 'http://localhost:3000', // fallback
+      'Access-Control-Allow-Origin': 'http://localhost:3000',
       'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-      // NO Access-Control-Allow-Credentials since we don't use cookies
     };
   }
   
   return {
-    'Access-Control-Allow-Origin': requestOrigin, // Reflect the exact origin
+    'Access-Control-Allow-Origin': requestOrigin,
     'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-    // NO Access-Control-Allow-Credentials since we don't use cookies
   };
 }
 
@@ -48,448 +45,282 @@ interface HSBReportItem {
 interface ResidentData {
   apartmentNumber: string;
   resident: string;
-  phone: string;
   email: string;
   parkingSpace: string;
   storageSpace: string;
 }
 
-Deno.serve(async (req) => {
-  const origin = req.headers.get('origin');
-  const corsHeaders = getCorsHeaders(origin);
-  
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    });
+// Get month name in Swedish
+function getMonthName(month: number): string {
+  const monthNames = [
+    'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+    'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
+  ];
+  return monthNames[month - 1] || 'Okänd';
+}
+
+// Get ISO week number (same logic as booking system)
+function getISOWeek(date: Date): number {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
   }
+  return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+}
 
+// Helper function to get apartment number from booking data
+async function getApartmentNumberByName(name: string, email: string, supabase: any): Promise<string> {
   try {
-    const url = new URL(req.url);
-    const format = url.searchParams.get('format') || 'excel';
-    const sendEmail = url.searchParams.get('sendEmail') === 'true';
-    const month = parseInt(url.searchParams.get('month') || '7'); // Default till juli
-    const year = parseInt(url.searchParams.get('year') || '2025'); // Default till 2025
-    const reporterName = url.searchParams.get('reporterName') || 'Kristina Utas'; // Fallback till Kristina Utas
-
-    console.log('HSB Form request:', { format, sendEmail, month, year, reporterName, origin });
-
-    // Check for authorization headers - if missing, provide helpful error
-    const authHeader = req.headers.get('authorization');
-    const apiKeyHeader = req.headers.get('apikey');
+    console.log(`🔍 Looking up apartment for: "${name}" (${email})`);
     
-    console.log('Auth header present:', !!authHeader);
-    console.log('API key header present:', !!apiKeyHeader);
+    // Get all residents to search through
+    const { data: residents, error: residentError } = await supabase
+      .from('residents')
+      .select('apartment_number, resident_names, primary_email');
     
-    // For direct testing without frontend, provide helpful response
-    if (!authHeader && !apiKeyHeader) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing authorization header',
-          message: 'This endpoint requires authentication. Use with proper headers from the frontend app.',
-          testUrl: 'For testing: Use the frontend app or add headers: Authorization: Bearer [anon_key] and apikey: [anon_key]'
-        }),
-        { 
-          status: 401, 
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
+    if (residentError) {
+      console.error('❌ Error fetching residents:', residentError);
+      return '0';
+    }
+    
+    // Clean up the name for comparison (remove extra spaces, normalize)
+    const cleanName = name.trim().toLowerCase().replace(/\s+/g, ' '); // Normalize multiple spaces
+    const cleanEmail = email?.trim().toLowerCase() || '';
+    
+    console.log(`🔍 Searching for: "${cleanName}" or "${cleanEmail}"`);
+    
+    // Search through residents
+    for (const resident of residents || []) {
+      const residentNames = (resident.resident_names || '').toLowerCase().replace(/\s+/g, ' ');
+      const residentEmail = (resident.primary_email || '').toLowerCase();
+      
+      // Check individual names (split by comma)
+      const individualNames = residentNames.split(',').map(n => n.trim());
+      for (const individualName of individualNames) {
+        if (individualName) {
+          // Exact match after normalization
+          if (cleanName === individualName) {
+            console.log(`✅ Found exact match: "${cleanName}" -> Apartment ${resident.apartment_number}`);
+            return resident.apartment_number;
           }
-        }
-      );
-    }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Use dynamic month and year from request parameters
-    const selectedMonth = month;
-    const selectedYear = year;
-    
-    // Calculate next month for date range (handle year rollover)
-    const nextMonth = selectedMonth === 12 ? 1 : selectedMonth + 1;
-    const nextYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
-    
-    console.log(`Fetching bookings for ${selectedYear}-${String(selectedMonth).padStart(2, '0')}`);
-    
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .gte('startdate', `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`)
-      .lt('startdate', `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`)
-      .order('startdate', { ascending: true });
-
-    if (error) {
-      console.error('Database error:', error);
-    }
-
-    console.log(`Found ${bookings?.length || 0} bookings for current month`);
-
-    // Transform real bookings to HSB format
-    const hsbData: HSBReportItem[] = [];
-    await transformBookingsToHSB(bookings || [], hsbData, selectedMonth, supabase);
-    
-    // Demo data removed - only real database data will be used
-    console.log(`Generated ${hsbData.length} HSB items from real database data only`);
-
-    const residentData = await getResidentDirectory(supabase);
-
-    if (format === 'preview') {
-      return new Response(
-        JSON.stringify({
-          hsbData,
-          residentData,
-          summary: {
-            totalAmount: hsbData.reduce((sum, item) => sum + item.totalAmount, 0),
-            totalItems: hsbData.length,
-            month: selectedMonth,
-            year: selectedYear
-          }
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'content-type': 'application/json' 
-          } 
-        }
-      );
-    }
-
-    // Generate report based on format
-    if (format === 'pdf') {
-      const pdfBytes = await generatePDFReport(hsbData, residentData, selectedMonth, selectedYear, reporterName);
-      const filename = `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.pdf`;
-      
-      if (sendEmail) {
-        await sendEmailWithAttachment(pdfBytes, filename, 'application/pdf', selectedMonth, selectedYear, reporterName);
-        return new Response(
-          JSON.stringify({ success: true, message: 'HSB rapport skickad via e-post' }),
-          { headers: corsHeaders }
-        );
-      }
-      
-      return new Response(pdfBytes, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${filename}"`
-        }
-      });
-    } else {
-      // Default to Excel (CSV format)
-      const csvContent = generateCSVReport(hsbData, residentData, selectedMonth, selectedYear, reporterName);
-      const filename = `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.csv`;
-      
-      if (sendEmail) {
-        await sendEmailWithAttachment(csvContent, filename, 'text/csv', selectedMonth, selectedYear, reporterName);
-        return new Response(
-          JSON.stringify({ success: true, message: 'HSB rapport skickad via e-post' }),
-          { headers: corsHeaders }
-        );
-      }
-      
-      return new Response(csvContent, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${filename}"`
-        }
-      });
-    }
-
-  } catch (error) {
-    console.error('Error in HSB form handler:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { 
-          ...getCorsHeaders(req.headers.get('origin')), 
-          'content-type': 'application/json' 
-        } 
-      }
-    );
-  }
-});
-
-async function getApartmentNumberByName(bookingName: string, bookingEmail: string, supabase: any): Promise<string> {
-  const name = bookingName?.toLowerCase().trim() || '';
-  const email = bookingEmail?.toLowerCase().trim() || '';
-  
-  console.log(`🔍 Looking for apartment for: "${bookingName}" (${bookingEmail})`);
-  
-  try {
-    // Try email match first (most reliable)
-    if (email) {
-      const { data: emailMatch } = await supabase
-        .from('residents')
-        .select('apartment_number')
-        .eq('primary_email', bookingEmail)
-        .eq('is_active', true)
-        .single();
-      
-      if (emailMatch) {
-        console.log(`✅ Found by email match: ${emailMatch.apartment_number} for "${email}"`);
-        return emailMatch.apartment_number;
-      }
-    }
-    
-    // Try name matching against resident names
-    if (name) {
-      const { data: residents } = await supabase
-        .from('residents')
-        .select('apartment_number, resident_names')
-        .eq('is_active', true);
-      
-      if (residents) {
-        for (const resident of residents) {
-          const residentNames = resident.resident_names.toLowerCase();
-          // Check if the booking name is contained in the resident names
-          if (residentNames.includes(name)) {
-            console.log(`✅ Found by name match: ${resident.apartment_number} for "${name}" in "${resident.resident_names}"`);
+          
+          // Partial match (both directions)
+          if (individualName.includes(cleanName) || cleanName.includes(individualName)) {
+            console.log(`✅ Found partial match: "${cleanName}" <-> "${individualName}" -> Apartment ${resident.apartment_number}`);
             return resident.apartment_number;
           }
         }
-        
-        // Try partial matching for common name variations
-        const nameWords = name.split(' ').filter(word => word.length > 2);
-        for (const resident of residents) {
-          const residentNames = resident.resident_names.toLowerCase();
-          for (const word of nameWords) {
-            if (residentNames.includes(word)) {
-              console.log(`✅ Found by partial name match: ${resident.apartment_number} for word "${word}" in "${resident.resident_names}"`);
-              return resident.apartment_number;
-            }
-          }
-        }
+      }
+      
+      // Check if email matches
+      if (cleanEmail && residentEmail && (residentEmail.includes(cleanEmail) || cleanEmail.includes(residentEmail))) {
+        console.log(`✅ Found match by email: ${resident.primary_email} -> Apartment ${resident.apartment_number}`);
+        return resident.apartment_number;
+      }
+      
+      // Special case for "tina" -> "Tina Utas" 
+      if ((cleanName === 'tina' && individualNames.some(n => n.includes('tina'))) ||
+          (cleanName.includes('tina') && individualNames.some(n => n.includes('tina')))) {
+        console.log(`✅ Found "tina" match: "${cleanName}" -> Apartment ${resident.apartment_number}`);
+        return resident.apartment_number;
       }
     }
+    
+    console.log(`❌ No apartment found for: "${name}" (${email})`);
+    
+    // If not found in residents, try to extract from booking data
+    // Look for patterns like "Lgh 5", "Apt 5", "5" etc.
+    const apartmentMatch = name.match(/(?:lgh|apt|lägenhet)\s*(\d+)/i) || name.match(/^(\d+)$/);
+    if (apartmentMatch) {
+      console.log(`🏠 Extracted apartment from name pattern: ${apartmentMatch[1]}`);
+      return apartmentMatch[1];
+    }
+    
+    // Default fallback
+    return '0';
   } catch (error) {
-    console.error('Error in getApartmentNumberByName:', error);
+    console.error('❌ Error getting apartment number:', error);
+    return '0';
   }
-  
-  console.log(`❌ No apartment found for: "${bookingName}" (${bookingEmail})`);
-  return 'N/A';
 }
 
-function formatBookingPeriod(startDate: Date, endDate: Date, month: number): string {
-  const monthNames = ['januari', 'februari', 'mars', 'april', 'maj', 'juni',
-                      'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+// Transform bookings to HSB format
+async function transformBookingsToHSB(bookings: any[], month: number, year: number, supabase: any): Promise<HSBReportItem[]> {
+  console.log(`🔄 Transforming ${bookings.length} bookings to HSB format for ${month}/${year}`);
   
-  const startDay = startDate.getDate();
-  const endDay = endDate.getDate();
-  const startMonth = startDate.getMonth() + 1; // getMonth() returns 0-11
-  const endMonth = endDate.getMonth() + 1; // getMonth() returns 0-11
-  
-  // Check if it's a single day booking (same start and end date)
-  if (startDate.toDateString() === endDate.toDateString()) {
-    return `${startDay} ${monthNames[startMonth - 1]}`;
-  }
-  
-  // Check if both dates are in the same month
-  if (startMonth === endMonth) {
-    return `${startDay}-${endDay} ${monthNames[startMonth - 1]}`;
-  }
-  
-  // Multi-month booking - show both months
-  return `${startDay} ${monthNames[startMonth - 1]} - ${endDay} ${monthNames[endMonth - 1]}`;
-}
-
-async function transformBookingsToHSB(bookings: any[], hsbData: HSBReportItem[], month: number, supabase: any) {
-  console.log('=== TRANSFORMING BOOKINGS ===');
-  console.log(`Input bookings count: ${bookings.length}`);
-  console.log('Raw bookings data:', JSON.stringify(bookings, null, 2));
+  const hsbData: HSBReportItem[] = [];
   
   for (const [index, booking] of bookings.entries()) {
-    console.log(`\n--- Processing booking ${index + 1} ---`);
-    console.log('Booking data:', JSON.stringify(booking, null, 2));
+    console.log(`📝 Processing booking ${index + 1}:`, {
+      id: booking.id,
+      name: booking.name,
+      email: booking.email,
+      startdate: booking.startdate,
+      enddate: booking.enddate,
+      notes: booking.notes
+    });
     
     if (!booking.startdate || !booking.enddate) {
       console.log('❌ Missing dates, skipping');
       continue;
     }
     
+    // Get apartment number
+    const apartmentNumber = await getApartmentNumberByName(booking.name, booking.email, supabase);
+    
+    // Format period
     const startDate = new Date(booking.startdate);
     const endDate = new Date(booking.enddate);
-    const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const period = `${startDate.getDate()}-${endDate.getDate()} ${getMonthName(startDate.getMonth() + 1).toLowerCase()}`;
     
-    console.log(`✅ Valid booking: ${booking.name}, ${nights} nights, parking: ${booking.parkering}`);
+    // Simple approach: Use booking system's exact calculation
+    let description = 'Hyra gästlägenhet';
     
-    if (nights > 0) {
-      // Get apartment number by matching name/email to resident directory
-      const apartmentNumber = await getApartmentNumberByName(booking.name, booking.email, supabase);
-      
-      console.log(`🏠 Apartment: ${apartmentNumber} (mapped from name: "${booking.name}")`);
-      
-      // Calculate week number exactly like frontend (BookingsList.tsx and BookingPage.tsx)
-      // This matches the simple week calculation used in the booking page
-      const yearStart = new Date(startDate.getFullYear(), 0, 1);
-      const pastDaysOfYear = (startDate.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24);
-      const weekNumber = Math.ceil((pastDaysOfYear + yearStart.getDay() + 1) / 7);
-      
-      console.log(`📅 Date: ${startDate.toISOString().split('T')[0]} → Week ${weekNumber}`);
-      
-      let nightlyRate = 400; // Default low season price
-      if (weekNumber >= 24 && weekNumber <= 32) {
-        // High season (weeks 24-32)
-        if (weekNumber >= 28 && weekNumber <= 29) {
-          // Tennis weeks (weeks 28-29)
-          nightlyRate = 800;
-        } else {
-          // Regular high season
-          nightlyRate = 600;
-        }
-      }
-      
-      // No special overrides needed - use standard week-based pricing
-      // Tennis weeks are v.28-29 (800 kr/night)
-      // High season is v.24-32 except tennis weeks (600 kr/night) 
-      // Low season is all other weeks (400 kr/night)
-      
-      console.log(`💰 Pricing: Week ${weekNumber} → ${nightlyRate} kr/night`);
-
-      // Guest apartment rental
-      const period = formatBookingPeriod(startDate, endDate, month);
-      const rentalItem = {
+    // Calculate nights (same as booking system)
+    const diffTime = endDate.getTime() - startDate.getTime();
+    const nights = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Get week number for pricing
+    const weekNumber = getISOWeek(startDate);
+    
+    // Exact same pricing as booking system
+    let nightlyRate = 400; // Lågsäsong
+    if (weekNumber >= 24 && weekNumber <= 32) {
+      nightlyRate = (weekNumber >= 28 && weekNumber <= 29) ? 800 : 600; // Tennis eller högsäsong
+    }
+    
+    // Calculate accommodation cost
+    const accommodationAmount = nights * nightlyRate;
+    
+    // Add parking if applicable
+    let parkingAmount = 0;
+    if (booking.parkering === 'true' || booking.parkering === true || booking.parking === true) {
+      parkingAmount = nights * 75;
+      console.log(`🚗 Added parking: ${nights} × 75 kr = ${parkingAmount} kr`);
+    }
+    
+    const finalAmount = accommodationAmount + parkingAmount;
+    
+    console.log(`💰 ${booking.name}: ${nights} nights × ${nightlyRate} kr = ${finalAmount} kr (week ${weekNumber})`);
+    
+    // HSB format: nights as quantity, nightly rate as unit price
+    const hsbQuantity = nights;
+    const hsbUnitPrice = nightlyRate;
+    
+    // Create accommodation item
+    const accommodationItem: HSBReportItem = {
+      apartmentNumber,
+      resident: booking.name,
+      email: booking.email,
+      phone: booking.phone || '',
+      period,
+      description: `Hyra gästlägenhet (Lgh ${apartmentNumber})`,
+      quantity: nights,
+      unitPrice: nightlyRate,
+      totalAmount: accommodationAmount
+    };
+    
+    console.log('✅ Created accommodation item:', accommodationItem);
+    hsbData.push(accommodationItem);
+    
+    // Add separate parking item if applicable
+    if (parkingAmount > 0) {
+      const parkingItem: HSBReportItem = {
         apartmentNumber,
-        resident: booking.name || 'Okänd',
-        email: booking.email || '',
+        resident: booking.name,
+        email: booking.email,
         phone: booking.phone || '',
-        period: period,
-        description: 'Hyra gästlägenhet',
+        period,
+        description: `Parkering (Lgh ${apartmentNumber})`,
         quantity: nights,
-        unitPrice: nightlyRate,
-        totalAmount: nights * nightlyRate
+        unitPrice: 75,
+        totalAmount: parkingAmount
       };
       
-      console.log('📝 Adding rental item:', JSON.stringify(rentalItem, null, 2));
-      hsbData.push(rentalItem);
-      
-      // Add parking if included (check both string and boolean values)
-      const hasParking = booking.parkering === 'true' || booking.parkering === true;
-      console.log(`🚗 Parking check: ${booking.parkering} → ${hasParking}`);
-      
-      if (hasParking) {
-        const parkingItem = {
-          apartmentNumber,
-          resident: booking.name || 'Okänd',
-          email: booking.email || '',
-          phone: booking.phone || '',
-          period: period,
-          description: 'Parkering',
-          quantity: nights,
-          unitPrice: 75.00,
-          totalAmount: nights * 75.00
-        };
-        
-        console.log('🚗 Adding parking item:', JSON.stringify(parkingItem, null, 2));
-        hsbData.push(parkingItem);
-      }
+      console.log('✅ Created parking item:', parkingItem);
+      hsbData.push(parkingItem);
     }
   }
   
-  console.log(`\n=== TRANSFORMATION COMPLETE ===`);
-  console.log(`Final HSB data count: ${hsbData.length}`);
-  console.log('Final HSB data:', JSON.stringify(hsbData, null, 2));
+  console.log(`✅ Transformation complete: ${hsbData.length} HSB items created`);
+  
+  // Group by apartment for better UX
+  const groupedData = groupByApartment(hsbData);
+  console.log(`📊 Grouped into ${Object.keys(groupedData).length} apartments`);
+  
+  return hsbData; // Return original format for now, frontend can group if needed
 }
 
-async function getResidentDirectory(supabase: any): Promise<ResidentData[]> {
-  try {
+// Group HSB data by apartment number
+function groupByApartment(hsbData: HSBReportItem[]): Record<string, HSBReportItem[]> {
+  const grouped: Record<string, HSBReportItem[]> = {};
+  
+  hsbData.forEach(item => {
+    const apt = item.apartmentNumber || '0';
+    if (!grouped[apt]) {
+      grouped[apt] = [];
+    }
+    grouped[apt].push(item);
+  });
+  
+  // Sort apartments numerically
+  const sortedGrouped: Record<string, HSBReportItem[]> = {};
+  Object.keys(grouped)
+    .sort((a, b) => {
+      const numA = parseInt(a) || 999;
+      const numB = parseInt(b) || 999;
+      return numA - numB;
+    })
+    .forEach(key => {
+      sortedGrouped[key] = grouped[key];
+    });
+  
+  return sortedGrouped;
+}
+
+// Get resident data
+async function getResidentData(supabase: any): Promise<ResidentData[]> {
+  console.log('👥 Fetching resident data');
+  
     const { data: residents, error } = await supabase
       .from('residents')
       .select('*')
-      .eq('is_active', true)
-      .order('apartment_number');
+    .order('apartment_number', { ascending: true });
 
     if (error) {
-      console.error('Error fetching residents:', error);
-      return []; // Return empty array on error
-    }
-
-    // Transform database format to expected interface
-    return residents.map((resident: any) => ({
-      apartmentNumber: `${resident.apartment_number}, ${resident.apartment_code}`,
-      resident: resident.resident_names,
-      phone: resident.phone || '',
-      email: resident.primary_email || '',
+    console.error('❌ Error fetching residents:', error);
+    return [];
+  }
+  
+  const residentData = residents?.map((resident: any) => ({
+    apartmentNumber: resident.apartment_number,
+    resident: resident.name,
+    email: resident.email,
       parkingSpace: resident.parking_space || '',
       storageSpace: resident.storage_space || ''
-    }));
-  } catch (error) {
-    console.error('Error in getResidentDirectory:', error);
-    return []; // Return empty array on error
-  }
+  })) || [];
+  
+  console.log(`✅ Found ${residentData.length} residents`);
+  return residentData;
 }
 
-function generateCSVReport(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string): Uint8Array {
-  console.log('=== GENERATING CSV REPORT ===');
-  console.log(`Input HSB data count: ${hsbData.length}`);
-  console.log('HSB data for CSV:', JSON.stringify(hsbData, null, 2));
+// Generate HSB PDF format
+async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string): Promise<Uint8Array> {
+  console.log('📄 Generating PDF format');
   
-  const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-                      'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-  
-  let content = `HSB DEBITERINGSUNDERLAG - ${monthNames[month - 1]} ${year}\n`;
-  content += `BRF Gulmåran\n`;
-  content += `Uppgiftslämnare: ${reporterName}\n`;
-  content += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
-  
-  content += `Lgh nr,Namn,Period,Vad avser avgiften,Antal,á pris,Summa\n`;
-  
-  console.log('CSV header created, adding data...');
-  
-  hsbData.forEach((item, index) => {
-    const line = `${item.apartmentNumber},"${item.resident}","${item.period}","${item.description}",${item.quantity},${item.unitPrice},${item.totalAmount}\n`;
-    console.log(`Adding line ${index + 1}: ${line.trim()}`);
-    content += line;
-  });
-  
-  const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
-  content += `\nTOTAL SUMMA:,,,,,,${totalAmount}\n\n`;
-  
-  content += `BOENDEFÖRTECKNING\n`;
-  content += `Lägenhet,Namn,P-plats,Förråd\n`;
-  
-  residentData.forEach(resident => {
-    content += `"${resident.apartmentNumber}","${resident.resident}","${resident.parkingSpace}","${resident.storageSpace}"\n`;
-  });
-  
-  console.log(`\n=== CSV CONTENT COMPLETE ===`);
-  console.log(`Total content length: ${content.length} characters`);
-  console.log('Content preview (first 500 chars):');
-  console.log(content.substring(0, 500));
-  console.log('Content preview (last 200 chars):');
-  console.log(content.substring(Math.max(0, content.length - 200)));
-  
-  const bytes = new TextEncoder().encode(content);
-  console.log(`Encoded to ${bytes.length} bytes`);
-  
-  return bytes;
-}
-
-async function generatePDFReport(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string): Promise<Uint8Array> {
-  console.log('=== GENERATING PDF REPORT ===');
-  console.log(`Input HSB data count: ${hsbData.length}`);
-  
-  const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-                      'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-  
-  // Create a new PDF document
   const pdfDoc = await PDFDocument.create();
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
-  // Add a page
-  const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+  let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
   const { width, height } = page.getSize();
   
   let yPosition = height - 50;
   const margin = 50;
-  const lineHeight = 14;
   
   // Header
   page.drawText('HSB DEBITERINGSUNDERLAG', {
@@ -501,7 +332,7 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   });
   
   yPosition -= 25;
-  page.drawText(`${monthNames[month - 1]} ${year}`, {
+  page.drawText(`${getMonthName(month)} ${year}`, {
     x: margin,
     y: yPosition,
     size: 14,
@@ -538,9 +369,8 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   
   yPosition -= 30;
   
-  // Table headers  
-  const colWidths = [40, 90, 110, 110, 30, 50, 60];
-  const colX = [margin, margin + 40, margin + 130, margin + 240, margin + 350, margin + 380, margin + 430];
+  // Table headers - Increased column widths for full text display
+  const colX = [margin, margin + 45, margin + 170, margin + 295, margin + 440, margin + 475, margin + 530];
   const headers = ['Lgh nr', 'Namn', 'Period', 'Vad avser avgiften', 'Antal', 'à pris', 'Summa'];
   
   // Draw header row
@@ -570,15 +400,15 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   hsbData.forEach((item, index) => {
     if (yPosition < 100) {
       // Add new page if needed
-      const newPage = pdfDoc.addPage([595.28, 841.89]);
+      page = pdfDoc.addPage([595.28, 841.89]);
       yPosition = height - 50;
     }
     
     const rowData = [
       item.apartmentNumber,
-      item.resident.length > 13 ? item.resident.substring(0, 10) + '...' : item.resident,
-      item.period.length > 20 ? item.period.substring(0, 17) + '...' : item.period,
-      item.description.length > 16 ? item.description.substring(0, 13) + '...' : item.description,
+      item.resident, // Full name without truncation
+      item.period,   // Full period without truncation
+      item.description, // Full description without truncation
       item.quantity.toString(),
       `${item.unitPrice} kr`,
       `${item.totalAmount} kr`
@@ -594,13 +424,13 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
       });
     });
     
-    yPosition -= lineHeight;
+    yPosition -= 12;
   });
   
+  // Total line
+  const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
   yPosition -= 10;
   
-  // Total sum
-  const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
   page.drawLine({
     start: { x: margin, y: yPosition + 5 },
     end: { x: width - margin, y: yPosition + 5 },
@@ -610,7 +440,7 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   
   yPosition -= 15;
   page.drawText(`TOTAL SUMMA: ${totalAmount.toLocaleString('sv-SE')} kr`, {
-    x: margin + 350,
+    x: margin + 440, // Adjusted to align with new column layout
     y: yPosition,
     size: 12,
     font: helveticaBoldFont,
@@ -621,7 +451,7 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   
   // Boendeförteckning section
   if (yPosition < 200) {
-    const newPage = pdfDoc.addPage([595.28, 841.89]);
+    page = pdfDoc.addPage([595.28, 841.89]);
     yPosition = height - 50;
   }
   
@@ -635,12 +465,10 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
   
   yPosition -= 25;
   
-  // All resident data (with new page handling if needed)
+  // Add resident data
   residentData.forEach((resident, index) => {
-    // Check if we need a new page (need space for resident name + parking/storage info)
-    if (yPosition < 80) {
-      const newPage = pdfDoc.addPage([595.28, 841.89]);
-      page = newPage; // Update current page reference
+    if (yPosition < 100) {
+      page = pdfDoc.addPage([595.28, 841.89]);
       yPosition = height - 50;
       
       // Add continuation header on new page
@@ -684,81 +512,151 @@ async function generatePDFReport(hsbData: HSBReportItem[], residentData: Residen
     color: rgb(0.5, 0.5, 0.5),
   });
   
-  // Save the PDF
-  const pdfBytes = await pdfDoc.save();
-  console.log(`Generated PDF: ${pdfBytes.length} bytes`);
-  
-  return pdfBytes;
+  console.log('✅ PDF generated');
+  return await pdfDoc.save();
 }
 
-async function sendEmailWithAttachment(
-  fileContent: Uint8Array, 
-  filename: string, 
-  contentType: string,
-  month: number,
-  year: number,
-  reporterName: string
-) {
-  console.log('Sending email with attachment...');
+Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   
-  const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-                      'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-  
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  
-  if (!resendApiKey) {
-    console.error('RESEND_API_KEY not found');
-    throw new Error('Email service not configured');
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { 
+      status: 200, 
+      headers: corsHeaders 
+    });
   }
-  
-  const emailData = {
-    from: 'BRF Gulmåran <noreply@brf-gulmaran.se>',
-    to: ['hsb@example.com', 'gulmaranbrf@gmail.com'],
-    subject: `HSB Debiteringsunderlag - BRF Gulmåran - ${monthNames[month - 1]} ${year}`,
-    html: `
-      <h2>HSB Debiteringsunderlag</h2>
-      <p><strong>Bostadsrättsförening:</strong> BRF Gulmåran</p>
-      <p><strong>Period:</strong> ${monthNames[month - 1]} ${year}</p>
-      <p><strong>Uppgiftslämnare:</strong> ${reporterName}</p>
-      <p><strong>Datum:</strong> ${new Date().toLocaleDateString('sv-SE')}</p>
-      
-      <p>Se bifogad fil för komplett debiteringsunderlag och boendeförteckning.</p>
-      
-      <p>Med vänliga hälsningar,<br>
-      BRF Gulmåran Bokningssystem</p>
-    `,
-    attachments: [
-      {
-        filename: filename,
-        content: Array.from(fileContent)
-      }
-    ]
-  };
   
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(emailData)
-    });
+    console.log('🚀 HSB Form v2 function called');
+    console.log('📝 Request method:', req.method);
+    console.log('🔗 Request URL:', req.url);
     
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Email send failed:', error);
-      throw new Error('Failed to send email');
+    const url = new URL(req.url);
+    const format = url.searchParams.get('format') || 'preview';
+    const month = parseInt(url.searchParams.get('month') || String(new Date().getMonth() + 1));
+    const year = parseInt(url.searchParams.get('year') || String(new Date().getFullYear()));
+    const sendEmail = url.searchParams.get('sendEmail') === 'true';
+    const reporterName = decodeURIComponent(url.searchParams.get('reporterName') || 'Admin');
+    
+    console.log('⚙️ Parameters:', { format, month, year, sendEmail, reporterName });
+    
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+    
+    // Get bookings that start in the selected month (to prevent double billing)
+    const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const nextMonthStart = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+    
+    console.log(`📅 Searching for bookings starting in ${monthStart} to ${nextMonthStart}`);
+    
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .gte('startdate', monthStart)
+      .lt('startdate', nextMonthStart)
+      .order('startdate', { ascending: true });
+
+    if (error) {
+      console.error('❌ Database error:', error);
+      throw error;
+    }
+
+    console.log(`📊 Found ${bookings?.length || 0} bookings that start in ${month}/${year}`);
+
+    // Filter bookings to only include those that START in the selected month
+    // This prevents double billing for bookings that span multiple months
+    const filteredBookings = (bookings || []).filter(booking => {
+      if (!booking.startdate || !booking.enddate) return false;
+      
+      const bookingStart = new Date(booking.startdate);
+      const bookingStartMonth = bookingStart.getMonth() + 1; // JavaScript months are 0-indexed
+      const bookingStartYear = bookingStart.getFullYear();
+      
+      // Only include bookings that START in the selected month/year
+      const belongsToThisMonth = bookingStartMonth === month && bookingStartYear === year;
+      
+      if (belongsToThisMonth) {
+        console.log(`✅ Booking starts in ${month}/${year}: ${booking.name} (${booking.startdate} to ${booking.enddate})`);
+      } else {
+        console.log(`❌ Booking starts in ${bookingStartMonth}/${bookingStartYear}, not ${month}/${year}: ${booking.name} (${booking.startdate} to ${booking.enddate})`);
+      }
+      
+      return belongsToThisMonth;
+    });
+
+    console.log(`🎯 Found ${filteredBookings.length} bookings that start in ${month}/${year}`);
+
+    // Transform bookings to HSB format
+    const hsbData = await transformBookingsToHSB(filteredBookings, month, year, supabase);
+    
+    // Get resident data
+    const residentData = await getResidentData(supabase);
+    
+    console.log(`📈 Generated ${hsbData.length} HSB items from database`);
+    
+    // Handle different format requests
+    switch (format) {
+      case 'preview':
+        console.log('👀 Returning preview data');
+        return new Response(
+          JSON.stringify({ hsbData, residentData }),
+          { 
+            status: 200,
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            }
+          }
+        );
+      
+      case 'pdf':
+        console.log('📄 Generating PDF format');
+        const pdfBytes = await generateHSBPDF(hsbData, residentData, month, year, reporterName);
+        
+        return new Response(pdfBytes, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="HSB-rapport-${getMonthName(month)}-${year}.pdf"`
+          }
+        });
+      
+      default:
+        return new Response(
+          JSON.stringify({ error: 'Ogiltigt format. Använd: preview eller pdf' }),
+          { 
+            status: 400,
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            }
+          }
+        );
     }
     
-    const result = await response.json();
-    console.log('Email sent successfully:', result.id);
   } catch (error) {
-    console.error('Email error:', error);
-    throw error;
+    console.error('❌ Function error:', error);
+    
+    return new Response(
+      JSON.stringify({ 
+        error: 'Internt serverfel',
+        details: error instanceof Error ? error.message : 'Okänt fel',
+        stack: error instanceof Error ? error.stack : undefined
+      }),
+      { 
+        status: 500,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        }
+      }
+    );
   }
-}
-
-
-
- 
+});
