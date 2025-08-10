@@ -1,142 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Grid,
-  Card,
-  CardContent,
-  CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
-  Divider,
-} from '@mui/material';
-import ReactMarkdown from 'react-markdown';
-import { Link as RouterLink } from 'react-router-dom';
-import { styled } from '@mui/material/styles';
-import {
-  ArticleOutlined,
-  AccessTimeOutlined,
-  ViewModule,
-  ViewList,
-  ExpandMore,
-  ExpandLess,
-  SearchOutlined,
-} from '@mui/icons-material';
 import { Page } from '../../types/Page';
-import { modernTheme } from '../../theme/modernTheme';
-import { ModernCard } from '../common/ModernCard';
 
 interface ModernPagesListProps {
   pages: Page[];
   onPageClick: (page: Page) => void;
   isLoading?: boolean;
 }
-
-// Modern hero section with gradient and visual interest
-const HeroSection = styled(Box)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${modernTheme.colors.secondary[50]} 0%, ${modernTheme.colors.white} 50%, ${modernTheme.colors.primary[50]} 100%)`,
-  padding: `${modernTheme.spacing[6]} 0 ${modernTheme.spacing[2]} 0`,
-  textAlign: 'center',
-  marginBottom: modernTheme.spacing[1],
-  position: 'relative',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: `radial-gradient(circle at 30% 20%, ${modernTheme.colors.secondary[100]}40 0%, transparent 50%),
-                radial-gradient(circle at 70% 80%, ${modernTheme.colors.primary[100]}30 0%, transparent 50%)`,
-    pointerEvents: 'none',
-  },
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '2px',
-    background: `linear-gradient(90deg, transparent 0%, ${modernTheme.colors.secondary[400]} 50%, transparent 100%)`,
-  },
-}));
-
-const SearchField = styled(TextField)(() => ({
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: modernTheme.colors.white,
-    borderRadius: modernTheme.borderRadius.xl,
-    fontSize: modernTheme.typography.fontSize.base,
-    minHeight: '56px',
-    border: `2px solid ${modernTheme.colors.gray[200]}`,
-    boxShadow: modernTheme.shadows.sm,
-    transition: modernTheme.transitions.normal,
-    '&:hover': {
-      boxShadow: modernTheme.shadows.md,
-      borderColor: modernTheme.colors.secondary[300],
-      transform: 'translateY(-1px)',
-    },
-    '&.Mui-focused': {
-      boxShadow: `0 0 0 4px ${modernTheme.colors.secondary[100]}, ${modernTheme.shadows.lg}`,
-      borderColor: modernTheme.colors.secondary[500],
-      transform: 'translateY(-2px)',
-      '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'transparent',
-      },
-    },
-  },
-  '& .MuiOutlinedInput-input': {
-    padding: `${modernTheme.spacing[4]} ${modernTheme.spacing[4]}`,
-    fontWeight: modernTheme.typography.fontWeight.medium,
-  },
-  '& .MuiOutlinedInput-notchedOutline': {
-    border: 'none',
-  },
-}));
-
-
-
-const PageCard = styled(Card)(() => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: modernTheme.transitions.normal,
-  cursor: 'pointer',
-  border: `1px solid ${modernTheme.colors.gray[200]}`,
-  background: `linear-gradient(145deg, ${modernTheme.colors.white} 0%, ${modernTheme.colors.gray[50]} 100%)`,
-  position: 'relative',
-  overflow: 'hidden',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '3px',
-    background: `linear-gradient(90deg, ${modernTheme.colors.secondary[500]} 0%, ${modernTheme.colors.primary[500]} 100%)`,
-    opacity: 0,
-    transition: modernTheme.transitions.normal,
-  },
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: `0 8px 25px rgba(0,0,0,0.1), 0 0 0 1px ${modernTheme.colors.secondary[200]}`,
-    borderColor: modernTheme.colors.secondary[300],
-    '&::before': {
-      opacity: 1,
-    },
-    '& .expand-indicator': {
-      color: modernTheme.colors.secondary[700],
-    },
-    '& .page-title': {
-      color: modernTheme.colors.secondary[700],
-    },
-  },
-  '&:focus': {
-    outline: `3px solid ${modernTheme.colors.secondary[200]}`,
-    outlineOffset: '2px',
-  },
-}));
 
 export const ModernPagesList: React.FC<ModernPagesListProps> = ({
   pages,
@@ -145,522 +14,664 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
-  const [expandedCards, setExpandedCards] = useState<string[]>([]);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
-  // DEBUG: Log ModernPagesList state
-  console.log('📋 ModernPagesList state:', { 
-    pagesCount: pages.length,
-    isLoading,
-    searchTerm,
-    viewMode,
-    pages: pages.map(p => ({ id: p.id, title: p.title }))
-  });
-
-  // Simple search functionality - no complex filtering needed for 10 documents
+  // Filter pages based on search term
   const filteredPages = useMemo(() => {
     if (!searchTerm.trim()) return pages;
     
-    return pages.filter(page =>
-      page.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      page.content.toLowerCase().includes(searchTerm.toLowerCase())
+    const searchLower = searchTerm.toLowerCase();
+    return pages.filter((page) => 
+      page.title.toLowerCase().includes(searchLower) ||
+      page.content.toLowerCase().includes(searchLower)
     );
   }, [pages, searchTerm]);
 
-  // DEBUG: Log filtered pages and rendering state
-  console.log('🔍 ModernPagesList render details:', {
-    filteredPagesCount: filteredPages.length,
-    filteredPages: filteredPages.map(p => ({ id: p.id, title: p.title })),
-    shouldRenderCards: viewMode === 'cards' && !isLoading,
-    modernThemeExists: !!modernTheme,
-    modernThemeSpacing: modernTheme?.spacing?.[4],
-    viewMode,
-    isLoading,
-    pagesLength: pages.length
-  });
-  
-  // Extra debugging for empty state
-  if (filteredPages.length === 0) {
-    console.log('🚨 No filtered pages to display!', { pages, searchTerm, isLoading });
-  }
-
-  const toggleCardExpansion = (pageId: string) => {
-    setExpandedCards(prev => 
-      prev.includes(pageId) 
-        ? prev.filter(id => id !== pageId)  // Remove if already expanded
-        : [...prev, pageId]                 // Add if not expanded
-    );
+  const truncateContent = (content: string, maxLength: number): string => {
+    const cleanContent = content.replace(/<[^>]*>/g, '').trim();
+    return cleanContent.length > maxLength 
+      ? cleanContent.substring(0, maxLength) + '...'  
+      : cleanContent;
   };
 
-  // Custom link component for ReactMarkdown to handle internal routing
-  const MarkdownLink = ({ href, children, ...props }: any) => {
-    // Check if it's an internal link (starts with /)
-    if (href && href.startsWith('/')) {
-      return (
-        <RouterLink 
-          to={href} 
-          style={{ 
-            color: modernTheme.colors.secondary[600],
-            textDecoration: 'underline',
-            fontWeight: modernTheme.typography.fontWeight.medium,
-          }}
-          {...props}
-        >
-          {children}
-        </RouterLink>
-      );
-    }
+  const formatTextContent = (content: string, maxLength?: number) => {
+    let text = content.replace(/<[^>]*>/g, '').trim();
     
-    // External links
+    // Trunkera om maxLength är specificerat
+    if (maxLength && text.length > maxLength) {
+      text = text.substring(0, maxLength) + '...';
+    }
+
+    // Rensa bort ### rubriker och formatera dem separat
+    text = text
+      .replace(/###\s*([^#]+?)\s*###/g, '$1') // Ta bort ### runt rubriker
+      .replace(/####\s*([^#]+?)(?:\s*####)?/g, '$1') // Ta bort #### runt rubriker
+      .replace(/\([A-Z]\)/g, '') // Ta bort (B), (A) etc
+      .replace(/\s+/g, ' ') // Normalisera mellanslag
+      .trim();
+
+    // Dela upp och formatera endast tydliga markeringar
+    return text.split(/(\*\*[^*]+\*\*|\*[A-Za-zÅÄÖåäö\s]+\*(?=\s|$|,|\.|:))/g).map((part, index) => {
+      // Dubbla asterisker = fetstil (t.ex. **Sommar**)
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return (
+          <strong key={index} style={{
+            fontWeight: '600',
+            color: '#111827',
+          }}>
+            {part.replace(/^\*\*|\*\*$/g, '')}
+          </strong>
+        );
+      }
+      // Enkla asterisker = fetstil för ord eller fraser (t.ex. *kolgrill* eller *bruna påsar*)
+      else if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+        const innerText = part.replace(/^\*|\*$/g, '').trim();
+        if (innerText && /^[A-Za-zÅÄÖåäö\s]+$/.test(innerText)) {
     return (
-      <a 
-        href={href} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        style={{ 
-          color: modernTheme.colors.secondary[600],
-          textDecoration: 'underline',
-          fontWeight: modernTheme.typography.fontWeight.medium,
-        }}
-        {...props}
-      >
-        {children}
-      </a>
-    );
+            <strong key={index} style={{
+              fontWeight: '600',
+              color: '#111827',
+            }}>
+              {innerText}
+            </strong>
+          );
+        }
+      }
+      // Vanlig text
+      return part;
+    });
   };
 
-
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('sv-SE', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   };
 
-  const getContentPreview = (content: string, maxLength: number = 100) => {
-    // Remove markdown formatting for preview - remove headers, bold, links etc
-    const cleanContent = content
-      .replace(/#{1,6}\s+/g, '') // Remove headers
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-      .replace(/\*(.*?)\*/g, '$1') // Remove italic 
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
-      .replace(/`([^`]+)`/g, '$1') // Remove code formatting
-      .replace(/\n+/g, ' ') // Replace line breaks with spaces
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim();
+  const handleCardClick = (page: Page, event: React.MouseEvent) => {
+    event.preventDefault();
     
-    return cleanContent.length > maxLength 
-      ? cleanContent.substring(0, maxLength) + '...'  
-      : cleanContent;
+    // Om kortet redan är expanderat, stäng det
+    if (expandedCard === page.id) {
+      setExpandedCard(null);
+      return;
+    }
+    
+    // Expandera det klickade kortet på plats
+    setExpandedCard(page.id);
   };
 
-  // isRecentlyUpdated function removed - NYTT badge was removed
-
+  // VANILLA CSS VERSION - Inga MUI komponenter som kan lägga till spacing!
   return (
-    <Box>
-      {/* Clean, simplified hero section */}
-      <HeroSection>
-        <Container maxWidth="md">
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontSize: { xs: modernTheme.typography.fontSize['2xl'], md: modernTheme.typography.fontSize['3xl'] },
-              fontWeight: modernTheme.typography.fontWeight.bold,
-              background: `linear-gradient(135deg, ${modernTheme.colors.secondary[700]} 0%, ${modernTheme.colors.primary[600]} 100%)`,
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-              marginBottom: modernTheme.spacing[6],
-              position: 'relative',
-              zIndex: 1,
-            }}
-          >
-            Information för vår bostadsrättsförening
-          </Typography>
-
-          {/* Simple search - only if we have documents */}
-          {pages.length > 0 && (
-            <Box sx={{ maxWidth: '400px', margin: '0 auto' }}>
-              <SearchField
-                fullWidth
-                variant="outlined"
+    <div style={{ 
+      margin: 0, 
+      padding: 0,
+      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+    }}>
+      {/* Utility Bar - Vanilla CSS */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '16px 0',
+        margin: 0,
+      }}>
+        <div 
+          className="utility-bar-content"
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '0 24px',
+          }}
+        >
+          {/* Search Field */}
+          <div className="search-field" style={{ display: 'flex', alignItems: 'center', minWidth: '280px' }}>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                type="text"
                 placeholder="Sök information..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <Box sx={{ 
-                      marginRight: modernTheme.spacing[2], 
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: modernTheme.colors.secondary[500],
-                    }}>
-                      <SearchOutlined fontSize="small" />
-                    </Box>
-                  ),
+                style={{
+                  width: '100%',
+                  height: '40px',
+                  padding: '8px 12px 8px 40px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               />
-            </Box>
-          )}
-          
-          {/* View toggle buttons */}
-          {pages.length > 0 && (
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              marginTop: modernTheme.spacing[4] 
-            }}>
-              <ToggleButtonGroup
-                value={viewMode}
-                exclusive
-                onChange={(event, newView) => {
-                  if (newView !== null) {
-                    setViewMode(newView);
-                  }
+              <svg 
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#6b7280'
                 }}
-                aria-label="Visningsläge"
-                sx={{
-                  backgroundColor: modernTheme.colors.white,
-                  borderRadius: modernTheme.borderRadius.lg,
-                  boxShadow: modernTheme.shadows.sm,
-                  '& .MuiToggleButton-root': {
-                    border: 'none',
-                    borderRadius: modernTheme.borderRadius.lg,
-                    padding: `${modernTheme.spacing[2]} ${modernTheme.spacing[4]}`,
-                    textTransform: 'none',
-                    fontWeight: modernTheme.typography.fontWeight.medium,
-                    '&.Mui-selected': {
-                      backgroundColor: modernTheme.colors.secondary[100],
-                      color: modernTheme.colors.secondary[800],
-                    },
-                  },
-                }}
+                fill="currentColor" 
+                viewBox="0 0 20 20"
               >
-                <ToggleButton value="cards" aria-label="Kortvy">
-                  <ViewModule sx={{ marginRight: 1 }} />
-                  Kortvy
-                </ToggleButton>
-                <ToggleButton value="list" aria-label="Listvy">
-                  <ViewList sx={{ marginRight: 1 }} />
-                  Visa allt
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-          )}
-        </Container>
-      </HeroSection>
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
 
-      {/* Simple document grid */}
-      <Container maxWidth="lg">
+          {/* View Toggle */}
+          <div className="toggle-buttons" style={{ display: 'flex', gap: '0' }}>
+            <button
+              onClick={() => setViewMode('cards')}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #d1d5db',
+                borderRight: 'none',
+                borderRadius: '8px 0 0 8px',
+                backgroundColor: viewMode === 'cards' ? '#dbeafe' : '#ffffff',
+                color: viewMode === 'cards' ? '#1e40af' : '#374151',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              📱 Kort
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '0 8px 8px 0',
+                backgroundColor: viewMode === 'list' ? '#dbeafe' : '#ffffff',
+                color: viewMode === 'list' ? '#1e40af' : '#374151',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              📋 Lista
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Area - Direkt under utility bar */}
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '24px',
+      }}>
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', padding: modernTheme.spacing[8] }}>
-            <CircularProgress />
-          </Box>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            padding: '32px' 
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f4f6',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+          </div>
         ) : (
           <>
-            {/* Results summary */}
+            {/* Search Results */}
             {searchTerm && (
-              <Typography
-                variant="body2"
-                sx={{
-                  marginBottom: modernTheme.spacing[4],
-                  color: modernTheme.colors.gray[600],
+              <div style={{ 
                   textAlign: 'center',
-                }}
-              >
+                margin: '16px 0',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
                 {filteredPages.length} av {pages.length} dokument
-              </Typography>
+              </div>
             )}
 
-            {/* Conditional rendering based on view mode */}
+            {/* Cards Grid or List View */}
             {viewMode === 'cards' ? (
-              // Card view - current layout
-              <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
-                {console.log('🚨 RENDERING CARDS! filteredPages:', filteredPages.length)}
-                              {filteredPages.map((page, index) => {
-                console.log(`🎯 Rendering card ${index + 1}:`, page.title);
+              // Card View
+              <div className="cards-grid">
+                {filteredPages.map((page) => {
+                  const isExpanded = expandedCard === page.id;
+                  
                 return (
-                    <Grid item xs={12} md={6} key={page.id} sx={{ display: 'flex' }}>
-                      <Box
-                        tabIndex={0}
-                        role="button"
-                        aria-label={`Öppna ${page.title}`}
-                        onClick={() => onPageClick(page)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            onPageClick(page);
-                          }
-                        }}
-                        sx={{ 
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column'
-                        }}
-                      >
-                        <PageCard>
-                          <CardContent sx={{ 
-                            padding: modernTheme.spacing[5],
-                            display: 'flex',
-                            flexDirection: 'column',
-                            height: '100%'
-                          }}>
-                            {/* NYTT badge removed - was confusing for users */}
+                  <div
+                    key={page.id}
+                    id={`card-${page.id}`}
+                    onClick={(e) => handleCardClick(page, e)}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: `2px solid ${isExpanded ? '#3b82f6' : '#e5e7eb'}`,
+                      borderRadius: '12px',
+                      padding: '24px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: isExpanded ? '0 10px 25px -3px rgba(0, 0, 0, 0.1)' : '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                      transform: isExpanded ? 'scale(1.02)' : 'scale(1)',
+                      gridColumn: isExpanded ? '1 / -1' : 'auto', // Ta full bredd när expanderat
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isExpanded) {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isExpanded) {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                      }
+                    }}
+                  >
+                    {/* Title */}
+                    <h3 style={{
+                      margin: '0 0 16px 0',
+                      fontSize: isExpanded ? '24px' : '18px',
+                      fontWeight: '600',
+                      color: '#111827',
+                      lineHeight: '1.25',
+                      transition: 'font-size 0.3s ease',
+                    }}>
+                      {page.title}
+                    </h3>
 
-                            {/* Title */}
-                            <Typography
-                              variant="h6"
-                              className="page-title"
-                              sx={{
-                                fontWeight: modernTheme.typography.fontWeight.semibold,
-                                fontSize: modernTheme.typography.fontSize.lg,
-                                marginBottom: modernTheme.spacing[3],
-                                color: modernTheme.colors.primary[800],
-                                lineHeight: modernTheme.typography.lineHeight.snug,
-                                transition: modernTheme.transitions.normal,
-                              }}
-                            >
-                              {page.title}
-                            </Typography>
-
-                                                          {/* Content preview or full content */}
-                              {expandedCards.includes(page.id) ? (
-                              <Box
-                                sx={{
-                                  color: modernTheme.colors.gray[700],
-                                  marginBottom: modernTheme.spacing[4],
-                                  lineHeight: modernTheme.typography.lineHeight.relaxed,
-                                  fontSize: modernTheme.typography.fontSize.base,
-                                  '& p': { marginBottom: modernTheme.spacing[3] },
-                                  '& h1, & h2, & h3, & h4, & h5, & h6': {
-                                    fontWeight: modernTheme.typography.fontWeight.semibold,
-                                    color: modernTheme.colors.primary[800],
-                                    marginBottom: modernTheme.spacing[2],
-                                  },
-                                  '& ul, & ol': { 
-                                    marginBottom: modernTheme.spacing[3],
-                                    paddingLeft: modernTheme.spacing[4],
-                                  },
-                                  '& li': { marginBottom: modernTheme.spacing[1] },
-                                  '& strong': { 
-                                    fontWeight: modernTheme.typography.fontWeight.semibold,
-                                    color: modernTheme.colors.primary[800],
-                                  },
-                                }}
-                              >
-                                <ReactMarkdown 
-                                  components={{
-                                    a: MarkdownLink,
-                                  }}
-                                >
-                                  {page.content}
-                                </ReactMarkdown>
-                              </Box>
-                            ) : (
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: modernTheme.colors.gray[600],
-                                  marginBottom: modernTheme.spacing[4],
-                                  lineHeight: modernTheme.typography.lineHeight.relaxed,
-                                }}
-                              >
-                                {getContentPreview(page.content)}
-                              </Typography>
-                            )}
-
-                                                        {/* Meta information */}
-                            <Box sx={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              paddingTop: modernTheme.spacing[3],
-                              borderTop: `1px solid ${modernTheme.colors.gray[100]}`,
-                              marginTop: 'auto',
-                            }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: modernTheme.spacing[1] }}>
-                                <AccessTimeOutlined sx={{ 
-                                  fontSize: modernTheme.typography.fontSize.sm,
-                                  color: modernTheme.colors.gray[500],
-                                }} />
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: modernTheme.colors.gray[500],
-                                    fontSize: modernTheme.typography.fontSize.xs,
-                                  }}
-                                >
-                                  {formatDate(page.updatedAt)}
-                                </Typography>
-                              </Box>
-                              
-                              {/* Expand/Collapse indicator */}
-                              <Box className="expand-indicator" sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: modernTheme.spacing[1],
-                                color: modernTheme.colors.secondary[600],
-                                fontSize: modernTheme.typography.fontSize.xs,
-                                transition: modernTheme.transitions.normal,
-                              }}>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: modernTheme.colors.secondary[600],
-                                    fontSize: modernTheme.typography.fontSize.xs,
-                                    fontWeight: modernTheme.typography.fontWeight.medium,
-                                  }}
-                                >
-                                  {expandedCards.includes(page.id) ? 'Kollaps' : 'Läs mer'}
-                                </Typography>
-                                {expandedCards.includes(page.id) ? (
-                                  <ExpandLess sx={{ fontSize: modernTheme.typography.fontSize.sm }} />
-                                ) : (
-                                  <ExpandMore sx={{ fontSize: modernTheme.typography.fontSize.sm }} />
-                                )}
-                              </Box>
-                            </Box>
-                          </CardContent>
-                        </PageCard>
-                      </Box>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            ) : (
-              // List view - continuous reading
-              <Box sx={{ maxWidth: '800px', margin: '0 auto' }}>
-                {filteredPages.map((page, index) => {
-                  return (
-                    <Box key={page.id}>
-                      <Box sx={{ 
-                        padding: modernTheme.spacing[6],
-                        marginBottom: modernTheme.spacing[4],
-                      }}>
-                        {/* NYTT badge removed */}
-
-                        {/* Title */}
-                        <Typography
-                          variant="h4"
-                          sx={{
-                            fontWeight: modernTheme.typography.fontWeight.bold,
-                            fontSize: modernTheme.typography.fontSize['2xl'],
-                            marginBottom: modernTheme.spacing[4],
-                            color: modernTheme.colors.primary[800],
-                            lineHeight: modernTheme.typography.lineHeight.tight,
-                          }}
-                        >
-                          {page.title}
-                        </Typography>
-
-                        {/* Full content */}
-                        <Box
-                          sx={{
-                            color: modernTheme.colors.gray[700],
-                            lineHeight: modernTheme.typography.lineHeight.relaxed,
-                            fontSize: modernTheme.typography.fontSize.base,
-                            marginBottom: modernTheme.spacing[4],
-                            '& p': { marginBottom: modernTheme.spacing[3] },
-                            '& h1, & h2, & h3, & h4, & h5, & h6': {
-                              fontWeight: modernTheme.typography.fontWeight.semibold,
-                              color: modernTheme.colors.primary[800],
-                              marginBottom: modernTheme.spacing[2],
-                            },
-                            '& ul, & ol': { 
-                              marginBottom: modernTheme.spacing[3],
-                              paddingLeft: modernTheme.spacing[4],
-                            },
-                            '& li': { marginBottom: modernTheme.spacing[1] },
-                            '& strong': {
-                              fontWeight: modernTheme.typography.fontWeight.semibold,
-                              color: modernTheme.colors.primary[800],
-                            },
-                          }}
-                        >
-                          <ReactMarkdown 
-                            components={{
-                              a: MarkdownLink,
+                    {/* Content */}
+                    <div style={{
+                      margin: '0 0 16px 0',
+                      fontSize: isExpanded ? '16px' : '14px',
+                      color: '#6b7280',
+                      lineHeight: '1.6',
+                      flexGrow: 1,
+                      transition: 'font-size 0.3s ease',
+                    }}>
+                      {isExpanded ? (
+                        // Expanderat innehåll - visa allt innehåll med formatering
+                        <div>
+                          <div 
+                            className="expanded-content"
+                            style={{ 
+                              margin: '0 0 16px 0',
+                              lineHeight: '1.7',
+                              fontSize: '15px',
+                              color: '#374151',
+                              whiteSpace: 'pre-wrap',
                             }}
                           >
-                            {page.content}
-                          </ReactMarkdown>
-                        </Box>
-
-                        {/* Meta information */}
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          paddingTop: modernTheme.spacing[3],
-                          borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
-                        }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: modernTheme.spacing[1] }}>
-                            <AccessTimeOutlined sx={{ 
-                              fontSize: modernTheme.typography.fontSize.sm,
-                              color: modernTheme.colors.gray[500],
-                            }} />
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: modernTheme.colors.gray[500],
-                                fontSize: modernTheme.typography.fontSize.xs,
-                              }}
-                            >
-                              {formatDate(page.updatedAt)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                      
-                      {/* Divider between sections */}
-                      {index < filteredPages.length - 1 && (
-                        <Divider sx={{ 
-                          margin: `${modernTheme.spacing[6]} 0`,
-                          borderColor: modernTheme.colors.gray[200],
-                        }} />
+                            {/* Formatera strukturerat innehåll */}
+                            {page.content
+                              .replace(/<[^>]*>/g, '') // Ta bort HTML-taggar
+                              .split('\n')
+                              .map((line, index) => {
+                                const trimmed = line.trim();
+                                if (!trimmed) return null;
+                                
+                                // ### Huvudrubriker (H2-stil)
+                                if (trimmed.match(/^###\s+[^#]/)) {
+                                  return (
+                                    <h2 key={index} style={{
+                                      fontSize: '20px',
+                                      fontWeight: '700',
+                                      color: '#111827',
+                                      margin: '24px 0 16px 0',
+                                      lineHeight: '1.2',
+                                      borderBottom: '2px solid #e5e7eb',
+                                      paddingBottom: '8px',
+                                    }}>
+                                      {trimmed.replace(/^###\s*/, '')}
+                                    </h2>
+                                  );
+                                }
+                                
+                                // #### Underrubriker (H3-stil)
+                                if (trimmed.match(/^####\s+/)) {
+                                  return (
+                                    <h3 key={index} style={{
+                                      fontSize: '18px',
+                                      fontWeight: '600',
+                                      color: '#111827',
+                                      margin: '20px 0 12px 0',
+                                      lineHeight: '1.3',
+                                    }}>
+                                      {trimmed.replace(/^####\s*/, '')}
+                                    </h3>
+                                  );
+                                }
+                                
+                                // Listpunkter som börjar med -
+                                if (trimmed.startsWith('- ')) {
+                                  return (
+                                    <div key={index} style={{
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      margin: '8px 0',
+                                      paddingLeft: '16px',
+                                    }}>
+                                      <span style={{
+                                        color: '#6b7280',
+                                        marginRight: '8px',
+                                        fontSize: '14px',
+                                      }}>
+                                        •
+                                      </span>
+                                      <span style={{
+                                        color: '#374151',
+                                        lineHeight: '1.5',
+                                      }}>
+                                        {trimmed.substring(2).replace(/\([A-Z]\)/g, '').trim()}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                
+                                // **Rubriker med dubbla asterisker**
+                                if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+                                  return (
+                                    <h3 key={index} style={{
+                                      fontSize: '18px',
+                                      fontWeight: '600',
+                                      color: '#111827',
+                                      margin: '20px 0 12px 0',
+                                      lineHeight: '1.3',
+                                    }}>
+                                      {trimmed.replace(/^\*\*|\*\*$/g, '')}
+                                    </h3>
+                                  );
+                                }
+                                
+                                // Vanlig paragraf
+                                return (
+                                  <p key={index} style={{
+                                    margin: '12px 0',
+                                    lineHeight: '1.6',
+                                    color: '#374151',
+                                  }}>
+                                    {trimmed}
+                                  </p>
+                                );
+                              })
+                              .filter(Boolean)}
+                          </div>
+                        </div>
+                      ) : (
+                        // Kompakt innehåll med formatering
+                        <p style={{ margin: 0 }}>
+                          {formatTextContent(page.content, 120)}
+                        </p>
                       )}
-                    </Box>
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{
+                              display: 'flex', 
+                      alignItems: 'center',
+                              justifyContent: 'space-between',
+                      paddingTop: '16px',
+                      borderTop: '1px solid #f3f4f6',
+                    }}>
+                      <div style={{
+                                display: 'flex', 
+                                alignItems: 'center', 
+                        gap: '8px',
+                        fontSize: '12px',
+                        color: '#9ca3af',
+                      }}>
+                        🕒 {formatDate(page.updatedAt)}
+                      </div>
+                      
+                      <div style={{
+                        fontSize: '12px',
+                        color: isExpanded ? '#ef4444' : '#3b82f6',
+                        fontWeight: '500',
+                      }}>
+                        {isExpanded ? '✕ Stäng' : '↗ Expandera'}
+                      </div>
+                    </div>
+                  </div>
                   );
                 })}
-              </Box>
+              </div>
+            ) : (
+              // List View - Expanderade kort i vertikal lista
+              <div style={{ marginTop: '16px' }}>
+                {filteredPages.map((page) => (
+                  <div
+                    key={page.id}
+                    onClick={() => onPageClick(page)}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      marginBottom: '16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px 0 rgba(0, 0, 0, 0.1)';
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                    }}
+                  >
+                    {/* Expanderat kort innehåll */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                    }}>
+                      {/* Title */}
+                      <h3 style={{
+                        margin: '0',
+                        fontSize: '20px',
+                        fontWeight: '600',
+                        color: '#111827',
+                        lineHeight: '1.25',
+                      }}>
+                          {page.title}
+                      </h3>
+
+                      {/* Full content - mer text än i kortvy */}
+                      <div style={{
+                        margin: '0',
+                        fontSize: '15px',
+                        color: '#6b7280',
+                        lineHeight: '1.6',
+                      }}>
+                        {formatTextContent(page.content, 200)}
+                      </div>
+
+                      {/* Footer med datum och eventuell extra info */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: '16px',
+                        borderTop: '1px solid #f3f4f6',
+                      }}>
+                        <div style={{
+                          display: 'flex', 
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '13px',
+                          color: '#9ca3af',
+                        }}>
+                          🕒 {formatDate(page.updatedAt)}
+                        </div>
+                        
+                        {/* Klick-indikator */}
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#3b82f6',
+                          fontWeight: '500',
+                        }}>
+                          Klicka för att läsa mer →
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
 
-            {/* Simple empty state */}
-            {filteredPages.length === 0 && !isLoading && (
-              <Box sx={{ 
+            {/* No Results */}
+            {filteredPages.length === 0 && searchTerm && (
+              <div style={{ 
                 textAlign: 'center', 
-                padding: modernTheme.spacing[8],
+                padding: '64px 16px',
+                color: '#6b7280'
               }}>
-                <ArticleOutlined sx={{ 
-                  fontSize: '3rem', 
-                  color: modernTheme.colors.gray[400],
-                  marginBottom: modernTheme.spacing[3],
-                }} />
-                <Typography
-                  variant="h6"
-                  sx={{
-                    marginBottom: modernTheme.spacing[2],
-                    color: modernTheme.colors.gray[700],
-                  }}
-                >
-                  {searchTerm ? 'Inga dokument hittades' : 'Inga dokument tillgängliga'}
-                </Typography>
-                {searchTerm && (
-                  <Typography
-                    variant="body2"
-                    sx={{ color: modernTheme.colors.gray[500] }}
-                  >
+                <h3 style={{ 
+                  fontSize: '18px', 
+                  marginBottom: '8px',
+                  color: '#6b7280'
+                }}>
+                  Inga resultat hittades
+                </h3>
+                <p style={{ fontSize: '14px', color: '#9ca3af' }}>
                     Prova att söka på något annat
-                  </Typography>
-                )}
-              </Box>
+                </p>
+              </div>
             )}
           </>
         )}
-      </Container>
-    </Box>
+      </div>
+
+      {/* CSS Animation och Responsive Design */}
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .cards-grid {
+          display: grid;
+          gap: 24px;
+          margin-top: 16px;
+          grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 640px) {
+          .cards-grid {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          .cards-grid {
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          }
+        }
+        
+        .utility-bar-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          flex-wrap: wrap;
+        }
+        
+        @media (max-width: 640px) {
+          .utility-bar-content {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+          }
+          
+          .search-field {
+            min-width: 100% !important;
+          }
+          
+                  .toggle-buttons {
+          align-self: center;
+        }
+      }
+      
+      /* Styling för HTML-innehåll i expanderade kort */
+      .expanded-content h1, .expanded-content h2, .expanded-content h3, 
+      .expanded-content h4, .expanded-content h5, .expanded-content h6 {
+        color: #111827;
+        font-weight: 600;
+        margin: 16px 0 8px 0;
+        line-height: 1.25;
+      }
+      
+      .expanded-content h1 { font-size: 24px; }
+      .expanded-content h2 { font-size: 20px; }
+      .expanded-content h3 { font-size: 18px; }
+      .expanded-content h4 { font-size: 16px; }
+      
+      .expanded-content p {
+        margin: 12px 0;
+        color: #374151;
+        line-height: 1.6;
+      }
+      
+      .expanded-content ul, .expanded-content ol {
+        margin: 12px 0;
+        padding-left: 24px;
+        color: #374151;
+      }
+      
+      .expanded-content li {
+        margin: 4px 0;
+        line-height: 1.5;
+      }
+      
+      .expanded-content strong, .expanded-content b {
+        font-weight: 600;
+        color: #111827;
+      }
+      
+      .expanded-content em, .expanded-content i {
+        font-style: italic;
+      }
+      
+      .expanded-content a {
+        color: #3b82f6;
+        text-decoration: underline;
+      }
+      
+      .expanded-content a:hover {
+        color: #2563eb;
+      }
+      
+      .expanded-content blockquote {
+        border-left: 4px solid #e5e7eb;
+        padding-left: 16px;
+        margin: 16px 0;
+        font-style: italic;
+        color: #6b7280;
+      }
+      
+      .expanded-content code {
+        background-color: #f3f4f6;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      `}</style>
+    </div>
   );
 }; 

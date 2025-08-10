@@ -32,8 +32,8 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1,
-          paddingTop: isAuthPage ? 0 : '80px', // Increased spacing from header
-          paddingBottom: modernTheme.spacing[8],
+          paddingTop: isAuthPage ? 0 : '60px', // Compact spacing from header
+          paddingBottom: modernTheme.spacing[4],
           // REMOVED: minHeight constraint that was preventing scrolling
           overflow: 'auto', // CRITICAL: Allow scrolling
           width: '100%', // Ensure full width
@@ -43,7 +43,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         <Container 
           maxWidth="lg" 
           sx={{ 
-            px: { xs: modernTheme.spacing[2], sm: modernTheme.spacing[4], md: modernTheme.spacing[6] },
+            px: { xs: modernTheme.spacing[2], sm: modernTheme.spacing[3], md: modernTheme.spacing[4] },
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
             overflow: 'visible', // Allow content to be scrollable
             width: '100%',
