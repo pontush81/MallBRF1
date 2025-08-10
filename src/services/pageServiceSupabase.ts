@@ -173,34 +173,43 @@ const pageServiceSupabase = {
     try {
       console.log(`🔍 Fetching page by ID: ${id}`);
       
-      const { data, error } = await supabaseClient
-        .from('pages')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/pages?id=eq.${id}&select=*`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log(`⚠️ Page not found: ${id}`);
-          return null;
-        }
-        console.error('❌ Error fetching page by ID:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
-      const page = transformPageFromDB(data);
+      const data = await response.json();
+      
+      if (!data || data.length === 0) {
+        console.log(`⚠️ Page not found: ${id}`);
+        return null;
+      }
+
+      const page = transformPageFromDB(data[0]);
       
       // Determine if this is admin access or public access
       const currentUserData = localStorage.getItem('currentUser');
       const isAdmin = currentUserData ? JSON.parse(currentUserData).role === 'admin' : false;
       
-      if (isAdmin) {
-        await logUserAccess('pages', 'SELECT', String(id), 'admin_get_page_by_id');
-      } else {
-        // await logAnonymousAccess('pages', 'SELECT', String(id), 'public_get_page_by_id');
+      // Log access (skip if fails)
+      try {
+        if (isAdmin) {
+          await logUserAccess('pages', 'SELECT', String(id), 'admin_get_page_by_id');
+        }
+      } catch (logError) {
+        console.log('⚠️ Audit logging skipped (non-critical)');
       }
 
-      console.log(`✅ Found page: ${page.title}`);
+      console.log(`✅ Found page via direct API (FAST!): ${page.title}`);
       return page;
     } catch (error) {
       console.error('Error in getPageById:', error);
@@ -213,34 +222,43 @@ const pageServiceSupabase = {
     try {
       console.log(`🔍 Fetching page by slug: ${slug}`);
       
-      const { data, error } = await supabaseClient
-        .from('pages')
-        .select('*')
-        .eq('slug', slug)
-        .single();
+      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&select=*`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log(`⚠️ Page not found: ${slug}`);
-          return null;
-        }
-        console.error('❌ Error fetching page by slug:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
-      const page = transformPageFromDB(data);
+      const data = await response.json();
+      
+      if (!data || data.length === 0) {
+        console.log(`⚠️ Page not found: ${slug}`);
+        return null;
+      }
+
+      const page = transformPageFromDB(data[0]);
       
       // Determine if this is admin access or public access
       const currentUserData = localStorage.getItem('currentUser');
       const isAdmin = currentUserData ? JSON.parse(currentUserData).role === 'admin' : false;
       
-      if (isAdmin) {
-        await logUserAccess('pages', 'SELECT', String(page.id), `admin_get_page_by_slug_${slug}`);
-      } else {
-        // await logAnonymousAccess('pages', 'SELECT', String(page.id), `public_get_page_by_slug_${slug}`);
+      // Log access (skip if fails)
+      try {
+        if (isAdmin) {
+          await logUserAccess('pages', 'SELECT', String(page.id), `admin_get_page_by_slug_${slug}`);
+        }
+      } catch (logError) {
+        console.log('⚠️ Audit logging skipped (non-critical)');
       }
 
-      console.log(`✅ Found page: ${page.title}`);
+      console.log(`✅ Found page via direct API (FAST!): ${page.title}`);
       return page;
     } catch (error) {
       console.error('Error in getPageBySlug:', error);

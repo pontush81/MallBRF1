@@ -11,6 +11,27 @@
 
 import supabase from './supabaseClient';
 
+// Direct REST API helper for audit logging (non-critical, can fail gracefully)
+async function directAuditCall(endpoint: string, body: any): Promise<boolean> {
+  try {
+    const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(3000) // Short timeout for audit logs
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.log('⚠️ Audit logging failed (non-critical):', error.message);
+    return false;
+  }
+}
+
 // Audit Event Types
 export type AuditEventType = 
   | 'auth_login_success'

@@ -1,5 +1,5 @@
 import { Booking, CreateBookingData, UpdateBookingData } from '../types/Booking';
-import { executeWithRLS, executePublic } from './supabaseClient';
+// import { executeWithRLS, executePublic } from './supabaseClient'; // All functions now use direct API
 
 // Database table mapping
 const BOOKINGS_TABLE = 'bookings';

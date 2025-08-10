@@ -1,4 +1,25 @@
 import supabase from './supabaseClient';
+
+// Direct REST API helper for notifications (non-critical, can fail gracefully)
+async function directNotificationCall(method: string, endpoint: string, body?: any): Promise<any> {
+  try {
+    const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/${endpoint}`, {
+      method,
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+        'Content-Type': 'application/json'
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(3000)
+    });
+    
+    return response.ok ? await response.json() : null;
+  } catch (error) {
+    console.log('⚠️ Notification API failed (non-critical):', error.message);
+    return null;
+  }
+}
 import { MaintenanceTask, User, UserNotificationPreferences, NotificationLog } from './maintenanceService';
 
 export interface NotificationRequest {

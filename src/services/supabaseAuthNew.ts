@@ -188,20 +188,8 @@ export async function logout(): Promise<void> {
   localStorage.removeItem('currentUser');
   localStorage.removeItem('isLoggedIn');
   
-  // Try to logout from Supabase SDK (with timeout to prevent hanging)
-  try {
-    console.log('🔄 Signing out from Supabase...');
-    const signOutPromise = supabase.auth.signOut();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Logout timeout after 3 seconds')), 3000)
-    );
-    
-    await Promise.race([signOutPromise, timeoutPromise]);
-    console.log('✅ Supabase logout successful');
-  } catch (error) {
-    console.warn('⚠️ Supabase logout failed or timed out (continuing anyway):', error.message);
-    // Continue with logout even if Supabase fails - localStorage is already cleared
-  }
+  // Note: We're using localStorage-based auth, so no Supabase SDK logout needed
+  console.log('✅ Auth state cleared (localStorage-based)');
   
   // Log logout event for audit trail (with timeout)
   if (currentUser) {

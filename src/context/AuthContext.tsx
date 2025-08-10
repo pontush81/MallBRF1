@@ -71,11 +71,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Fetch user data from Supabase database directly
       try {
-        const { data: userData, error } = await supabaseClient
-          .from('users')
-          .select('*')
-          .eq('id', supabaseUser.id)
-          .single();
+        console.log('🚀 Fetching user profile via direct REST API...');
+        
+        const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?id=eq.${supabaseUser.id}&select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+            'Content-Type': 'application/json'
+          },
+          signal: AbortSignal.timeout(5000)
+        });
+
+        const userData = response.ok ? (await response.json())[0] : null;
+        const error = !response.ok;
           
         if (userData && !error) {
           await login(userData);
@@ -93,9 +102,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Save to database directly
           try {
-            const { error: insertError } = await supabaseClient
-              .from('users')
-              .insert([newUser]);
+            const createResponse = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users', {
+              method: 'POST',
+              headers: {
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(newUser),
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            const insertError = !createResponse.ok;
               
             if (!insertError) {
               await login(newUser);

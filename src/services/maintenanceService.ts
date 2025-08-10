@@ -1,4 +1,4 @@
-import { executeWithRLS } from './supabaseClient';
+// import { executeWithRLS } from './supabaseClient'; // Only used by 3 unused functions
 
 // Direct REST API helper to bypass hanging Supabase SDK
 const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
@@ -163,32 +163,36 @@ export const getAllMaintenanceTasks = async (): Promise<MaintenanceTask[]> => {
 
 export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promise<MaintenanceTask | null> => {
   try {
-    console.log('🔍 saveMaintenanceTask called with:', task);
+    console.log('🚀 Saving maintenance task via direct REST API...', task.id || 'NEW');
     
-    return await executeWithRLS(async (supabase) => {
-      const taskData = {
-        ...task,
-        updated_at: new Date().toISOString()
-      };
+    const taskData = {
+      ...task,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (task.id) {
+      // Update existing task
+      const endpoint = `maintenance_tasks?id=eq.${task.id}`;
+      const data = await directRestCall('PATCH', endpoint, taskData);
       
-      console.log('🔍 Upserting task data:', taskData);
-      
-      const { data, error } = await supabase
-        .from('maintenance_tasks')
-        .upsert([taskData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        throw error;
+      if (data && data.length > 0) {
+        console.log('✅ Task updated via direct API (FAST!):', data[0]);
+        return data[0];
       }
+    } else {
+      // Create new task
+      const endpoint = 'maintenance_tasks';
+      const data = await directRestCall('POST', endpoint, taskData);
       
-      console.log('✅ Supabase response:', data);
-      return data;
-    }, null);
+      if (data && data.length > 0) {
+        console.log('✅ Task created via direct API (FAST!):', data[0]);
+        return data[0];
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error('❌ Error saving maintenance task:', error);
+    console.error('❌ Error saving maintenance task via direct API:', error);
     return null;
   }
 };
@@ -219,55 +223,72 @@ export const createMaintenanceTasksForYear = async (tasks: Omit<MaintenanceTask,
 // Större projekt
 export const getMajorProjects = async (): Promise<MajorProject[]> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from('major_projects')
-        .select('*')
-        .order('estimated_year', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    }, []);
+    console.log('🚀 Fetching major projects via direct REST API...');
+    
+    const params = new URLSearchParams();
+    params.append('select', '*');
+    params.append('order', 'estimated_year.asc');
+    
+    const endpoint = `major_projects?${params.toString()}`;
+    const data = await directRestCall('GET', endpoint);
+    
+    console.log(`✅ Found ${data?.length || 0} major projects via direct API (FAST!)`);
+    return data || [];
+    
   } catch (error) {
-    console.error('Error fetching major projects:', error);
+    console.error('❌ Error fetching major projects via direct API:', error);
     return [];
   }
 };
 
 export const saveMajorProject = async (project: Partial<MajorProject>): Promise<MajorProject | null> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      const { data, error } = await supabase
-        .from('major_projects')
-        .upsert([{
-          ...project,
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    }, null);
+    console.log('🚀 Saving major project via direct REST API...', project.id || 'NEW');
+    
+    const projectData = {
+      ...project,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (project.id) {
+      // Update existing project
+      const endpoint = `major_projects?id=eq.${project.id}`;
+      const data = await directRestCall('PATCH', endpoint, projectData);
+      
+      if (data && data.length > 0) {
+        console.log('✅ Project updated via direct API (FAST!):', data[0]);
+        return data[0];
+      }
+    } else {
+      // Create new project
+      const endpoint = 'major_projects';
+      const data = await directRestCall('POST', endpoint, projectData);
+      
+      if (data && data.length > 0) {
+        console.log('✅ Project created via direct API (FAST!):', data[0]);
+        return data[0];
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Error saving major project:', error);
+    console.error('❌ Error saving major project via direct API:', error);
     return null;
   }
 };
 
 export const deleteMajorProject = async (projectId: string): Promise<boolean> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      const { error } = await supabase
-        .from('major_projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (error) throw error;
-      return true;
-    }, false);
+    console.log('🚀 Deleting major project via direct REST API...', projectId);
+    
+    const endpoint = `major_projects?id=eq.${projectId}`;
+    await directRestCall('DELETE', endpoint);
+    
+    console.log('✅ Project deleted via direct API (FAST!):', projectId);
+    return true;
+    
   } catch (error) {
-    console.error('Error deleting major project:', error);
+    console.error('❌ Error deleting major project via direct API:', error);
     return false;
   }
 };
@@ -294,17 +315,16 @@ export const createAnnualMaintenancePlan = async (year: number): Promise<Mainten
 // Ta bort underhållsuppgift
 export const deleteMaintenanceTask = async (taskId: string): Promise<boolean> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      const { error } = await supabase
-        .from('maintenance_tasks')
-        .delete()
-        .eq('id', taskId);
-
-      if (error) throw error;
-      return true;
-    }, false);
+    console.log('🚀 Deleting maintenance task via direct REST API...', taskId);
+    
+    const endpoint = `maintenance_tasks?id=eq.${taskId}`;
+    await directRestCall('DELETE', endpoint);
+    
+    console.log('✅ Task deleted via direct API (FAST!):', taskId);
+    return true;
+    
   } catch (error) {
-    console.error('Error deleting maintenance task:', error);
+    console.error('❌ Error deleting maintenance task via direct API:', error);
     return false;
   }
 };
@@ -354,41 +374,45 @@ export const deleteProjectDocument = async (filePath: string) => {
 // Hämta alla användare för tilldelning
 export const getUsers = async (): Promise<User[]> => {
   try {
-    return await executeWithRLS(async (supabase) => {
-      // Hämta användare från users tabell (Supabase migration)
-      const { data, error } = await supabase
-        .from('users') // Använd users tabell från Supabase migration
-        .select('id, email, name');
+    console.log('🚀 Fetching users via direct REST API...');
+    
+    const params = new URLSearchParams();
+    params.append('select', 'id,email,name');
+    
+    const endpoint = `users?${params.toString()}`;
+    const data = await directRestCall('GET', endpoint);
+    
+    if (!data || data.length === 0) {
+      console.log('⚠️ No users found, using mock data');
+      // Returnera mock-data för utveckling
+      return [
+        {
+          id: '1',
+          email: 'admin@gulmaran.se',
+          full_name: 'Administratör',
+          avatar_url: undefined
+        },
+        {
+          id: '2', 
+          email: 'styrelse@gulmaran.se',
+          full_name: 'Styrelsen',
+          avatar_url: undefined
+        }
+      ];
+    }
 
-      if (error) {
-        console.log('⚠️ Users table query failed, using mock data:', error);
-        // Returnera mock-data för utveckling
-        return [
-          {
-            id: '1',
-            email: 'admin@gulmaran.se',
-            full_name: 'Administratör',
-            avatar_url: undefined
-          },
-          {
-            id: '2', 
-            email: 'styrelse@gulmaran.se',
-            full_name: 'Styrelsen',
-            avatar_url: undefined
-          }
-        ];
-      }
-
-      return data.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        full_name: user.name || user.email?.split('@')[0] || 'Okänd användare',
-        avatar_url: null // Avatar inte implementerat än i Supabase users tabell
-      }));
-    }, []);
+    const users = data.map((user: any) => ({
+      id: user.id,
+      email: user.email || '',
+      full_name: user.name || user.email?.split('@')[0] || 'Okänd användare',
+      avatar_url: null // Avatar inte implementerat än i Supabase users tabell
+    }));
+    
+    console.log(`✅ Found ${users.length} users via direct API (FAST!)`);
+    return users;
 
   } catch (error) {
-    console.error('❌ Error fetching users:', error);
+    console.error('❌ Error fetching users via direct API:', error);
     return [];
   }
 };
