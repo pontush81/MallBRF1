@@ -11,13 +11,13 @@ import {
   FormControl,
   InputLabel,
   Alert,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Chip
 } from '@mui/material';
+import { StandardLoading } from '../common/StandardLoading';
 import {
   PersonSearch as AccessIcon,
   Edit as RectifyIcon,
@@ -291,7 +291,7 @@ const GDPRRequestForm: React.FC = () => {
             onClick={() => setShowConfirmDialog(true)}
             disabled={loading || !email}
             color={selectedRequest?.color}
-            startIcon={loading ? <CircularProgress size={20} /> : selectedRequest?.icon}
+            startIcon={loading ? <StandardLoading size={20} variant="minimal" /> : selectedRequest?.icon}
             sx={{ mb: 2 }}
           >
             {loading ? 'Bearbetar...' : `Skicka ${selectedRequest?.label.toLowerCase()}`}

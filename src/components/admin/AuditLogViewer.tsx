@@ -24,9 +24,9 @@ import {
   FormControl,
   InputLabel,
   Grid,
-  Alert,
-  CircularProgress
+  Alert
 } from '@mui/material';
+import { StandardLoading } from '../common/StandardLoading';
 import { auditLogger } from '../../services/auditLogger';
 import supabase from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContextNew';
@@ -129,7 +129,7 @@ export const AuditLogViewer: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
+        <StandardLoading message="Loading audit logs..." />
       </Box>
     );
   }

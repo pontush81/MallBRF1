@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogActions,
   Chip,
-  CircularProgress,
   Card,
   CardContent,
   Grid,
