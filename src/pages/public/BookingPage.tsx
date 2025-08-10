@@ -74,7 +74,7 @@ const ModernCard = styled(Paper)(({ theme }) => ({
   background: modernTheme.colors.white,
   border: `1px solid ${modernTheme.colors.gray[200]}`,
   boxShadow: modernTheme.shadows.md,
-  padding: modernTheme.spacing[6],
+  padding: modernTheme.spacing[4], // Reduced from spacing[6] to spacing[4] (32px)
   transition: modernTheme.transitions.normal,
   '&:hover': {
     boxShadow: modernTheme.shadows.lg,
@@ -1067,7 +1067,7 @@ const BookingPage: React.FC = () => {
   // Rendera prislistan
   const renderPriceList = () => {
     return (
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 2 }}>
         <Typography variant="h6" sx={{ mb: 2, color: 'text.secondary' }}>
           Priser (kr/dygn)
         </Typography>
@@ -1592,80 +1592,55 @@ const BookingPage: React.FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
-      {/* Modern Hero Section */}
-      <ModernHeroSection>
-          <Container maxWidth="md">
-            <Typography
-              variant="h3"
-              sx={{
-                fontSize: modernTheme.typography.fontSize['2xl'],
-                fontWeight: modernTheme.typography.fontWeight.bold,
-                marginBottom: modernTheme.spacing[2],
-                color: modernTheme.colors.primary[800],
-              }}
-            >
-              Boka boende
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: modernTheme.typography.fontSize.base,
-                color: modernTheme.colors.gray[600],
-                marginBottom: modernTheme.spacing[2],
-              }}
-            >
-              Välj datum och boka ditt boende enkelt
-            </Typography>
-          </Container>
-        </ModernHeroSection>
+      {/* Hero Section removed - only admin toolbar and content */}
 
         <Container 
           maxWidth="lg"
           sx={{ 
             px: { xs: 1, sm: 3, md: 4 }, // Better padding on mobile for more space
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
-            pb: modernTheme.spacing[8] // Bottom padding moved from ModernPageContainer
+            pb: modernTheme.spacing[8], // Bottom padding moved from ModernPageContainer
+            pt: 0 // Remove any top padding to bring content closer to hero
           }}
         >
-          {/* Admin Toolbar - endast synlig för admins */}
+          {/* Compact Admin Toolbar - endast synlig för admins */}
           {isAdmin && (
             <Paper
               elevation={1}
               sx={{
-                p: 2,
-                mb: 3,
+                p: 1.5, // Reduced from 2 to 1.5
+                mb: 1.5, // Reduced from 3 to 1.5
+                mt: 2, // Add margin-top to separate from header
                 background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
                 border: '1px solid',
                 borderColor: 'primary.light',
                 borderRadius: 2,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AdminPanelSettingsIcon color="primary" />
-                  <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
+                  <AdminPanelSettingsIcon color="primary" fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ color: 'primary.main', fontWeight: 600 }}>
                     Admin-verktyg
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-
-                  
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<BackupIcon />}
+                    startIcon={<BackupIcon fontSize="small" />}
                     onClick={handleBackupMenuClick}
                     disabled={backupLoading}
-                    sx={{ fontSize: '0.875rem' }}
+                    sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5 }}
                   >
-                    {backupLoading ? <CircularProgress size={16} /> : 'Säkerhetskopiera'}
+                    {backupLoading ? <CircularProgress size={14} /> : 'Säkerhetskopiera'}
                   </Button>
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<DescriptionIcon />}
+                    startIcon={<DescriptionIcon fontSize="small" />}
                     onClick={() => navigate('/admin/hsb-report')}
-                    sx={{ fontSize: '0.875rem' }}
+                    sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5 }}
                   >
                     HSB-rapport
                   </Button>
@@ -1694,13 +1669,11 @@ const BookingPage: React.FC = () => {
             </MenuItem>
           </Menu>
 
-
-          
-          <ModernCard sx={{ marginBottom: modernTheme.spacing[6] }}>
+          <ModernCard sx={{ marginBottom: modernTheme.spacing[6], mt: 2 }}>
 
           {renderPriceList()}
 
-          <Grid container spacing={4}>
+          <Grid container spacing={2}>
             <Grid item xs={12}>
               {loadingBookings ? (
                 <Box sx={{ mb: 4 }}>

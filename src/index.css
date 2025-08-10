@@ -15,7 +15,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #ffffff; /* Clean white background instead of gray */
+  background: #ffffff;
   color: #1f2937;
   line-height: 1.5;
   overflow-x: hidden; /* Prevent horizontal scroll */
