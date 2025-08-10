@@ -75,6 +75,7 @@ import {
   User
 } from '../../services/maintenanceService';
 import { sendTaskNotification } from '../../services/notificationService';
+import { useAuth } from '../../context/AuthContextNew';
 
 
 
@@ -85,6 +86,7 @@ import { sendTaskNotification } from '../../services/notificationService';
 const SimpleMaintenancePlan: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { currentUser } = useAuth();
   
   const currentYear = new Date().getFullYear();
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
@@ -312,7 +314,7 @@ const SimpleMaintenancePlan: React.FC = () => {
         // Tilldelning
         assignee_id: newTask.assignee_id,
         assigned_at: newTask.assignee_id ? new Date().toISOString() : undefined,
-        assigned_by: newTask.assignee_id ? 'current-user-id' : undefined // TODO: Get actual current user ID
+        assigned_by: newTask.assignee_id ? currentUser?.id || null : undefined // Use current user ID if available
       };
 
       console.log('🔍 Adding new task:', task);
