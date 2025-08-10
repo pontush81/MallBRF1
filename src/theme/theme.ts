@@ -126,7 +126,7 @@ export function getAppTheme(
   // Anpassade bakgrundsfärger för dark mode
   const backgrounds = {
     light: {
-      default: '#f0f7ff', // Ljus blåaktig bakgrund
+      default: '#ffffff', // Clean white background instead of blue-gray
       paper: '#ffffff'
     },
     dark: {
