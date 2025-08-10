@@ -11,7 +11,7 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : 'return=minimal'
+      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal'
     },
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(timeout)
@@ -174,6 +174,7 @@ export const getAllMaintenanceTasks = async (): Promise<MaintenanceTask[]> => {
 export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promise<MaintenanceTask | null> => {
   try {
     console.log('🚀 Saving maintenance task via direct REST API...', task.id || 'NEW');
+    console.log('📋 Task data to save:', task);
     
     const taskData = {
       ...task,
@@ -185,18 +186,28 @@ export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promi
       const endpoint = `maintenance_tasks?id=eq.${task.id}`;
       const data = await directRestCall('PATCH', endpoint, taskData);
       
-      if (data && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         console.log('✅ Task updated via direct API (FAST!):', data[0]);
         return data[0];
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Single object response
+        console.log('✅ Task updated via direct API (FAST!):', data);
+        return data as MaintenanceTask;
       }
     } else {
       // Create new task
       const endpoint = 'maintenance_tasks';
       const data = await directRestCall('POST', endpoint, taskData);
       
-      if (data && data.length > 0) {
+      console.log('🔍 API Response for new task:', data, 'Type:', typeof data, 'IsArray:', Array.isArray(data));
+      
+      if (Array.isArray(data) && data.length > 0) {
         console.log('✅ Task created via direct API (FAST!):', data[0]);
         return data[0];
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Single object response
+        console.log('✅ Task created via direct API (FAST!):', data);
+        return data as MaintenanceTask;
       }
     }
     
