@@ -5,37 +5,58 @@ const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE';
 
 async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 5000) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
-    method,
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal'
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(timeout)
-  });
+  console.log(`🌐 Making ${method} request to:`, `${SUPABASE_URL}/rest/v1/${endpoint}`);
+  console.log('📤 Request body:', body);
+  
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+      method,
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal'
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(timeout)
+    });
 
-  if (!response.ok) {
-    throw new Error(`Direct REST API error: ${response.status} ${response.statusText}`);
-  }
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
-  if (method === 'DELETE') {
-    return null;
-  }
-
-  // Check if response has content before parsing JSON
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    const text = await response.text();
-    if (text.trim()) {
-      return JSON.parse(text);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error response body:', errorText);
+      throw new Error(`Direct REST API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
-  }
 
-  // Return empty object if no JSON content
-  return {};
+    if (method === 'DELETE') {
+      return null;
+    }
+
+    // Check if response has content before parsing JSON
+    const contentType = response.headers.get('content-type');
+    console.log('📋 Content-Type:', contentType);
+    
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      console.log('📄 Response text:', text);
+      
+      if (text.trim()) {
+        const parsed = JSON.parse(text);
+        console.log('✅ Parsed JSON response:', parsed);
+        return parsed;
+      }
+    }
+
+    // Return empty object if no JSON content
+    console.log('⚠️ No JSON content, returning empty object');
+    return {};
+    
+  } catch (error) {
+    console.error('❌ Error in directRestCall:', error);
+    throw error;
+  }
 }
 
 export interface MaintenanceTask {
