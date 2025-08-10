@@ -12,7 +12,7 @@ export const AuthCallback: React.FC = () => {
   console.log('🔧 Pathname:', window.location.pathname);
   
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -21,6 +21,20 @@ export const AuthCallback: React.FC = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
+      // If user is already logged in and trying to access another route
+      if (isLoggedIn && window.location.hash) {
+        console.log('🔄 User already logged in, redirecting to hash route:', window.location.hash);
+        const hashRoute = window.location.hash.substring(1); // Remove #
+        window.location.replace(hashRoute);
+        return;
+      }
+      
+      // If user is already logged in but no hash, go to pages
+      if (isLoggedIn) {
+        console.log('🔄 User already logged in, redirecting to /pages');
+        window.location.replace('/pages');
+        return;
+      }
       // Prevent double execution
       if (isProcessing) {
         console.log('⚠️ OAuth callback already processing, skipping...');
@@ -70,7 +84,7 @@ export const AuthCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, [navigate, login, isProcessing]);
+  }, [navigate, login, isLoggedIn, isProcessing]);
 
   return (
     <Box 
