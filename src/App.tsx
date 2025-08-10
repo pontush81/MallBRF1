@@ -316,10 +316,36 @@ const clearBadCache = async () => {
   }
 };
 
+// KRITISK FIX: Automatisk redirect från localhost till production efter OAuth
+const handleOAuthRedirectFix = () => {
+  const currentUrl = window.location.href;
+  const isLocalhost = window.location.hostname === 'localhost';
+  const hasAuthToken = window.location.hash.includes('access_token=');
+  
+  if (isLocalhost && hasAuthToken) {
+    console.log('🚨 OAUTH REDIRECT FIX: Detected localhost with auth token');
+    console.log('🔄 Redirecting to production with token...');
+    
+    // Extrahera token från hash
+    const hash = window.location.hash;
+    const productionUrl = `https://www.gulmaran.com/${hash}`;
+    
+    // Redirecta till production med token
+    window.location.replace(productionUrl);
+    return true;
+  }
+  
+  return false;
+};
+
 function App() {
-  // Rensa dålig cache vid app-start
+  // KRITISK FIX: Hantera OAuth redirect från localhost först
   useEffect(() => {
-    clearBadCache();
+    const wasRedirected = handleOAuthRedirectFix();
+    if (!wasRedirected) {
+      // Bara rensa cache om vi inte redirectar
+      clearBadCache();
+    }
   }, []);
 
   return (
