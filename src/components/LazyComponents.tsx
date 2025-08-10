@@ -35,8 +35,7 @@ export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/Mainten
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));
 
 // Component Exports
-// MIGRATION: BackupManager disabled - depends on Firebase
-// export const LazyBackupManager = lazy(() => import('./BackupManager'));
+
 export const LazyBookingDetails = lazy(() => import('./booking/BookingDetails'));
 export const LazyBookingStatus = lazy(() => import('./booking/BookingStatus'));
 export const LazyErrorBoundary = lazy(() => import('./ErrorBoundary'));

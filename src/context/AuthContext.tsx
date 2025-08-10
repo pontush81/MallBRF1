@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-// MIGRATION: Replaced Firebase auth with native Supabase auth
+
 import supabaseClient from '../services/supabaseClient';
-// import { userService } from '../services/userService'; // MIGRATION: disabled
+
 import { User } from '../types/User';
-// MIGRATION: Using native Supabase auth - all Firebase references removed
+
 import { auditLogger } from '../services/auditLogger';
 
 interface AuthContextType {
@@ -145,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('pages_last_load');
     
-    // MIGRATION: Using native Supabase auth clearing instead of Firebase bridge
+
     // Note: Actual Supabase logout is handled in the new auth system
     
     setCurrentUser(null);
@@ -264,11 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('currentUser');
         localStorage.removeItem('isLoggedIn');
         
-        // Force logout from Firebase Auth as well
-        const auth = getFirebaseAuth();
-        if (auth) {
-          auth.signOut();
-        }
+        // Note: Using Supabase-only auth now
         
         // Throw error that will be caught by Login component
         throw new Error('Account access denied: Your account has been permanently deleted per GDPR erasure request. You cannot log in to this system. same_user_attempting_restoration');

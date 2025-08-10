@@ -14,8 +14,7 @@ import './utils/debugPages';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
-// MIGRATION: Using new Supabase Auth system instead of Firebase
-// import { AuthProvider, useAuth } from './context/AuthContext';
+// Using Supabase Auth system
 import { AuthProvider, useAuth } from './context/AuthContextNew';
 import { PageProvider } from './context/PageContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';

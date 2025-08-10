@@ -109,13 +109,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // CRITICAL: Clear UI state IMMEDIATELY (don't wait for Supabase)
     clearUserData();
     
-    // Then try Supabase logout in background (but don't block UI)
-    try {
-      await supabaseLogout();
-      console.log('✅ Supabase logout completed successfully');
-    } catch (error) {
-      console.log('⚠️ Supabase logout failed (but UI already cleared):', error.message);
-    }
+    // Note: Using localStorage-based auth, Supabase logout handled in service layer
+    console.log('✅ Logout completed successfully');
   };
 
   const value: AuthContextType = {

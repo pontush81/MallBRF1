@@ -268,7 +268,7 @@ const pageServiceSupabase = {
 
   // Skapa en ny sida
   createPage: async (pageData: Omit<Page, 'id' | 'createdAt' | 'updatedAt'>): Promise<Page> => {
-    // Check Firebase authentication and admin permissions from localStorage
+    // Check authentication and admin permissions from localStorage
     const currentUserData = localStorage.getItem('currentUser');
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     
@@ -277,7 +277,7 @@ const pageServiceSupabase = {
     }
     
     const parsedUser = JSON.parse(currentUserData);
-    console.log('🔐 Current Firebase user:', parsedUser.email, 'Role:', parsedUser.role);
+    console.log('🔐 Current user:', parsedUser.email, 'Role:', parsedUser.role);
     
     if (parsedUser.role !== 'admin') {
       throw new Error('Du måste vara admin för att skapa sidor.');
@@ -332,7 +332,7 @@ const pageServiceSupabase = {
 
     // Uppdatera en befintlig sida
   updatePage: async (id: string, pageData: Partial<Page>): Promise<Page> => {
-    // Check Firebase authentication and admin permissions from localStorage
+    // Check authentication and admin permissions from localStorage
     const currentUserData = localStorage.getItem('currentUser');
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     
@@ -341,7 +341,7 @@ const pageServiceSupabase = {
     }
     
     const parsedUser = JSON.parse(currentUserData);
-    console.log('🔐 Current Firebase user:', parsedUser.email, 'Role:', parsedUser.role);
+    console.log('🔐 Current user:', parsedUser.email, 'Role:', parsedUser.role);
     
     if (parsedUser.role !== 'admin') {
       throw new Error('Du måste vara admin för att uppdatera sidor.');
@@ -393,7 +393,7 @@ const pageServiceSupabase = {
 
   // Ta bort en sida
   deletePage: async (id: string): Promise<void> => {
-    // Check Firebase authentication and admin permissions from localStorage
+    // Check authentication and admin permissions from localStorage
     const currentUserData = localStorage.getItem('currentUser');
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     
@@ -402,7 +402,7 @@ const pageServiceSupabase = {
     }
     
     const parsedUser = JSON.parse(currentUserData);
-    console.log('🔐 Current Firebase user:', parsedUser.email, 'Role:', parsedUser.role);
+    console.log('🔐 Current user:', parsedUser.email, 'Role:', parsedUser.role);
     
     if (parsedUser.role !== 'admin') {
       throw new Error('Du måste vara admin för att ta bort sidor.');

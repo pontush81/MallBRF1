@@ -1,4 +1,5 @@
 import supabase from './supabaseClient';
+import { MaintenanceTask, User, UserNotificationPreferences, NotificationLog } from './maintenanceService';
 
 // Direct REST API helper for notifications (non-critical, can fail gracefully)
 async function directNotificationCall(method: string, endpoint: string, body?: any): Promise<any> {
@@ -20,7 +21,6 @@ async function directNotificationCall(method: string, endpoint: string, body?: a
     return null;
   }
 }
-import { MaintenanceTask, User, UserNotificationPreferences, NotificationLog } from './maintenanceService';
 
 export interface NotificationRequest {
   type: 'TASK_ASSIGNED' | 'TASK_DUE_REMINDER' | 'TASK_OVERDUE' | 'TASK_COMPLETED';
