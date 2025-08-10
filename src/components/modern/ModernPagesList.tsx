@@ -5,6 +5,7 @@ import {
   Typography,
   TextField,
   Grid,
+  Card,
   CardContent,
   CircularProgress,
   ToggleButton,
@@ -96,7 +97,7 @@ const SearchField = styled(TextField)(() => ({
 
 
 
-const PageCard = styled(Box)(() => ({
+const PageCard = styled(Card)(() => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
@@ -369,7 +370,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             {/* Conditional rendering based on view mode */}
             {viewMode === 'cards' ? (
               // Card view - current layout
-              <Grid container spacing={modernTheme.spacing[4]} sx={{ alignItems: 'stretch' }}>
+              <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
                               {filteredPages.map((page) => {
                 return (
                     <Grid item xs={12} md={6} key={page.id} sx={{ display: 'flex' }}>
