@@ -4,9 +4,9 @@ import {
   Typography, 
   Box, 
   Alert,
-  CircularProgress,
   Fab,
 } from '@mui/material';
+import { StandardLoading } from '../components/common/StandardLoading';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useNavigate } from 'react-router-dom';
 import { ModernPagesListMUI } from '../components/modern/ModernPagesListMUI';
@@ -50,14 +50,11 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
   if (loading && pages.length === 0) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          py: 8
-        }}>
-          <CircularProgress size={32} thickness={4} />
-        </Box>
+        <StandardLoading 
+          variant="fullPage" 
+          size={40} 
+          message="Laddar sidor..." 
+        />
       </Container>
     );
   }

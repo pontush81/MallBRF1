@@ -58,6 +58,7 @@ import BookingStatus from '../../components/booking/BookingStatus';
 import { Booking } from '../../types/Booking';
 import { modernTheme } from '../../theme/modernTheme';
 import { adminUtils } from '../../utils/adminUtils';
+import { MinimalLoading, ButtonLoading } from '../../components/common/StandardLoading';
 
 // Modern styled components for booking page
 const ModernHeroSection = styled(Box)(({ theme }) => ({
@@ -785,7 +786,7 @@ const BookingPage: React.FC = () => {
                   }}
                 >
                   {isLoading ? (
-                    <CircularProgress size={24} color="inherit" />
+                    <MinimalLoading size={24} />
                   ) : (
                     <>
                       <Check sx={{ mr: 1 }} />
@@ -1633,7 +1634,7 @@ const BookingPage: React.FC = () => {
                     disabled={backupLoading}
                     sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5 }}
                   >
-                    {backupLoading ? <CircularProgress size={14} /> : 'Säkerhetskopiera'}
+                    {backupLoading ? <MinimalLoading size={14} /> : 'Säkerhetskopiera'}
                   </Button>
                   <Button
                     variant="outlined"
@@ -2062,7 +2063,7 @@ const BookingPage: React.FC = () => {
                   }
                 }}
               >
-                {editLoading ? <CircularProgress size={24} /> : "Spara"}
+                {editLoading ? <ButtonLoading /> : "Spara"}
               </Button>
             </DialogActions>
           </Dialog>

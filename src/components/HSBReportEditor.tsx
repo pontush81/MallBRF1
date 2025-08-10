@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextNew';
+import { PageLoading, MinimalLoading, ButtonLoading } from '../components/common/StandardLoading';
 import {
   Box,
   Typography,
@@ -512,17 +513,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '400px',
-        flexDirection: 'column',
-        gap: 2
-      }}>
-        <CircularProgress size={60} />
-        <Typography>Laddar data för {monthNames[selectedMonth - 1]} {selectedYear}...</Typography>
-      </Box>
+      <PageLoading message={`Laddar data för ${monthNames[selectedMonth - 1]} ${selectedYear}...`} />
     );
   }
   
@@ -578,7 +569,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           }}>
             <Button 
               variant="contained" 
-              startIcon={saving ? <CircularProgress size={16} /> : <PictureAsPdfIcon />}
+              startIcon={saving ? <MinimalLoading size={16} /> : <PictureAsPdfIcon />}
               onClick={() => setConfirmDialog('pdf')}
               disabled={saving || editableHsbData.length === 0}
               size={isSmallMobile ? "small" : "medium"}
@@ -1283,7 +1274,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             onClick={handleGeneratePDF}
             variant="contained"
             disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
+            startIcon={saving ? <ButtonLoading /> : <PictureAsPdfIcon />}
             color={isModified ? "warning" : "primary"}
           >
             {saving ? 'Skapar PDF...' : (isModified ? 'Fortsätt ändå' : 'Skapa PDF')}
@@ -1350,7 +1341,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             zIndex: 1000
           }}
         >
-          {saving ? <CircularProgress size={24} color="inherit" /> : <PictureAsPdfIcon />}
+          {saving ? <MinimalLoading size={24} /> : <PictureAsPdfIcon />}
         </Fab>
       )}
 

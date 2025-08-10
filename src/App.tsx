@@ -58,6 +58,9 @@ import { AuthCallback } from './pages/auth/AuthCallback';
 // Import AuthTest for testing (disabled, uncomment for debugging)
 // import AuthTest from './AuthTest';
 // Import LazyAuthCallback for OAuth redirects
+// Import StandardLoading component
+import { PageLoading } from './components/common/StandardLoading';
+import { Button } from '@mui/material';
 
 // Loading component with timeout protection
 const LoadingFallback = () => {
@@ -72,40 +75,34 @@ const LoadingFallback = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  return (
-    <Layout>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        padding: '64px 16px', 
-        flexDirection: 'column',
-        gap: '16px'
-      }}>
-        {!showError ? (
-          <>
-            <div className="loading-spinner">Laddar...</div>
-            <p style={{ color: '#666', fontSize: '14px' }}>Väntar på sidan...</p>
-          </>
-        ) : (
+  if (showError) {
+    return (
+      <Layout>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '50vh',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
           <div style={{ textAlign: 'center', color: '#d32f2f' }}>
             <p>Sidan tar för lång tid att ladda.</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              style={{ 
-                padding: '8px 16px', 
-                backgroundColor: '#1976d2', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
+            <Button 
+              variant="contained"
+              onClick={() => window.location.reload()}
             >
               Ladda om sidan
-            </button>
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  return (
+    <Layout>
+      <PageLoading message="Väntar på sidan..." />
     </Layout>
   );
 };
