@@ -134,27 +134,36 @@ const pageServiceSupabase = {
   // Hämta alla sidor (för admin)
   getAllPages: async (): Promise<Page[]> => {
     try {
-      console.log('🔍 Fetching all pages from Supabase...');
+      console.log('🚀 Fetching all pages via direct REST API...');
       
-      const { data, error } = await supabaseClient
-        .from('pages')
-        .select('*')
-        .order('createdat', { ascending: true });
+      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/pages?select=*&order=createdat.asc`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000) // 5s timeout
+      });
 
-      if (error) {
-        console.error('❌ Error fetching all pages:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
+      const data = await response.json();
       const pages = data?.map(transformPageFromDB) || [];
       
-      // Log admin access to all pages
-      await logUserAccess('pages', 'SELECT', undefined, `admin_get_all_pages_${pages.length}_results`);
+      // Log admin access to all pages (skip if fails)
+      try {
+        await logUserAccess('pages', 'SELECT', undefined, `admin_get_all_pages_${pages.length}_results`);
+      } catch (logError) {
+        console.log('ℹ️ Audit logging skipped (non-critical)');
+      }
 
-      console.log(`✅ Found ${pages.length} total pages`);
+      console.log(`✅ Found ${pages.length} total pages via direct API (FAST!)`);
       return pages;
     } catch (error) {
-      console.error('Error in getAllPages:', error);
+      console.error('❌ Error in getAllPages via direct API:', error);
       throw error;
     }
   },

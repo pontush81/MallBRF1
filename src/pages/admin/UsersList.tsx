@@ -54,18 +54,30 @@ const UsersList: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabaseClient
-        .from('users')
-        .select('*')
-        .order('createdat', { ascending: false });
+      console.log('🚀 Fetching users via direct REST API...');
+      
+      const response = await fetch('https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?select=*&order=createdat.desc', {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000) // 5s timeout
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
+      }
 
+      const data = await response.json();
       setUsers(data || []);
       setError(null);
+      console.log(`✅ Found ${data?.length || 0} users via direct API (FAST!)`);
+      
     } catch (err: any) {
       setError('Ett fel uppstod vid hämtning av användare: ' + err.message);
-      console.error('Error fetching users:', err);
+      console.error('❌ Error fetching users via direct API:', err);
     } finally {
       setLoading(false);
     }
@@ -73,33 +85,59 @@ const UsersList: React.FC = () => {
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabaseClient
-        .from('users')
-        .update({ isactive: !currentStatus })
-        .eq('id', userId);
+      console.log('🚀 Updating user status via direct REST API...');
+      
+      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isactive: !currentStatus }),
+        signal: AbortSignal.timeout(5000)
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
+      }
 
       setSuccess('Användarstatus uppdaterad');
       fetchUsers(); // Refresh the list
+      console.log('✅ User status updated via direct API (FAST!)');
+      
     } catch (err: any) {
       setError('Kunde inte uppdatera användarstatus: ' + err.message);
+      console.error('❌ Error updating user status via direct API:', err);
     }
   };
 
   const updateUserRole = async (userId: string, newRole: 'user' | 'admin') => {
     try {
-      const { error } = await supabaseClient
-        .from('users')
-        .update({ role: newRole })
-        .eq('id', userId);
+      console.log('🚀 Updating user role via direct REST API...');
+      
+      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: newRole }),
+        signal: AbortSignal.timeout(5000)
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
+      }
 
       setSuccess('Användarroll uppdaterad');
       fetchUsers(); // Refresh the list
+      console.log('✅ User role updated via direct API (FAST!)');
+      
     } catch (err: any) {
       setError('Kunde inte uppdatera användarroll: ' + err.message);
+      console.error('❌ Error updating user role via direct API:', err);
     }
   };
 
