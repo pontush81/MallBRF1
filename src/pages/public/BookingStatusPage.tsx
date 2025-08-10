@@ -3,11 +3,11 @@ import {
   Box,
   Container,
   Typography,
-  CircularProgress,
   Alert,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import { format, differenceInDays, getISOWeek, isValid } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
@@ -101,7 +101,7 @@ const BookingStatusPage: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
+        <StandardLoading message="Loading booking status..." />
       </Box>
     );
   }

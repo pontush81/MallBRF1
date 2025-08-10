@@ -7,9 +7,9 @@ import {
   Typography, 
   Paper, 
   Alert,
-  Divider,
-  CircularProgress 
+  Divider
 } from '@mui/material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import { Google as GoogleIcon } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContextNew';
 import { loginWithEmail, loginWithGoogle } from '../../services/supabaseAuthNew';
@@ -124,7 +124,7 @@ export const Login: React.FC = () => {
             disabled={loading}
             sx={{ mt: 3, py: 1.5 }}
           >
-            {loading ? <CircularProgress size={24} /> : 'Login'}
+            {loading ? <StandardLoading size={24} variant="minimal" /> : 'Login'}
           </Button>
         </Box>
 

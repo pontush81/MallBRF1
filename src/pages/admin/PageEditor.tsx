@@ -11,7 +11,6 @@ import {
   Divider,
   Alert,
   Snackbar,
-  CircularProgress,
   Tab,
   Tabs,
   Checkbox,
@@ -20,6 +19,7 @@ import {
   CardContent,
   CardActions
 } from '@mui/material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import { useNavigate, useParams } from 'react-router-dom';
 import SimpleMDE from 'react-simplemde-editor';
 import ReactMarkdown from 'react-markdown';
@@ -362,8 +362,8 @@ const PageEditor: React.FC = () => {
         
         {uploadLoading && (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <CircularProgress size={24} sx={{ mr: 1 }} />
-            <Typography>Arbetar med filer...</Typography>
+            <StandardLoading size={24} variant="minimal" />
+            <Typography sx={{ ml: 1 }}>Arbetar med filer...</Typography>
           </Box>
         )}
         
@@ -435,7 +435,7 @@ const PageEditor: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-        <CircularProgress />
+        <StandardLoading message="Loading page editor..." />
       </Box>
     );
   }

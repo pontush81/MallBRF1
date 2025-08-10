@@ -77,6 +77,7 @@ import {
 } from '../../services/maintenanceService';
 import { sendTaskNotification } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContextNew';
+import { StandardLoading } from '../common/StandardLoading';
 
 
 
@@ -1510,11 +1511,8 @@ const SimpleMaintenancePlan: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 3, textAlign: 'center' }}>
-        <CircularProgress size={40} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Laddar underhållsplan...
-        </Typography>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        <StandardLoading message="Laddar underhållsplan..." />
       </Container>
     );
   }
@@ -1564,8 +1562,8 @@ const SimpleMaintenancePlan: React.FC = () => {
             >
               {clearingData ? (
                 <>
-                  <CircularProgress size={16} sx={{ mr: 1 }} />
-                  Rensar...
+                  <StandardLoading size={16} variant="minimal" />
+                  <Box component="span" sx={{ ml: 1 }}>Rensar...</Box>
                 </>
               ) : (
                 '🧹 Rensa alla'
@@ -2738,7 +2736,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                 <Button
                   variant="outlined"
                   component="span"
-                  startIcon={uploadingDoc ? <CircularProgress size={20} /> : <AttachFileIcon />}
+                  startIcon={uploadingDoc ? <StandardLoading size={20} variant="minimal" /> : <AttachFileIcon />}
                   disabled={uploadingDoc}
                 >
                   {uploadingDoc ? 'Laddar upp...' : 'Ladda upp dokument'}

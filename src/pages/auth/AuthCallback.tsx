@@ -1,7 +1,8 @@
 // OAuth callback handler for Supabase Auth
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { Box, Typography, Alert } from '@mui/material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import { handleAuthCallback } from '../../services/supabaseAuthNew';
 import { useAuth } from '../../context/AuthContextNew';
 
@@ -106,10 +107,7 @@ export const AuthCallback: React.FC = () => {
         </>
       ) : (
         <>
-          <CircularProgress size={48} sx={{ mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            Completing login...
-          </Typography>
+          <StandardLoading size={48} message="Completing login..." />
           <Typography variant="body2" color="text.secondary" align="center">
             Please wait while we finish setting up your session
           </Typography>

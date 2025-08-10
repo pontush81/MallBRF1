@@ -8,7 +8,6 @@ import {
   TextField,
   Button,
   Alert,
-  CircularProgress,
   Snackbar,
   Grid,
   Divider,
@@ -23,6 +22,7 @@ import {
   Email as EmailIcon,
 
 } from '@mui/icons-material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import supabaseClient from '../../services/supabaseClient';
 
 interface NotificationSettingsData {
@@ -139,7 +139,7 @@ const NotificationSettings: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
+        <StandardLoading message="Loading notification settings..." />
       </Box>
     );
   }

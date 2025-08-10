@@ -9,10 +9,10 @@ import {
   CardContent, 
   CardActions, 
   Button, 
-  CircularProgress, 
   Alert,
   Divider
 } from '@mui/material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import { Visibility as ViewIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -67,8 +67,8 @@ const PublicPagesList: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ my: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
+        <Box sx={{ my: 4 }}>
+          <StandardLoading message="Loading pages..." />
         </Box>
       </Container>
     );
