@@ -1234,6 +1234,19 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         onClose={() => !saving && setConfirmDialog(null)}
         maxWidth="sm"
         fullWidth
+        sx={{
+          '& .MuiDialog-container': {
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          '& .MuiDialog-paper': {
+            margin: 'auto',
+            position: 'relative',
+            top: 'auto',
+            left: 'auto',
+            transform: 'none',
+          }
+        }}
       >
         <DialogTitle>
           {isModified ? 'Osparade ändringar' : 'Skapa PDF-rapport'}
@@ -1285,6 +1298,19 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         onClose={() => setConfirmDialog(null)}
         maxWidth="sm"
         fullWidth
+        sx={{
+          '& .MuiDialog-container': {
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          '& .MuiDialog-paper': {
+            margin: 'auto',
+            position: 'relative',
+            top: 'auto',
+            left: 'auto',
+            transform: 'none',
+          }
+        }}
       >
         <DialogTitle>Återställ alla ändringar?</DialogTitle>
         <DialogContent>

@@ -130,6 +130,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
   const handleCardToggle = (pageId: string, event?: React.MouseEvent) => {
     if (event) {
       event.preventDefault();
+      event.stopPropagation();
     }
     
     // Store current scroll position
@@ -137,13 +138,15 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     
     setExpandedCard(expandedCard === pageId ? null : pageId);
     
-    // Restore scroll position after state update
-    setTimeout(() => {
-      window.scrollTo({
-        top: currentScrollY,
-        behavior: 'auto' // Instant, no smooth scrolling
+    // Use requestAnimationFrame for better timing with DOM updates
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: currentScrollY,
+          behavior: 'auto' // Instant, no smooth scrolling
+        });
       });
-    }, 0);
+    });
   };
 
   // Professionell Page Card komponent
@@ -153,7 +156,11 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     return (
       <Fade in timeout={300}>
         <Card
-          onClick={(e) => handleCardToggle(page.id, e)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCardToggle(page.id, e);
+          }}
           sx={{
             height: 'fit-content',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
