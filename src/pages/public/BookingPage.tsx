@@ -68,7 +68,7 @@ const ModernPageContainer = styled(Box)(({ theme }) => ({
 
 const ModernHeroSection = styled(Box)(({ theme }) => ({
   background: modernTheme.gradients.header,
-  padding: `${modernTheme.spacing[4]} 0`, // Reduced from spacing[6] to spacing[4]
+  padding: `${modernTheme.spacing[2]} 0`, // Further reduced from spacing[4] to spacing[2] (16px top/bottom)
   textAlign: 'center',
   marginTop: modernTheme.spacing[5], // Add margin-top for spacing from header
   marginBottom: modernTheme.spacing[2], // Further reduced from spacing[4] to spacing[2] (16px)
