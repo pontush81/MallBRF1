@@ -18,7 +18,10 @@ window.console.error = (...args: any[]) => {
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
-// StrictMode removed for production performance
-root.render(<App />);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
 // Web vitals removed for production performance
