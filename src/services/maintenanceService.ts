@@ -1,4 +1,4 @@
-// import { executeWithRLS } from './supabaseClient'; // Only used by 3 unused functions
+import { executeWithRLS } from './supabaseClient';
 
 // Direct REST API helper to bypass hanging Supabase SDK
 const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
