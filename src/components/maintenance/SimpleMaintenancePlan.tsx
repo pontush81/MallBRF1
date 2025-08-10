@@ -1150,12 +1150,19 @@ const SimpleMaintenancePlan: React.FC = () => {
 
 
   const handleEditProject = async (project: MajorProject) => {
+    console.log('🔧 Opening project editor for:', project.name, 'ID:', project.id);
     setEditProject(project);
     setEditProjectDialog(true);
     
     // Ladda projektdokument
-    const docs = await getProjectDocuments(project.id);
-    setProjectDocuments(docs);
+    try {
+      const docs = await getProjectDocuments(project.id);
+      console.log('📁 Loaded project documents:', docs.length, 'files');
+      setProjectDocuments(docs);
+    } catch (error) {
+      console.error('❌ Error loading project documents:', error);
+      setProjectDocuments([]);
+    }
   };
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1164,13 +1171,25 @@ const SimpleMaintenancePlan: React.FC = () => {
 
     try {
       setUploadingDoc(true);
+      console.log('📤 Starting document upload:', file.name, 'for project:', editProject.id);
+      
       const uploadedDoc = await uploadProjectDocument(editProject.id, file);
-      setProjectDocuments([...projectDocuments, uploadedDoc]);
+      console.log('✅ Document uploaded successfully:', uploadedDoc);
+      
+      // Uppdatera dokumentlistan
+      const updatedDocs = [...projectDocuments, uploadedDoc];
+      setProjectDocuments(updatedDocs);
+      console.log('📋 Updated document list:', updatedDocs.length, 'documents');
       
       // Rensa input
       e.target.value = '';
+      
+      // Force re-render genom att uppdatera project state också
+      setEditProject({...editProject});
+      
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error('❌ Error uploading document:', error);
+      alert('Kunde inte ladda upp dokumentet. Försök igen.');
     } finally {
       setUploadingDoc(false);
     }
