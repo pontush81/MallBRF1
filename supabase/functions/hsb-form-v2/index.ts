@@ -18,14 +18,14 @@ function getCorsHeaders(origin?: string | null) {
   if (!allowedOrigins.includes(requestOrigin)) {
     return {
       'Access-Control-Allow-Origin': 'http://localhost:3000',
-      'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
+      'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-application-name',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
     };
   }
   
   return {
     'Access-Control-Allow-Origin': requestOrigin,
-    'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
+    'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-application-name',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
 }

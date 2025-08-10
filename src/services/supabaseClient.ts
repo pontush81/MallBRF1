@@ -17,11 +17,12 @@ const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_
   db: {
     schema: 'public'
   },
-  global: {
-    headers: {
-      'x-application-name': 'mallbrf-production'
-    }
-  }
+  // Note: Custom headers removed to avoid CORS issues with Edge Functions
+  // global: {
+  //   headers: {
+  //     'x-application-name': 'mallbrf-production'
+  //   }
+  // }
 });
 
 // Connection test disabled - all critical functions now use direct API
