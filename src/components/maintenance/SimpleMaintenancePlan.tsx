@@ -1272,6 +1272,7 @@ const SimpleMaintenancePlan: React.FC = () => {
         </ListItemIcon>
         <ListItemText
           sx={{ flex: 1 }}
+          disableTypography
           primary={
             <Box display="flex" alignItems="center" gap={isMobile ? 0.5 : 1} flexWrap="wrap">
               <Typography 
@@ -1888,6 +1889,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                           )}
                         </ListItemIcon>
                         <ListItemText
+                          disableTypography
                           primary={
                             <Box display="flex" alignItems="center" gap={1}>
                               <Typography variant="subtitle1">
@@ -1922,19 +1924,7 @@ const SimpleMaintenancePlan: React.FC = () => {
                               {project.status === 'completed' && (
                                 <Chip label="✅ Slutfört" size="small" color="success" />
                               )}
-                              
-                              {/* VISUAL CUE FÖR DOKUMENT - visar att redigering finns */}
-                              <Chip 
-                                label="📎 Redigera för dokument" 
-                                size="small" 
-                                variant="outlined" 
-                                color="info"
-                                sx={{ 
-                                  fontSize: '0.7rem',
-                                  height: '20px'
-                                }}
-                                title="Klicka på redigera-ikonen för att ladda upp dokument"
-                              />
+
 
                             </Box>
                           }
