@@ -354,7 +354,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
       </HeroSection>
 
       {/* Simple document grid */}
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ border: '2px solid red', minHeight: '200px', backgroundColor: 'yellow' }}>
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', padding: modernTheme.spacing[8] }}>
             <CircularProgress />
@@ -378,7 +378,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             {/* Conditional rendering based on view mode */}
             {viewMode === 'cards' ? (
               // Card view - current layout
-              <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
+              <Grid container spacing={4} sx={{ alignItems: 'stretch', border: '3px solid blue', backgroundColor: 'lightblue', minHeight: '300px' }}>
                               {filteredPages.map((page) => {
                 return (
                     <Grid item xs={12} md={6} key={page.id} sx={{ display: 'flex' }}>
