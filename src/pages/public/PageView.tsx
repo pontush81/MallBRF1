@@ -262,7 +262,7 @@ const PageView: React.FC = () => {
     setSelectedImage(null);
   };
 
-  if (loading) {
+  if (loading && !page) {
     return (
       <Container maxWidth="md">
         <Box sx={{ my: 4 }}>
