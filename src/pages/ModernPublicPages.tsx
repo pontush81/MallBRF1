@@ -298,7 +298,7 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
       <ModernPagesList 
         pages={pages}
         onPageClick={handlePageClick}
-        isLoading={loading}
+        isLoading={loading && pages.length === 0}
       />
 
       {/* Scroll to top button */}
