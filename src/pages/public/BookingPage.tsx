@@ -71,7 +71,7 @@ const ModernHeroSection = styled(Box)(({ theme }) => ({
   padding: `${modernTheme.spacing[4]} 0`, // Reduced from spacing[6] to spacing[4]
   textAlign: 'center',
   marginTop: modernTheme.spacing[5], // Add margin-top for spacing from header
-  marginBottom: modernTheme.spacing[4], // Reduced from spacing[6] to spacing[4]
+  marginBottom: modernTheme.spacing[2], // Further reduced from spacing[4] to spacing[2] (16px)
   borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
 }));
 
