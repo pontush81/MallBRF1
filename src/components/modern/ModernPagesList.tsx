@@ -146,6 +146,15 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [expandedCards, setExpandedCards] = useState<string[]>([]);
 
+  // DEBUG: Log ModernPagesList state
+  console.log('📋 ModernPagesList state:', { 
+    pagesCount: pages.length,
+    isLoading,
+    searchTerm,
+    viewMode,
+    pages: pages.map(p => ({ id: p.id, title: p.title }))
+  });
+
   // Simple search functionality - no complex filtering needed for 10 documents
   const filteredPages = useMemo(() => {
     if (!searchTerm.trim()) return pages;
