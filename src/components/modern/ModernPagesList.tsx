@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Page } from '../../types/Page';
 
 interface ModernPagesListProps {
@@ -15,6 +15,22 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  // Tvinga kortvy på mobil för bättre UX
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 640) {
+        setViewMode('cards');
+      }
+    };
+
+    // Sätt kortvy direkt om vi är på mobil
+    handleResize();
+    
+    // Lyssna på förändringar i skärmstorlek
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Filter pages based on search term
   const filteredPages = useMemo(() => {
@@ -165,7 +181,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             </div>
           </div>
 
-          {/* View Toggle */}
+          {/* View Toggle - Endast på desktop */}
           <div className="toggle-buttons" style={{ display: 'flex', gap: '0' }}>
             <button
               onClick={() => setViewMode('cards')}
@@ -591,7 +607,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
           flex-wrap: wrap;
         }
         
-        @media (max-width: 640px) {
+                @media (max-width: 640px) {
           .utility-bar-content {
             flex-direction: column;
             align-items: stretch;
@@ -602,10 +618,10 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             min-width: 100% !important;
           }
           
-                  .toggle-buttons {
-          align-self: center;
+          .toggle-buttons {
+            display: none !important; /* Dölj toggle-knappar på mobil */
+          }
         }
-      }
       
       /* Styling för HTML-innehåll i expanderade kort */
       .expanded-content h1, .expanded-content h2, .expanded-content h3, 

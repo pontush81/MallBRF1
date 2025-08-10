@@ -54,9 +54,9 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
           display: 'flex', 
           justifyContent: 'center', 
           alignItems: 'center', 
-          height: '50vh' 
+          py: 8
         }}>
-          <CircularProgress size={60} thickness={4} />
+          <CircularProgress size={32} thickness={4} />
         </Box>
       </Container>
     );

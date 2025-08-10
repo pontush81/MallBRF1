@@ -75,7 +75,7 @@ const LoadingFallback = () => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        height: '60vh', 
+        padding: '64px 16px', 
         flexDirection: 'column',
         gap: '16px'
       }}>
