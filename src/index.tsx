@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 // Ultra-minimal font loading for LCP optimization
 import '@fontsource/inter/400.css';
 import './index.css';
-import './styles/loading.css';
+
 import App from './App';
 // Suppress ResizeObserver error that can occur with modern responsive components
 const resizeObserverErr = window.console.error;
