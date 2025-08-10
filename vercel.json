@@ -14,6 +14,17 @@
   ],
   "routes": [
     {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "gulmaran.com"
+        }
+      ],
+      "status": 301,
+      "dest": "https://www.gulmaran.com/$1"
+    },
+    {
       "src": "/manifest.json",
       "dest": "/manifest.json",
       "headers": {
@@ -68,7 +79,7 @@
       }
     },
     {
-      "src": "/(.*)",
+      "src": "^(?!.*\\.).*$",
       "dest": "/index.html",
       "headers": {
         "Cache-Control": "public, max-age=0, must-revalidate",

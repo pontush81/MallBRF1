@@ -36,7 +36,7 @@ export async function loginWithEmail(email: string, password: string): Promise<A
 /**
  * Login with Google using Supabase Auth
  */
-export async function loginWithGoogle(): Promise<void> {
+export async function loginWithGoogle(returnTo?: string): Promise<void> {
   // Determine correct redirect URL based on environment
   const hostname = window.location.hostname;
   const origin = window.location.origin;
@@ -56,8 +56,13 @@ export async function loginWithGoogle(): Promise<void> {
     // Production (custom domain)
     redirectTo = `https://www.gulmaran.com/auth/callback`;
   }
+  
+  // Store where user wanted to go before login
+  if (returnTo) {
+    localStorage.setItem('auth_return_to', returnTo);
+  }
     
-  console.log('🔧 OAuth Environment:', { hostname, origin, redirectTo });
+  console.log('🔧 OAuth Environment:', { hostname, origin, redirectTo, returnTo });
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
