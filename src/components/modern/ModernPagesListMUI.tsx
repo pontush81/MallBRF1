@@ -284,20 +284,22 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pt: { xs: 3, sm: 4, md: 5 }, pb: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-          <Typography variant="body1" color="text.secondary">
-            Laddar sidor...
-          </Typography>
+      <Container maxWidth="lg" sx={{ pb: 4 }}>
+        <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <Typography variant="body1" color="text.secondary">
+              Laddar sidor...
+            </Typography>
+          </Box>
         </Box>
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 4, md: 5 } }}>
+    <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2, sm: 3 } }}>
       {/* Search & View Controls */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mt: { xs: 3, sm: 4, md: 5 }, mb: 4 }}>
         <Stack 
           direction={{ xs: 'column', sm: 'row' }} 
           spacing={2} 
