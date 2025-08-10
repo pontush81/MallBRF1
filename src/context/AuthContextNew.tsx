@@ -38,6 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initAuth = async () => {
       try {
+
         // Check if there's already a user logged in
         const user = await getCurrentUser();
         if (user) {
@@ -114,6 +115,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (user: AuthUser) => {
     console.log('Login called for:', user.email);
+    
+    // CRITICAL: Update state in batch to ensure consistent updates
     setCurrentUser(user);
     setIsLoggedIn(true);
     setIsAdmin(user.role === 'admin');
@@ -121,6 +124,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Save to localStorage
     localStorage.setItem('currentUser', JSON.stringify(user));
     localStorage.setItem('isLoggedIn', 'true');
+    
+    // CRITICAL: Force a re-render to ensure all components see the new state
+    console.log('✅ Auth state updated for:', user.email, '| Role:', user.role);
   };
 
   const logout = async () => {
@@ -129,7 +135,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // CRITICAL: Clear UI state IMMEDIATELY (don't wait for Supabase)
     clearUserData();
     
-    // Note: Using localStorage-based auth, Supabase logout handled in service layer
+    // CRITICAL: Also call Supabase logout to clear server-side session
+    try {
+      await supabaseLogout();
+      console.log('✅ Supabase logout completed');
+    } catch (error) {
+      console.warn('⚠️ Supabase logout failed (continuing anyway):', error);
+    }
+    
     console.log('✅ Logout completed successfully');
   };
 

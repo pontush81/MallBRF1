@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 
 // Auth Components
-export const LazyLogin = lazy(() => import('../pages/auth/LoginNew').then(module => ({ default: module.LoginNew })));
+export const LazyLogin = lazy(() => import('../pages/auth/LoginNew').then(module => ({ default: module.Login })));
 export const LazyRegister = lazy(() => import('../pages/auth/Register'));
 export const LazyAuthCallback = lazy(() => import('../pages/auth/AuthCallback').then(module => ({ default: module.AuthCallback })));
 

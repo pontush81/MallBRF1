@@ -13,6 +13,8 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
   // Get current location to check if we're on the login page
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  
+
 
   return (
     <Box sx={{ 
@@ -20,6 +22,8 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
       background: modernTheme.colors.gray[50],
       display: 'flex',
       flexDirection: 'column',
+      overflow: 'auto', // CRITICAL: Allow scrolling
+      height: 'auto', // CRITICAL: Don't constrain height
     }}>
       {/* Only show navigation if not on auth pages */}
       {!isAuthPage && <ModernHeader />}
@@ -28,9 +32,12 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1,
-          paddingTop: isAuthPage ? 0 : '64px', // Fixed header height to prevent CLS
+          paddingTop: isAuthPage ? 0 : '80px', // Increased spacing from header
           paddingBottom: modernTheme.spacing[8],
-          minHeight: isAuthPage ? '100vh' : 'calc(100vh - 64px)', // Reserve space to prevent CLS
+          // REMOVED: minHeight constraint that was preventing scrolling
+          overflow: 'auto', // CRITICAL: Allow scrolling
+          width: '100%', // Ensure full width
+          height: 'auto', // CRITICAL: Auto height
         }}
       >
         <Container 
@@ -38,6 +45,8 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
           sx={{ 
             px: { xs: modernTheme.spacing[2], sm: modernTheme.spacing[4], md: modernTheme.spacing[6] },
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
+            overflow: 'visible', // Allow content to be scrollable
+            width: '100%',
           }}
         >
           {children}

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { Page } from '../types/Page';
 import pageServiceSupabase from '../services/pageServiceSupabase';
+import { useAuth } from './AuthContextNew';
 
 interface PageContextType {
   pages: Page[];
@@ -16,15 +17,7 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false); // Hjälper till att förhindra dubbla anrop
-  
-  // Load all pages on init - kör bara en gång
-  useEffect(() => {
-    // Ladda alla sidor direkt vid första renderingen
-    loadAllPages();
-    
-    // Denna useEffect ska bara köras en gång
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { isLoggedIn } = useAuth();
   
   // Simplified to just load all pages at once, with protection against repeated calls
   const loadAllPages = useCallback(async () => {
@@ -56,6 +49,25 @@ export const PageProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       loadingRef.current = false;
     }
   }, [pages.length, loading]);
+  
+  // Load all pages on init - kör bara en gång
+  useEffect(() => {
+    // Ladda alla sidor direkt vid första renderingen
+    loadAllPages();
+    
+    // Denna useEffect ska bara köras en gång
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+  // CRITICAL: Reload pages when user logs in
+  useEffect(() => {
+    if (isLoggedIn && pages.length === 0) {
+      console.log('🔄 User logged in, reloading pages...');
+      // Clear cache and reload
+      localStorage.removeItem('pages_last_load');
+      loadAllPages();
+    }
+  }, [isLoggedIn, pages.length, loadAllPages]);
   
   // Memoize context value to prevent unnecessary renders
   const contextValue = React.useMemo(() => ({

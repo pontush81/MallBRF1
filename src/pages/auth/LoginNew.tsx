@@ -14,7 +14,7 @@ import { Google as GoogleIcon } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContextNew';
 import { loginWithEmail, loginWithGoogle } from '../../services/supabaseAuthNew';
 
-export const LoginNew: React.FC = () => {
+export const Login: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

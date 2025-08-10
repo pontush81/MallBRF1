@@ -6,10 +6,17 @@ import { handleAuthCallback } from '../../services/supabaseAuthNew';
 import { useAuth } from '../../context/AuthContextNew';
 
 export const AuthCallback: React.FC = () => {
+  console.log('🚨 EMERGENCY: AuthCallback component is being created!');
+  
   const navigate = useNavigate();
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // DEBUG: Log component mounting
+  console.log('🔧 AuthCallback component mounted!');
+  console.log('🔧 Current URL:', window.location.href);
+  console.log('🔧 Hash:', window.location.hash);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -37,8 +44,13 @@ export const AuthCallback: React.FC = () => {
           // CRITICAL: Update the AuthContext state explicitly
           login(user);
           
-          // Redirect to main pages after successful login (same as original behavior)
-          navigate('/pages');
+          // CRITICAL: Wait for state to propagate before navigation
+          console.log('⏳ Waiting for auth state to propagate...');
+          setTimeout(() => {
+            console.log('🚀 Navigating to /pages after state update');
+            // CRITICAL: Clean navigation for HashRouter
+            navigate('/pages', { replace: true });
+          }, 100); // Small delay to ensure state updates
         } else {
           throw new Error('No user data received from authentication callback');
         }

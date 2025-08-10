@@ -12,18 +12,21 @@ import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
-// Using Supabase Auth system
+// Using Supabase Auth system (CLEANED UP - removed old Firebase auth)
 import { AuthProvider, useAuth } from './context/AuthContextNew';
 import { PageProvider } from './context/PageContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
+// Direct import for AuthCallback to avoid lazy loading issues
+import { AuthCallback } from './pages/auth/AuthCallback';
+// Direct import for ModernPublicPages (lazy loading had issues)
+import ModernPublicPages from './pages/ModernPublicPages';
 
 // Lazy loaded components
 import { 
   LazyLogin, 
   LazyRegister, 
-  LazyPageView, 
-  LazyPublicPages,
+  LazyPageView,
   LazyBookingPage,
   LazyBookingStatusPage,
   LazyPrivacyPolicy,
@@ -45,7 +48,6 @@ import {
   LazyMaintenancePlanPage,
   LazyDataRetentionManager,
   LazyNotFound,
-  LazyAuthCallback,
   LazyHSBReportEditor,
   CookieConsentBanner
 } from './components/LazyComponents';
@@ -151,9 +153,7 @@ function AppRoutes() {
           </Suspense>
         } />
         <Route path="/pages" element={
-          <Suspense fallback={<LoadingFallback />}>
-            <Layout><LazyPublicPages /></Layout>
-          </Suspense>
+          <Layout><ModernPublicPages /></Layout>
         } />
         <Route path="/booking" element={
           <Suspense fallback={<LoadingFallback />}>
@@ -215,12 +215,8 @@ function AppRoutes() {
         } />
         */}
         
-        {/* 🔐 OAuth Callback Route */}
-        <Route path="/auth/callback" element={
-          <Suspense fallback={<LoadingFallback />}>
-            <Layout><LazyAuthCallback /></Layout>
-          </Suspense>
-        } />
+        {/* 🔐 OAuth Callback Route - BrowserRouter with clean URLs */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
         
         {/* Protected routes */}
         <Route path="/admin" element={

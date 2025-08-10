@@ -3,6 +3,13 @@
   box-sizing: border-box;
 }
 
+/* CRITICAL: Ensure root elements allow scrolling */
+#root {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -11,6 +18,9 @@ body {
   background: #fafafa;
   color: #1f2937;
   line-height: 1.5;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-y: auto; /* CRITICAL: Allow vertical scrolling */
+  height: auto; /* CRITICAL: Don't constrain body height */
 }
 
 code {
@@ -25,6 +35,9 @@ code {
 
 html {
   scroll-behavior: smooth; /* Global smooth-scroll för bättre upplevelse */
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-y: auto; /* CRITICAL: Allow vertical scrolling */
+  height: 100%; /* Allow full height */
 }
 
 /* Modern focus states */
