@@ -1154,11 +1154,17 @@ const SimpleMaintenancePlan: React.FC = () => {
     setEditProject(project);
     setEditProjectDialog(true);
     
+    // Reset documents first
+    setProjectDocuments([]);
+    console.log('🔄 Reset projectDocuments to empty array');
+    
     // Ladda projektdokument
     try {
       const docs = await getProjectDocuments(project.id);
       console.log('📁 Loaded project documents:', docs.length, 'files');
+      console.log('📁 Document details:', docs);
       setProjectDocuments(docs);
+      console.log('📋 Set projectDocuments state to:', docs.length, 'documents');
     } catch (error) {
       console.error('❌ Error loading project documents:', error);
       setProjectDocuments([]);
@@ -1178,14 +1184,17 @@ const SimpleMaintenancePlan: React.FC = () => {
       
       // Uppdatera dokumentlistan
       const updatedDocs = [...projectDocuments, uploadedDoc];
+      console.log('📋 Before update - projectDocuments.length:', projectDocuments.length);
+      console.log('📋 New document to add:', uploadedDoc);
       setProjectDocuments(updatedDocs);
-      console.log('📋 Updated document list:', updatedDocs.length, 'documents');
+      console.log('📋 After update - updatedDocs.length:', updatedDocs.length);
       
       // Rensa input
       e.target.value = '';
       
       // Force re-render genom att uppdatera project state också
       setEditProject({...editProject});
+      console.log('🔄 Forced project state update to trigger re-render');
       
     } catch (error) {
       console.error('❌ Error uploading document:', error);
@@ -2678,6 +2687,11 @@ const SimpleMaintenancePlan: React.FC = () => {
               </label>
             </Box>
 
+            {/* DEBUG: Show document count */}
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              📋 Dokument: {projectDocuments.length} st
+            </Typography>
+            
             {projectDocuments.length > 0 && (
               <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1, mb: 2 }}>
                 {projectDocuments.map((doc) => (
