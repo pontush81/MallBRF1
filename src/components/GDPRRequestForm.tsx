@@ -17,7 +17,7 @@ import {
   DialogActions,
   Chip
 } from '@mui/material';
-import { StandardLoading } from '../common/StandardLoading';
+import { StandardLoading } from './common/StandardLoading';
 import {
   PersonSearch as AccessIcon,
   Edit as RectifyIcon,

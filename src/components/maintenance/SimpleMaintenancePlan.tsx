@@ -110,7 +110,6 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [allProjectDocuments, setAllProjectDocuments] = useState<{[key: string]: any[]}>({});
   const [documentsMenuAnchor, setDocumentsMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedProjectDocuments, setSelectedProjectDocuments] = useState<any[]>([]);
-  const [mousePosition, setMousePosition] = useState<{ top: number; left: number } | null>(null);
   const [sortBy, setSortBy] = useState<'due_date' | 'status' | 'name' | 'created_at'>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
@@ -1180,7 +1179,6 @@ const SimpleMaintenancePlan: React.FC = () => {
   const handleCloseDocumentsMenu = () => {
     setDocumentsMenuAnchor(null);
     setSelectedProjectDocuments([]);
-    setMousePosition(null);
   };
 
   const handleEditProject = async (project: MajorProject) => {
@@ -2025,18 +2023,9 @@ const SimpleMaintenancePlan: React.FC = () => {
                                       e.stopPropagation();
                                       e.preventDefault();
                                       console.log('📎 Clicked document chip for project:', project.id);
-                                      console.log('📎 Click event target:', e.currentTarget);
-                                      console.log('📎 Client coordinates:', { x: e.clientX, y: e.clientY });
-                                      
+                                      console.log('📎 Documents to show:', allProjectDocuments[project.id]);
                                       setSelectedProjectDocuments(allProjectDocuments[project.id]);
-                                      
-                                      // Använd chip-elementet som anchor
-                                      const chipElement = e.currentTarget as HTMLElement;
-                                      const rect = chipElement.getBoundingClientRect();
-                                      console.log('📎 Chip position:', rect);
-                                      
-                                      setDocumentsMenuAnchor(chipElement);
-                                      setMousePosition({ top: rect.bottom + 5, left: rect.left });
+                                      setDocumentsMenuAnchor(e.currentTarget as HTMLElement);
                                     }}
                                     sx={{ 
                                       cursor: 'pointer',
@@ -2817,11 +2806,11 @@ const SimpleMaintenancePlan: React.FC = () => {
         onClose={handleCloseDocumentsMenu}
         anchorOrigin={{
           vertical: 'bottom',
-          horizontal: 'left',
+          horizontal: 'center',
         }}
         transformOrigin={{
           vertical: 'top',
-          horizontal: 'left',
+          horizontal: 'center',
         }}
         PaperProps={{
           sx: { 

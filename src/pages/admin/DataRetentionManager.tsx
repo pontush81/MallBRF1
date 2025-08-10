@@ -29,6 +29,7 @@ import {
   Switch,
   FormControlLabel
 } from '@mui/material';
+import { StandardLoading } from '../../components/common/StandardLoading';
 import {
   Storage as StorageIcon,
   Security as SecurityIcon,
@@ -324,7 +325,7 @@ const DataRetentionManager: React.FC = () => {
           onClick={handleAnalyzeRetention}
           disabled={loading}
         >
-          {loading ? <CircularProgress size={20} /> : 'Analysera Retention'}
+          {loading ? <StandardLoading size={20} variant="minimal" /> : 'Analysera Retention'}
         </Button>
 
         <FormControlLabel
@@ -592,7 +593,7 @@ const DataRetentionManager: React.FC = () => {
             color={isDryRun ? 'primary' : 'error'}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={20} /> : 
+            {loading ? <StandardLoading size={20} variant="minimal" /> : 
              isDryRun ? 'Kör Test' : 'RADERA DATA'}
           </Button>
         </DialogActions>
