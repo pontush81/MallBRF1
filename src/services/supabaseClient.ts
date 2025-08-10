@@ -24,48 +24,8 @@ const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_
   }
 });
 
-// Test connection on initialization (production debugging)
-if (typeof window !== 'undefined') {
-  // Only run in browser environment
-  const testConnection = async () => {
-    try {
-      console.log('🔗 Testing Supabase connection on initialization...');
-      const startTime = Date.now();
-      
-      // Simple query to test connection with timeout
-      const testPromise = supabaseClient
-        .from('pages')
-        .select('id')
-        .limit(1);
-      
-      const testTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection test timeout')), 6000)
-      );
-      
-      const result = await Promise.race([testPromise, testTimeoutPromise]) as any;
-      const { data, error } = result;
-      
-      const duration = Date.now() - startTime;
-      
-      if (error) {
-        console.error('❌ Supabase connection test failed:', error);
-        console.error('📊 Connection details:', {
-          url: SUPABASE_URL,
-          duration: `${duration}ms`,
-          environment: process.env.NODE_ENV,
-          userAgent: navigator.userAgent
-        });
-      } else {
-        console.log(`✅ Supabase connection test successful (${duration}ms)`);
-      }
-    } catch (error) {
-      console.error('❌ Supabase connection test error:', error);
-    }
-  };
-  
-  // Run test after a short delay to allow app to initialize
-  setTimeout(testConnection, 2000);
-}
+// Connection test disabled - all critical functions now use direct API
+// The hanging SDK connection test was causing production issues
 
 // Cache for authenticated client to avoid creating multiple instances
 let authenticatedClientCache: SupabaseClient | null = null;
