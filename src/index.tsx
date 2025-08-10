@@ -23,4 +23,17 @@ root.render(
   </React.StrictMode>
 );
 
+// Registrera vår egna service worker för att förhindra localhost-caching
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('✅ Custom SW registered:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('❌ SW registration failed:', error);
+      });
+  });
+}
+
 // Web vitals removed for production performance

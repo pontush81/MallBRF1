@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -286,7 +286,42 @@ function AppRoutes() {
   );
 }
 
+// Automatisk cache-clearing för att lösa localhost-problem
+const clearBadCache = async () => {
+  try {
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      const localhostCaches = cacheNames.filter(name => 
+        name.includes('localhost') || name.includes('3000')
+      );
+      
+      if (localhostCaches.length > 0) {
+        console.log('🧹 Clearing localhost caches:', localhostCaches);
+        await Promise.all(localhostCaches.map(name => caches.delete(name)));
+      }
+    }
+    
+    // Avregistrera service workers som refererar localhost
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        if (registration.scope.includes('localhost') || registration.scope.includes('3000')) {
+          console.log('🧹 Unregistering localhost service worker:', registration.scope);
+          await registration.unregister();
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Cache clearing failed:', error);
+  }
+};
+
 function App() {
+  // Rensa dålig cache vid app-start
+  useEffect(() => {
+    clearBadCache();
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>

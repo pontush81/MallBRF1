@@ -32,6 +32,14 @@
       }
     },
     {
+      "src": "/sw.js",
+      "dest": "/sw.js",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Type": "application/javascript"
+      }
+    },
+    {
       "src": "/robots.txt",
       "dest": "/robots.txt",
       "headers": {
