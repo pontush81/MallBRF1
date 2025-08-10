@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
   return (
     <Box sx={{ 
       minHeight: '100vh',
-      background: modernTheme.colors.gray[50],
+      background: modernTheme.colors.white, // Clean white background instead of gray
       display: 'flex',
       flexDirection: 'column',
       overflow: 'auto', // CRITICAL: Allow scrolling
@@ -32,7 +32,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1,
-          paddingTop: isAuthPage ? 0 : '60px', // Compact spacing from header
+          paddingTop: isAuthPage ? 0 : '64px', // Match exact header height (64px)
           paddingBottom: modernTheme.spacing[4],
           // REMOVED: minHeight constraint that was preventing scrolling
           overflow: 'auto', // CRITICAL: Allow scrolling
