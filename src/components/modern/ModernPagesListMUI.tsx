@@ -79,44 +79,68 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
       : cleanContent;
   };
 
-  // Convert plain text to formatted HTML
+    // Convert plain text to formatted HTML
   const formatPlainTextToHTML = (content: string): string => {
     if (!content) return '';
+
+    let formatted = content;
+
+    // Handle headers first (before splitting into paragraphs)
+    formatted = formatted.replace(/^####\s*(.+)$/gm, '<h4>$1</h4>');
+    formatted = formatted.replace(/^###\s*(.+)$/gm, '<h3>$1</h3>');
+    formatted = formatted.replace(/^##\s*(.+)$/gm, '<h2>$1</h2>');
+    formatted = formatted.replace(/^#\s*(.+)$/gm, '<h1>$1</h1>');
+
+    // Handle bold text patterns
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'); // **text**
+    formatted = formatted.replace(/\(\*\*([^*]+)\*\*\)/g, '(<strong>$1</strong>)'); // (**text**)
+
+    // Handle special patterns like "####" at start of line
+    formatted = formatted.replace(/^####\s*/gm, '');
+
+    // Handle bullet points and lists
+    formatted = formatted.replace(/^-\s+(.+)$/gm, '<li>$1</li>');
     
-    // Split content into paragraphs
-    const paragraphs = content.split('\n\n').filter(p => p.trim());
-    
-    return paragraphs.map(paragraph => {
-      const trimmed = paragraph.trim();
+    // Wrap consecutive <li> elements in <ul>
+    formatted = formatted.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+    formatted = formatted.replace(/<\/ul>\s*<ul>/g, ''); // Merge consecutive ul tags
+
+    // Split into paragraphs and wrap in <p> tags (but not headers or lists)
+    const lines = formatted.split('\n');
+    let result = '';
+    let currentParagraph = '';
+
+    for (let line of lines) {
+      line = line.trim();
       
-      // Check if it's a header (starts with ### or ####)
-      if (trimmed.startsWith('###')) {
-        const headerText = trimmed.replace(/^###\s*/, '');
-        return `<h3>${headerText}</h3>`;
+      // Skip empty lines
+      if (!line) {
+        if (currentParagraph) {
+          result += `<p>${currentParagraph.trim()}</p>\n`;
+          currentParagraph = '';
+        }
+        continue;
       }
-      if (trimmed.startsWith('####')) {
-        const headerText = trimmed.replace(/^####\s*/, '');
-        return `<h4>${headerText}</h4>`;
+
+      // If it's already formatted (header, list), add it directly
+      if (line.match(/^<(h[1-6]|ul|li)/)) {
+        if (currentParagraph) {
+          result += `<p>${currentParagraph.trim()}</p>\n`;
+          currentParagraph = '';
+        }
+        result += line + '\n';
+      } else {
+        // Add to current paragraph
+        currentParagraph += (currentParagraph ? ' ' : '') + line;
       }
-      
-      // Check if it's a list (contains bullet points)
-      if (trimmed.includes('\n- ') || trimmed.startsWith('- ')) {
-        const listItems = trimmed.split('\n- ')
-          .filter(item => item.trim())
-          .map(item => item.replace(/^- /, ''))
-          .map(item => `<li>${item}</li>`)
-          .join('');
-        return `<ul>${listItems}</ul>`;
-      }
-      
-      // Regular paragraph - handle bold text **text** or *text*
-      let formattedParagraph = trimmed
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **bold**
-        .replace(/\*(.*?)\*/g, '<strong>$1</strong>')       // *bold*
-        .replace(/\n/g, '<br>');                            // line breaks
-      
-      return `<p>${formattedParagraph}</p>`;
-    }).join('');
+    }
+
+    // Add any remaining paragraph
+    if (currentParagraph) {
+      result += `<p>${currentParagraph.trim()}</p>\n`;
+    }
+
+    return result.trim();
   };
 
   const handleCardToggle = (pageId: string) => {
