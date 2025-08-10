@@ -62,7 +62,6 @@ import { adminUtils } from '../../utils/adminUtils';
 // Modern styled components for booking page
 const ModernPageContainer = styled(Box)(({ theme }) => ({
   background: modernTheme.colors.gray[50],
-  minHeight: '100vh',
   paddingBottom: modernTheme.spacing[8],
 }));
 
