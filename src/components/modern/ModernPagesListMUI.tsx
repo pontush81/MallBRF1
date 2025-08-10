@@ -11,21 +11,16 @@ import {
   Typography,
   Chip,
   Grid,
-  Collapse,
   Fade,
   useTheme,
   useMediaQuery,
-  Stack,
-  Button,
-  Divider
+  Stack
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
   ViewModule as CardsIcon, 
   List as ListIcon,
-  Schedule as ScheduleIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
+  Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 
@@ -72,12 +67,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     });
   };
 
-  const truncateContent = (content: string, maxLength: number): string => {
-    const cleanContent = content.replace(/<[^>]*>/g, '').trim();
-    return cleanContent.length > maxLength 
-      ? cleanContent.substring(0, maxLength) + '...'  
-      : cleanContent;
-  };
+
 
     // Convert plain text to formatted HTML
   const formatPlainTextToHTML = (content: string): string => {
@@ -143,8 +133,23 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     return result.trim();
   };
 
-  const handleCardToggle = (pageId: string) => {
+  const handleCardToggle = (pageId: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+    }
+    
+    // Store current scroll position
+    const currentScrollY = window.scrollY;
+    
     setExpandedCard(expandedCard === pageId ? null : pageId);
+    
+    // Restore scroll position after state update
+    setTimeout(() => {
+      window.scrollTo({
+        top: currentScrollY,
+        behavior: 'auto' // Instant, no smooth scrolling
+      });
+    }, 0);
   };
 
   // Professionell Page Card komponent
@@ -154,7 +159,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     return (
       <Fade in timeout={300}>
         <Card
-          onClick={() => handleCardToggle(page.id)}
+          onClick={(e) => handleCardToggle(page.id, e)}
           sx={{
             height: 'fit-content',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -297,7 +302,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pt: { xs: 6, sm: 8, md: 10 }, pb: 4 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 3, sm: 4, md: 5 }, pb: 4 }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <Typography variant="body1" color="text.secondary">
             Laddar sidor...
@@ -308,7 +313,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
   }
 
   return (
-    <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 6, sm: 8, md: 10 } }}>
+    <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 4, md: 5 } }}>
       {/* Search & View Controls */}
       <Box sx={{ mb: 4 }}>
         <Stack 
@@ -386,11 +391,17 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
               <Grid 
                 item 
                 xs={12} 
-                sm={isExpanded || viewMode === 'list' ? 12 : 12} 
-                md={isExpanded || viewMode === 'list' ? 12 : 6}
-                lg={isExpanded || viewMode === 'list' ? 12 : 6}
-                xl={isExpanded || viewMode === 'list' ? 12 : 4}
+                sm={viewMode === 'list' ? 12 : 12} 
+                md={viewMode === 'list' ? 12 : 6}
+                lg={viewMode === 'list' ? 12 : 6}
+                xl={viewMode === 'list' ? 12 : 4}
                 key={page.id}
+                sx={{
+                  // Expanded cards take full width but maintain grid position
+                  ...(isExpanded && {
+                    gridColumn: { md: '1 / -1', lg: '1 / -1', xl: '1 / -1' }
+                  })
+                }}
               >
                 <PageCard page={page} />
               </Grid>
