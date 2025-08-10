@@ -20,8 +20,17 @@
     
     <!-- Critical CSS for ZERO CLS (Cumulative Layout Shift) -->
     <style>
-      /* CRITICAL: Prevent ALL layout shifts */
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+      /* CRITICAL: Prevent ALL layout shifts + GPU acceleration */
+      * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0;
+        /* Force GPU acceleration for all animations */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
       html { 
         -webkit-font-smoothing: antialiased; 
         -moz-osx-font-smoothing: grayscale;
@@ -34,6 +43,8 @@
         height: 100%;
         line-height: 1.5;
         font-display: swap;
+        /* Critical: Optimize LCP with content-visibility */
+        contain: layout style paint;
       }
       #root { 
         min-height: 100vh; 
@@ -78,9 +89,16 @@
       /* CRITICAL: Image dimensions to prevent shifts */
       img { max-width: 100% !important; height: auto !important; }
       
-      /* CRITICAL: Skeleton loading states */
-      .MuiSkeleton-root { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important; }
-      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+      /* CRITICAL: GPU-accelerated Skeleton loading states */
+      .MuiSkeleton-root { 
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+        will-change: opacity !important;
+        transform: translateZ(0) !important;
+      }
+      @keyframes pulse { 
+        0%, 100% { opacity: 1; } 
+        50% { opacity: .5; } 
+      }
     </style>
     
     <!-- Cache control to prevent stale content - improved for localhost -->

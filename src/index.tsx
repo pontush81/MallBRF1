@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Only load the font weights we actually use to reduce bundle size
+// Minimal font loading - only essential weights
 import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import './index.css';
 import './styles/loading.css';

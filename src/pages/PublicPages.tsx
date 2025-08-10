@@ -1,31 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Paper, 
-  Divider, 
-  Skeleton, 
-  Alert,
-  useTheme,
-  Tabs,
-  Tab,
-  useMediaQuery,
-  Fab,
-  Button,
-  AppBar,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
-  IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  CircularProgress
-} from '@mui/material';
+// Aggressive tree-shaking: import only what's actually used
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
+import Fab from '@mui/material/Fab';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 // Optimized icon imports for smaller bundle
 import ImageIcon from '@mui/icons-material/Image';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -34,7 +19,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+// Removed remarkGfm to reduce bundle size
 // More optimized icon imports
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
@@ -265,7 +250,7 @@ const PublicPages: React.FC = (): JSX.Element => {
                   
                   <Box sx={{ typography: 'body1' }}>
                     <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
+                      // Removed remarkGfm for smaller bundle
                       components={{
                         h1: ({node, ...props}) => <h1 {...props} style={markdownStyles.h1} />,
                         h2: ({node, ...props}) => <h2 {...props} style={markdownStyles.h2} />,
