@@ -60,11 +60,6 @@ import { modernTheme } from '../../theme/modernTheme';
 import { adminUtils } from '../../utils/adminUtils';
 
 // Modern styled components for booking page
-const ModernPageContainer = styled(Box)(({ theme }) => ({
-  background: modernTheme.colors.gray[50],
-  paddingBottom: modernTheme.spacing[8],
-}));
-
 const ModernHeroSection = styled(Box)(({ theme }) => ({
   background: modernTheme.gradients.header,
   padding: `${modernTheme.spacing[2]} 0`, // Further reduced from spacing[4] to spacing[2] (16px top/bottom)
@@ -1597,9 +1592,8 @@ const BookingPage: React.FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
-      <ModernPageContainer>
-        {/* Modern Hero Section */}
-        <ModernHeroSection>
+      {/* Modern Hero Section */}
+      <ModernHeroSection>
           <Container maxWidth="md">
             <Typography
               variant="h3"
@@ -1629,7 +1623,8 @@ const BookingPage: React.FC = () => {
           maxWidth="lg"
           sx={{ 
             px: { xs: 1, sm: 3, md: 4 }, // Better padding on mobile for more space
-            maxWidth: { xs: '100%', sm: '100%', md: '1200px' }
+            maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
+            pb: modernTheme.spacing[8] // Bottom padding moved from ModernPageContainer
           }}
         >
           {/* Admin Toolbar - endast synlig för admins */}
@@ -2103,7 +2098,6 @@ const BookingPage: React.FC = () => {
         <Toaster position={isMobile ? "bottom-center" : "top-right" as const} />
           </ModernCard>
         </Container>
-      </ModernPageContainer>
     </LocalizationProvider>
   );
 };
