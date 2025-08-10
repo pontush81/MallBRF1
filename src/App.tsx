@@ -18,6 +18,8 @@ import { PageProvider } from './context/PageContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
 // AuthCallback removed - OAuth now redirects to root and is handled automatically
+// Direct import for ModernPublicPages to avoid lazy loading issues
+import ModernPublicPages from './pages/ModernPublicPages';
 
 // Lazy loaded components
 import { 
@@ -151,9 +153,7 @@ function AppRoutes() {
           </Suspense>
         } />
         <Route path="/pages" element={
-          <Suspense fallback={<LoadingFallback />}>
-            <Layout><LazyPublicPages /></Layout>
-          </Suspense>
+          <Layout><ModernPublicPages /></Layout>
         } />
         <Route path="/booking" element={
           <Suspense fallback={<LoadingFallback />}>
