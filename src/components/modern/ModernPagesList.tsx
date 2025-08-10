@@ -37,9 +37,9 @@ interface ModernPagesListProps {
 // Modern hero section with gradient and visual interest
 const HeroSection = styled(Box)(({ theme }) => ({
   background: `linear-gradient(135deg, ${modernTheme.colors.secondary[50]} 0%, ${modernTheme.colors.white} 50%, ${modernTheme.colors.primary[50]} 100%)`,
-  padding: `${modernTheme.spacing[10]} 0 ${modernTheme.spacing[8]} 0`,
+  padding: `${modernTheme.spacing[6]} 0 ${modernTheme.spacing[4]} 0`,
   textAlign: 'center',
-  marginBottom: modernTheme.spacing[6],
+  marginBottom: modernTheme.spacing[3],
   position: 'relative',
   '&::before': {
     content: '""',
@@ -354,7 +354,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
       </HeroSection>
 
       {/* Simple document grid */}
-      <Container maxWidth="lg" sx={{ border: '2px solid red', minHeight: '200px', backgroundColor: 'yellow' }}>
+      <Container maxWidth="lg">
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', padding: modernTheme.spacing[8] }}>
             <CircularProgress />
@@ -378,7 +378,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             {/* Conditional rendering based on view mode */}
             {viewMode === 'cards' ? (
               // Card view - current layout
-              <Grid container spacing={4} sx={{ alignItems: 'stretch', border: '3px solid blue', backgroundColor: 'lightblue', minHeight: '300px' }}>
+              <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
                               {filteredPages.map((page) => {
                 return (
                     <Grid item xs={12} md={6} key={page.id} sx={{ display: 'flex' }}>
