@@ -6,9 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from './context/ThemeContext';
 
 
-// Debug tools för att lösa bokningsproblem
-import './utils/debugBookings';
-import './utils/debugPages';
+// Debug tools removed for production performance
 
 // Static imports
 import Layout from './components/Layout';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Container, Box } from '@mui/material';
 import ModernHeader from './modern/ModernHeader';
 import Footer from './Footer';
@@ -9,7 +9,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = memo(({ children }) => {
   // Get current location to check if we're on the login page
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -47,6 +47,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {!isAuthPage && <Footer />}
     </Box>
   );
-};
+});
 
 export default Layout; 

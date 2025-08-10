@@ -94,7 +94,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   const [error, setError] = useState<string | null>(null);
   const [isModified, setIsModified] = useState(false);
   const [editingRow, setEditingRow] = useState<number | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<'pdf' | 'email' | 'reset' | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<'pdf' | 'reset' | null>(null);
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'warning' | 'error'}>({
     open: false, message: '', severity: 'success'
   });
@@ -1199,16 +1199,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           horizontal: 'right',
         }}
       >
-        <MenuItem 
-          onClick={() => {
-            setMoreMenuAnchorEl(null);
-            setConfirmDialog('email');
-          }}
-          disabled={saving || editableHsbData.length === 0}
-        >
-          <EmailIcon sx={{ mr: 1 }} />
-          Skicka till HSB
-        </MenuItem>
+        {/* HSB Send functionality removed */}
         
         {isModified && (
           <MenuItem 
@@ -1287,58 +1278,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         </DialogActions>
       </Dialog>
 
-      <Dialog 
-        open={confirmDialog === 'email'} 
-        onClose={() => !saving && setConfirmDialog(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {isModified ? 'Osparade ändringar' : 'Skicka HSB-rapport via e-post'}
-        </DialogTitle>
-        <DialogContent>
-          {isModified ? (
-            <>
-              <Typography paragraph>
-                Du har osparade ändringar för {monthNames[selectedMonth - 1]} {selectedYear}.
-              </Typography>
-              <Typography paragraph>
-                Vill du fortsätta utan att spara, eller avbryta för att spara ändringarna först?
-              </Typography>
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                Om du fortsätter kommer dina ändringar att inkluderas i den skickade rapporten men inte sparas permanent.
-              </Alert>
-            </>
-          ) : (
-            <>
-              <Typography paragraph>
-                Rapporten för {monthNames[selectedMonth - 1]} {selectedYear} kommer att skickas till:
-              </Typography>
-              <Box sx={{ pl: 2 }}>
-                <Typography variant="body2">• HSB</Typography>
-                <Typography variant="body2">• Administratör</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
-              </Typography>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDialog(null)} disabled={saving}>
-            Avbryt
-          </Button>
-          <Button 
-            onClick={handleSendEmail}
-            variant="contained"
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : <EmailIcon />}
-            color={isModified ? "warning" : "primary"}
-          >
-            {saving ? 'Skickar...' : (isModified ? 'Fortsätt ändå' : 'Skicka rapport')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* HSB Email dialog removed */}
 
       <Dialog 
         open={confirmDialog === 'reset'} 

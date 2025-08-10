@@ -19,20 +19,14 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+
   useTheme,
   useMediaQuery,
-  Fab
+
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
-  Email as EmailIcon,
-
-  CheckCircle as CheckIcon,
-  Send as SendIcon
+  CheckCircle as CheckIcon
 } from '@mui/icons-material';
 
 
@@ -66,9 +60,7 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
   const [hsbData, setHsbData] = useState<HSBReportData[]>([]);
   const [residentData, setResidentData] = useState<ResidentData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState(false);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -224,9 +216,10 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
     }
   };
   
-  const handleSendEmail = async () => {
+  // HSB send functionality removed
+  const removedHandleSendEmail = async () => {
     try {
-      setSending(true);
+      // setSending(true); // removed
       setError(null);
       
       const currentMonth = currentDate.getMonth() + 1;
@@ -248,7 +241,7 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
           await response.json();
           console.log('HSB report sent successfully via API');
           onSent('HSB-rapporten har skickats till HSB och administratören via e-post');
-          setConfirmDialog(false);
+          // setConfirmDialog(false); // removed - function doesn't exist
           return;
         }
         
@@ -303,13 +296,13 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
       
       console.log('Mock email sent and file downloaded');
       onSent('HSB-rapporten har skickats till HSB och administratören via e-post (simulerad)');
-      setConfirmDialog(false);
+      // setConfirmDialog(false); // removed - function doesn't exist
       
     } catch (err) {
       console.error('Error sending report:', err);
       setError(err instanceof Error ? err.message : 'Ett fel uppstod vid skickning');
     } finally {
-      setSending(false);
+      // setSending(false); // removed
     }
   };
   
@@ -527,67 +520,9 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
         </AccordionDetails>
       </Accordion>
       
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        variant="extended"
-        onClick={() => setConfirmDialog(true)}
-        disabled={sending}
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          left: isMobile ? 16 : 'auto',
-          zIndex: 1000
-        }}
-      >
-        {sending ? (
-          <CircularProgress size={24} sx={{ mr: 1 }} />
-        ) : (
-          <SendIcon sx={{ mr: 1 }} />
-        )}
-        {sending ? 'Skickar...' : 'Skicka till HSB'}
-      </Fab>
+      {/* HSB Send functionality removed */}
       
-      {/* Confirmation Dialog */}
-      <Dialog 
-        open={confirmDialog} 
-        onClose={() => !sending && setConfirmDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Skicka HSB-rapport via e-post?
-        </DialogTitle>
-        <DialogContent>
-          <Typography paragraph>
-            Rapporten kommer att skickas till:
-          </Typography>
-          <Box sx={{ pl: 2 }}>
-            <Typography variant="body2">• HSB</Typography>
-            <Typography variant="body2">• Administratör</Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Rapporten innehåller {hsbData.length} debiteringsposter med en total summa på {totalAmount.toFixed(2)} kr.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => setConfirmDialog(false)}
-            disabled={sending}
-          >
-            Avbryt
-          </Button>
-          <Button 
-            onClick={handleSendEmail}
-            variant="contained"
-            disabled={sending}
-            startIcon={sending ? <CircularProgress size={20} /> : <EmailIcon />}
-          >
-            {sending ? 'Skickar...' : 'Skicka rapport'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            {/* HSB Send dialog removed */}
       
       {error && (
         <Alert severity="error" sx={{ mt: 2, mb: 2 }}>

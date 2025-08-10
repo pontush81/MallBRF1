@@ -6,6 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
     
+    <!-- Performance optimizations: Preconnect to external domains -->
+    <link rel="preconnect" href="https://qhdgqevdmvkrwnzpwikz.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qhdgqevdmvkrwnzpwikz.supabase.co">
+    
+    <!-- Critical CSS for faster LCP -->
+    <style>
+      /* Critical above-the-fold styles */
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+      #root { min-height: 100vh; }
+      .loading-spinner { display: flex; justify-content: center; align-items: center; height: 100vh; }
+      /* Prevent layout shift */
+      .header { height: 64px; }
+      .main-content { min-height: calc(100vh - 64px); }
+    </style>
+    
     <!-- Cache control to prevent stale content - improved for localhost -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
