@@ -29,7 +29,6 @@ import {
   MenuItem,
   Menu,
   Popover,
-  CircularProgress,
   Tooltip,
   Backdrop,
   LinearProgress,
@@ -2024,8 +2023,11 @@ const SimpleMaintenancePlan: React.FC = () => {
                                     color="primary"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      e.preventDefault();
+                                      console.log('📎 Clicked document chip for project:', project.id);
+                                      console.log('📎 Documents to show:', allProjectDocuments[project.id]);
                                       setSelectedProjectDocuments(allProjectDocuments[project.id]);
-                                      setDocumentsMenuAnchor(e.currentTarget);
+                                      setDocumentsMenuAnchor(e.currentTarget as HTMLElement);
                                     }}
                                     sx={{ 
                                       cursor: 'pointer',
@@ -2799,44 +2801,64 @@ const SimpleMaintenancePlan: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Documents Menu */}
-      <Menu
-        anchorEl={documentsMenuAnchor}
+      {/* Documents Popover */}
+      <Popover
         open={Boolean(documentsMenuAnchor)}
+        anchorEl={documentsMenuAnchor}
         onClose={handleCloseDocumentsMenu}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
         PaperProps={{
-          sx: { maxWidth: 400, minWidth: 300 }
+          sx: { 
+            maxWidth: 400, 
+            minWidth: 300,
+            mt: 1,
+            boxShadow: 3
+          }
         }}
       >
-        {selectedProjectDocuments.map((doc) => (
-          <MenuItem
-            key={doc.id}
-            onClick={() => {
-              window.open(doc.url, '_blank');
-              handleCloseDocumentsMenu();
-            }}
-            sx={{ py: 1.5 }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              {doc.mimetype?.includes('pdf') ? (
-                <PictureAsPdfIcon color="error" />
-              ) : doc.mimetype?.includes('image') ? (
-                <PhotoIcon color="primary" />
-              ) : (
-                <AttachFileIcon />
-              )}
-            </ListItemIcon>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                {doc.originalName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {(doc.size / 1024).toFixed(1)} KB • {new Date(doc.uploadedAt).toLocaleDateString('sv-SE')}
-              </Typography>
-            </Box>
-          </MenuItem>
-        ))}
-      </Menu>
+        <List dense sx={{ py: 0 }}>
+          {selectedProjectDocuments.map((doc) => (
+            <ListItem
+              key={doc.id}
+              button
+              onClick={() => {
+                window.open(doc.url, '_blank');
+                handleCloseDocumentsMenu();
+              }}
+              sx={{ py: 1.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                {doc.mimetype?.includes('pdf') ? (
+                  <PictureAsPdfIcon color="error" />
+                ) : doc.mimetype?.includes('image') ? (
+                  <PhotoIcon color="primary" />
+                ) : (
+                  <AttachFileIcon />
+                )}
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    {doc.originalName}
+                  </Typography>
+                }
+                secondary={
+                  <Typography variant="caption" color="text.secondary">
+                    {(doc.size / 1024).toFixed(1)} KB • {new Date(doc.uploadedAt).toLocaleDateString('sv-SE')}
+                  </Typography>
+                }
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Popover>
 
       {/* Mobile Floating Action Button */}
       {isMobile && (
