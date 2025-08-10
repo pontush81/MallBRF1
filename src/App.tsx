@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Importera den nya ThemeProvider
@@ -19,14 +19,13 @@ import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
 // Direct import for AuthCallback to avoid lazy loading issues
 import { AuthCallback } from './pages/auth/AuthCallback';
-// Direct import for ModernPublicPages (lazy loading had issues)
-import ModernPublicPages from './pages/ModernPublicPages';
 
 // Lazy loaded components
 import { 
   LazyLogin, 
   LazyRegister, 
-  LazyPageView,
+  LazyPageView, 
+  LazyPublicPages,
   LazyBookingPage,
   LazyBookingStatusPage,
   LazyPrivacyPolicy,
@@ -153,7 +152,9 @@ function AppRoutes() {
           </Suspense>
         } />
         <Route path="/pages" element={
-          <Layout><ModernPublicPages /></Layout>
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyPublicPages /></Layout>
+          </Suspense>
         } />
         <Route path="/booking" element={
           <Suspense fallback={<LoadingFallback />}>
@@ -215,8 +216,13 @@ function AppRoutes() {
         } />
         */}
         
-        {/* 🔐 OAuth Callback Route - BrowserRouter with clean URLs */}
-        <Route path="/auth/callback" element={<AuthCallback />} />
+        {/* 🔐 OAuth Callback Route - BrowserRouter with hash fragment handling */}
+        <Route path="/auth/callback" element={
+          <>
+            {console.log('🚨 Route /auth/callback matched! Rendering AuthCallback...')}
+            <AuthCallback />
+          </>
+        } />
         
         {/* Protected routes */}
         <Route path="/admin" element={

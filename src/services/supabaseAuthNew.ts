@@ -320,8 +320,10 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
         const tokenPayload = JSON.parse(atob(accessToken.split('.')[1]));
         console.log('✅ Parsed OAuth token:', tokenPayload.email);
         
-        // Clean URL immediately
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // Clean URL immediately - remove all hash fragments
+        const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+        console.log('🧹 Cleaning URL from:', window.location.href, 'to:', cleanUrl);
+        window.history.replaceState({}, document.title, cleanUrl);
         
         // Set the session in Supabase client (so other parts of app work)
         // Add timeout to prevent hanging here too

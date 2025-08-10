@@ -6,17 +6,18 @@ import { handleAuthCallback } from '../../services/supabaseAuthNew';
 import { useAuth } from '../../context/AuthContextNew';
 
 export const AuthCallback: React.FC = () => {
-  console.log('🚨 EMERGENCY: AuthCallback component is being created!');
+  console.log('🚨 AuthCallback: Component is rendering!');
+  console.log('🔧 Current URL:', window.location.href);
+  console.log('🔧 Hash:', window.location.hash);
+  console.log('🔧 Pathname:', window.location.pathname);
   
   const navigate = useNavigate();
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // DEBUG: Log component mounting
-  console.log('🔧 AuthCallback component mounted!');
-  console.log('🔧 Current URL:', window.location.href);
-  console.log('🔧 Hash:', window.location.hash);
+  // Show that component is actually rendering
+  console.log('✅ AuthCallback component mounted and running!');
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -47,9 +48,9 @@ export const AuthCallback: React.FC = () => {
           // CRITICAL: Wait for state to propagate before navigation
           console.log('⏳ Waiting for auth state to propagate...');
           setTimeout(() => {
-            console.log('🚀 Navigating to /pages after state update');
-            // CRITICAL: Clean navigation for HashRouter
-            navigate('/pages', { replace: true });
+            console.log('🚀 Redirecting to /pages after state update');
+            // CRITICAL: Use window.location.replace for clean URL after OAuth
+            window.location.replace('/pages');
           }, 100); // Small delay to ensure state updates
         } else {
           throw new Error('No user data received from authentication callback');

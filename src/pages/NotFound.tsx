@@ -4,6 +4,12 @@ import { Link as RouterLink } from 'react-router-dom';
 import { SentimentVeryDissatisfied as SadIcon } from '@mui/icons-material';
 
 const NotFound: React.FC = () => {
+  console.log('🚨 NotFound component rendering - 404 page shown');
+  console.log('🔧 Current URL:', window.location.href);
+  console.log('🔧 Pathname:', window.location.pathname);
+  console.log('🔧 Hash:', window.location.hash);
+  console.log('🔧 Search:', window.location.search);
+  
   return (
     <Container maxWidth="md">
       <Box sx={{ 
