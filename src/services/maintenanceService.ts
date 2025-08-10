@@ -9,31 +9,30 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
   console.log('📤 Request body:', body);
   
   // Get user session token for RLS authentication using existing client
-  let authToken = SUPABASE_ANON_KEY;
+  let authToken = null;
   try {
-    // First try localStorage (faster and more reliable)
-    const storedSession = localStorage.getItem('mallbrf-supabase-auth');
-    if (storedSession) {
-      const sessionData = JSON.parse(storedSession);
-      if (sessionData?.access_token) {
-        authToken = sessionData.access_token;
-        console.log('🔐 Using user session token from localStorage for RLS authentication');
-      } else {
-        console.log('⚠️ No access_token in localStorage session');
-      }
+    // CRITICAL: Always use the SDK to get session (Perplexity recommendation)
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
+    if (session?.access_token) {
+      authToken = session.access_token;
+      console.log('🔐 Using user session token for RLS authentication');
     } else {
-      // Fallback to Supabase client
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      
-      if (session?.access_token) {
-        authToken = session.access_token;
-        console.log('🔐 Using user session token from Supabase client for RLS authentication');
-      } else {
-        console.log('⚠️ No user session, using anon key');
-      }
+      console.log('⚠️ No user session found - user may not be authenticated');
     }
   } catch (error) {
-    console.log('⚠️ Failed to get session, using anon key:', error);
+    console.log('⚠️ Failed to get session:', error);
+  }
+
+  // CRITICAL: For write operations (POST/PATCH/DELETE), require authentication
+  if (!authToken && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) {
+    throw new Error('Authentication required: No valid user session found for RLS-protected write operation');
+  }
+  
+  // For GET operations without auth token, use anon key (some tables allow public read)
+  if (!authToken && method === 'GET') {
+    console.log('ℹ️ No user session for GET request - using anon key (public read)');
+    authToken = SUPABASE_ANON_KEY;
   }
   
   try {
@@ -41,7 +40,7 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
       method,
       headers: {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${authToken}`,
+        'Authorization': `Bearer ${authToken}`, // Only use real user token, never anon key
         'Content-Type': 'application/json',
         'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal'
       },
