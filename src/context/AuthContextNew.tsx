@@ -104,14 +104,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    console.log('Logout called');
+    console.log('🔄 AuthContext logout called - clearing UI state immediately');
+    
+    // CRITICAL: Clear UI state IMMEDIATELY (don't wait for Supabase)
+    clearUserData();
+    
+    // Then try Supabase logout in background (but don't block UI)
     try {
       await supabaseLogout();
-      clearUserData();
+      console.log('✅ Supabase logout completed successfully');
     } catch (error) {
-      console.error('Error logging out:', error);
-      // Clear local state even if logout fails
-      clearUserData();
+      console.log('⚠️ Supabase logout failed (but UI already cleared):', error.message);
     }
   };
 
