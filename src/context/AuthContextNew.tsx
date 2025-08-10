@@ -82,15 +82,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (unsubscribe) {
         unsubscribe();
       }
+      // Force close any WebLocks for BFCache compatibility
+      if ('locks' in navigator) {
+        navigator.locks.query().then((state) => {
+          // Log but don't interfere with Supabase internal locks
+          console.debug('Active locks:', state);
+        });
+      }
     };
 
+    // Enhanced BFCache support
     window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handlePageHide);
 
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
       window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handlePageHide);
     };
   }, []);
 

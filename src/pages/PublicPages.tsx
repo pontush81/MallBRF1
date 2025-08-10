@@ -11,19 +11,16 @@ import Divider from '@mui/material/Divider';
 import Fab from '@mui/material/Fab';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-// Optimized icon imports for smaller bundle
-import ImageIcon from '@mui/icons-material/Image';
-import MenuIcon from '@mui/icons-material/Menu';
+// Minimal icon imports - only what's actually used
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
 // Removed remarkGfm to reduce bundle size
-// More optimized icon imports
+// File icons - only if files exist
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextNew';
 // Removed react-scroll to reduce bundle size - using native scrolling instead
