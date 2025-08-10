@@ -202,7 +202,11 @@ export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promi
       updated_at: new Date().toISOString()
     };
     
-    if (task.id) {
+    // Check if this is truly an existing task by checking if it exists in the database
+    // Generated IDs start with 'task_' and should be treated as new tasks
+    const isExistingTask = task.id && !task.id.startsWith('task_');
+    
+    if (isExistingTask) {
       // Update existing task
       const endpoint = `maintenance_tasks?id=eq.${task.id}`;
       const data = await directRestCall('PATCH', endpoint, taskData);
@@ -216,9 +220,14 @@ export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promi
         return data as MaintenanceTask;
       }
     } else {
-      // Create new task
+      // Create new task - remove the generated ID and let Supabase generate it
+      const newTaskData = { ...taskData };
+      delete newTaskData.id;
+      
+      console.log('🆕 Creating new task without ID, letting Supabase generate it');
+      
       const endpoint = 'maintenance_tasks';
-      const data = await directRestCall('POST', endpoint, taskData);
+      const data = await directRestCall('POST', endpoint, newTaskData);
       
       console.log('🔍 API Response for new task:', data, 'Type:', typeof data, 'IsArray:', Array.isArray(data));
       
