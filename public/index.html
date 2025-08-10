@@ -10,6 +10,10 @@
     <link rel="preconnect" href="https://qhdgqevdmvkrwnzpwikz.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://qhdgqevdmvkrwnzpwikz.supabase.co">
     
+    <!-- Preload critical resources for faster LCP -->
+    <link rel="preload" href="/static/css/main.107690db.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/static/css/main.107690db.css"></noscript>
+    
     <!-- Critical CSS for faster LCP -->
     <style>
       /* Critical above-the-fold styles */
@@ -19,6 +23,9 @@
       /* Prevent layout shift */
       .header { height: 64px; }
       .main-content { min-height: calc(100vh - 64px); }
+      /* MUI baseline styles to prevent FOUC */
+      *, *::before, *::after { box-sizing: border-box; }
+      .MuiContainer-root { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
     </style>
     
     <!-- Cache control to prevent stale content - improved for localhost -->

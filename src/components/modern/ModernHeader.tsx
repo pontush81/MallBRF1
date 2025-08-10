@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -32,7 +32,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContextNew';
 import { modernTheme } from '../../theme/modernTheme';
 
-const ModernHeader: React.FC = () => {
+const ModernHeader: React.FC = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, isLoggedIn, isAdmin, logout } = useAuth();
@@ -644,6 +644,6 @@ const ModernHeader: React.FC = () => {
       </Drawer>
     </>
   );
-};
+});
 
 export default ModernHeader; 

@@ -77,10 +77,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
+    // Clean up for bfcache compatibility
+    const handlePageHide = () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
+      window.removeEventListener('pagehide', handlePageHide);
     };
   }, []);
 
