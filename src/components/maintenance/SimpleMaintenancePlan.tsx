@@ -75,7 +75,6 @@ import {
   User
 } from '../../services/maintenanceService';
 import { sendTaskNotification } from '../../services/notificationService';
-import { maintenanceTasksData, maintenanceCategoriesData } from '../../data/maintenanceTasksData';
 
 
 
@@ -104,7 +103,6 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [projectDocuments, setProjectDocuments] = useState<any[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [clearingData, setClearingData] = useState(false);
-  const [importingTasks, setImportingTasks] = useState(false);
   const [sortBy, setSortBy] = useState<'due_date' | 'status' | 'name' | 'created_at'>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
@@ -120,83 +118,7 @@ const SimpleMaintenancePlan: React.FC = () => {
     estimatedTimeRemaining: ''
   });
 
-  // Import maintenance plan from data file
-  const handleImportMaintenancePlan = async () => {
-    if (!window.confirm('Detta kommer att importera alla uppgifter från skötselplanen. Vill du fortsätta?')) {
-      return;
-    }
 
-    setImportingTasks(true);
-    let importedCount = 0;
-    let skippedCount = 0;
-
-    try {
-      console.log('🔄 Starting import of maintenance plan tasks...');
-      
-      // Convert data format from maintenanceTasksData to SimpleMaintenancePlan format
-      for (const taskData of maintenanceTasksData) {
-        try {
-          // Check if task already exists (by name and category)
-          const existingTask = tasks.find(task => 
-            task.name === taskData.task && 
-            task.category === taskData.category
-          );
-
-          if (existingTask) {
-            console.log(`⏭️ Skipping existing task: ${taskData.task}`);
-            skippedCount++;
-            continue;
-          }
-
-          // Convert to SimpleMaintenancePlan format
-          const newTask: Partial<MaintenanceTask> = {
-            id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: taskData.task,
-            description: taskData.description,
-            category: taskData.category === 'UTOMHUS - Ellagården' ? 'summer' : 
-                     taskData.category === 'UTOMHUS - Bilparkering + Bilväg ICA' ? 'summer' :
-                     taskData.category === 'INOMHUS - Soprum' ? 'ongoing' :
-                     taskData.category === 'INOMHUS - Lägenheter' ? 'ongoing' :
-                     taskData.category === 'INOMHUS - Korridor Plan 2' ? 'ongoing' :
-                     taskData.category === 'INOMHUS - Tvättstuga' ? 'ongoing' :
-                     taskData.category === 'Fasad/Tak m.m.' ? 'autumn' : 'ongoing',
-            year: selectedYear,
-            completed: false,
-            notes: `Importerad från skötselplan. Ansvarig: ${taskData.responsible}. Månader: ${taskData.months.join(', ')}`,
-            // Set due date based on first month
-            due_date: taskData.months.length > 0 ? 
-              `${selectedYear}-${String(['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'].indexOf(taskData.months[0]) + 1).padStart(2, '0')}-15` : 
-              undefined,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-
-          // Save to database
-          const savedTask = await saveMaintenanceTask(newTask);
-          if (savedTask) {
-            setTasks(prevTasks => [...prevTasks, savedTask]);
-            importedCount++;
-            console.log(`✅ Imported task: ${savedTask.name}`);
-          }
-
-          // Small delay to avoid overwhelming the database
-          await new Promise(resolve => setTimeout(resolve, 100));
-
-        } catch (error) {
-          console.error(`❌ Failed to import task: ${taskData.task}`, error);
-          skippedCount++;
-        }
-      }
-
-      alert(`✅ Import klar! ${importedCount} uppgifter importerade, ${skippedCount} hoppades över (redan finns eller fel).`);
-      
-    } catch (error) {
-      console.error('❌ Import failed:', error);
-      alert('❌ Import misslyckades. Se konsolen för detaljer.');
-    } finally {
-      setImportingTasks(false);
-    }
-  };
 
   // 🎹 Keyboard navigation för år-väljare
   useEffect(() => {
@@ -1835,32 +1757,13 @@ const SimpleMaintenancePlan: React.FC = () => {
                   <CheckIcon color="primary" sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Underhållschecklista {selectedYear}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button 
-                    size="small" 
-                    startIcon={<AddIcon />}
-                    onClick={() => setNewTaskDialog(true)}
-                  >
-                    Lägg till uppgift
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={importingTasks ? <CircularProgress size={16} /> : <BuildIcon />}
-                    onClick={handleImportMaintenancePlan}
-                    disabled={importingTasks}
-                    sx={{ 
-                      borderColor: 'success.main',
-                      color: 'success.main',
-                      '&:hover': {
-                        borderColor: 'success.dark',
-                        backgroundColor: 'success.light'
-                      }
-                    }}
-                  >
-                    {importingTasks ? 'Importerar...' : 'Importera skötselplan'}
-                  </Button>
-                </Box>
+                <Button 
+                  size="small" 
+                  startIcon={<AddIcon />}
+                  onClick={() => setNewTaskDialog(true)}
+                >
+                  Lägg till uppgift
+                </Button>
               </Box>
               
 {tasks.length === 0 ? (
