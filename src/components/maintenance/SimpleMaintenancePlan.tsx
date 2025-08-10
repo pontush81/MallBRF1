@@ -27,6 +27,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Menu,
+  Popover,
   CircularProgress,
   Tooltip,
   Backdrop,
@@ -106,6 +108,8 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [clearingData, setClearingData] = useState(false);
   const [allProjectDocuments, setAllProjectDocuments] = useState<{[key: string]: any[]}>({});
+  const [documentsMenuAnchor, setDocumentsMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedProjectDocuments, setSelectedProjectDocuments] = useState<any[]>([]);
   const [sortBy, setSortBy] = useState<'due_date' | 'status' | 'name' | 'created_at'>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
@@ -1172,6 +1176,11 @@ const SimpleMaintenancePlan: React.FC = () => {
 
 
 
+  const handleCloseDocumentsMenu = () => {
+    setDocumentsMenuAnchor(null);
+    setSelectedProjectDocuments([]);
+  };
+
   const handleEditProject = async (project: MajorProject) => {
     console.log('🔧 Opening project editor for:', project.name, 'ID:', project.id);
     setEditProject(project);
@@ -1503,7 +1512,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 3, textAlign: 'center' }}>
-        <CircularProgress />
+        <CircularProgress size={40} />
         <Typography variant="h6" sx={{ mt: 2 }}>
           Laddar underhållsplan...
         </Typography>
@@ -2003,12 +2012,28 @@ const SimpleMaintenancePlan: React.FC = () => {
                                   <> • Entreprenör: {project.contractor}</>
                                 )}
                               </Typography>
-                                                            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                Status: {getProjectStatusLabel(project.status)}
+                                                            <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                                <Typography variant="caption">
+                                  Status: {getProjectStatusLabel(project.status)}
+                                </Typography>
                                 {allProjectDocuments[project.id] && allProjectDocuments[project.id].length > 0 && (
-                                  <> • 📎 {allProjectDocuments[project.id].length} dokument</>
+                                  <Chip
+                                    label={`📎 ${allProjectDocuments[project.id].length} dokument`}
+                                    size="small"
+                                    variant="outlined"
+                                    color="primary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedProjectDocuments(allProjectDocuments[project.id]);
+                                      setDocumentsMenuAnchor(e.currentTarget);
+                                    }}
+                                    sx={{ 
+                                      cursor: 'pointer',
+                                      '&:hover': { bgcolor: 'primary.light', color: 'white' }
+                                    }}
+                                  />
                                 )}
-                              </Typography>
+                              </Box>
                             </Box>
                           }
                         />
@@ -2773,6 +2798,45 @@ const SimpleMaintenancePlan: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Documents Menu */}
+      <Menu
+        anchorEl={documentsMenuAnchor}
+        open={Boolean(documentsMenuAnchor)}
+        onClose={handleCloseDocumentsMenu}
+        PaperProps={{
+          sx: { maxWidth: 400, minWidth: 300 }
+        }}
+      >
+        {selectedProjectDocuments.map((doc) => (
+          <MenuItem
+            key={doc.id}
+            onClick={() => {
+              window.open(doc.url, '_blank');
+              handleCloseDocumentsMenu();
+            }}
+            sx={{ py: 1.5 }}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              {doc.mimetype?.includes('pdf') ? (
+                <PictureAsPdfIcon color="error" />
+              ) : doc.mimetype?.includes('image') ? (
+                <PhotoIcon color="primary" />
+              ) : (
+                <AttachFileIcon />
+              )}
+            </ListItemIcon>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                {doc.originalName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {(doc.size / 1024).toFixed(1)} KB • {new Date(doc.uploadedAt).toLocaleDateString('sv-SE')}
+              </Typography>
+            </Box>
+          </MenuItem>
+        ))}
+      </Menu>
 
       {/* Mobile Floating Action Button */}
       {isMobile && (
