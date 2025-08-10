@@ -322,29 +322,47 @@ export const getMajorProjects = async (): Promise<MajorProject[]> => {
 export const saveMajorProject = async (project: Partial<MajorProject>): Promise<MajorProject | null> => {
   try {
     console.log('🚀 Saving major project via direct REST API...', project.id || 'NEW');
+    console.log('📋 Project data to save:', project);
     
     const projectData = {
       ...project,
       updated_at: new Date().toISOString()
     };
     
-    if (project.id) {
+    // Check if this is truly an existing project by checking if it exists in the database
+    // Generated IDs start with 'project_' and should be treated as new projects
+    const isExistingProject = project.id && !project.id.startsWith('project_');
+    
+    if (isExistingProject) {
       // Update existing project
       const endpoint = `major_projects?id=eq.${project.id}`;
       const data = await directRestCall('PATCH', endpoint, projectData);
       
-      if (data && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         console.log('✅ Project updated via direct API (FAST!):', data[0]);
         return data[0];
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        console.log('✅ Project updated via direct API (FAST!):', data);
+        return data as MajorProject;
       }
     } else {
-      // Create new project
-      const endpoint = 'major_projects';
-      const data = await directRestCall('POST', endpoint, projectData);
+      // Create new project - remove the generated ID and let Supabase generate it
+      const newProjectData = { ...projectData };
+      delete newProjectData.id; // Remove client-generated ID for POST
       
-      if (data && data.length > 0) {
+      console.log('🆕 Creating new project without ID, letting Supabase generate it');
+      
+      const endpoint = 'major_projects';
+      const data = await directRestCall('POST', endpoint, newProjectData);
+      
+      console.log('🔍 API Response for new project:', data, 'Type:', typeof data, 'IsArray:', Array.isArray(data));
+      
+      if (Array.isArray(data) && data.length > 0) {
         console.log('✅ Project created via direct API (FAST!):', data[0]);
         return data[0];
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        console.log('✅ Project created via direct API (FAST!):', data);
+        return data as MajorProject;
       }
     }
     
