@@ -19,6 +19,13 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const navigate = useNavigate();
 
+  // Clean up hash fragments in URL when component loads
+  useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
   // Handle scroll for scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {

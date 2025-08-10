@@ -37,17 +37,9 @@ const HeaderNav: React.FC<HeaderNavProps> = ({
   const navigate = useNavigate();
   const { isLoggedIn, isAdmin } = useAuth();
 
-  // Hantera klick på en sida
+  // Hantera klick på en sida - navigera till individuell sida
   const handlePageClick = (pageId: string) => {
-    // Kontrollera om vi är på en annan sida än /pages
-    const currentPath = window.location.pathname;
-    if (currentPath !== '/pages') {
-      // Om vi är på en annan sida, navigera till /pages med hash
-      navigate(`/pages#${pageId}`);
-    } else {
-      // Om vi redan är på /pages-sidan, använd bara hash
-      window.location.hash = pageId;
-    }
+    navigate(`/page/${pageId}`);
   };
 
   return (

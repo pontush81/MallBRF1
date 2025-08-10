@@ -36,26 +36,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     // Stäng menyn först
     onClose();
     
-    // Kontrollera om vi är på en annan sida än /pages
-    const currentPath = window.location.pathname;
-    if (currentPath !== '/pages') {
-      // Om vi är på en annan sida, navigera till /pages med hash
-      navigate(`/pages#${pageId}`);
-    } else {
-      // Om vi redan är på /pages-sidan
-      // Uppdatera URL utan att ladda om sidan
-      window.history.pushState(null, '', `#${pageId}`);
-      
-      // Scrolla direkt till elementet med bättre offset
-      setTimeout(() => {
-        const element = document.getElementById(pageId);
-        if (element) {
-          const yOffset = -70; // Mindre offset för att visa rubriken bättre
-          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          window.scrollTo({ top: y, behavior: 'smooth' });
-        }
-      }, 100);
-    }
+    // Navigera till individuell sida
+    navigate(`/page/${pageId}`);
   };
 
   const drawerContent = (

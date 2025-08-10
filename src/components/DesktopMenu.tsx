@@ -40,22 +40,8 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ pages, navigateToSection }) =
     // Stäng menyn först
     handlePagesMenuClose();
     
-    // Kontrollera om vi redan är på /pages-sidan innan navigering
-    const currentPath = window.location.pathname;
-    if (currentPath === '/pages') {
-      // Vi är redan på rätt sida, använd direkt scrollning 
-      const element = document.getElementById(pageId);
-      if (element) {
-        const yOffset = -80;
-        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-      // Uppdatera URL utan att ladda om sidan
-      window.history.pushState(null, '', `#${pageId}`);
-    } else {
-      // Navigera till /pages med hash
-      navigateToSection(pageId);
-    }
+    // Navigera till individuell sida
+    navigate(`/page/${pageId}`);
   };
   
   return (
