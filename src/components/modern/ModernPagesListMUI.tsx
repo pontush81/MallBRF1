@@ -69,65 +69,67 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
 
 
 
-    // Convert plain text to formatted HTML
+  // Convert plain text to formatted HTML
   const formatPlainTextToHTML = (content: string): string => {
     if (!content) return '';
 
     let formatted = content;
 
-    // Handle headers first (before splitting into paragraphs)
+    // Handle bold text patterns - be very selective
+    formatted = formatted.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>'); // **text** only
+    // Remove single * bold formatting to avoid conflicts with bullet points
+
+    // Handle headers
     formatted = formatted.replace(/^####\s*(.+)$/gm, '<h4>$1</h4>');
     formatted = formatted.replace(/^###\s*(.+)$/gm, '<h3>$1</h3>');
     formatted = formatted.replace(/^##\s*(.+)$/gm, '<h2>$1</h2>');
     formatted = formatted.replace(/^#\s*(.+)$/gm, '<h1>$1</h1>');
 
-    // Handle bold text patterns
-    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'); // **text**
-    formatted = formatted.replace(/\(\*\*([^*]+)\*\*\)/g, '(<strong>$1</strong>)'); // (**text**)
-
-    // Handle special patterns like "####" at start of line
-    formatted = formatted.replace(/^####\s*/gm, '');
-
-    // Handle bullet points and lists
-    formatted = formatted.replace(/^-\s+(.+)$/gm, '<li>$1</li>');
-    
-    // Wrap consecutive <li> elements in <ul>
-    formatted = formatted.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-    formatted = formatted.replace(/<\/ul>\s*<ul>/g, ''); // Merge consecutive ul tags
-
-    // Split into paragraphs and wrap in <p> tags (but not headers or lists)
-    const lines = formatted.split('\n');
+    // Split into sections and process each
+    const sections = formatted.split('\n\n');
     let result = '';
-    let currentParagraph = '';
 
-    for (let line of lines) {
-      line = line.trim();
+    for (let section of sections) {
+      section = section.trim();
+      if (!section) continue;
+
+      const lines = section.split('\n');
       
-      // Skip empty lines
-      if (!line) {
-        if (currentParagraph) {
-          result += `<p>${currentParagraph.trim()}</p>\n`;
-          currentParagraph = '';
+      // Check if this section contains bullet points (starts with *)
+      if (lines.some(line => line.trim().match(/^\*\s+/))) {
+        // Process as a list
+        const listItems = lines
+          .filter(line => line.trim().match(/^\*\s+/))
+          .map(line => {
+            let text = line.replace(/^\*\s+/, '').trim();
+            // Apply bold formatting to list items if they have **text**
+            text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+            return `<li>${text}</li>`;
+          });
+        
+        if (listItems.length > 0) {
+          result += `<ul>${listItems.join('')}</ul>\n`;
         }
-        continue;
-      }
-
-      // If it's already formatted (header, list), add it directly
-      if (line.match(/^<(h[1-6]|ul|li)/)) {
-        if (currentParagraph) {
-          result += `<p>${currentParagraph.trim()}</p>\n`;
-          currentParagraph = '';
+        
+        // Handle non-list lines in the same section
+        const nonListLines = lines.filter(line => !line.trim().match(/^\*\s+/));
+        if (nonListLines.length > 0) {
+          const paragraph = nonListLines.join(' ').trim();
+          if (paragraph && !paragraph.match(/^<[h1-6]/)) {
+            result += `<p>${paragraph}</p>\n`;
+          } else if (paragraph) {
+            result += `${paragraph}\n`;
+          }
         }
-        result += line + '\n';
       } else {
-        // Add to current paragraph
-        currentParagraph += (currentParagraph ? ' ' : '') + line;
+        // Process as regular text or header
+        const text = lines.join(' ').trim();
+        if (text.match(/^<h[1-6]/)) {
+          result += `${text}\n`;
+        } else {
+          result += `<p>${text}</p>\n`;
+        }
       }
-    }
-
-    // Add any remaining paragraph
-    if (currentParagraph) {
-      result += `<p>${currentParagraph.trim()}</p>\n`;
     }
 
     return result.trim();
