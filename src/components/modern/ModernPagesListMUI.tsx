@@ -25,8 +25,7 @@ import {
   List as ListIcon,
   Schedule as ScheduleIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  OpenInNew as OpenIcon
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 
@@ -131,6 +130,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     return (
       <Fade in timeout={300}>
         <Card
+          onClick={() => handleCardToggle(page.id)}
           sx={{
             height: 'fit-content',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -139,9 +139,9 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
               transform: isMobile ? 'none' : 'translateY(-4px)',
               boxShadow: theme.shadows[12],
             },
-            boxShadow: theme.shadows[3],
+            boxShadow: isExpanded ? theme.shadows[12] : theme.shadows[3],
             borderRadius: 3,
-            border: `1px solid ${theme.palette.divider}`,
+            border: isExpanded ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
             overflow: 'visible', // Allow shadow to show
           }}
         >
@@ -175,66 +175,96 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
               />
             </Box>
 
-            {/* Content - Convert plain text to formatted HTML */}
-            <Box
-              dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
-              sx={{
-                '& h1, & h2, & h3, & h4, & h5, & h6': {
-                  color: 'text.primary',
-                  fontWeight: 600,
-                  mb: 2,
-                  mt: 3,
-                  '&:first-of-type': { mt: 0 }
-                },
-                '& p': {
-                  mb: 2,
-                  lineHeight: 1.8,
-                  color: 'text.secondary',
-                  fontSize: '1rem'
-                },
-                '& ul, & ol': {
-                  pl: 2,
-                  mb: 1.5,
-                  '& li': {
-                    mb: 0.5,
-                    color: 'text.secondary'
-                  }
-                },
-                '& a': {
-                  color: 'primary.main',
-                  textDecoration: 'underline',
-                  '&:hover': {
-                    color: 'primary.dark'
-                  }
-                },
-                '& strong': {
-                  fontWeight: 600,
-                  color: 'text.primary'
-                }
-              }}
-            />
-
-            {/* Footer - Only "Open full page" button */}
-            <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-              <Button
-                variant="contained"
-                size="medium"
-                endIcon={<OpenIcon />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPageClick(page);
-                }}
+            {/* Content Preview - Show first 150 characters when collapsed */}
+            {!isExpanded && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
                 sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  px: 3,
-                  py: 1.5
+                  mb: 2,
+                  lineHeight: 1.6,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
                 }}
               >
-                Öppna hela sidan
-              </Button>
-            </Box>
+                {page.content.substring(0, 150)}...
+              </Typography>
+            )}
+
+            {/* Full Content - Show when expanded */}
+            {isExpanded && (
+              <Box
+                dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
+                sx={{
+                  mb: 3,
+                  '& h1, & h2, & h3, & h4, & h5, & h6': {
+                    color: 'text.primary',
+                    fontWeight: 600,
+                    mb: 2,
+                    mt: 3,
+                    '&:first-of-type': { mt: 0 }
+                  },
+                  '& p': {
+                    mb: 2,
+                    lineHeight: 1.8,
+                    color: 'text.secondary',
+                    fontSize: '1rem'
+                  },
+                  '& ul, & ol': {
+                    pl: 2,
+                    mb: 1.5,
+                    '& li': {
+                      mb: 0.5,
+                      color: 'text.secondary'
+                    }
+                  },
+                  '& a': {
+                    color: 'primary.main',
+                    textDecoration: 'underline',
+                    '&:hover': {
+                      color: 'primary.dark'
+                    }
+                  },
+                  '& strong': {
+                    fontWeight: 600,
+                    color: 'text.primary'
+                  }
+                }}
+              />
+            )}
+
+
+
+            {/* Expand indicator when collapsed */}
+            {!isExpanded && (
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  sx={{
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  Klicka för att läsa mer
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-block',
+                      transform: 'rotate(90deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  >
+                    ▶
+                  </Box>
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Fade>
@@ -243,7 +273,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pt: { xs: 4, sm: 5, md: 6 }, pb: 4 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 5, sm: 6, md: 8 }, pb: 4 }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <Typography variant="body1" color="text.secondary">
             Laddar sidor...
@@ -254,7 +284,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
   }
 
   return (
-    <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 4, sm: 5, md: 6 } }}>
+    <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 5, sm: 6, md: 8 } }}>
       {/* Search & View Controls */}
       <Box sx={{ mb: 4 }}>
         <Stack 
@@ -326,19 +356,22 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
       {/* Cards Grid - Optimized layout */}
       {filteredPages.length > 0 ? (
         <Grid container spacing={4}>
-          {filteredPages.map((page) => (
-            <Grid 
-              item 
-              xs={12} 
-              sm={viewMode === 'cards' ? 12 : 12} 
-              md={viewMode === 'cards' ? 6 : 12}
-              lg={viewMode === 'cards' ? 6 : 12}
-              xl={viewMode === 'cards' ? 4 : 12}
-              key={page.id}
-            >
-              <PageCard page={page} />
-            </Grid>
-          ))}
+          {filteredPages.map((page) => {
+            const isExpanded = expandedCard === page.id;
+            return (
+              <Grid 
+                item 
+                xs={12} 
+                sm={isExpanded || viewMode === 'list' ? 12 : 12} 
+                md={isExpanded || viewMode === 'list' ? 12 : 6}
+                lg={isExpanded || viewMode === 'list' ? 12 : 6}
+                xl={isExpanded || viewMode === 'list' ? 12 : 4}
+                key={page.id}
+              >
+                <PageCard page={page} />
+              </Grid>
+            );
+          })}
         </Grid>
       ) : (
         <Box 
