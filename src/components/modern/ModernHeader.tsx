@@ -391,18 +391,23 @@ const ModernHeader: React.FC = memo(() => {
   return (
     <>
       <AppBar
-        position="sticky"
+        position="fixed"
         elevation={0}
         sx={{
           background: modernTheme.gradients.header,
           backdropFilter: 'blur(10px)',
           borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
           boxShadow: modernTheme.shadows.lg,
+          height: '64px', // Fixed height to prevent CLS
+          minHeight: '64px !important',
+          maxHeight: '64px !important',
         }}
       >
         <Toolbar sx={{ 
           padding: { xs: modernTheme.spacing[2], md: modernTheme.spacing[4] },
-          minHeight: { xs: '64px', md: '72px' },
+          minHeight: '64px !important', // Fixed height to prevent CLS
+          maxHeight: '64px !important', // Fixed height to prevent CLS
+          height: '64px !important', // Fixed height to prevent CLS
         }}>
           {/* Logo/Brand */}
           <Typography

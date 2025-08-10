@@ -28,8 +28,9 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1,
-          paddingTop: isAuthPage ? 0 : modernTheme.spacing[4],
+          paddingTop: isAuthPage ? 0 : '64px', // Fixed header height to prevent CLS
           paddingBottom: modernTheme.spacing[8],
+          minHeight: isAuthPage ? '100vh' : 'calc(100vh - 64px)', // Reserve space to prevent CLS
         }}
       >
         <Container 

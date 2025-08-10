@@ -26,22 +26,22 @@ import {
   ListItemText,
   CircularProgress
 } from '@mui/material';
-import { 
-  Image as ImageIcon,
-  Menu as MenuIcon
-} from '@mui/icons-material';
+// Optimized icon imports for smaller bundle
+import ImageIcon from '@mui/icons-material/Image';
+import MenuIcon from '@mui/icons-material/Menu';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+// More optimized icon imports
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextNew';
-import { Element, scroller } from 'react-scroll';
+// Removed react-scroll to reduce bundle size - using native scrolling instead
 import { usePages } from '../context/PageContext';
 
 const STICKY_NAV_HEIGHT = 64; // Höjd på sticky navbar i pixlar

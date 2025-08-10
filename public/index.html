@@ -14,18 +14,73 @@
     <link rel="preload" href="/static/css/main.107690db.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="/static/css/main.107690db.css"></noscript>
     
-    <!-- Critical CSS for faster LCP -->
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
+    
+    <!-- Critical CSS for ZERO CLS (Cumulative Layout Shift) -->
     <style>
-      /* Critical above-the-fold styles */
-      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
-      #root { min-height: 100vh; }
-      .loading-spinner { display: flex; justify-content: center; align-items: center; height: 100vh; }
-      /* Prevent layout shift */
-      .header { height: 64px; }
-      .main-content { min-height: calc(100vh - 64px); }
-      /* MUI baseline styles to prevent FOUC */
-      *, *::before, *::after { box-sizing: border-box; }
-      .MuiContainer-root { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+      /* CRITICAL: Prevent ALL layout shifts */
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { 
+        -webkit-font-smoothing: antialiased; 
+        -moz-osx-font-smoothing: grayscale;
+        height: 100%;
+        font-display: swap;
+      }
+      body { 
+        margin: 0; 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', sans-serif;
+        height: 100%;
+        line-height: 1.5;
+        font-display: swap;
+      }
+      #root { 
+        min-height: 100vh; 
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* CRITICAL: Fixed header dimensions to prevent shifts */
+      .MuiAppBar-root, .header { 
+        height: 64px !important; 
+        min-height: 64px !important;
+        max-height: 64px !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1100 !important;
+      }
+      
+      /* CRITICAL: Main content spacing to prevent shifts */
+      .main-content, .MuiContainer-root { 
+        padding-top: 64px !important;
+        min-height: calc(100vh - 64px) !important;
+      }
+      
+      /* CRITICAL: Loading states with reserved space */
+      .loading-spinner, .MuiCircularProgress-root { 
+        display: flex !important; 
+        justify-content: center !important; 
+        align-items: center !important; 
+        height: calc(100vh - 64px) !important;
+        width: 100% !important;
+      }
+      
+      /* CRITICAL: Reserve space for common components */
+      .MuiCard-root { min-height: 120px !important; }
+      .MuiTypography-h1 { font-size: 2.5rem !important; line-height: 1.2 !important; margin-bottom: 1rem !important; }
+      .MuiTypography-h2 { font-size: 2rem !important; line-height: 1.3 !important; margin-bottom: 0.8rem !important; }
+      .MuiButton-root { min-height: 36px !important; }
+      .MuiContainer-root { max-width: 1200px !important; margin: 0 auto !important; padding: 0 16px !important; }
+      
+      /* CRITICAL: Image dimensions to prevent shifts */
+      img { max-width: 100% !important; height: auto !important; }
+      
+      /* CRITICAL: Skeleton loading states */
+      .MuiSkeleton-root { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important; }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
     
     <!-- Cache control to prevent stale content - improved for localhost -->

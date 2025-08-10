@@ -7,8 +7,6 @@ import '@fontsource/inter/600.css';
 import './index.css';
 import './styles/loading.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
-
 // Suppress ResizeObserver error that can occur with modern responsive components
 const resizeObserverErr = window.console.error;
 window.console.error = (...args: any[]) => {
@@ -27,7 +25,4 @@ root.render(
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+// Web vitals removed for production performance
