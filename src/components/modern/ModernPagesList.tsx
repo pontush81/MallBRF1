@@ -172,8 +172,16 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
     filteredPages: filteredPages.map(p => ({ id: p.id, title: p.title })),
     shouldRenderCards: viewMode === 'cards' && !isLoading,
     modernThemeExists: !!modernTheme,
-    modernThemeSpacing: modernTheme?.spacing?.[4]
+    modernThemeSpacing: modernTheme?.spacing?.[4],
+    viewMode,
+    isLoading,
+    pagesLength: pages.length
   });
+  
+  // Extra debugging for empty state
+  if (filteredPages.length === 0) {
+    console.log('🚨 No filtered pages to display!', { pages, searchTerm, isLoading });
+  }
 
   const toggleCardExpansion = (pageId: string) => {
     setExpandedCards(prev => 
