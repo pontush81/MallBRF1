@@ -379,7 +379,9 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
             {viewMode === 'cards' ? (
               // Card view - current layout
               <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
-                              {filteredPages.map((page) => {
+                {console.log('🚨 RENDERING CARDS! filteredPages:', filteredPages.length)}
+                              {filteredPages.map((page, index) => {
+                console.log(`🎯 Rendering card ${index + 1}:`, page.title);
                 return (
                     <Grid item xs={12} md={6} key={page.id} sx={{ display: 'flex' }}>
                       <Box
