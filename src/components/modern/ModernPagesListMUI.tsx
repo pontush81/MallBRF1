@@ -19,8 +19,7 @@ import {
 import { 
   Search as SearchIcon, 
   ViewModule as CardsIcon, 
-  List as ListIcon,
-  Schedule as ScheduleIcon
+  List as ListIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 
@@ -58,14 +57,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
     );
   }, [pages, searchTerm]);
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+
 
 
 
@@ -186,24 +178,12 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
                   fontWeight: 600,
                   color: 'text.primary',
                   flex: 1,
-                  mr: 3,
                   lineHeight: 1.2,
                   fontSize: { xs: '1.25rem', sm: '1.5rem' }
                 }}
               >
                 {page.title}
               </Typography>
-              <Chip
-                icon={<ScheduleIcon />}
-                label={formatDate(page.updatedAt)}
-                size="small"
-                variant="outlined"
-                color="primary"
-                sx={{ 
-                  fontSize: '0.75rem',
-                  flexShrink: 0
-                }}
-              />
             </Box>
 
             {/* Content Preview - Show first 150 characters when collapsed */}
