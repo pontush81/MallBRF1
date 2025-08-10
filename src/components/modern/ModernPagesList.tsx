@@ -1,4 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Accordion, 
+  AccordionSummary, 
+  AccordionDetails, 
+  Card, 
+  CardContent, 
+  Typography, 
+  Box, 
+  Chip,
+  useTheme,
+  useMediaQuery,
+  Fade
+} from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, Schedule as ScheduleIcon } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 
 interface ModernPagesListProps {
@@ -12,6 +26,8 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
   onPageClick,
   isLoading = false,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
