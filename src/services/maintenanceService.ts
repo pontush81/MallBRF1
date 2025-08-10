@@ -25,7 +25,17 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
     return null;
   }
 
-  return await response.json();
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    const text = await response.text();
+    if (text.trim()) {
+      return JSON.parse(text);
+    }
+  }
+
+  // Return empty object if no JSON content
+  return {};
 }
 
 export interface MaintenanceTask {
