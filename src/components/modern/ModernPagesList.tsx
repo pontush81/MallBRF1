@@ -37,9 +37,9 @@ interface ModernPagesListProps {
 // Modern hero section with gradient and visual interest
 const HeroSection = styled(Box)(({ theme }) => ({
   background: `linear-gradient(135deg, ${modernTheme.colors.secondary[50]} 0%, ${modernTheme.colors.white} 50%, ${modernTheme.colors.primary[50]} 100%)`,
-  padding: `${modernTheme.spacing[6]} 0 ${modernTheme.spacing[4]} 0`,
+  padding: `${modernTheme.spacing[6]} 0 ${modernTheme.spacing[2]} 0`,
   textAlign: 'center',
-  marginBottom: modernTheme.spacing[3],
+  marginBottom: modernTheme.spacing[1],
   position: 'relative',
   '&::before': {
     content: '""',
