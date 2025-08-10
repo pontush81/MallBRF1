@@ -36,6 +36,8 @@ interface GuestData {
   notes?: string;
   parking?: boolean;
   id?: string; // Lägg till id för att identifiera bokningen vid redigering/radering
+  startDateRaw?: string; // Raw ISO date for calculations
+  endDateRaw?: string;   // Raw ISO date for calculations
 }
 
 interface BookingStatusProps {
@@ -274,8 +276,14 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
   // Separate rendering function for mobile view
   const renderMobileBookings = () => {
     return guestData.map(guest => {
-      const weekNumber = parseInt(guest.week);
+      const weekNumber = parseInt(guest.week.replace('v.', ''));
       const bgcolor = getWeekStyle(weekNumber);
+      
+      // Calculate pricing info for mobile display
+      const nightlyRate = guest.parking ? 475 : 400; // 400 + 75 for parking
+      const totalNights = guest.endDateRaw && guest.startDateRaw ? 
+        Math.ceil((new Date(guest.endDateRaw).getTime() - new Date(guest.startDateRaw).getTime()) / (1000 * 60 * 60 * 24)) : 1;
+      const totalAmount = nightlyRate * totalNights;
       
       return (
         <Paper
@@ -283,93 +291,158 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
           variant="outlined"
           sx={{ 
             mb: 2, 
-            p: 2,
             borderLeft: '4px solid',
-            borderLeftColor: bgcolor === "transparent" ? 'grey.300' : bgcolor,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            borderLeftColor: bgcolor === "transparent" ? 'primary.light' : bgcolor,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            overflow: 'hidden'
           }}
         >
-          <Grid container spacing={1}>
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                  {isLoggedIn ? guest.name : "Gäst"}
-                </Typography>
-                {isAdmin && (
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    {onEditClick && (
-                      <IconButton 
-                        size="small" 
-                        color="primary" 
-                        onClick={() => onEditClick(guest)}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                    {onDeleteClick && (
-                      <IconButton 
-                        size="small" 
-                        color="error" 
-                        onClick={() => onDeleteClick(guest)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="body2" color="text.secondary">
-                Ankomst:
+          {/* Header with name and total amount - Most Important Info */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            p: 2,
+            pb: 1,
+            bgcolor: 'rgba(0, 0, 0, 0.02)'
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+              {isLoggedIn ? guest.name : "Gäst"}
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+              {totalAmount.toLocaleString()} kr
+            </Typography>
+          </Box>
+          
+          {/* Period and apartment - High Priority */}
+          <Box sx={{ px: 2, pb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body1" sx={{ fontWeight: 'medium', color: 'primary.dark' }}>
+                {guest.arrival} → {guest.departure}
               </Typography>
-              <Typography variant="body2">
-                {guest.arrival}
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="body2" color="text.secondary">
-                Avresa:
-              </Typography>
-              <Typography variant="body2">
-                {guest.departure}
-              </Typography>
-            </Grid>
-            
-            {guest.notes && (
+              <Chip 
+                size="small" 
+                label={`v.${weekNumber}`} 
+                variant="outlined"
+                sx={{ 
+                  fontWeight: 'medium',
+                  borderColor: 'primary.light'
+                }}
+              />
+            </Box>
+          </Box>
+          
+          {/* Main content area */}
+          <Box sx={{ px: 2, pb: 1 }}>
+            <Grid container spacing={1}>
+              {/* Week and parking chips */}
               <Grid item xs={12}>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Anteckningar:
-                </Typography>
-                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                  {guest.notes}
-                </Typography>
-              </Grid>
-            )}
-            
-            <Grid item xs={12}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mt: 1,
-                pt: 1,
-                borderTop: '1px solid rgba(0, 0, 0, 0.08)'
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Chip 
                     size="small" 
                     label={`v.${weekNumber}`} 
                     sx={{ 
-                      backgroundColor: bgcolor,
-                      minWidth: "40px"
+                      backgroundColor: bgcolor === "transparent" ? 'grey.200' : bgcolor,
+                      fontWeight: 'medium',
+                      minWidth: "45px"
                     }}
                   />
                   {renderParkingStatus(guest.parking)}
                 </Box>
-              </Box>
+              </Grid>
+              
+              {/* Pricing breakdown - Expandable details */}
+              <Grid item xs={12}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  py: 0.5,
+                  fontSize: '0.875rem'
+                }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {totalNights} nätter à {nightlyRate} kr
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {(nightlyRate * totalNights).toLocaleString()} kr
+                  </Typography>
+                </Box>
+                {guest.parking && (
+                  <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
+                    Inkl. parkering ({totalNights} × 75 kr)
+                  </Typography>
+                )}
+              </Grid>
+              
+              {/* Notes if present */}
+              {guest.notes && (
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    mt: 1, 
+                    p: 1, 
+                    bgcolor: 'rgba(0, 0, 0, 0.03)', 
+                    borderRadius: 1,
+                    borderLeft: '3px solid',
+                    borderLeftColor: 'info.light'
+                  }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      {guest.notes}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
-          </Grid>
+          </Box>
+          
+          {/* Action buttons - Touch friendly */}
+          {isAdmin && (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              gap: 1,
+              p: 2,
+              pt: 1,
+              borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+              bgcolor: 'rgba(0, 0, 0, 0.01)'
+            }}>
+              {onEditClick && (
+                <IconButton 
+                  size="medium" 
+                  color="primary" 
+                  onClick={() => onEditClick(guest)}
+                  sx={{ 
+                    minWidth: 44,
+                    minHeight: 44,
+                    bgcolor: 'primary.light',
+                    color: 'white',
+                    '&:hover': {
+                      bgcolor: 'primary.main'
+                    }
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
+              {onDeleteClick && (
+                <IconButton 
+                  size="medium" 
+                  color="error" 
+                  onClick={() => onDeleteClick(guest)}
+                  sx={{ 
+                    minWidth: 44,
+                    minHeight: 44,
+                    bgcolor: 'error.light',
+                    color: 'white',
+                    '&:hover': {
+                      bgcolor: 'error.main'
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Box>
+          )}
         </Paper>
       );
     });
@@ -473,30 +546,60 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
         <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2 }}>
           {renderMobileBookings()}
           
-          {/* Mobile summary */}
+          {/* Mobile summary - Enhanced for better readability */}
           <Box 
             sx={{ 
-              mt: 2, 
-              p: 2, 
-              bgcolor: 'rgba(0, 0, 0, 0.05)',
-              borderRadius: 1,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+              mt: 3, 
+              p: 3, 
+              bgcolor: 'primary.main',
+              color: 'white',
+              borderRadius: 2,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
             }}
           >
-            <Box>
-              <Typography variant="subtitle2">Totalt:</Typography>
-              <Typography variant="body2">{nights} nätter</Typography>
-              {parkingRevenue > 0 && (
-                <Typography variant="body2" color="success.main">
-                  {Math.round(parkingRevenue / 75)} p-nätter ({parkingRevenue.toLocaleString()} kr)
-                </Typography>
-              )}
-            </Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {revenue.toLocaleString()} kr
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
+              Månadssammanfattning
             </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    {nights}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Totalt nätter
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={6}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    {revenue.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Totala intäkter (kr)
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              {parkingRevenue > 0 && (
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    mt: 1, 
+                    p: 2, 
+                    bgcolor: 'rgba(255, 255, 255, 0.1)', 
+                    borderRadius: 1,
+                    textAlign: 'center'
+                  }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      Parkering: {Math.round(parkingRevenue / 75)} nätter • {parkingRevenue.toLocaleString()} kr
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
           </Box>
         </Box>
       </AccordionDetails>
