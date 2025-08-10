@@ -124,6 +124,9 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
       }
     }
 
+    // Remove any href attributes from anchor tags to prevent navigation
+    result = result.replace(/href\s*=\s*["'][^"']*["']/gi, '');
+    
     return result.trim();
   };
 
@@ -215,6 +218,13 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
             {isExpanded && (
               <Box
                 dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
+                onClick={(e) => {
+                  // Prevent anchor tags from navigating
+                  if ((e.target as HTMLElement).tagName === 'A') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
                 sx={{
                   mb: 3,
                   '& h1, & h2, & h3, & h4, & h5, & h6': {
@@ -241,6 +251,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
                   '& a': {
                     color: 'primary.main',
                     textDecoration: 'underline',
+                    cursor: 'pointer',
                     '&:hover': {
                       color: 'primary.dark'
                     }
