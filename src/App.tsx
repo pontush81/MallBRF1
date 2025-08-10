@@ -17,8 +17,7 @@ import { AuthProvider, useAuth } from './context/AuthContextNew';
 import { PageProvider } from './context/PageContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
 import ScrollToTop from './components/ScrollToTop';
-// Direct import for AuthCallback to avoid lazy loading issues
-import { AuthCallback } from './pages/auth/AuthCallback';
+// AuthCallback removed - OAuth now redirects to root and is handled automatically
 
 // Lazy loaded components
 import { 
@@ -216,13 +215,7 @@ function AppRoutes() {
         } />
         */}
         
-        {/* 🔐 OAuth Callback Route - BrowserRouter with hash fragment handling */}
-        <Route path="/auth/callback" element={
-          <>
-            {console.log('🚨 Route /auth/callback matched! Rendering AuthCallback...')}
-            <AuthCallback />
-          </>
-        } />
+        {/* OAuth callback removed - Supabase handles auth state automatically at root */}
         
         {/* Protected routes */}
         <Route path="/admin" element={
