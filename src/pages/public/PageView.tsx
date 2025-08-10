@@ -25,7 +25,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+// Removed remarkGfm to reduce bundle size
 import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { Page, FileInfo } from '../../types/Page';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
@@ -372,7 +372,7 @@ const PageView: React.FC = () => {
             typography: 'body1'
           }}>
             <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
+              // Removed remarkGfm for smaller bundle
               components={{
                 h1: ({ node, children, ref, ...props }) => <Typography variant="h1" component="h1" gutterBottom {...props}>{children}</Typography>,
                 h2: ({ node, children, ref, ...props }) => <Typography variant="h2" component="h2" gutterBottom {...props}>{children}</Typography>,

@@ -7,7 +7,7 @@ export const LazyAuthCallback = lazy(() => import('../pages/auth/AuthCallback').
 
 // Public Pages
 export const LazyPageView = lazy(() => import('../pages/public/PageView'));  
-export const LazyPublicPages = lazy(() => import('../pages/ModernPublicPages'));
+export const LazyPublicPages = lazy(() => import('../pages/PublicPages'));
 export const LazyBookingPage = lazy(() => 
   import('../pages/public/BookingPage').then(module => ({ default: module.default }))
 );

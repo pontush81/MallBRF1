@@ -14,7 +14,7 @@ import { modernTheme } from '../theme/modernTheme';
 import { usePages } from '../context/PageContext';
 import { Page } from '../types/Page';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+// Removed remarkGfm to reduce bundle size
 
 const ModernPublicPages: React.FC = (): JSX.Element => {
   const { pages, loading, error } = usePages();
@@ -250,7 +250,7 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
                   borderRadius: modernTheme.borderRadius.lg,
                 },
               }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown>
                   {selectedPage.content}
                 </ReactMarkdown>
               </Box>
