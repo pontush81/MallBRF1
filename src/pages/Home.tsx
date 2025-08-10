@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Box, Button, Grid, Container, Divider, Card, CardContent, Stack, Alert } from '@mui/material';
+// Optimized imports for Home page
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
+import Divider from '@mui/material/Divider';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextNew';
 

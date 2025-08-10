@@ -16,8 +16,8 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import pageServiceSupabase from '../services/pageServiceSupabase';
 import { Page } from '../types/Page';
-import ReactMarkdown from 'react-markdown';
-// Removed remarkGfm to reduce bundle size
+// Lazy load ReactMarkdown for better LCP
+const ReactMarkdown = React.lazy(() => import('react-markdown'));
 // File icons - only if files exist
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
@@ -246,8 +246,9 @@ const PublicPages: React.FC = (): JSX.Element => {
                   <Divider sx={{ mb: 3 }} />
                   
                   <Box sx={{ typography: 'body1' }}>
-                    <ReactMarkdown 
-                      // Removed remarkGfm for smaller bundle
+                    <React.Suspense fallback={<Skeleton variant="text" height={100} />}>
+                      <ReactMarkdown 
+                        // Removed remarkGfm for smaller bundle
                       components={{
                         h1: ({node, ...props}) => <h1 {...props} style={markdownStyles.h1} />,
                         h2: ({node, ...props}) => <h2 {...props} style={markdownStyles.h2} />,
@@ -268,6 +269,7 @@ const PublicPages: React.FC = (): JSX.Element => {
                     >
                       {page.content}
                     </ReactMarkdown>
+                    </React.Suspense>
                   </Box>
                 </Paper>
               ))}

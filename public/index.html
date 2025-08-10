@@ -14,9 +14,19 @@
     <link rel="preload" href="/static/css/main.107690db.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="/static/css/main.107690db.css"></noscript>
     
-    <!-- Preload critical fonts -->
+    <!-- Critical font preloading for LCP text optimization -->
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
+    
+    <!-- System font fallback for instant LCP text rendering -->
+    <style>
+      /* Critical: Instant text fallback for LCP */
+      input::placeholder, input::-webkit-input-placeholder {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+        font-display: swap !important;
+        font-weight: 400 !important;
+      }
+    </style>
     
     <!-- Critical CSS for ZERO CLS (Cumulative Layout Shift) -->
     <style>
@@ -62,6 +72,13 @@
         left: 0 !important;
         right: 0 !important;
         z-index: 1100 !important;
+      }
+      
+      /* CRITICAL: LCP input optimization */
+      .MuiInputBase-root, .MuiOutlinedInput-root, input {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+        contain: layout style paint !important;
+        will-change: contents !important;
       }
       
       /* CRITICAL: Main content spacing to prevent shifts */

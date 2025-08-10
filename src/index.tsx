@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Minimal font loading - only essential weights
+// Ultra-minimal font loading for LCP optimization
 import '@fontsource/inter/400.css';
-import '@fontsource/inter/600.css';
 import './index.css';
 import './styles/loading.css';
 import App from './App';
