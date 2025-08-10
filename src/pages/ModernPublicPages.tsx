@@ -21,6 +21,14 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedPage, setSelectedPage] = useState<Page | null>(null);
 
+  // DEBUG: Log the state values
+  console.log('🔍 ModernPublicPages state:', { 
+    pagesCount: pages.length, 
+    loading, 
+    error,
+    selectedPage: selectedPage?.title || null 
+  });
+
   // Handle scroll for scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
