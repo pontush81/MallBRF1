@@ -1,4 +1,4 @@
-import { executeWithRLS } from './supabaseClient';
+import { executeWithRLS, supabaseClient } from './supabaseClient';
 
 // Direct REST API helper to bypass hanging Supabase SDK
 const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
@@ -8,18 +8,29 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
   console.log(`🌐 Making ${method} request to:`, `${SUPABASE_URL}/rest/v1/${endpoint}`);
   console.log('📤 Request body:', body);
   
-  // Get user session token for RLS authentication
+  // Get user session token for RLS authentication using existing client
   let authToken = SUPABASE_ANON_KEY;
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.access_token) {
-      authToken = session.access_token;
-      console.log('🔐 Using user session token for RLS authentication');
+    // First try localStorage (faster and more reliable)
+    const storedSession = localStorage.getItem('mallbrf-supabase-auth');
+    if (storedSession) {
+      const sessionData = JSON.parse(storedSession);
+      if (sessionData?.access_token) {
+        authToken = sessionData.access_token;
+        console.log('🔐 Using user session token from localStorage for RLS authentication');
+      } else {
+        console.log('⚠️ No access_token in localStorage session');
+      }
     } else {
-      console.log('⚠️ No user session, using anon key');
+      // Fallback to Supabase client
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (session?.access_token) {
+        authToken = session.access_token;
+        console.log('🔐 Using user session token from Supabase client for RLS authentication');
+      } else {
+        console.log('⚠️ No user session, using anon key');
+      }
     }
   } catch (error) {
     console.log('⚠️ Failed to get session, using anon key:', error);
