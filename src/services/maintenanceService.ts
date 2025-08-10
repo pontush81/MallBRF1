@@ -8,12 +8,29 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
   console.log(`🌐 Making ${method} request to:`, `${SUPABASE_URL}/rest/v1/${endpoint}`);
   console.log('📤 Request body:', body);
   
+  // Get user session token for RLS authentication
+  let authToken = SUPABASE_ANON_KEY;
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.access_token) {
+      authToken = session.access_token;
+      console.log('🔐 Using user session token for RLS authentication');
+    } else {
+      console.log('⚠️ No user session, using anon key');
+    }
+  } catch (error) {
+    console.log('⚠️ Failed to get session, using anon key:', error);
+  }
+  
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
       method,
       headers: {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json',
         'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal'
       },
