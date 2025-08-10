@@ -335,12 +335,18 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
               onChange={(_, newMode) => newMode && setViewMode(newMode)}
               size="medium"
               sx={{
+                gap: 1, // Add spacing between buttons
                 '& .MuiToggleButton-root': {
                   borderRadius: 2,
                   px: 3,
                   py: 1,
                   textTransform: 'none',
-                  fontWeight: 500
+                  fontWeight: 500,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '&:not(:first-of-type)': {
+                    marginLeft: 0 // Override default negative margin
+                  }
                 }
               }}
             >
