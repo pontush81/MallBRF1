@@ -62,7 +62,7 @@ const HeroSection = styled(Box)(({ theme }) => ({
   },
 }));
 
-const SearchField = styled(TextField)(({ theme }) => ({
+const SearchField = styled(TextField)(() => ({
   '& .MuiOutlinedInput-root': {
     backgroundColor: modernTheme.colors.white,
     borderRadius: modernTheme.borderRadius.xl,
@@ -96,7 +96,7 @@ const SearchField = styled(TextField)(({ theme }) => ({
 
 
 
-const PageCard = styled(ModernCard)(({ theme }) => ({
+const PageCard = styled(Box)(() => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
@@ -164,6 +164,15 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
       page.content.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [pages, searchTerm]);
+
+  // DEBUG: Log filtered pages and rendering state
+  console.log('🔍 ModernPagesList render details:', {
+    filteredPagesCount: filteredPages.length,
+    filteredPages: filteredPages.map(p => ({ id: p.id, title: p.title })),
+    shouldRenderCards: viewMode === 'cards' && !isLoading,
+    modernThemeExists: !!modernTheme,
+    modernThemeSpacing: modernTheme?.spacing?.[4]
+  });
 
   const toggleCardExpansion = (pageId: string) => {
     setExpandedCards(prev => 
