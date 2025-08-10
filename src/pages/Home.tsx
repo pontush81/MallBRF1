@@ -62,7 +62,7 @@ const Home: React.FC = () => {
         </Box>
       )}
       
-      <Box sx={{ my: 6, textAlign: 'center' }}>
+      <Box sx={{ mt: { xs: 3, sm: 4, md: 5 }, mb: 6, textAlign: 'center' }}>
         <Typography 
           variant="h3" 
           component="h1" 
