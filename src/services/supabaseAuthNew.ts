@@ -44,17 +44,17 @@ export async function loginWithGoogle(): Promise<void> {
   let redirectTo: string;
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Development - redirect to root for OAuth simplicity
-    redirectTo = `${origin}/`;
+    // Development - redirect to auth callback
+    redirectTo = `${origin}/auth/callback`;
   } else if (hostname.includes('vercel.app')) {
     // Staging/Preview (Vercel deployments)
-    redirectTo = `${origin}/`;
+    redirectTo = `${origin}/auth/callback`;
   } else if (hostname.includes('stage.gulmaran.com')) {
     // Staging environment 
-    redirectTo = `${origin}/`;
+    redirectTo = `${origin}/auth/callback`;
   } else {
     // Production (custom domain)
-    redirectTo = `https://www.gulmaran.com/`;
+    redirectTo = `https://www.gulmaran.com/auth/callback`;
   }
     
   console.log('🔧 OAuth Environment:', { hostname, origin, redirectTo });

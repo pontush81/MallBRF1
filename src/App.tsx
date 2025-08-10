@@ -52,6 +52,9 @@ import {
   CookieConsentBanner
 } from './components/LazyComponents';
 
+// Import AuthCallback for OAuth handling
+import { AuthCallback } from './pages/auth/AuthCallback';
+
 // Import AuthTest for testing (disabled, uncomment for debugging)
 // import AuthTest from './AuthTest';
 // Import LazyAuthCallback for OAuth redirects
@@ -215,7 +218,8 @@ function AppRoutes() {
         } />
         */}
         
-        {/* OAuth callback removed - Supabase handles auth state automatically at root */}
+        {/* OAuth callback route for Supabase */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
         
         {/* Protected routes */}
         <Route path="/admin" element={
@@ -316,36 +320,12 @@ const clearBadCache = async () => {
   }
 };
 
-// KRITISK FIX: Automatisk redirect från localhost till production efter OAuth
-const handleOAuthRedirectFix = () => {
-  const currentUrl = window.location.href;
-  const isLocalhost = window.location.hostname === 'localhost';
-  const hasAuthToken = window.location.hash.includes('access_token=');
-  
-  if (isLocalhost && hasAuthToken) {
-    console.log('🚨 OAUTH REDIRECT FIX: Detected localhost with auth token');
-    console.log('🔄 Redirecting to production with token...');
-    
-    // Extrahera token från hash
-    const hash = window.location.hash;
-    const productionUrl = `https://www.gulmaran.com/${hash}`;
-    
-    // Redirecta till production med token
-    window.location.replace(productionUrl);
-    return true;
-  }
-  
-  return false;
-};
+// Removed temporary OAuth redirect fix - now using proper /auth/callback route
 
 function App() {
-  // KRITISK FIX: Hantera OAuth redirect från localhost först
+  // Rensa dålig cache vid app-start
   useEffect(() => {
-    const wasRedirected = handleOAuthRedirectFix();
-    if (!wasRedirected) {
-      // Bara rensa cache om vi inte redirectar
-      clearBadCache();
-    }
+    clearBadCache();
   }, []);
 
   return (
