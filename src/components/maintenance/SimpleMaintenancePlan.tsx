@@ -105,6 +105,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   const [projectDocuments, setProjectDocuments] = useState<any[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [clearingData, setClearingData] = useState(false);
+  const [allProjectDocuments, setAllProjectDocuments] = useState<{[key: string]: any[]}>({});
   const [sortBy, setSortBy] = useState<'due_date' | 'status' | 'name' | 'created_at'>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
@@ -143,6 +144,25 @@ const SimpleMaintenancePlan: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [selectedYear, currentYear]);
 
+  const loadAllProjectDocuments = async (projects: MajorProject[]) => {
+    const documentsMap: {[key: string]: any[]} = {};
+    
+    // Ladda dokument för alla projekt parallellt
+    await Promise.all(
+      projects.map(async (project) => {
+        try {
+          const docs = await getProjectDocuments(project.id);
+          documentsMap[project.id] = docs;
+        } catch (error) {
+          console.error(`Error loading documents for project ${project.id}:`, error);
+          documentsMap[project.id] = [];
+        }
+      })
+    );
+    
+    setAllProjectDocuments(documentsMap);
+  };
+
   // Ladda årets underhållslista - ENKEL VERSION utan on-demand generering
   useEffect(() => {
     loadMaintenanceData();
@@ -173,6 +193,9 @@ const SimpleMaintenancePlan: React.FC = () => {
       ]);
       setMajorProjects(projects);
       setUsers(usersData);
+      
+      // Ladda dokument för alla projekt
+      await loadAllProjectDocuments(projects);
       
     } catch (err) {
       setError('Kunde inte ladda underhållsdata. Försök igen senare.');
@@ -1189,6 +1212,13 @@ const SimpleMaintenancePlan: React.FC = () => {
       setProjectDocuments(updatedDocs);
       console.log('📋 After update - updatedDocs.length:', updatedDocs.length);
       
+      // Uppdatera även allProjectDocuments för huvudlistan
+      setAllProjectDocuments(prev => ({
+        ...prev,
+        [editProject.id!]: updatedDocs
+      }));
+      console.log('📋 Updated allProjectDocuments for project:', editProject.id);
+      
       // Rensa input
       e.target.value = '';
       
@@ -1973,9 +2003,11 @@ const SimpleMaintenancePlan: React.FC = () => {
                                   <> • Entreprenör: {project.contractor}</>
                                 )}
                               </Typography>
-                              <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                                                            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
                                 Status: {getProjectStatusLabel(project.status)}
-    
+                                {allProjectDocuments[project.id] && allProjectDocuments[project.id].length > 0 && (
+                                  <> • 📎 {allProjectDocuments[project.id].length} dokument</>
+                                )}
                               </Typography>
                             </Box>
                           }
@@ -2687,11 +2719,6 @@ const SimpleMaintenancePlan: React.FC = () => {
               </label>
             </Box>
 
-            {/* DEBUG: Show document count */}
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              📋 Dokument: {projectDocuments.length} st
-            </Typography>
-            
             {projectDocuments.length > 0 && (
               <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1, mb: 2 }}>
                 {projectDocuments.map((doc) => (
