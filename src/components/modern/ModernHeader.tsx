@@ -223,20 +223,18 @@ const ModernHeader: React.FC = memo(() => {
   };
 
   const mobileDrawer = (
-    <Box sx={{ 
-      width: 280,
-      height: '100%',
-      background: modernTheme.colors.white,
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* Fixed Header */}
-      <Box sx={{ 
-        padding: modernTheme.spacing[3],
-        background: modernTheme.gradients.header,
-        color: modernTheme.colors.primary[800],
-        flexShrink: 0, // Don't shrink
-      }}>
+    <>
+      {/* Header (fixed at top) - flex: 0 0 auto */}
+      <Box
+        component="header"
+        sx={{
+          flex: '0 0 auto',
+          padding: modernTheme.spacing[3],
+          background: modernTheme.gradients.header,
+          color: modernTheme.colors.primary[800],
+          borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
+        }}
+      >
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -281,27 +279,33 @@ const ModernHeader: React.FC = memo(() => {
         </Typography>
       </Box>
 
-      {/* Scrollable Navigation Content */}
-      <Box sx={{ 
-        flexGrow: 1,
-        overflowY: 'auto', // CRITICAL: Make scrollable
-        paddingTop: modernTheme.spacing[2],
-      }}>
+      {/* Middle scrollable content - flex: 1 1 auto */}
+      <Box
+        component="nav"
+        sx={{
+          flex: '1 1 auto',
+          minHeight: 0, // Critical for overflow to work inside flex container
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch', // Better mobile scrolling
+          paddingTop: modernTheme.spacing[2],
+        }}
+      >
         <List>
           {allNavigationItems.map((item) => renderNavigationItem(item, true))}
         </List>
       </Box>
 
-      {/* STICKY Footer - Always Visible User Section */}
-      <Box sx={{ 
-        padding: modernTheme.spacing[3],
-        borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
-        backgroundColor: modernTheme.colors.white,
-        flexShrink: 0, // Don't shrink - always visible
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 1,
-      }}>
+      {/* Footer (fixed at bottom) - flex: 0 0 auto */}
+      <Box
+        component="footer"
+        sx={{
+          flex: '0 0 auto',
+          padding: modernTheme.spacing[3],
+          borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
+          backgroundColor: modernTheme.colors.white,
+          paddingBottom: `calc(${modernTheme.spacing[3]} + env(safe-area-inset-bottom))`, // iOS safe area
+        }}
+      >
         {isLoggedIn && currentUser ? (
           <Box>
             {/* User Info */}
@@ -353,7 +357,7 @@ const ModernHeader: React.FC = memo(() => {
                 )}
               </Box>
             </Box>
-            {/* PROMINENT Logout Button - Always Visible */}
+            {/* ALWAYS VISIBLE Logout Button */}
             <Button
               fullWidth
               variant="outlined"
@@ -365,8 +369,8 @@ const ModernHeader: React.FC = memo(() => {
                 borderColor: modernTheme.colors.gray[300],
                 color: modernTheme.colors.gray[700],
                 fontSize: modernTheme.typography.fontSize.sm,
-                py: 1.5, // Good touch target
-                minHeight: '44px', // Accessibility compliant
+                py: 1.5,
+                minHeight: '44px', // Accessibility compliant touch target
                 '&:hover': {
                   borderColor: modernTheme.colors.gray[400],
                   backgroundColor: modernTheme.colors.gray[50],
@@ -393,8 +397,8 @@ const ModernHeader: React.FC = memo(() => {
               boxShadow: modernTheme.shadows.md,
               color: modernTheme.colors.white,
               fontSize: modernTheme.typography.fontSize.sm,
-              py: 1.5, // Good touch target
-              minHeight: '44px', // Accessibility compliant
+              py: 1.5,
+              minHeight: '44px', // Accessibility compliant touch target
               '&:hover': {
                 boxShadow: modernTheme.shadows.lg,
               },
@@ -408,7 +412,7 @@ const ModernHeader: React.FC = memo(() => {
           </Button>
         )}
       </Box>
-    </Box>
+    </>
   );
 
   return (
@@ -658,14 +662,19 @@ const ModernHeader: React.FC = memo(() => {
         ModalProps={{
           keepMounted: true, // Better mobile performance
         }}
-        sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
+        PaperProps={{
+          sx: {
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100dvh', // Dynamic viewport height for mobile
             width: 280,
+            background: modernTheme.colors.white,
             border: 'none',
             boxShadow: modernTheme.shadows['2xl'],
           },
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
         }}
       >
         {mobileDrawer}
