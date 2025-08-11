@@ -166,18 +166,25 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
               '& .MuiOutlinedInput-root': {
                 borderRadius: 3,
                 backgroundColor: 'background.paper',
+                border: 'none !important',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
                 '& > fieldset': {
-                  borderColor: 'transparent',
+                  border: 'none !important',
+                  borderColor: 'transparent !important',
                 },
                 '&:hover': {
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
                   '& > fieldset': {
-                    borderColor: 'transparent',
+                    border: 'none !important',
+                    borderColor: 'transparent !important',
                   }
                 },
                 '&.Mui-focused': {
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   '& > fieldset': {
-                    borderColor: 'transparent',
-                    borderWidth: '1px',
+                    border: 'none !important',
+                    borderColor: 'transparent !important',
+                    borderWidth: '0px !important',
                   }
                 }
               }
