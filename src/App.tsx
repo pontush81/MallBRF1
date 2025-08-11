@@ -63,6 +63,8 @@ import { PageLoading } from './components/common/StandardLoading';
 import { Button } from '@mui/material';
 import { initMobileOptimizations } from './utils/mobileOptimizations';
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Loading component with timeout protection
 const LoadingFallback = () => {
@@ -337,6 +339,8 @@ function App() {
           <PageProvider>
             <MaintenanceProvider>
               <AppRoutes />
+              <Analytics />
+              <SpeedInsights />
             </MaintenanceProvider>
           </PageProvider>
         </AuthProvider>
