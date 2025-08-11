@@ -9,7 +9,7 @@ import {
 import { StandardLoading } from '../components/common/StandardLoading';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useNavigate } from 'react-router-dom';
-import ModernPagesListSimple from '../components/modern/ModernPagesListSimple';
+import ModernPagesListProfessional from '../components/modern/ModernPagesListProfessional';
 import { modernTheme } from '../theme/modernTheme';
 import { usePages } from '../context/PageContext';
 import { Page } from '../types/Page';
@@ -114,7 +114,7 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
   // Show pages list (default view)
   return (
     <Box>
-      <ModernPagesListSimple 
+      <ModernPagesListProfessional 
         pages={pages}
         onPageClick={handlePageClick}
         isLoading={loading && pages.length === 0}

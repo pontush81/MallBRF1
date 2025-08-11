@@ -42,134 +42,102 @@ const Footer: React.FC = () => {
       component="footer"
       sx={{
         mt: 'auto',
-        bgcolor: 'grey.100',
+        bgcolor: 'grey.50',
         borderTop: 1,
         borderColor: 'divider',
-        py: 4,
+        py: 2, // Reduced from 4 to 2
         px: 2
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
-          {/* Organization Info */}
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              BRF Gulmåran
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Bostadsrättsförening Gulmåran
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Org.nr: 769639-5420
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Köpmansgatan 80
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              269 31 Båstad
-            </Typography>
-          </Grid>
-
-          {/* Legal Links */}
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" gutterBottom>
-              Rättsligt
-            </Typography>
-            {legalLinks.map((link) => (
-              <Box key={link.title} sx={{ mb: 1 }}>
-                <Link
-                  component={RouterLink}
-                  to={link.path}
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ 
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
-                  }}
-                >
-                  {link.title}
-                </Link>
-              </Box>
-            ))}
-            <Box sx={{ mb: 1 }}>
-              <Link
-                component="button"
-                variant="body2"
-                color="text.secondary"
-                onClick={handleCookieSettings}
-                sx={{ 
-                  textDecoration: 'none',
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' }
-                }}
-              >
-                Cookie-inställningar
-              </Link>
-            </Box>
-          </Grid>
-
-          {/* Info Links */}
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" gutterBottom>
-              Information
-            </Typography>
-            {infoLinks.map((link) => (
-              <Box key={link.title} sx={{ mb: 1 }}>
-                <Link
-                  component={RouterLink}
-                  to={link.path}
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ 
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
-                  }}
-                >
-                  {link.title}
-                </Link>
-              </Box>
-            ))}
-          </Grid>
-        </Grid>
-
-        <Divider sx={{ my: 3 }} />
-
-        {/* Bottom Section */}
+        {/* Compact Single Row Layout */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
             justifyContent: 'space-between',
             alignItems: isMobile ? 'flex-start' : 'center',
-            gap: isMobile ? 2 : 0
+            gap: isMobile ? 2 : 3
           }}
         >
-          <Typography variant="body2" color="text.secondary">
-            © {currentYear} BRF Gulmåran. Alla rättigheter förbehållna.
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary">
-            GDPR-compliant • Säker datahantering
-          </Typography>
+          {/* Company Info - Compact */}
+          <Box>
+            <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+              BRF Gulmåran
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Org.nr: 769639-5420 • Köpmansgatan 80, 269 31 Båstad
+            </Typography>
+          </Box>
+
+          {/* Essential Links - Horizontal */}
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 0.5 : 2,
+              alignItems: isMobile ? 'flex-start' : 'center'
+            }}
+          >
+            <Link
+              component={RouterLink}
+              to="/about"
+              variant="caption"
+              color="text.secondary"
+              sx={{ 
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Om föreningen
+            </Link>
+            <Link
+              component={RouterLink}
+              to="/contact"
+              variant="caption"
+              color="text.secondary"
+              sx={{ 
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Kontakt
+            </Link>
+            <Link
+              component={RouterLink}
+              to="/privacy-policy"
+              variant="caption"
+              color="text.secondary"
+              sx={{ 
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Integritet
+            </Link>
+            <Link
+              component="button"
+              variant="caption"
+              color="text.secondary"
+              onClick={handleCookieSettings}
+              sx={{ 
+                textDecoration: 'none',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Cookies
+            </Link>
+          </Box>
         </Box>
 
-        {/* Compliance Note */}
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
+        {/* Copyright - Minimal */}
+        <Box sx={{ mt: 1.5, textAlign: 'center' }}>
           <Typography variant="caption" color="text.secondary">
-            Denna webbplats följer GDPR och svensk dataskyddslagstiftning. 
-            {' '}
-            <Link
-              href="https://www.imy.se"
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="caption"
-              color="primary"
-            >
-              Klaga till IMY
-            </Link>
+            © {currentYear} BRF Gulmåran • GDPR-compliant
           </Typography>
         </Box>
       </Container>

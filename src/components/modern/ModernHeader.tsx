@@ -230,9 +230,9 @@ const ModernHeader: React.FC = memo(() => {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Mobile Header */}
+      {/* Compact Mobile Header */}
       <Box sx={{ 
-        padding: modernTheme.spacing[4],
+        padding: modernTheme.spacing[3], // Reduced from 4 to 3
         background: modernTheme.gradients.header,
         color: modernTheme.colors.primary[800],
       }}>
@@ -240,13 +240,13 @@ const ModernHeader: React.FC = memo(() => {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: modernTheme.spacing[2],
+          marginBottom: modernTheme.spacing[1], // Reduced from 2 to 1
         }}>
           <Typography
             variant="h6"
             sx={{
               fontWeight: modernTheme.typography.fontWeight.extrabold,
-              fontSize: modernTheme.typography.fontSize.lg,
+              fontSize: modernTheme.typography.fontSize.base, // Reduced size
               background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
@@ -257,6 +257,7 @@ const ModernHeader: React.FC = memo(() => {
           </Typography>
           <IconButton
             onClick={handleDrawerToggle}
+            size="small" // Made smaller
             sx={{ 
               color: modernTheme.colors.white,
               '&:focus': {
@@ -270,55 +271,60 @@ const ModernHeader: React.FC = memo(() => {
           </IconButton>
         </Box>
         <Typography
-          variant="body2"
+          variant="caption" // Reduced from body2 to caption
           sx={{
             opacity: 0.9,
-            fontSize: modernTheme.typography.fontSize.sm,
+            fontSize: modernTheme.typography.fontSize.xs, // Smaller text
           }}
         >
           Bostadsrättsförening
         </Typography>
       </Box>
 
-      {/* Navigation Items */}
-      <Box sx={{ flexGrow: 1, paddingTop: modernTheme.spacing[4] }}>
-        <List>
+      {/* Navigation Items - Compact */}
+      <Box sx={{ flexGrow: 1, paddingTop: modernTheme.spacing[2] }}> {/* Reduced padding */}
+        <List sx={{ py: 0 }}> {/* Remove default padding */}
           {allNavigationItems.map((item) => renderNavigationItem(item, true))}
         </List>
       </Box>
 
-      {/* Mobile User Section */}
+      {/* Compact Mobile User Section */}
       <Box sx={{ 
-        padding: modernTheme.spacing[4],
+        padding: modernTheme.spacing[3], // Reduced from 4 to 3
         borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
       }}>
         {isLoggedIn && currentUser ? (
           <Box>
+            {/* Compact User Info */}
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: modernTheme.spacing[3],
-              marginBottom: modernTheme.spacing[3],
+              gap: modernTheme.spacing[2], // Reduced gap
+              marginBottom: modernTheme.spacing[2], // Reduced margin
             }}>
               <Avatar
                 sx={{
                   backgroundColor: modernTheme.colors.primary[500],
                   color: modernTheme.colors.white,
-                  width: 40,
-                  height: 40,
-                  fontSize: modernTheme.typography.fontSize.lg,
+                  width: 32, // Reduced from 40
+                  height: 32, // Reduced from 40
+                  fontSize: modernTheme.typography.fontSize.sm, // Smaller font
                   fontWeight: modernTheme.typography.fontWeight.semibold,
                 }}
               >
                 {getUserInitials(currentUser)}
               </Avatar>
-              <Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}> {/* Prevent overflow */}
                 <Typography
-                  variant="body2"
+                  variant="caption" // Reduced from body2
                   sx={{
                     fontWeight: modernTheme.typography.fontWeight.semibold,
                     color: modernTheme.colors.gray[900],
-                    fontSize: modernTheme.typography.fontSize.sm,
+                    fontSize: modernTheme.typography.fontSize.xs, // Smaller
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {currentUser.email || 'Användare'}
@@ -331,22 +337,27 @@ const ModernHeader: React.FC = memo(() => {
                       backgroundColor: modernTheme.colors.primary[100],
                       color: modernTheme.colors.primary[700],
                       fontSize: modernTheme.typography.fontSize.xs,
-                      height: '20px',
+                      height: '16px', // Smaller chip
+                      mt: 0.5,
                     }}
                   />
                 )}
               </Box>
             </Box>
+            {/* Compact Logout Button */}
             <Button
               fullWidth
               variant="outlined"
-              startIcon={<LogoutIcon />}
+              size="small" // Smaller button
+              startIcon={<LogoutIcon fontSize="small" />}
               onClick={handleLogout}
               sx={{
                 borderRadius: modernTheme.borderRadius.lg,
                 textTransform: 'none',
                 borderColor: modernTheme.colors.gray[300],
                 color: modernTheme.colors.gray[700],
+                fontSize: modernTheme.typography.fontSize.xs, // Smaller text
+                py: 1, // Reduced padding
                 '&:hover': {
                   borderColor: modernTheme.colors.gray[400],
                   backgroundColor: modernTheme.colors.gray[50],
@@ -364,7 +375,8 @@ const ModernHeader: React.FC = memo(() => {
           <Button
             fullWidth
             variant="contained"
-            startIcon={<LoginIcon />}
+            size="small" // Smaller button
+            startIcon={<LoginIcon fontSize="small" />}
             onClick={() => handleNavigation('/login')}
             sx={{
               background: modernTheme.gradients.accent,
@@ -372,6 +384,8 @@ const ModernHeader: React.FC = memo(() => {
               textTransform: 'none',
               boxShadow: modernTheme.shadows.md,
               color: modernTheme.colors.white,
+              fontSize: modernTheme.typography.fontSize.xs, // Smaller text
+              py: 1, // Reduced padding
               '&:hover': {
                 boxShadow: modernTheme.shadows.lg,
               },
