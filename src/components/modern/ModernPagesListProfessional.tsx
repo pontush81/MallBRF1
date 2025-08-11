@@ -138,18 +138,8 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
     <Container maxWidth="lg" sx={{ pb: 4 }}>
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
-        {/* Professional Header */}
-        <Paper 
-          elevation={0}
-          sx={{ 
-            p: 4, 
-            mb: 4, 
-            borderRadius: 3,
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}15 0%, ${theme.palette.secondary.main}08 100%)`,
-            border: `1px solid ${theme.palette.divider}`
-          }}
-        >
-          {/* Professional Search Bar */}
+        {/* Clean Search Bar */}
+        <Box sx={{ mb: 4 }}>
           <TextField
             placeholder="Sök..."
             value={searchTerm}
@@ -195,7 +185,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
               ),
             }}
           />
-        </Paper>
+        </Box>
 
         {/* Results count */}
         {searchTerm && (
