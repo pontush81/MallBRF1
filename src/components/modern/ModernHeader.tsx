@@ -230,9 +230,9 @@ const ModernHeader: React.FC = memo(() => {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Compact Mobile Header */}
+      {/* Ultra Compact Mobile Header */}
       <Box sx={{ 
-        padding: modernTheme.spacing[3], // Reduced from 4 to 3
+        padding: modernTheme.spacing[2], // Further reduced from 3 to 2
         background: modernTheme.gradients.header,
         color: modernTheme.colors.primary[800],
       }}>
@@ -240,13 +240,13 @@ const ModernHeader: React.FC = memo(() => {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: modernTheme.spacing[1], // Reduced from 2 to 1
+          marginBottom: modernTheme.spacing[0.5], // Further reduced
         }}>
           <Typography
             variant="h6"
             sx={{
               fontWeight: modernTheme.typography.fontWeight.extrabold,
-              fontSize: modernTheme.typography.fontSize.base, // Reduced size
+              fontSize: modernTheme.typography.fontSize.sm, // Even smaller
               background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
@@ -257,9 +257,10 @@ const ModernHeader: React.FC = memo(() => {
           </Typography>
           <IconButton
             onClick={handleDrawerToggle}
-            size="small" // Made smaller
+            size="small"
             sx={{ 
               color: modernTheme.colors.white,
+              p: 0.5, // Smaller padding
               '&:focus': {
                 outline: `2px solid ${modernTheme.colors.white}40`,
                 outlineOffset: '2px',
@@ -267,48 +268,49 @@ const ModernHeader: React.FC = memo(() => {
             }}
             aria-label="Stäng meny"
           >
-            <CloseIcon />
+            <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
         <Typography
-          variant="caption" // Reduced from body2 to caption
+          variant="caption"
           sx={{
-            opacity: 0.9,
-            fontSize: modernTheme.typography.fontSize.xs, // Smaller text
+            opacity: 0.8,
+            fontSize: '10px', // Very small text
+            lineHeight: 1,
           }}
         >
           Bostadsrättsförening
         </Typography>
       </Box>
 
-      {/* Navigation Items - Compact */}
-      <Box sx={{ flexGrow: 1, paddingTop: modernTheme.spacing[2] }}> {/* Reduced padding */}
-        <List sx={{ py: 0 }}> {/* Remove default padding */}
+      {/* Navigation Items - Ultra Compact */}
+      <Box sx={{ flexGrow: 1, paddingTop: modernTheme.spacing[1] }}> {/* Further reduced */}
+        <List sx={{ py: 0, '& .MuiListItem-root': { py: 0.5 } }}> {/* Even smaller list items */}
           {allNavigationItems.map((item) => renderNavigationItem(item, true))}
         </List>
       </Box>
 
-      {/* Compact Mobile User Section */}
+      {/* Ultra Compact Mobile User Section */}
       <Box sx={{ 
-        padding: modernTheme.spacing[3], // Reduced from 4 to 3
+        padding: modernTheme.spacing[2], // Further reduced from 3 to 2
         borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
       }}>
         {isLoggedIn && currentUser ? (
           <Box>
-            {/* Compact User Info */}
+            {/* Ultra Compact User Info */}
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: modernTheme.spacing[2], // Reduced gap
-              marginBottom: modernTheme.spacing[2], // Reduced margin
+              gap: modernTheme.spacing[1.5], // Further reduced gap
+              marginBottom: modernTheme.spacing[1.5], // Further reduced margin
             }}>
               <Avatar
                 sx={{
                   backgroundColor: modernTheme.colors.primary[500],
                   color: modernTheme.colors.white,
-                  width: 32, // Reduced from 40
-                  height: 32, // Reduced from 40
-                  fontSize: modernTheme.typography.fontSize.sm, // Smaller font
+                  width: 28, // Further reduced from 32
+                  height: 28, // Further reduced from 32
+                  fontSize: '11px', // Very small font
                   fontWeight: modernTheme.typography.fontWeight.semibold,
                 }}
               >
@@ -316,15 +318,16 @@ const ModernHeader: React.FC = memo(() => {
               </Avatar>
               <Box sx={{ flex: 1, minWidth: 0 }}> {/* Prevent overflow */}
                 <Typography
-                  variant="caption" // Reduced from body2
+                  variant="caption"
                   sx={{
                     fontWeight: modernTheme.typography.fontWeight.semibold,
                     color: modernTheme.colors.gray[900],
-                    fontSize: modernTheme.typography.fontSize.xs, // Smaller
+                    fontSize: '11px', // Very small
                     display: 'block',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    lineHeight: 1.2,
                   }}
                 >
                   {currentUser.email || 'Användare'}
@@ -336,28 +339,32 @@ const ModernHeader: React.FC = memo(() => {
                     sx={{
                       backgroundColor: modernTheme.colors.primary[100],
                       color: modernTheme.colors.primary[700],
-                      fontSize: modernTheme.typography.fontSize.xs,
-                      height: '16px', // Smaller chip
-                      mt: 0.5,
+                      fontSize: '9px', // Very small
+                      height: '14px', // Very small chip
+                      mt: 0.25,
+                      '& .MuiChip-label': {
+                        px: 0.5,
+                      }
                     }}
                   />
                 )}
               </Box>
             </Box>
-            {/* Compact Logout Button */}
+            {/* Ultra Compact Logout Button */}
             <Button
               fullWidth
               variant="outlined"
-              size="small" // Smaller button
-              startIcon={<LogoutIcon fontSize="small" />}
+              size="small"
+              startIcon={<LogoutIcon sx={{ fontSize: '14px' }} />}
               onClick={handleLogout}
               sx={{
                 borderRadius: modernTheme.borderRadius.lg,
                 textTransform: 'none',
                 borderColor: modernTheme.colors.gray[300],
                 color: modernTheme.colors.gray[700],
-                fontSize: modernTheme.typography.fontSize.xs, // Smaller text
-                py: 1, // Reduced padding
+                fontSize: '11px', // Very small text
+                py: 0.75, // Further reduced padding
+                minHeight: '32px', // Set minimum height
                 '&:hover': {
                   borderColor: modernTheme.colors.gray[400],
                   backgroundColor: modernTheme.colors.gray[50],
@@ -375,8 +382,8 @@ const ModernHeader: React.FC = memo(() => {
           <Button
             fullWidth
             variant="contained"
-            size="small" // Smaller button
-            startIcon={<LoginIcon fontSize="small" />}
+            size="small"
+            startIcon={<LoginIcon sx={{ fontSize: '14px' }} />}
             onClick={() => handleNavigation('/login')}
             sx={{
               background: modernTheme.gradients.accent,
@@ -384,8 +391,9 @@ const ModernHeader: React.FC = memo(() => {
               textTransform: 'none',
               boxShadow: modernTheme.shadows.md,
               color: modernTheme.colors.white,
-              fontSize: modernTheme.typography.fontSize.xs, // Smaller text
-              py: 1, // Reduced padding
+              fontSize: '11px', // Very small text
+              py: 0.75, // Further reduced padding
+              minHeight: '32px', // Set minimum height
               '&:hover': {
                 boxShadow: modernTheme.shadows.lg,
               },
