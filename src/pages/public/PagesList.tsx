@@ -7,13 +7,12 @@ import {
   Grid, 
   Card, 
   CardContent, 
-  CardActions, 
-  Button, 
   Alert,
-  Divider
+  Divider,
+  Chip,
+  Stack
 } from '@mui/material';
 import { StandardLoading } from '../../components/common/StandardLoading';
-import { Visibility as ViewIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Page } from '../../types/Page';
@@ -48,9 +47,35 @@ const PublicPagesList: React.FC = () => {
     navigate(`/page/${slug}`);
   };
 
-  // Funktion för att skapa en kort sammanfattning av innehållet
-  const getSummary = (content: string, maxLength: number = 150) => {
-    // Ta bort markdown-formatering och begränsa längden
+  // Check if page is a maintenance plan (needs special treatment)
+  const isMaintenancePlan = (page: Page) => {
+    return page.title.toLowerCase().includes('skötselplan') || 
+           page.title.toLowerCase().includes('underhåll');
+  };
+
+  // Funktion för att skapa en intelligent sammanfattning baserat på innehåll
+  const getSummary = (page: Page, maxLength: number = 150) => {
+    const { title, content } = page;
+    
+    // Special handling för Skötselplan - skapa smart sammanfattning med metrics
+    if (title.toLowerCase().includes('skötselplan') || title.toLowerCase().includes('underhåll')) {
+      // Count sections and tasks from content
+      const sections = (content.match(/###\s+[^#\n]+/g) || []).length;
+      const tasks = (content.match(/^-\s+/gm) || []).length;
+      
+      return `${sections} områden • ${tasks} uppgifter • Säsongsbaserade scheman för boende (B) och BRF. Nästa: Kontrollera hängrännor och fasadbelysning.`;
+    }
+    
+    // Special handling för andra långa strukturerade dokument
+    if (content.length > 1000 && content.includes('###')) {
+      const sections = content.match(/###\s+([^\n]+)/g);
+      if (sections && sections.length > 3) {
+        const sectionNames = sections.slice(0, 3).map(s => s.replace(/###\s+/, ''));
+        return `Omfattande guide som täcker: ${sectionNames.join(', ')} och mer.`;
+      }
+    }
+    
+    // Standard sammanfattning för kortare innehåll
     const plainText = content
       .replace(/#+\s+/g, '') // Remove headings
       .replace(/\*\*|\*/g, '') // Remove bold and italic
@@ -112,26 +137,58 @@ const PublicPagesList: React.FC = () => {
         
         <Grid container spacing={3}>
           {pages.map(page => (
-            <Grid item xs={12} md={6} lg={4} key={page.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1 }}>
+            <Grid item xs={12} md={6} key={page.id}>
+              <Card 
+                sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: (theme) => theme.shadows[8],
+                  }
+                }}
+                onClick={() => handleViewPage(page.slug)}
+              >
+                <CardContent sx={{ 
+                  flexGrow: 1, 
+                  pb: 3,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: '200px',
+                  maxHeight: '280px'
+                }}>
                   <Typography variant="h5" component="h2" gutterBottom>
                     {page.title}
                   </Typography>
+                  
+                  {/* Special chips for maintenance plan */}
+                  {isMaintenancePlan(page) && (
+                    <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                      <Chip label="Utomhus" size="small" color="success" variant="outlined" />
+                      <Chip label="Inomhus" size="small" color="info" variant="outlined" />
+                      <Chip label="Säsong" size="small" color="warning" variant="outlined" />
+                    </Stack>
+                  )}
+                  
                   <Divider sx={{ mb: 2 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {getSummary(page.content)}
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      flexGrow: 1,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: isMaintenancePlan(page) ? 3 : 4,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: 1.5
+                    }}
+                  >
+                    {getSummary(page)}
                   </Typography>
                 </CardContent>
-                <CardActions>
-                  <Button 
-                    size="small" 
-                    startIcon={<ViewIcon />}
-                    onClick={() => handleViewPage(page.slug)}
-                  >
-                    Läs mer
-                  </Button>
-                </CardActions>
               </Card>
             </Grid>
           ))}

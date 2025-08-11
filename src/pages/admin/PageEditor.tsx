@@ -33,6 +33,7 @@ import {
   Image as ImageIcon
 } from '@mui/icons-material';
 import 'easymde/dist/easymde.min.css';
+import '../../styles/PageEditor.css';
 
 import { Page, FileInfo } from '../../types/Page';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
@@ -139,13 +140,39 @@ const PageEditor: React.FC = () => {
 
   // Memoizera SimpleMDE-konfigurationen för att förhindra omrenderings-problem
   const editorOptions = useMemo(() => {
-    return {
+    console.log('🔧 Creating SimpleMDE editor options...');
+    const options = {
       spellChecker: false,
       placeholder: 'Skriv innehåll här...',
-      status: ['lines', 'words'],
-      minHeight: '300px',
-      autofocus: false
-    };
+      status: ['lines', 'words', 'cursor'] as any,
+      autofocus: false,
+      autoDownloadFontAwesome: true,
+      toolbar: [
+        'bold',
+        'italic',
+        'heading-1',
+        'heading-2', 
+        'heading-3',
+        '|',
+        'quote',
+        'unordered-list',
+        'ordered-list',
+        '|',
+        'link',
+        'image',
+        'table',
+        '|',
+        'preview',
+        'side-by-side',
+        'fullscreen',
+        '|',
+        'guide'
+      ] as any
+    } as any;
+    
+    console.log('🔧 SimpleMDE options created:', options);
+    console.log('🔧 Toolbar config:', options.toolbar);
+    return options;
   }, []);
 
   // Hantera SimpleMDE redigerarens ändringar

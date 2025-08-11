@@ -40,6 +40,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
+
   // Tvinga kortvy på mobil
   useEffect(() => {
     if (isMobile) {
@@ -60,6 +61,72 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
 
 
 
+
+  // Determine if a page should allow expansion or navigate directly
+  const shouldAllowExpansion = (page: Page) => {
+    const { content } = page;
+    
+    // Don't expand if it's a maintenance plan (too complex)
+    if (page.title.toLowerCase().includes('skötselplan') || 
+        page.title.toLowerCase().includes('underhåll')) {
+      return false;
+    }
+    
+    // Don't expand if content is too long
+    if (content.length > 800) {
+      return false;
+    }
+    
+    // Don't expand if it has many sections (more than 3 ### headers)
+    const sections = (content.match(/###\s+[^#\n]+/g) || []).length;
+    if (sections > 3) {
+      return false;
+    }
+    
+    // Don't expand if it has many tasks/bullet points (more than 10)
+    const tasks = (content.match(/^-\s+/gm) || []).length;
+    if (tasks > 10) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Intelligent summary function
+  const getSmartSummary = (page: Page, maxLength: number = 150) => {
+    const { title, content } = page;
+    
+    // Special handling för Skötselplan - skapa smart sammanfattning med metrics
+    if (title.toLowerCase().includes('skötselplan') || title.toLowerCase().includes('underhåll')) {
+      // Count sections and tasks from content
+      const sections = (content.match(/###\s+[^#\n]+/g) || []).length;
+      const tasks = (content.match(/^-\s+/gm) || []).length;
+      
+      return `${sections} områden • ${tasks} uppgifter • Säsongsbaserade scheman för boende (B) och BRF. Nästa: Kontrollera hängrännor och fasadbelysning.`;
+    }
+    
+    // Special handling för andra långa strukturerade dokument
+    if (content.length > 1000 && content.includes('###')) {
+      const sections = content.match(/###\s+([^\n]+)/g);
+      if (sections && sections.length > 3) {
+        const sectionNames = sections.slice(0, 3).map(s => s.replace(/###\s+/, ''));
+        return `Omfattande guide som täcker: ${sectionNames.join(', ')} och mer.`;
+      }
+    }
+    
+    // Standard sammanfattning för kortare innehåll
+    const plainText = content
+      .replace(/#+\s+/g, '') // Remove headings
+      .replace(/\*\*|\*/g, '') // Remove bold and italic
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links but keep text
+      .replace(/\n/g, ' '); // Replace newlines with spaces
+    
+    if (plainText.length <= maxLength) {
+      return plainText;
+    }
+    
+    return plainText.substring(0, maxLength) + '...';
+  };
 
   // Convert plain text to formatted HTML
   const formatPlainTextToHTML = (content: string): string => {
@@ -162,7 +229,13 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleCardToggle(page.id, e);
+            
+            // Smart decision: expand simple pages, navigate to complex ones
+            if (shouldAllowExpansion(page)) {
+              handleCardToggle(page.id, e);
+            } else {
+              onPageClick(page);
+            }
           }}
           sx={{
             height: 'fit-content',
@@ -210,12 +283,12 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
                   overflow: 'hidden',
                 }}
               >
-                {page.content.substring(0, 150)}...
+                {getSmartSummary(page)}
               </Typography>
             )}
 
-            {/* Full Content - Show when expanded */}
-            {isExpanded && (
+            {/* Full Content - Show when expanded (only for simple pages) */}
+            {isExpanded && shouldAllowExpansion(page) && (
               <Box
                 dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
                 onClick={(e) => {
@@ -226,34 +299,27 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
                   }
                 }}
                 sx={{
-                  mb: 3,
+                  mb: 2,
                   '& h1, & h2, & h3, & h4, & h5, & h6': {
                     color: 'text.primary',
                     fontWeight: 600,
-                    mb: 2,
-                    mt: 3,
+                    mb: 1.5,
+                    mt: 2,
                     '&:first-of-type': { mt: 0 }
                   },
                   '& p': {
-                    mb: 2,
-                    lineHeight: 1.8,
+                    mb: 1.5,
+                    lineHeight: 1.6,
                     color: 'text.secondary',
-                    fontSize: '1rem'
+                    fontSize: '0.95rem'
                   },
                   '& ul, & ol': {
                     pl: 2,
                     mb: 1.5,
                     '& li': {
                       mb: 0.5,
-                      color: 'text.secondary'
-                    }
-                  },
-                  '& a': {
-                    color: 'primary.main',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      color: 'primary.dark'
+                      color: 'text.secondary',
+                      fontSize: '0.95rem'
                     }
                   },
                   '& strong': {
@@ -264,36 +330,44 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
               />
             )}
 
+            {/* Expand indicator for expandable cards */}
+            {!isExpanded && shouldAllowExpansion(page) && (
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'inline-block',
+                    transform: 'rotate(90deg)',
+                    transition: 'transform 0.2s ease',
+                    color: 'primary.main',
+                    fontSize: '1rem',
+                    opacity: 0.7
+                  }}
+                >
+                  ▶
+                </Box>
+              </Box>
+            )}
 
-
-            {/* Expand indicator when collapsed */}
-            {!isExpanded && (
+            {/* Navigation hint for complex pages */}
+            {!shouldAllowExpansion(page) && (
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
                 <Typography
                   variant="body2"
                   color="primary"
                   sx={{
-                    fontSize: '0.875rem',
+                    fontSize: '0.8rem',
                     fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
+                    opacity: 0.8
                   }}
                 >
-                  Klicka för att läsa mer
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-block',
-                      transform: 'rotate(90deg)',
-                      transition: 'transform 0.2s ease',
-                    }}
-                  >
-                    ▶
-                  </Box>
+                  Klicka för att öppna →
                 </Typography>
               </Box>
             )}
+
+
+
           </CardContent>
         </Card>
       </Fade>
@@ -402,7 +476,7 @@ export const ModernPagesListMUI: React.FC<ModernPagesListMUIProps> = ({
                 sm={viewMode === 'list' ? 12 : 12} 
                 md={viewMode === 'list' ? 12 : 6}
                 lg={viewMode === 'list' ? 12 : 6}
-                xl={viewMode === 'list' ? 12 : 4}
+                xl={viewMode === 'list' ? 12 : 6}
                 key={page.id}
                 sx={{
                   // Expanded cards take full width but maintain grid position

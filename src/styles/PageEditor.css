@@ -73,4 +73,162 @@
 
 .delete-button:hover {
   background-color: #c82333;
+}
+
+/* Förbättrad styling för SimpleMDE/EasyMDE editor */
+.editor-toolbar {
+  border-top: 1px solid #ddd !important;
+  border-left: 1px solid #ddd !important;
+  border-right: 1px solid #ddd !important;
+  border-bottom: none !important;
+  background-color: #f9f9f9 !important;
+  padding: 8px !important;
+}
+
+.editor-toolbar a {
+  color: #333 !important;
+  border-radius: 4px !important;
+  padding: 6px 8px !important;
+  margin: 2px !important;
+  transition: all 0.2s ease !important;
+}
+
+.editor-toolbar a:hover {
+  background-color: #e0e0e0 !important;
+  color: #1976d2 !important;
+}
+
+.editor-toolbar a.active {
+  background-color: #1976d2 !important;
+  color: white !important;
+}
+
+.editor-toolbar.disabled-for-preview a:not(.no-disable) {
+  opacity: 0.6 !important;
+  pointer-events: none !important;
+}
+
+/* Minimal, safe CodeMirror styling - avoid metrics changes */
+.CodeMirror {
+  border: 1px solid #ddd;
+  border-top: none;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.CodeMirror .CodeMirror-cursor {
+  border-left: 2px solid #1976d2;
+}
+
+.CodeMirror.CodeMirror-focused {
+  border-color: #1976d2 !important;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
+}
+
+/* Markdown syntax highlighting */
+.cm-header-1 { font-size: 2em !important; font-weight: bold !important; color: #2c3e50 !important; }
+.cm-header-2 { font-size: 1.75em !important; font-weight: bold !important; color: #34495e !important; }
+.cm-header-3 { font-size: 1.5em !important; font-weight: bold !important; color: #34495e !important; }
+.cm-header-4 { font-size: 1.25em !important; font-weight: bold !important; color: #34495e !important; }
+
+.cm-strong { font-weight: bold !important; color: #e74c3c !important; }
+.cm-em { font-style: italic !important; color: #9b59b6 !important; }
+.cm-link { color: #3498db !important; text-decoration: underline !important; }
+.cm-url { color: #16a085 !important; }
+
+.cm-quote { color: #95a5a6 !important; font-style: italic !important; }
+.cm-code { 
+  background-color: #f8f9fa !important; 
+  color: #e74c3c !important; 
+  padding: 2px 4px !important; 
+  border-radius: 3px !important;
+}
+
+/* Status bar styling */
+.editor-statusbar {
+  border: 1px solid #ddd !important;
+  border-top: none !important;
+  background-color: #f9f9f9 !important;
+  color: #666 !important;
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+}
+
+/* Preview styling */
+.editor-preview {
+  background-color: white !important;
+  border: 1px solid #ddd !important;
+  padding: 20px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  line-height: 1.6 !important;
+}
+
+.editor-preview h1, .editor-preview h2, .editor-preview h3, .editor-preview h4 {
+  color: #2c3e50 !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.editor-preview p {
+  margin-bottom: 1em !important;
+  color: #333 !important;
+}
+
+.editor-preview ul, .editor-preview ol {
+  margin-bottom: 1em !important;
+  padding-left: 2em !important;
+}
+
+.editor-preview blockquote {
+  border-left: 4px solid #1976d2 !important;
+  padding-left: 1em !important;
+  color: #666 !important;
+  font-style: italic !important;
+  margin: 1em 0 !important;
+}
+
+.editor-preview code {
+  background-color: #f8f9fa !important;
+  color: #e74c3c !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-size: 0.9em !important;
+}
+
+.editor-preview pre {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 6px !important;
+  padding: 1em !important;
+  overflow-x: auto !important;
+}
+
+.editor-preview table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 1em 0 !important;
+}
+
+.editor-preview th, .editor-preview td {
+  border: 1px solid #ddd !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+}
+
+.editor-preview th {
+  background-color: #f8f9fa !important;
+  font-weight: bold !important;
+}
+
+/* Fullscreen mode */
+.editor-toolbar.fullscreen {
+  z-index: 9999 !important;
+}
+
+.CodeMirror-fullscreen {
+  z-index: 9999 !important;
+}
+
+.editor-statusbar.fullscreen {
+  z-index: 9999 !important;
 } 

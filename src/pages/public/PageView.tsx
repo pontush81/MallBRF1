@@ -31,96 +31,161 @@ import { Page, FileInfo } from '../../types/Page';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloseIcon from '@mui/icons-material/Close';
 
-// Komponentstilar för Markdown-innehåll
+// Förbättrade komponentstilar för Markdown-innehåll med bättre läsbarhet
 const markdownStyles = {
   h1: {
-    fontSize: '2.5rem',
-    fontWeight: 'bold',
-    marginBottom: '1rem',
-    marginTop: '1.5rem'
+    fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+    fontWeight: 700,
+    marginBottom: '1.5rem',
+    marginTop: '2rem',
+    color: 'text.primary',
+    lineHeight: 1.2,
+    '&:first-child': { marginTop: 0 }
   },
   h2: {
-    fontSize: '2rem',
-    fontWeight: 'bold',
-    marginBottom: '0.8rem',
-    marginTop: '1.2rem'
+    fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' },
+    fontWeight: 600,
+    marginBottom: '1.25rem',
+    marginTop: '2rem',
+    color: 'text.primary',
+    lineHeight: 1.3,
+    '&:first-child': { marginTop: 0 }
   },
   h3: {
-    fontSize: '1.75rem',
-    fontWeight: 'bold',
-    marginBottom: '0.6rem',
-    marginTop: '1rem'
+    fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+    fontWeight: 600,
+    marginBottom: '1rem',
+    marginTop: '1.5rem',
+    color: 'text.primary',
+    lineHeight: 1.3
   },
   h4: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    marginBottom: '0.4rem',
-    marginTop: '0.8rem'
+    fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+    fontWeight: 600,
+    marginBottom: '0.75rem',
+    marginTop: '1.25rem',
+    color: 'text.primary',
+    lineHeight: 1.4
   },
   p: {
-    marginBottom: '1rem',
-    lineHeight: 1.6
+    marginBottom: '1.25rem',
+    lineHeight: 1.7,
+    fontSize: { xs: '1rem', md: '1.1rem' },
+    color: 'text.primary',
+    '&:last-child': { marginBottom: 0 }
   },
   ul: {
-    marginBottom: '1rem',
-    paddingLeft: '1.5rem'
+    marginBottom: '1.5rem',
+    paddingLeft: { xs: '1.25rem', md: '2rem' },
+    '& li': {
+      marginBottom: '0.75rem',
+      lineHeight: 1.6,
+      fontSize: { xs: '1rem', md: '1.1rem' },
+      color: 'text.primary'
+    }
   },
   ol: {
-    marginBottom: '1rem',
-    paddingLeft: '1.5rem'
+    marginBottom: '1.5rem',
+    paddingLeft: { xs: '1.25rem', md: '2rem' },
+    '& li': {
+      marginBottom: '0.75rem',
+      lineHeight: 1.6,
+      fontSize: { xs: '1rem', md: '1.1rem' },
+      color: 'text.primary'
+    }
   },
   li: {
-    marginBottom: '0.5rem'
+    marginBottom: '0.75rem',
+    lineHeight: 1.6,
+    fontSize: { xs: '1rem', md: '1.1rem' },
+    color: 'text.primary'
   },
   a: {
     color: 'primary.main',
     textDecoration: 'none',
+    fontWeight: 500,
     '&:hover': {
-      textDecoration: 'underline'
+      textDecoration: 'underline',
+      color: 'primary.dark'
     }
+  },
+  strong: {
+    fontWeight: 700,
+    color: 'text.primary'
+  },
+  em: {
+    fontStyle: 'italic',
+    color: 'text.primary'
   },
   img: {
     maxWidth: '100%',
     height: 'auto',
-    marginBottom: '1rem'
+    marginBottom: '1.5rem',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
   },
   blockquote: {
     borderLeft: '4px solid',
-    borderColor: 'divider',
-    paddingLeft: '1rem',
+    borderColor: 'primary.main',
+    paddingLeft: '1.5rem',
+    paddingY: '0.5rem',
     fontStyle: 'italic',
-    marginBottom: '1rem'
+    marginBottom: '1.5rem',
+    backgroundColor: 'grey.50',
+    marginLeft: 0,
+    marginRight: 0,
+    fontSize: { xs: '1rem', md: '1.1rem' },
+    color: 'text.secondary'
   },
   pre: {
     backgroundColor: 'grey.100',
-    padding: '0.5rem',
-    borderRadius: '4px',
+    padding: '1rem',
+    borderRadius: '8px',
     overflow: 'auto',
-    marginBottom: '1rem'
+    marginBottom: '1.5rem',
+    fontSize: '0.875rem',
+    border: '1px solid',
+    borderColor: 'grey.300'
   },
   code: {
-    fontFamily: 'monospace',
+    fontFamily: '"Fira Code", "Monaco", "Consolas", monospace',
     backgroundColor: 'grey.100',
-    padding: '0.1rem 0.2rem',
-    borderRadius: '3px',
-    fontSize: '0.9em'
+    padding: '0.2rem 0.4rem',
+    borderRadius: '4px',
+    fontSize: '0.875em',
+    color: 'text.primary',
+    border: '1px solid',
+    borderColor: 'grey.300'
   },
   table: {
     borderCollapse: 'collapse',
     width: '100%',
-    marginBottom: '1rem'
+    marginBottom: '1.5rem',
+    border: '1px solid',
+    borderColor: 'grey.300',
+    borderRadius: '8px',
+    overflow: 'hidden'
   },
   th: {
     border: '1px solid',
-    borderColor: 'divider',
-    padding: '0.5rem',
-    backgroundColor: 'grey.100',
-    fontWeight: 'bold'
+    borderColor: 'grey.300',
+    padding: '0.75rem',
+    backgroundColor: 'primary.main',
+    color: 'primary.contrastText',
+    fontWeight: 600,
+    textAlign: 'left'
   },
   td: {
     border: '1px solid',
-    borderColor: 'divider',
-    padding: '0.5rem'
+    borderColor: 'grey.300',
+    padding: '0.75rem',
+    color: 'text.primary'
+  },
+  hr: {
+    border: 'none',
+    borderTop: '2px solid',
+    borderColor: 'grey.300',
+    margin: '2rem 0'
   }
 };
 
@@ -345,39 +410,110 @@ const PageView: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-          <Typography variant="body2" color="text.secondary">
-            {formatDate((page.updatedAt || page.createdAt || '') as string)}
-          </Typography>
-          
-          {page.slug && (
-            <Chip 
-              label={page.slug}
-              size="small"
-              sx={{ ml: 2 }}
-            />
-          )}
-        </Box>
+
 
         <Divider sx={{ mb: 4 }} />
 
         <Paper sx={{ 
-          p: { xs: 2, md: 4 }, 
-          borderRadius: 2,
-          bgcolor: 'background.paper'
+          p: { xs: 3, md: 5 }, 
+          borderRadius: 3,
+          bgcolor: 'background.paper',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
         }}>
           <Box sx={{ 
-            ...markdownStyles,
-            typography: 'body1'
+            '& h1': markdownStyles.h1,
+            '& h2': markdownStyles.h2,
+            '& h3': markdownStyles.h3,
+            '& h4': markdownStyles.h4,
+            '& p': markdownStyles.p,
+            '& ul': markdownStyles.ul,
+            '& ol': markdownStyles.ol,
+            '& li': markdownStyles.li,
+            '& a': markdownStyles.a,
+            '& strong': markdownStyles.strong,
+            '& em': markdownStyles.em,
+            '& img': markdownStyles.img,
+            '& blockquote': markdownStyles.blockquote,
+            '& pre': markdownStyles.pre,
+            '& code': markdownStyles.code,
+            '& table': markdownStyles.table,
+            '& th': markdownStyles.th,
+            '& td': markdownStyles.td,
+            '& hr': markdownStyles.hr,
+            maxWidth: '100%',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word'
           }}>
             <ReactMarkdown
               // Removed remarkGfm for smaller bundle
               components={{
-                h1: ({ node, children, ref, ...props }) => <Typography variant="h1" component="h1" gutterBottom {...props}>{children}</Typography>,
-                h2: ({ node, children, ref, ...props }) => <Typography variant="h2" component="h2" gutterBottom {...props}>{children}</Typography>,
-                h3: ({ node, children, ref, ...props }) => <Typography variant="h3" component="h3" gutterBottom {...props}>{children}</Typography>,
-                h4: ({ node, children, ref, ...props }) => <Typography variant="h4" component="h4" gutterBottom {...props}>{children}</Typography>
+                h1: ({ node, children, ref, ...props }) => (
+                  <Typography 
+                    variant="h1" 
+                    component="h1" 
+                    sx={markdownStyles.h1}
+                    {...props}
+                  >
+                    {children}
+                  </Typography>
+                ),
+                h2: ({ node, children, ref, ...props }) => (
+                  <Typography 
+                    variant="h2" 
+                    component="h2" 
+                    sx={markdownStyles.h2}
+                    {...props}
+                  >
+                    {children}
+                  </Typography>
+                ),
+                h3: ({ node, children, ref, ...props }) => (
+                  <Typography 
+                    variant="h3" 
+                    component="h3" 
+                    sx={markdownStyles.h3}
+                    {...props}
+                  >
+                    {children}
+                  </Typography>
+                ),
+                h4: ({ node, children, ref, ...props }) => (
+                  <Typography 
+                    variant="h4" 
+                    component="h4" 
+                    sx={markdownStyles.h4}
+                    {...props}
+                  >
+                    {children}
+                  </Typography>
+                ),
+                p: ({ node, children, ref, ...props }) => (
+                  <Typography 
+                    component="p" 
+                    sx={markdownStyles.p}
+                    {...props}
+                  >
+                    {children}
+                  </Typography>
+                ),
+                strong: ({ node, children, ref, ...props }) => (
+                  <Box 
+                    component="strong" 
+                    sx={markdownStyles.strong}
+                    {...props}
+                  >
+                    {children}
+                  </Box>
+                ),
+                em: ({ node, children, ref, ...props }) => (
+                  <Box 
+                    component="em" 
+                    sx={markdownStyles.em}
+                    {...props}
+                  >
+                    {children}
+                  </Box>
+                )
               }}
             >
               {page.content}

@@ -143,24 +143,35 @@ const pageServiceSupabase = {
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
           'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(5000) // 5s timeout
+        signal: AbortSignal.timeout(10000) // 10s timeout för admin
       });
 
+      console.log('📡 getAllPages API Response status:', response.status, response.statusText);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ getAllPages API Response error:', errorText);
         throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      const pages = data?.map(transformPageFromDB) || [];
+      console.log('📊 getAllPages Raw API data:', data);
+      console.log('📊 getAllPages Data type:', typeof data, 'Is array:', Array.isArray(data));
       
-      // Log admin access to all pages (skip if fails)
-      try {
-        await logUserAccess('pages', 'SELECT', undefined, `admin_get_all_pages_${pages.length}_results`);
-      } catch (logError) {
-        console.log('ℹ️ Audit logging skipped (non-critical)');
-      }
-
+      const pages = data?.map(transformPageFromDB) || [];
+      console.log('🔄 getAllPages Transformed pages:', pages.length);
+      
       console.log(`✅ Found ${pages.length} total pages via direct API (FAST!)`);
+      
+      // Log admin access to all pages (skip if fails, don't block response)
+      setTimeout(async () => {
+        try {
+          await logUserAccess('pages', 'SELECT', undefined, `admin_get_all_pages_${pages.length}_results`);
+        } catch (logError) {
+          console.log('ℹ️ Audit logging skipped (non-critical)');
+        }
+      }, 0);
+      
       return pages;
     } catch (error) {
       console.error('❌ Error in getAllPages via direct API:', error);
@@ -180,14 +191,19 @@ const pageServiceSupabase = {
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
           'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(10000) // Ökat timeout för editor
       });
 
+      console.log(`📡 getPageById API Response status for ID ${id}:`, response.status, response.statusText);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ getPageById API Response error for ID ${id}:`, errorText);
         throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log(`📊 getPageById Raw API data for ID ${id}:`, data);
       
       if (!data || data.length === 0) {
         console.log(`⚠️ Page not found: ${id}`);
@@ -195,21 +211,25 @@ const pageServiceSupabase = {
       }
 
       const page = transformPageFromDB(data[0]);
+      console.log(`🔄 getPageById Transformed page for ID ${id}:`, page);
       
       // Determine if this is admin access or public access
       const currentUserData = localStorage.getItem('currentUser');
       const isAdmin = currentUserData ? JSON.parse(currentUserData).role === 'admin' : false;
       
-      // Log access (skip if fails)
-      try {
-        if (isAdmin) {
-          await logUserAccess('pages', 'SELECT', String(id), 'admin_get_page_by_id');
-        }
-      } catch (logError) {
-        console.log('⚠️ Audit logging skipped (non-critical)');
-      }
-
       console.log(`✅ Found page via direct API (FAST!): ${page.title}`);
+      
+      // Log access (skip if fails, don't block response)
+      setTimeout(async () => {
+        try {
+          if (isAdmin) {
+            await logUserAccess('pages', 'SELECT', String(id), 'admin_get_page_by_id');
+          }
+        } catch (logError) {
+          console.log('⚠️ Audit logging skipped (non-critical)');
+        }
+      }, 0);
+      
       return page;
     } catch (error) {
       console.error('Error in getPageById:', error);

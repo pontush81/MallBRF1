@@ -541,23 +541,17 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                         paddingTop: '16px',
                         borderTop: '1px solid #f3f4f6',
                       }}>
-                        <div style={{
-                          display: 'flex', 
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '13px',
-                          color: '#9ca3af',
-                        }}>
-                          🕒 {formatDate(page.updatedAt)}
-                        </div>
+
                         
                         {/* Klick-indikator */}
                         <div style={{
-                          fontSize: '12px',
+                          fontSize: '14px',
                           color: '#3b82f6',
                           fontWeight: '500',
+                          opacity: 0.7,
+                          textAlign: 'center'
                         }}>
-                          Klicka för att läsa mer →
+                          →
                         </div>
                       </div>
                     </div>

@@ -43,6 +43,14 @@ const PagesList: React.FC = () => {
   
   const navigate = useNavigate();
 
+  // Debug logging
+  console.log('🔍 Admin PagesList render:', {
+    loading,
+    error,
+    pagesCount: pages?.length || 0,
+    pages: pages
+  });
+
   // Hämta alla sidor vid komponentmontering
   useEffect(() => {
     fetchPages();
@@ -52,12 +60,21 @@ const PagesList: React.FC = () => {
   const fetchPages = async () => {
     try {
       setLoading(true);
+      console.log('📖 Admin PagesList: Fetching pages...');
       const allPages = await pageServiceSupabase.getAllPages();
-      setPages(allPages);
+      console.log('📖 Admin PagesList: Received pages:', allPages);
+      console.log('📖 Admin PagesList: Pages count:', allPages?.length || 0);
+      
+      // Säkerställ att vi alltid har en array
+      const pagesArray = Array.isArray(allPages) ? allPages : [];
+      setPages(pagesArray);
       setError(null);
+      
+      console.log('📖 Admin PagesList: Set pages state with:', pagesArray.length, 'items');
     } catch (err) {
+      console.error('❌ Admin PagesList: Error fetching pages:', err);
       setError('Ett fel uppstod vid hämtning av sidor');
-      console.error(err);
+      setPages([]); // Sätt tom array vid fel
     } finally {
       setLoading(false);
     }
@@ -143,24 +160,40 @@ const PagesList: React.FC = () => {
             Skapa, redigera och hantera dina webbsidor
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/admin/pages/new')}
-          sx={{
-            background: modernTheme.gradients.accent,
-            borderRadius: modernTheme.borderRadius.xl,
-            px: modernTheme.spacing[4],
-            py: modernTheme.spacing[2],
-            boxShadow: modernTheme.shadows.lg,
-            '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: modernTheme.shadows.xl,
-            }
-          }}
-        >
-          Skapa Ny Sida
-        </Button>
+                    <Stack direction="row" spacing={2}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  console.log('🔄 Refreshing pages...');
+                  fetchPages();
+                }}
+                sx={{
+                  borderRadius: modernTheme.borderRadius.xl,
+                  px: modernTheme.spacing[3],
+                  py: modernTheme.spacing[2],
+                }}
+              >
+                Uppdatera
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/admin/pages/new')}
+                sx={{
+                  background: modernTheme.gradients.accent,
+                  borderRadius: modernTheme.borderRadius.xl,
+                  px: modernTheme.spacing[4],
+                  py: modernTheme.spacing[2],
+                  boxShadow: modernTheme.shadows.lg,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: modernTheme.shadows.xl,
+                  }
+                }}
+              >
+                Skapa Ny Sida
+              </Button>
+            </Stack>
       </Box>
 
       {/* Grid med sidor */}
@@ -290,7 +323,7 @@ const PagesList: React.FC = () => {
       </Grid>
 
       {/* Tom-tillstånd */}
-      {pages.length === 0 && (
+      {!loading && pages.length === 0 && (
         <ModernCard>
           <Box sx={{ 
             textAlign: 'center', 
