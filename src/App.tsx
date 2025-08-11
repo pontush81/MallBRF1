@@ -62,6 +62,7 @@ import { AuthCallback } from './pages/auth/AuthCallback';
 import { PageLoading } from './components/common/StandardLoading';
 import { Button } from '@mui/material';
 import { initMobileOptimizations } from './utils/mobileOptimizations';
+import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 
 // Loading component with timeout protection
 const LoadingFallback = () => {
@@ -321,10 +322,11 @@ const clearBadCache = async () => {
 // Removed temporary OAuth redirect fix - now using proper /auth/callback route
 
 function App() {
-  // Rensa dålig cache vid app-start och initiera mobila optimeringar
+  // Rensa dålig cache vid app-start och initiera optimeringar
   useEffect(() => {
     clearBadCache();
     initMobileOptimizations();
+    initPerformanceOptimizations();
   }, []);
 
   return (
