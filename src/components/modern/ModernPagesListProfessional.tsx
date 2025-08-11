@@ -382,23 +382,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                           }}
                         />
                         
-                        {/* Admin Edit Button (only visible when expanded and user is admin) */}
-                        <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onPageClick(page);
-                            }}
-                            variant="outlined"
-                            size="small"
-                            sx={{
-                              textTransform: 'none',
-                              fontSize: '0.875rem'
-                            }}
-                          >
-                            Redigera sida
-                          </Button>
-                        </Box>
+
                       </Collapse>
                     </CardContent>
                   </Card>
