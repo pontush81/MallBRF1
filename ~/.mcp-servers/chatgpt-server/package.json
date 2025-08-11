@@ -1,0 +1,18 @@
+{
+  "name": "chatgpt-mcp-server",
+  "version": "1.0.0",
+  "description": "Global ChatGPT MCP Server",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.2",
+    "openai": "^4.67.3"
+  },
+  "keywords": ["mcp", "chatgpt", "openai", "ai"],
+  "author": "Your Name",
+  "license": "MIT"
+}

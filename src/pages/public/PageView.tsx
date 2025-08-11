@@ -30,6 +30,7 @@ import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { Page, FileInfo } from '../../types/Page';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloseIcon from '@mui/icons-material/Close';
+import { OptimizedImage } from '../../components/common/OptimizedImage';
 
 // Förbättrade komponentstilar för Markdown-innehåll med bättre läsbarhet
 const markdownStyles = {
@@ -543,29 +544,13 @@ const PageView: React.FC = () => {
                             }}
                             onClick={() => handleFileOpen(file)}
                           >
-                            <CardMedia
-                              component="img"
-                              height="180"
+                            <OptimizedImage
                               src={getFileUrl(file)}
                               alt={file.originalName || 'Bild'}
-                              sx={{ objectFit: 'cover' }}
-                              onError={(e) => {
-                                console.error('Failed to load image:', getFileUrl(file));
-                                const imgElement = e.target as HTMLImageElement;
-                                imgElement.style.display = 'none';
-                                // Visa felmeddelande
-                                const parent = imgElement.parentElement;
-                                if (parent) {
-                                  const errorDiv = document.createElement('div');
-                                  errorDiv.style.height = '180px';
-                                  errorDiv.style.display = 'flex';
-                                  errorDiv.style.alignItems = 'center';
-                                  errorDiv.style.justifyContent = 'center';
-                                  errorDiv.style.backgroundColor = '#f5f5f5';
-                                  errorDiv.textContent = 'Kunde inte ladda bilden';
-                                  parent.appendChild(errorDiv);
-                                }
-                              }}
+                              height={180}
+                              objectFit="cover"
+                              loading="lazy"
+                              placeholder={true}
                             />
                             <Box
                               className="zoom-overlay"
@@ -676,15 +661,17 @@ const PageView: React.FC = () => {
             <CloseIcon />
           </IconButton>
           {selectedImage && (
-            <img
+            <OptimizedImage
               src={selectedImage.url}
               alt={selectedImage.originalName || 'Bild'}
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block',
+              width="100%"
+              height="auto"
+              objectFit="contain"
+              loading="eager"
+              placeholder={true}
+              sx={{
                 maxHeight: '90vh',
-                objectFit: 'contain',
+                display: 'block'
               }}
             />
           )}

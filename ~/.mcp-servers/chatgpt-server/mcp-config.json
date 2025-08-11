@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "chatgpt": {
+      "command": "node",
+      "args": ["/Users/pontus.horberg-Local/.mcp-servers/chatgpt-server/index.js"],
+      "env": {
+        "OPENAI_API_KEY": "din-openai-api-nyckel-här"
+      }
+    }
+  }
+}

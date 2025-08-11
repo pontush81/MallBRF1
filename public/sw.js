@@ -1,8 +1,17 @@
 // Custom Service Worker för MallBRF
 // Förhindrar caching av localhost URLs på produktion
 
-const CACHE_NAME = 'mallbrf-v1';
+const CACHE_NAME = 'mallbrf-mobile-v2';
 const PRODUCTION_DOMAIN = 'www.gulmaran.com';
+
+// Critical resources to cache immediately for mobile performance
+const CRITICAL_RESOURCES = [
+  '/',
+  '/pages',
+  '/static/css/main.css',
+  '/static/js/main.js',
+  '/manifest.json'
+];
 
 // Kontrollera om vi är på produktion
 const isProduction = () => {
@@ -14,22 +23,33 @@ const isProduction = () => {
 self.addEventListener('install', (event) => {
   console.log('🔧 Service Worker: Installing...');
   
-  // Rensa gamla caches som innehåller localhost
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      const localhostCaches = cacheNames.filter(name => 
-        name.includes('localhost') || 
-        name.includes('3000') ||
-        name.includes('workbox') // Rensa gamla workbox caches
-      );
-      
-      if (localhostCaches.length > 0) {
-        console.log('🧹 Clearing old localhost caches:', localhostCaches);
-        return Promise.all(
-          localhostCaches.map(name => caches.delete(name))
+    Promise.all([
+      // Rensa gamla caches som innehåller localhost
+      caches.keys().then((cacheNames) => {
+        const localhostCaches = cacheNames.filter(name => 
+          name.includes('localhost') || 
+          name.includes('3000') ||
+          name.includes('workbox') // Rensa gamla workbox caches
         );
-      }
-    })
+        
+        if (localhostCaches.length > 0) {
+          console.log('🧹 Clearing old localhost caches:', localhostCaches);
+          return Promise.all(
+            localhostCaches.map(name => caches.delete(name))
+          );
+        }
+      }),
+      
+      // Pre-cache critical resources for mobile performance
+      isProduction() ? 
+        caches.open(CACHE_NAME).then((cache) => {
+          console.log('📱 Pre-caching critical resources for mobile...');
+          return cache.addAll(CRITICAL_RESOURCES).catch((error) => {
+            console.warn('⚠️ Some critical resources failed to pre-cache:', error);
+          });
+        }) : Promise.resolve()
+    ])
   );
   
   self.skipWaiting();
