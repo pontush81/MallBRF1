@@ -6,15 +6,13 @@ import {
   InputAdornment,
   Typography,
   useTheme,
-  useMediaQuery,
   Card,
   CardContent,
   Paper,
   Fade,
   Stack,
   Collapse,
-  Button,
-  IconButton
+  Button
 } from '@mui/material';
 import { 
   Search as SearchIcon,

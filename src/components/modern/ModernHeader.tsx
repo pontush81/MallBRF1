@@ -230,23 +230,24 @@ const ModernHeader: React.FC = memo(() => {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Ultra Compact Mobile Header */}
+      {/* Fixed Header */}
       <Box sx={{ 
-        padding: modernTheme.spacing[2], // Further reduced from 3 to 2
+        padding: modernTheme.spacing[3],
         background: modernTheme.gradients.header,
         color: modernTheme.colors.primary[800],
+        flexShrink: 0, // Don't shrink
       }}>
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: modernTheme.spacing[0.5], // Further reduced
+          marginBottom: modernTheme.spacing[1],
         }}>
           <Typography
             variant="h6"
             sx={{
               fontWeight: modernTheme.typography.fontWeight.extrabold,
-              fontSize: modernTheme.typography.fontSize.sm, // Even smaller
+              fontSize: modernTheme.typography.fontSize.lg,
               background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
@@ -257,10 +258,8 @@ const ModernHeader: React.FC = memo(() => {
           </Typography>
           <IconButton
             onClick={handleDrawerToggle}
-            size="small"
             sx={{ 
               color: modernTheme.colors.white,
-              p: 0.5, // Smaller padding
               '&:focus': {
                 outline: `2px solid ${modernTheme.colors.white}40`,
                 outlineOffset: '2px',
@@ -268,66 +267,73 @@ const ModernHeader: React.FC = memo(() => {
             }}
             aria-label="Stäng meny"
           >
-            <CloseIcon fontSize="small" />
+            <CloseIcon />
           </IconButton>
         </Box>
         <Typography
-          variant="caption"
+          variant="body2"
           sx={{
-            opacity: 0.8,
-            fontSize: '10px', // Very small text
-            lineHeight: 1,
+            opacity: 0.9,
+            fontSize: modernTheme.typography.fontSize.sm,
           }}
         >
           Bostadsrättsförening
         </Typography>
       </Box>
 
-      {/* Navigation Items - Ultra Compact */}
-      <Box sx={{ flexGrow: 1, paddingTop: modernTheme.spacing[1] }}> {/* Further reduced */}
-        <List sx={{ py: 0, '& .MuiListItem-root': { py: 0.5 } }}> {/* Even smaller list items */}
+      {/* Scrollable Navigation Content */}
+      <Box sx={{ 
+        flexGrow: 1,
+        overflowY: 'auto', // CRITICAL: Make scrollable
+        paddingTop: modernTheme.spacing[2],
+      }}>
+        <List>
           {allNavigationItems.map((item) => renderNavigationItem(item, true))}
         </List>
       </Box>
 
-      {/* Ultra Compact Mobile User Section */}
+      {/* STICKY Footer - Always Visible User Section */}
       <Box sx={{ 
-        padding: modernTheme.spacing[2], // Further reduced from 3 to 2
+        padding: modernTheme.spacing[3],
         borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
+        backgroundColor: modernTheme.colors.white,
+        flexShrink: 0, // Don't shrink - always visible
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 1,
       }}>
         {isLoggedIn && currentUser ? (
           <Box>
-            {/* Ultra Compact User Info */}
+            {/* User Info */}
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: modernTheme.spacing[1.5], // Further reduced gap
-              marginBottom: modernTheme.spacing[1.5], // Further reduced margin
+              gap: modernTheme.spacing[2],
+              marginBottom: modernTheme.spacing[2],
             }}>
               <Avatar
                 sx={{
                   backgroundColor: modernTheme.colors.primary[500],
                   color: modernTheme.colors.white,
-                  width: 28, // Further reduced from 32
-                  height: 28, // Further reduced from 32
-                  fontSize: '11px', // Very small font
+                  width: 40,
+                  height: 40,
+                  fontSize: modernTheme.typography.fontSize.lg,
                   fontWeight: modernTheme.typography.fontWeight.semibold,
                 }}
               >
                 {getUserInitials(currentUser)}
               </Avatar>
-              <Box sx={{ flex: 1, minWidth: 0 }}> {/* Prevent overflow */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
-                  variant="caption"
+                  variant="body2"
                   sx={{
                     fontWeight: modernTheme.typography.fontWeight.semibold,
                     color: modernTheme.colors.gray[900],
-                    fontSize: '11px', // Very small
+                    fontSize: modernTheme.typography.fontSize.sm,
                     display: 'block',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
                   }}
                 >
                   {currentUser.email || 'Användare'}
@@ -339,32 +345,28 @@ const ModernHeader: React.FC = memo(() => {
                     sx={{
                       backgroundColor: modernTheme.colors.primary[100],
                       color: modernTheme.colors.primary[700],
-                      fontSize: '9px', // Very small
-                      height: '14px', // Very small chip
-                      mt: 0.25,
-                      '& .MuiChip-label': {
-                        px: 0.5,
-                      }
+                      fontSize: modernTheme.typography.fontSize.xs,
+                      height: '20px',
+                      mt: 0.5,
                     }}
                   />
                 )}
               </Box>
             </Box>
-            {/* Ultra Compact Logout Button */}
+            {/* PROMINENT Logout Button - Always Visible */}
             <Button
               fullWidth
               variant="outlined"
-              size="small"
-              startIcon={<LogoutIcon sx={{ fontSize: '14px' }} />}
+              startIcon={<LogoutIcon />}
               onClick={handleLogout}
               sx={{
                 borderRadius: modernTheme.borderRadius.lg,
                 textTransform: 'none',
                 borderColor: modernTheme.colors.gray[300],
                 color: modernTheme.colors.gray[700],
-                fontSize: '11px', // Very small text
-                py: 0.75, // Further reduced padding
-                minHeight: '32px', // Set minimum height
+                fontSize: modernTheme.typography.fontSize.sm,
+                py: 1.5, // Good touch target
+                minHeight: '44px', // Accessibility compliant
                 '&:hover': {
                   borderColor: modernTheme.colors.gray[400],
                   backgroundColor: modernTheme.colors.gray[50],
@@ -382,8 +384,7 @@ const ModernHeader: React.FC = memo(() => {
           <Button
             fullWidth
             variant="contained"
-            size="small"
-            startIcon={<LoginIcon sx={{ fontSize: '14px' }} />}
+            startIcon={<LoginIcon />}
             onClick={() => handleNavigation('/login')}
             sx={{
               background: modernTheme.gradients.accent,
@@ -391,9 +392,9 @@ const ModernHeader: React.FC = memo(() => {
               textTransform: 'none',
               boxShadow: modernTheme.shadows.md,
               color: modernTheme.colors.white,
-              fontSize: '11px', // Very small text
-              py: 0.75, // Further reduced padding
-              minHeight: '32px', // Set minimum height
+              fontSize: modernTheme.typography.fontSize.sm,
+              py: 1.5, // Good touch target
+              minHeight: '44px', // Accessibility compliant
               '&:hover': {
                 boxShadow: modernTheme.shadows.lg,
               },
