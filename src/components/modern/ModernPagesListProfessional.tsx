@@ -382,36 +382,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
           </Stack>
         )}
 
-        {/* Professional Footer */}
-        {filteredPages.length > 2 && (
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 3, 
-              mt: 6, 
-              textAlign: 'center', 
-              borderRadius: 3,
-              backgroundColor: 'grey.50',
-              border: `1px solid ${theme.palette.divider}`
-            }}
-          >
-            <Typography 
-              variant="body2" 
-              color="primary.main"
-              sx={{ 
-                cursor: 'pointer',
-                fontWeight: 500,
-                '&:hover': { 
-                  textDecoration: 'underline',
-                  color: 'primary.dark'
-                }
-              }}
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              ↑ Tillbaka till toppen
-            </Typography>
-          </Paper>
-        )}
+
       </Box>
     </Container>
   );
