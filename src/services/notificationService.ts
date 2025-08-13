@@ -2,6 +2,7 @@ import supabase from './supabaseClient';
 import { MaintenanceTask, User, UserNotificationPreferences, NotificationLog } from './maintenanceService';
 
 // Direct REST API helper for notifications (non-critical, can fail gracefully)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function directNotificationCall(method: string, endpoint: string, body?: any): Promise<any> {
   try {
     const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/${endpoint}`, {

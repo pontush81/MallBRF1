@@ -27,7 +27,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Menu,
+
   Popover,
   Tooltip,
   Backdrop,
@@ -170,6 +170,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   // Ladda årets underhållslista - ENKEL VERSION utan on-demand generering
   useEffect(() => {
     loadMaintenanceData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
 
   const loadMaintenanceData = async () => {
@@ -367,9 +368,9 @@ const SimpleMaintenancePlan: React.FC = () => {
           setTasks([...tasks, ...currentYearInstances]);
           
           // Mer informativt meddelande
-          const yearSpread = [...new Set(allInstances.map(i => i.year))].sort();
-          const yearRange = yearSpread.length > 1 ? `${yearSpread[0]}-${yearSpread[yearSpread.length - 1]}` : yearSpread[0];
-          const endDateInfo = savedTask.end_date ? `\n🏁 Slutar: ${savedTask.end_date}` : '';
+          // const yearSpread = [...new Set(allInstances.map(i => i.year))].sort(); // Not currently used
+          // const yearRange = yearSpread.length > 1 ? `${yearSpread[0]}-${yearSpread[yearSpread.length - 1]}` : yearSpread[0]; // Not currently used
+          // const endDateInfo = savedTask.end_date ? `\n🏁 Slutar: ${savedTask.end_date}` : ''; // Not currently used
           
           // Progress UI visar redan all information - ingen extra alert behövs
         } else {
@@ -588,6 +589,7 @@ const SimpleMaintenancePlan: React.FC = () => {
     
     // Nu ska vi vara i målåret - hitta första datum som inte redan finns
     while (currentDate && new Date(currentDate).getFullYear() === targetYear) {
+      // eslint-disable-next-line no-loop-func
       const dateExists = existingInstances.some(instance => instance.due_date === currentDate);
       
       if (!dateExists) {
@@ -749,10 +751,12 @@ const SimpleMaintenancePlan: React.FC = () => {
       // 🎯 PROGRESS UI: Uppdatera progress under skapande
       const progressPercentage = 50 + (instanceCount / totalInstancesEstimate) * 40; // 50-90%
       const elapsedTime = (Date.now() - startTime) / 1000;
+      // eslint-disable-next-line no-loop-func
       const estimatedTotal = (elapsedTime / instanceCount) * totalInstancesEstimate;
       const remainingTime = Math.max(0, estimatedTotal - elapsedTime);
       
       const actionText = existingDuplicate ? 'Hittade befintlig' : 'Skapade ny';
+      // eslint-disable-next-line no-loop-func
       setRecurringProgress(prev => ({
         ...prev,
         stepDescription: `${actionText} instans ${instanceCount} av ${totalInstancesEstimate}...`,
@@ -1507,7 +1511,7 @@ const SimpleMaintenancePlan: React.FC = () => {
   const stats = getCompletionStats();
   
   // 📅 Utökad års-range för återkommande uppgifter (nu när vi skapar 3+ år framåt)
-  const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - 3 + i);
+  // const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - 3 + i); // Not currently used
 
   if (loading) {
     return (

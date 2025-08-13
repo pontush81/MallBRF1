@@ -1,6 +1,8 @@
 import supabaseClient from './supabaseClient';
 import { Page } from '../types/Page';
-import { logUserAccess, logAnonymousAccess } from './auditLog';
+import { logUserAccess } from './auditLog';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { logAnonymousAccess } from './auditLog';
 
 // Transform function to convert from database format to frontend format
 function transformPageFromDB(dbPage: any): Page {

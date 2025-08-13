@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import supabaseClient from './supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 

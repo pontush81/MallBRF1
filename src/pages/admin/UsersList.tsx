@@ -27,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import supabaseClient from '../../services/supabaseClient';
+// import supabaseClient from '../../services/supabaseClient'; // Not currently used
 
 interface User {
   id: string;

@@ -29,7 +29,9 @@ export const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABAS
 // The hanging SDK connection test was causing production issues
 
 // Cache for authenticated client to avoid creating multiple instances
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let authenticatedClientCache: SupabaseClient | null = null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let cachedTokenForClient: string | null = null;
 
 // Helper function to get authenticated Supabase client using native Supabase auth

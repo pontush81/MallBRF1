@@ -4,7 +4,7 @@ import {
   CircularProgress, 
   Typography, 
   Fade,
-  useTheme
+
 } from '@mui/material';
 
 interface StandardLoadingProps {
@@ -20,7 +20,7 @@ export const StandardLoading: React.FC<StandardLoadingProps> = ({
   variant = 'standard',
   color = 'primary'
 }) => {
-  const theme = useTheme();
+  // const theme = useTheme(); // Removed - not currently used
 
   // Minimal version - just the spinner
   if (variant === 'minimal') {

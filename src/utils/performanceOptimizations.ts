@@ -165,7 +165,7 @@ export const optimizeWebVitals = () => {
   }
 };
 
-export default {
+const performanceOptimizations = {
   initPerformanceOptimizations,
   optimizeWebVitals,
   optimizeFontLoading,
@@ -174,3 +174,5 @@ export default {
   addResourceHints,
   optimizeBundleLoading
 };
+
+export default performanceOptimizations;

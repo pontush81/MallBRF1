@@ -4,8 +4,7 @@ import {
   Container,
   Typography,
   Link,
-  Grid,
-  Divider,
+
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -16,19 +15,7 @@ const Footer: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const currentYear = new Date().getFullYear();
 
-  const legalLinks = [
-    { title: 'Integritetspolicy', path: '/privacy-policy' },
-    { title: 'Användarvillkor', path: '/terms-of-service' },
-    { title: 'Cookiepolicy', path: '/cookie-policy' },
-    { title: 'GDPR-förfrågningar', path: '/data-deletion' },
-  ];
-
-  const infoLinks = [
-    { title: 'Om föreningen', path: '/about' },
-    { title: 'Kontakt', path: '/contact' },
-    { title: 'Tillgänglighet', path: '/accessibility' },
-    { title: 'Klagomål', path: '/complaints' },
-  ];
+  // Links removed - not currently used in UI
 
   const handleCookieSettings = () => {
     // Trigger cookie banner to show

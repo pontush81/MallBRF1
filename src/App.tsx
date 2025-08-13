@@ -26,7 +26,7 @@ import {
   LazyLogin, 
   LazyRegister, 
   LazyPageView, 
-  LazyPublicPages,
+
   LazyBookingPage,
   LazyBookingStatusPage,
   LazyPrivacyPolicy,

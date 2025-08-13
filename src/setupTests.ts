@@ -4,35 +4,7 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
-// Mock Firebase
-jest.mock('./services/firebase', () => ({
-  auth: {
-    signInWithEmailAndPassword: jest.fn(() => Promise.resolve()),
-    createUserWithEmailAndPassword: jest.fn(() => Promise.resolve()),
-    signOut: jest.fn(() => Promise.resolve()),
-    onAuthStateChanged: jest.fn((callback) => {
-      callback(null);
-      return () => {};
-    }),
-    currentUser: null
-  },
-  db: {
-    collection: jest.fn(() => ({
-      doc: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({ data: () => ({}) })),
-        set: jest.fn(() => Promise.resolve()),
-        update: jest.fn(() => Promise.resolve()),
-        delete: jest.fn(() => Promise.resolve())
-      })),
-      where: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({ docs: [] }))
-      })),
-      orderBy: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({ docs: [] }))
-      }))
-    }))
-  }
-}));
+// Firebase removed - system now uses Supabase exclusively
 
 // Mock react-router-dom
 jest.mock('react-router-dom', () => ({

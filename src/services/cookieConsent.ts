@@ -106,13 +106,13 @@ class CookieConsentService {
     }
   }
 
-  public canUseFirebase(): boolean {
-    // Allow Firebase if user hasn't made a choice yet, or has given authentication consent
-    // For new users (no consent given), Firebase is available by default
+  public canUseSupabaseAuth(): boolean {
+    // Allow Supabase auth if user hasn't made a choice yet, or has given authentication consent
+    // For new users (no consent given), authentication is available by default
     const hasUserMadeChoice = this.hasConsent();
     const hasAuthConsent = this.hasAuthenticationConsent();
     
-    // If user hasn't made any choice yet, allow Firebase (first-time visitors)
+    // If user hasn't made any choice yet, allow authentication (first-time visitors)
     if (!hasUserMadeChoice) {
       return true;
     }
@@ -122,7 +122,7 @@ class CookieConsentService {
   }
 
   public canUseGoogleOAuth(): boolean {
-    return this.canUseFirebase();
+    return this.canUseSupabaseAuth();
   }
 
   public canUseAnalytics(): boolean {
@@ -153,7 +153,7 @@ export const useCookieConsent = () => {
     hasConsent: service.hasConsent(),
     isConsentExpired: service.isConsentExpired(),
     preferences: service.getPreferences(),
-    canUseFirebase: service.canUseFirebase(),
+    canUseSupabaseAuth: service.canUseSupabaseAuth(),
     canUseGoogleOAuth: service.canUseGoogleOAuth(),
     canUseAnalytics: service.canUseAnalytics(),
     updatePreferences: (prefs: CookiePreferences) => service.updatePreferences(prefs),

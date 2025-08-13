@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useTransition, useDeferredValue } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -10,7 +10,7 @@ import {
   Grid, 
   Alert, 
   Divider,
-  CircularProgress,
+
   Tooltip,
   useTheme,
   useMediaQuery,
@@ -25,9 +25,7 @@ import {
   Stack,
   Menu,
   MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
+
 
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -61,14 +59,7 @@ import { adminUtils } from '../../utils/adminUtils';
 import { MinimalLoading, ButtonLoading } from '../../components/common/StandardLoading';
 
 // Modern styled components for booking page
-const ModernHeroSection = styled(Box)(({ theme }) => ({
-  background: modernTheme.gradients.header,
-  padding: `${modernTheme.spacing[2]} 0`, // Further reduced from spacing[4] to spacing[2] (16px top/bottom)
-  textAlign: 'center',
-  marginTop: modernTheme.spacing[5], // Add margin-top for spacing from header
-  marginBottom: modernTheme.spacing[2], // Further reduced from spacing[4] to spacing[2] (16px)
-  borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
-}));
+// ModernHeroSection removed - not currently used
 
 const ModernCard = styled(Paper)(({ theme }) => ({
   borderRadius: modernTheme.borderRadius.xl,
@@ -393,6 +384,7 @@ const BookingPage: React.FC = () => {
   const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   

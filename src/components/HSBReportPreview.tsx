@@ -217,94 +217,12 @@ const HSBReportPreview: React.FC<HSBReportPreviewProps> = ({ onClose, onSent }) 
   };
   
   // HSB send functionality removed
+  // HSB send functionality completely removed to eliminate warning
+  /*
   const removedHandleSendEmail = async () => {
-    try {
-      // setSending(true); // removed
-      setError(null);
-      
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-      
-      // Try to send via real HSB API first
-      try {
-        const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&month=${currentMonth}&year=${currentYear}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-          }
-        });
-
-        if (response.ok) {
-          await response.json();
-          console.log('HSB report sent successfully via API');
-          onSent('HSB-rapporten har skickats till HSB och administratören via e-post');
-          // setConfirmDialog(false); // removed - function doesn't exist
-          return;
-        }
-        
-        console.log('HSB API send failed, falling back to local download');
-      } catch (apiError) {
-        console.log('HSB API call failed, using local download:', apiError);
-      }
-      
-      // Fallback: Generate and download CSV file locally
-      console.log('Generating local CSV download...');
-      
-      // Generate CSV content
-      const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-                          'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-      
-      const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
-      
-      let content = `HSB DEBITERINGSUNDERLAG - ${monthNames[currentMonth - 1]} ${currentYear}\n`;
-      content += `BRF Gulmåran\n`;
-      content += `Uppgiftslämmare: Kristina Utas\n`;
-      content += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
-      
-      content += `DEBITERINGSUNDERLAG\n`;
-      content += `Lgh nr,Namn,Period,Vad avser avgiften,Antal,á pris,Summa\n`;
-      
-      hsbData.forEach(item => {
-        content += `${item.apartmentNumber},"${item.resident}","${item.period || ''}","${item.description}",${item.quantity},${item.unitPrice},${item.totalAmount}\n`;
-      });
-      
-      content += `\nTOTAL SUMMA:,,,,,,${totalAmount}\n\n`;
-      
-      content += `BOENDEFÖRTECKNING\n`;
-      content += `Lägenhet,Namn,Telefon,E-post,P-plats,Förråd\n`;
-      
-      // Debug: Verify we have all residents
-      console.log(`Including ${residentData.length} residents in the report:`);
-      residentData.forEach((resident, index) => {
-        console.log(`${index + 1}. ${resident.apartmentNumber} - ${resident.resident}`);
-        content += `"${resident.apartmentNumber}","${resident.resident}","${resident.phone}","${resident.email}","${resident.parkingSpace}","${resident.storageSpace}"\n`;
-      });
-      
-      // Create downloadable file
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `HSB-debiteringsunderlag-${currentYear}-${String(currentMonth).padStart(2, '0')}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
-      console.log('Mock email sent and file downloaded');
-      onSent('HSB-rapporten har skickats till HSB och administratören via e-post (simulerad)');
-      // setConfirmDialog(false); // removed - function doesn't exist
-      
-    } catch (err) {
-      console.error('Error sending report:', err);
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod vid skickning');
-    } finally {
-      // setSending(false); // removed
-    }
+    // Function implementation removed
   };
+  */
   
   const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
   

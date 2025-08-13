@@ -12,6 +12,7 @@
 import supabase from './supabaseClient';
 
 // Direct REST API helper for audit logging (non-critical, can fail gracefully)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function directAuditCall(endpoint: string, body: any): Promise<boolean> {
   try {
     const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/${endpoint}`, {
@@ -387,13 +388,9 @@ export class AuditLogger {
    * Get client IP address
    */
   private async getClientIP(): Promise<string | null> {
-    try {
-      // In production, this would get real client IP from headers
-      // For now, return null since we don't have real IP detection
-      return null;
-    } catch {
-      return null;
-    }
+    // In production, this would get real client IP from headers
+    // For now, return null since we don't have real IP detection
+    return null;
   }
 
   /**

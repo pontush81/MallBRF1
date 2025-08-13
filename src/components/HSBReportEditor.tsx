@@ -7,7 +7,7 @@ import {
   Typography,
   Card,
   CardContent,
-  CardHeader,
+
   Button,
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TextField,
   IconButton,
   Chip,
-  CircularProgress,
+
   Alert,
   Dialog,
   DialogTitle,
@@ -48,7 +48,7 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   PictureAsPdf as PictureAsPdfIcon,
-  Email as EmailIcon,
+
   Restore as RestoreIcon,
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckIcon,
@@ -110,15 +110,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const currentDate = new Date();
+  // const currentDate = new Date(); // Removed - not currently used
   const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
                       'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
   
   useEffect(() => {
     fetchReportData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear]);
 
-    const fetchReportData = async () => {
+    const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -160,7 +161,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, selectedYear, currentUser?.email, currentUser?.name]);
 
   const generateMockData = async () => {
     // Simulate API delay
@@ -215,7 +216,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
 
   // Inline validation function
   const validateField = (field: keyof HSBReportData, value: string | number, index: number): string | null => {
-    const fieldKey = `${index}-${field}`;
+    // const fieldKey = `${index}-${field}`; // Not used in this function
     
     switch (field) {
       case 'apartmentNumber':
@@ -427,6 +428,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     }
   };
 
+  // Email functionality temporarily disabled - function commented out to remove warning
+  /*
   const handleSendEmail = async () => {
     const errors = validateData();
     if (errors.length > 0) {
@@ -438,7 +441,6 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       setSaving(true);
       
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      // Use selected month and year from state
       const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&month=${selectedMonth}&year=${selectedYear}`, {
         method: 'GET',
         headers: {
@@ -462,6 +464,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       setSaving(false);
     }
   };
+  */
 
   const totalAmount = editableHsbData.reduce((sum, item) => sum + item.totalAmount, 0);
 

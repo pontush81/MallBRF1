@@ -7,20 +7,20 @@ import {
   Paper, 
   Button, 
   Divider, 
-  Chip, 
+ 
   Skeleton, 
   Alert,
   IconButton,
   Grid,
   Card,
-  CardMedia,
+
   CardContent,
 
   Dialog,
   DialogContent,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+// import CalendarTodayIcon from '@mui/icons-material/CalendarToday'; // Not currently used
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
@@ -250,6 +250,7 @@ const PageView: React.FC = () => {
     console.log('Current page data:', page);
   }, [page]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatDate = (date: string | Date) => {
     const d = new Date(date);
     return d.toLocaleDateString('sv-SE', {
