@@ -250,7 +250,7 @@ const PageEditor: React.FC = () => {
           throw new Error('Kunde inte uppdatera sidan');
         }
         
-        setSnackbarMessage('Sidan har uppdaterats');
+        setSnackbarMessage('Sidan har uppdaterats! Återgår till listan...');
       } else {
         // Skapa ny sida
         result = await pageServiceSupabase.createPage(pageData);
@@ -259,10 +259,10 @@ const PageEditor: React.FC = () => {
       
       setSnackbarOpen(true);
       
-      // Navigera tillbaka till sidlistan efter kort fördröjning
+      // Navigera tillbaka till sidlistan efter att användaren sett feedback
       setTimeout(() => {
         navigate('/admin/pages');
-      }, 1500);
+      }, 3000); // Öka till 3 sekunder så användaren hinner se meddelandet
     } catch (err) {
       setError('Ett fel uppstod när sidan skulle sparas');
       console.error(err);
@@ -720,13 +720,16 @@ const PageEditor: React.FC = () => {
       {/* Snackbar för feedback */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
+        autoHideDuration={4000}
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ mt: 8 }} // Lite marginal från toppen
       >
         <Alert 
           onClose={() => setSnackbarOpen(false)} 
           severity="success"
+          variant="filled"
+          sx={{ minWidth: 300 }}
         >
           {snackbarMessage}
         </Alert>
