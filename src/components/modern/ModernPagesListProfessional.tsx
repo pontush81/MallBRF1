@@ -27,6 +27,7 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
+import { gpuAnimations } from '../../utils/performanceUtils';
 
 interface ModernPagesListProfessionalProps {
   pages: Page[];
@@ -353,8 +354,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              transition: 'transform 0.2s ease',
-                              '&:hover': { transform: 'scale(1.1)' }
+                              ...gpuAnimations.hoverScale
                             }}
                           >
                             <PageIcon sx={{ color: iconColor, fontSize: 24 }} />
