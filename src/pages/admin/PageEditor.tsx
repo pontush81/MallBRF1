@@ -256,19 +256,23 @@ const PageEditor: React.FC = () => {
           throw new Error('Kunde inte uppdatera sidan');
         }
         
-        setSnackbarMessage('Sidan har uppdaterats! Återgår till listan...');
+        setSnackbarMessage('✅ Sidan har uppdaterats! Återgår till listan...');
       } else {
         // Skapa ny sida
         result = await pageServiceSupabase.createPage(pageData);
-        setSnackbarMessage('Sidan har skapats');
+        setSnackbarMessage('✅ Sidan har skapats! Återgår till listan...');
       }
       
+      // Visa meddelandet omedelbart
       setSnackbarOpen(true);
+      
+      // Vänta en kort stund för att säkerställa att Snackbar visas
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Navigera tillbaka till sidlistan efter att användaren sett feedback
       setTimeout(() => {
         navigate('/admin/pages');
-      }, 3000); // Öka till 3 sekunder så användaren hinner se meddelandet
+      }, 2500); // Total tid: 3 sekunder (500ms + 2500ms)
     } catch (err) {
       setError('Ett fel uppstod när sidan skulle sparas');
       console.error(err);
