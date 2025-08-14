@@ -384,7 +384,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                           endIcon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                           sx={{
                             textTransform: 'none',
-                            color: iconColor,
+                            color: iconColor + ' !important', // Force the icon color
                             fontSize: { xs: '0.8rem', sm: '0.875rem' },
                             fontWeight: 500,
                             minWidth: { xs: 100, sm: 'auto' }, // Sätt minimum bredd på mobil
@@ -395,8 +395,12 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                             transition: 'all 0.2s ease',
                             '&:hover': {
                               backgroundColor: bgColor,
-                              color: iconColor,
+                              color: iconColor + ' !important', // Force the icon color on hover
                               transform: 'scale(1.05)'
+                            },
+                            // Ensure icon color is applied to the icon as well
+                            '& .MuiSvgIcon-root': {
+                              color: iconColor + ' !important'
                             }
                           }}
                         >
