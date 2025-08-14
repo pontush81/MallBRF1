@@ -17,6 +17,7 @@ interface UpdatePageRequest {
     show?: boolean;
     files?: string;
     slug?: string;
+    icon?: string; // Add icon support
   };
   userEmail?: string;
   userRole?: string;

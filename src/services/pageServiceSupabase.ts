@@ -380,6 +380,15 @@ const pageServiceSupabase = {
       
       // Call the admin Edge Function (bypasses RLS with service role)
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+      
+      console.log('🚀 Calling admin Edge Function with timeout...');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Request timeout after 15 seconds');
+        controller.abort();
+      }, 15000); // 15 second timeout
+      
       const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
         method: 'PUT',
         headers: {
@@ -391,8 +400,11 @@ const pageServiceSupabase = {
           pageData: dbData,
           userEmail: parsedUser.email,
           userRole: parsedUser.role
-        })
+        }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -411,6 +423,16 @@ const pageServiceSupabase = {
       
     } catch (error) {
       console.error('❌ Error updating page:', error);
+      
+      // Better error messages for different types of errors
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Sparprocessen tog för lång tid. Försök igen.');
+        } else if (error.message.includes('fetch')) {
+          throw new Error('Kunde inte ansluta till servern. Kontrollera din internetanslutning.');
+        }
+      }
+      
       throw error;
     }
   },
