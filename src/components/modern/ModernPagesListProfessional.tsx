@@ -325,54 +325,73 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         </Button>
                       </Stack>
 
-                      {/* Content Summary (with smooth collapse animation) */}
-                      <Collapse in={!isExpanded} timeout={400}>
-                        <Typography
-                          variant="body1"
-                          color="text.secondary"
-                          sx={{ 
-                            lineHeight: 1.7,
-                            fontSize: '1rem'
-                          }}
-                        >
-                          {summary}
-                        </Typography>
-                      </Collapse>
+                      {/* Content with fade transition to prevent flicker */}
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {/* Summary content */}
+                        <Fade in={!isExpanded} timeout={200}>
+                          <Box
+                            sx={{
+                              position: isExpanded ? 'absolute' : 'relative',
+                              width: '100%',
+                              opacity: isExpanded ? 0 : 1,
+                              pointerEvents: isExpanded ? 'none' : 'auto'
+                            }}
+                          >
+                            <Typography
+                              variant="body1"
+                              color="text.secondary"
+                              sx={{ 
+                                lineHeight: 1.7,
+                                fontSize: '1rem'
+                              }}
+                            >
+                              {summary}
+                            </Typography>
+                          </Box>
+                        </Fade>
 
-                      {/* Expanded Content (with smooth expand animation) */}
-                      <Collapse in={isExpanded} timeout={400}>
-                        <Box
-                          dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
-                          sx={{
-                            '& h1, & h2, & h3, & h4, & h5, & h6': {
-                              color: 'text.primary',
-                              fontWeight: 600,
-                              mb: 2,
-                              mt: 3,
-                              '&:first-of-type': { mt: 0 }
-                            },
-                            '& p': {
-                              mb: 2,
-                              lineHeight: 1.7,
-                              color: 'text.secondary',
-                              fontSize: '1rem'
-                            },
-                            '& ul, & ol': {
-                              pl: 3,
-                              mb: 2,
-                              '& li': {
-                                mb: 1,
-                                color: 'text.secondary',
-                                lineHeight: 1.6
-                              }
-                            },
-                            '& strong': {
-                              fontWeight: 600,
-                              color: 'text.primary'
-                            }
-                          }}
-                        />
-                      </Collapse>
+                        {/* Expanded content */}
+                        <Collapse in={isExpanded} timeout={400}>
+                          <Fade in={isExpanded} timeout={300}>
+                            <Box
+                              dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
+                              sx={{
+                                '& h1, & h2, & h3, & h4, & h5, & h6': {
+                                  color: 'text.primary',
+                                  fontWeight: 600,
+                                  mb: 2,
+                                  mt: 3,
+                                  '&:first-of-type': { mt: 0 }
+                                },
+                                '& p': {
+                                  mb: 2,
+                                  lineHeight: 1.7,
+                                  color: 'text.secondary',
+                                  fontSize: '1rem'
+                                },
+                                '& ul, & ol': {
+                                  pl: 3,
+                                  mb: 2,
+                                  '& li': {
+                                    mb: 1,
+                                    color: 'text.secondary',
+                                    lineHeight: 1.6
+                                  }
+                                },
+                                '& strong': {
+                                  fontWeight: 600,
+                                  color: 'text.primary'
+                                }
+                              }}
+                            />
+                          </Fade>
+                        </Collapse>
+                      </Box>
                     </CardContent>
                   </Card>
                 </Fade>
