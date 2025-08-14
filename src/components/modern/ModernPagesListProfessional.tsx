@@ -325,52 +325,52 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         </Button>
                       </Stack>
 
-                      {/* Summary always visible (best practice) */}
-                      <Typography
-                        variant="body1"
-                        color="text.secondary"
-                        sx={{ 
-                          lineHeight: 1.7,
-                          fontSize: '1rem',
-                          mb: isExpanded ? 2 : 0
-                        }}
-                      >
-                        {summary}
-                      </Typography>
-
-                      {/* Only expanded content animates (single Collapse - best practice) */}
-                      <Collapse in={isExpanded} timeout={400}>
-                        <Box
-                          dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
-                          sx={{
-                            '& h1, & h2, & h3, & h4, & h5, & h6': {
-                              color: 'text.primary',
-                              fontWeight: 600,
-                              mb: 2,
-                              mt: 3,
-                              '&:first-of-type': { mt: 0 }
-                            },
-                            '& p': {
-                              mb: 2,
-                              lineHeight: 1.7,
-                              color: 'text.secondary',
-                              fontSize: '1rem'
-                            },
-                            '& ul, & ol': {
-                              pl: 3,
-                              mb: 2,
-                              '& li': {
-                                mb: 1,
+                      {/* Single Collapse with conditional content to prevent text duplication */}
+                      <Collapse in={true} timeout={400} collapsedSize={0}>
+                        {isExpanded ? (
+                          <Box
+                            dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
+                            sx={{
+                              '& h1, & h2, & h3, & h4, & h5, & h6': {
+                                color: 'text.primary',
+                                fontWeight: 600,
+                                mb: 2,
+                                mt: 3,
+                                '&:first-of-type': { mt: 0 }
+                              },
+                              '& p': {
+                                mb: 2,
+                                lineHeight: 1.7,
                                 color: 'text.secondary',
-                                lineHeight: 1.6
+                                fontSize: '1rem'
+                              },
+                              '& ul, & ol': {
+                                pl: 3,
+                                mb: 2,
+                                '& li': {
+                                  mb: 1,
+                                  color: 'text.secondary',
+                                  lineHeight: 1.6
+                                }
+                              },
+                              '& strong': {
+                                fontWeight: 600,
+                                color: 'text.primary'
                               }
-                            },
-                            '& strong': {
-                              fontWeight: 600,
-                              color: 'text.primary'
-                            }
-                          }}
-                        />
+                            }}
+                          />
+                        ) : (
+                          <Typography
+                            variant="body1"
+                            color="text.secondary"
+                            sx={{ 
+                              lineHeight: 1.7,
+                              fontSize: '1rem'
+                            }}
+                          >
+                            {summary}
+                          </Typography>
+                        )}
                       </Collapse>
                     </CardContent>
                   </Card>
