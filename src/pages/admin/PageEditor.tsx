@@ -17,7 +17,9 @@ import {
   Card,
   CardMedia,
   CardContent,
-  CardActions
+  CardActions,
+  Collapse,
+  IconButton
 } from '@mui/material';
 import { StandardLoading } from '../../components/common/StandardLoading';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -46,7 +48,10 @@ import {
   Build as BuildIcon,
   Event as EventIcon,
   People as PeopleIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Palette as PaletteIcon
 } from '@mui/icons-material';
 import 'easymde/dist/easymde.min.css';
 import '../../styles/PageEditor.css';
@@ -92,6 +97,7 @@ const PageEditor: React.FC = () => {
   const [isPublished, setIsPublished] = useState(false);
   const [show, setShow] = useState(true);
   const [icon, setIcon] = useState<string>('info'); // Default icon
+  const [iconSelectorExpanded, setIconSelectorExpanded] = useState(false); // Icon selector collapsed by default
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -584,73 +590,125 @@ const PageEditor: React.FC = () => {
             
             {/* Icon Selector */}
             <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Välj ikon för sidan
-              </Typography>
-              
+              {/* Header with expand/collapse button */}
               <Box 
                 sx={{ 
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: 'repeat(3, 1fr)', // 3 kolumner på mobil
-                    sm: 'repeat(4, 1fr)', // 4 kolumner på tablet
-                    md: 'repeat(5, 1fr)'  // 5 kolumner på desktop
-                  },
-                  gap: { xs: 1, sm: 1.5 }, 
-                  mb: 3 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 2,
+                  cursor: 'pointer',
+                  p: { xs: 1, sm: 1.5 },
+                  borderRadius: 1,
+                  backgroundColor: 'action.hover',
+                  '&:hover': {
+                    backgroundColor: 'action.selected'
+                  }
                 }}
+                onClick={() => setIconSelectorExpanded(!iconSelectorExpanded)}
               >
-                {availableIcons.map((iconConfig) => {
-                  const IconComponent = iconConfig.icon;
-                  const isSelected = icon === iconConfig.id;
-                  
-                  return (
-                    <Paper
-                      key={iconConfig.id}
-                      elevation={isSelected ? 3 : 1}
-                      sx={{
-                        p: { xs: 1.5, sm: 2 }, // Mindre padding på mobil
-                        cursor: 'pointer',
-                        border: isSelected ? `2px solid ${iconConfig.color}` : '2px solid transparent',
-                        backgroundColor: isSelected ? `${iconConfig.color}10` : 'background.paper',
-                        transition: 'all 0.2s ease',
-                        textAlign: 'center',
-                        aspectRatio: '1', // Kvadratisk form
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        '&:hover': {
-                          elevation: 2,
-                          backgroundColor: `${iconConfig.color}20`
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PaletteIcon color="primary" />
+                  <Typography variant="h6">
+                    Välj ikon för sidan
+                  </Typography>
+                  {/* Show selected icon next to title when collapsed */}
+                  {!iconSelectorExpanded && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+                      {(() => {
+                        const selectedIconConfig = availableIcons.find(ic => ic.id === icon);
+                        if (selectedIconConfig) {
+                          const SelectedIcon = selectedIconConfig.icon;
+                          return (
+                            <>
+                              <SelectedIcon 
+                                sx={{ 
+                                  color: selectedIconConfig.color, 
+                                  fontSize: 20 
+                                }} 
+                              />
+                              <Typography variant="body2" color="text.secondary">
+                                ({selectedIconConfig.name})
+                              </Typography>
+                            </>
+                          );
                         }
-                      }}
-                      onClick={() => setIcon(iconConfig.id)}
-                    >
-                      <IconComponent 
-                        sx={{ 
-                          color: iconConfig.color, 
-                          fontSize: { xs: 24, sm: 28, md: 32 }, // Responsiv storlek
-                          mb: 0.5
-                        }} 
-                      />
-                      <Typography 
-                        variant="caption" 
-                        display="block"
-                        sx={{ 
-                          fontWeight: isSelected ? 600 : 400,
-                          color: isSelected ? iconConfig.color : 'text.secondary',
-                          fontSize: { xs: '0.65rem', sm: '0.75rem' }, // Mindre text på mobil
-                          lineHeight: 1.2,
-                          textAlign: 'center'
-                        }}
-                      >
-                        {iconConfig.name}
-                      </Typography>
-                    </Paper>
-                  );
-                })}
+                        return null;
+                      })()}
+                    </Box>
+                  )}
+                </Box>
+                <IconButton size="small">
+                  {iconSelectorExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
               </Box>
+              
+              {/* Collapsible icon grid */}
+              <Collapse in={iconSelectorExpanded} timeout={300}>
+                <Box 
+                  sx={{ 
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(3, 1fr)', // 3 kolumner på mobil
+                      sm: 'repeat(4, 1fr)', // 4 kolumner på tablet
+                      md: 'repeat(5, 1fr)'  // 5 kolumner på desktop
+                    },
+                    gap: { xs: 1, sm: 1.5 }, 
+                    mb: 3 
+                  }}
+                >
+                  {availableIcons.map((iconConfig) => {
+                    const IconComponent = iconConfig.icon;
+                    const isSelected = icon === iconConfig.id;
+                    
+                    return (
+                      <Paper
+                        key={iconConfig.id}
+                        elevation={isSelected ? 3 : 1}
+                        sx={{
+                          p: { xs: 1.5, sm: 2 }, // Mindre padding på mobil
+                          cursor: 'pointer',
+                          border: isSelected ? `2px solid ${iconConfig.color}` : '2px solid transparent',
+                          backgroundColor: isSelected ? `${iconConfig.color}10` : 'background.paper',
+                          transition: 'all 0.2s ease',
+                          textAlign: 'center',
+                          aspectRatio: '1', // Kvadratisk form
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          '&:hover': {
+                            elevation: 2,
+                            backgroundColor: `${iconConfig.color}20`
+                          }
+                        }}
+                        onClick={() => setIcon(iconConfig.id)}
+                      >
+                        <IconComponent 
+                          sx={{ 
+                            color: iconConfig.color, 
+                            fontSize: { xs: 24, sm: 28, md: 32 }, // Responsiv storlek
+                            mb: 0.5
+                          }} 
+                        />
+                        <Typography 
+                          variant="caption" 
+                          display="block"
+                          sx={{ 
+                            fontWeight: isSelected ? 600 : 400,
+                            color: isSelected ? iconConfig.color : 'text.secondary',
+                            fontSize: { xs: '0.65rem', sm: '0.75rem' }, // Mindre text på mobil
+                            lineHeight: 1.2,
+                            textAlign: 'center'
+                          }}
+                        >
+                          {iconConfig.name}
+                        </Typography>
+                      </Paper>
+                    );
+                  })}
+                </Box>
+              </Collapse>
             </Grid>
             
             <Grid item xs={12}>
