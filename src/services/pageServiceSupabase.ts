@@ -13,6 +13,7 @@ function transformPageFromDB(dbPage: any): Page {
     slug: dbPage.slug,
     isPublished: dbPage.ispublished,
     show: dbPage.show,
+    icon: dbPage.icon, // Add icon mapping
     createdAt: dbPage.createdat,
     updatedAt: dbPage.updatedat,
     files: dbPage.files ? (typeof dbPage.files === 'string' ? JSON.parse(dbPage.files) : dbPage.files) : []
@@ -28,6 +29,7 @@ function transformPageToDB(page: Partial<Page>): any {
   if (page.slug !== undefined) dbPage.slug = page.slug;
   if (page.isPublished !== undefined) dbPage.ispublished = page.isPublished;
   if (page.show !== undefined) dbPage.show = page.show;
+  if (page.icon !== undefined) dbPage.icon = page.icon; // Add icon mapping
   if (page.createdAt !== undefined) dbPage.createdat = page.createdAt;
   if (page.updatedAt !== undefined) dbPage.updatedat = page.updatedAt;
   if (page.files !== undefined) dbPage.files = JSON.stringify(page.files);

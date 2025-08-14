@@ -331,10 +331,18 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         direction="row" 
                         alignItems="center" 
                         justifyContent="space-between"
-                        spacing={2}
+                        spacing={{ xs: 1, sm: 2 }}
                         sx={{ mb: 3 }}
                       >
-                        <Stack direction="row" alignItems="center" spacing={2} sx={{ flex: 1 }}>
+                        <Stack 
+                          direction="row" 
+                          alignItems="center" 
+                          spacing={2} 
+                          sx={{ 
+                            flex: 1,
+                            minWidth: 0 // Tillåt text att truncate om nödvändigt
+                          }}
+                        >
                           {/* Colored Icon */}
                           <Box
                             sx={{
@@ -377,11 +385,13 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                           sx={{
                             textTransform: 'none',
                             color: iconColor,
-                            fontSize: '0.875rem',
+                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
                             fontWeight: 500,
-                            minWidth: 'auto',
-                            px: 2,
+                            minWidth: { xs: 100, sm: 'auto' }, // Sätt minimum bredd på mobil
+                            px: { xs: 1.5, sm: 2 },
+                            py: { xs: 0.5, sm: 1 },
                             borderRadius: 2,
+                            flexShrink: 0, // Förhindra att knappen krymps
                             transition: 'all 0.2s ease',
                             '&:hover': {
                               backgroundColor: bgColor,
@@ -456,3 +466,4 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
 };
 
 export default ModernPagesListProfessional;
+
