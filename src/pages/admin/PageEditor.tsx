@@ -670,17 +670,19 @@ const PageEditor: React.FC = () => {
                         key={iconConfig.id}
                         elevation={isSelected ? 3 : 1}
                         sx={{
-                          p: { xs: 1.5, sm: 2 }, // Mindre padding på mobil
+                          p: { xs: 1, sm: 1.5 }, // Mindre padding för bättre passform
                           cursor: 'pointer',
                           border: isSelected ? `2px solid ${iconConfig.color}` : '2px solid transparent',
                           backgroundColor: isSelected ? `${iconConfig.color}10` : 'background.paper',
                           transition: 'all 0.2s ease',
                           textAlign: 'center',
-                          aspectRatio: '1', // Kvadratisk form
+                          minHeight: { xs: '70px', sm: '80px', md: '90px' }, // Fast höjd istället för aspectRatio
+                          width: '100%', // Full bredd inom grid-cell
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          overflow: 'hidden', // Förhindra att innehåll hamnar utanför
                           '&:hover': {
                             elevation: 2,
                             backgroundColor: `${iconConfig.color}20`
@@ -691,8 +693,9 @@ const PageEditor: React.FC = () => {
                         <IconComponent 
                           sx={{ 
                             color: iconConfig.color, 
-                            fontSize: { xs: 24, sm: 28, md: 32 }, // Responsiv storlek
-                            mb: 0.5
+                            fontSize: { xs: 20, sm: 24, md: 28 }, // Mindre ikoner för bättre passform
+                            mb: 0.5,
+                            flexShrink: 0 // Förhindra att ikoner krymps
                           }} 
                         />
                         <Typography 
@@ -701,9 +704,13 @@ const PageEditor: React.FC = () => {
                           sx={{ 
                             fontWeight: isSelected ? 600 : 400,
                             color: isSelected ? iconConfig.color : 'text.secondary',
-                            fontSize: { xs: '0.65rem', sm: '0.75rem' }, // Mindre text på mobil
-                            lineHeight: 1.2,
-                            textAlign: 'center'
+                            fontSize: { xs: '0.6rem', sm: '0.7rem' }, // Ännu mindre text för bättre passform
+                            lineHeight: 1.1,
+                            textAlign: 'center',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '100%'
                           }}
                         >
                           {iconConfig.name}

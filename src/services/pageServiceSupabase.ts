@@ -382,12 +382,14 @@ const pageServiceSupabase = {
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
       
       console.log('🚀 Calling admin Edge Function with timeout...');
+      console.log('📡 URL:', `${SUPABASE_URL}/functions/v1/admin-pages`);
+      console.log('🔑 Auth Key:', SUPABASE_ANON_KEY.substring(0, 20) + '...');
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log('⏰ Request timeout after 15 seconds');
+        console.log('⏰ Request timeout after 8 seconds');
         controller.abort();
-      }, 15000); // 15 second timeout
+      }, 8000); // 8 second timeout
       
       const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
         method: 'PUT',
@@ -405,18 +407,25 @@ const pageServiceSupabase = {
       });
       
       clearTimeout(timeoutId);
+      console.log('📨 Response received:', response.status, response.statusText);
 
       if (!response.ok) {
+        console.log('❌ Response not OK, reading error...');
         const errorData = await response.json();
         console.error('❌ Admin function failed:', errorData);
         throw new Error(errorData.error || 'Kunde inte uppdatera sidan');
       }
 
+      console.log('✅ Response OK, parsing JSON...');
       const { page } = await response.json();
+      console.log('📄 Page data received:', page ? 'SUCCESS' : 'NULL');
       const updatedPage = transformPageFromDB(page);
       
-      // Log the page update
-      await logUserAccess('pages', 'UPDATE', id, `admin_update_page_${updatedPage.title}`);
+      // Log the page update (don't await to avoid blocking)
+      console.log('📝 Logging user access (async)...');
+      logUserAccess('pages', 'UPDATE', id, `admin_update_page_${updatedPage.title}`).catch(err => 
+        console.warn('Audit logging failed:', err)
+      );
       
       console.log('✅ Page updated successfully via admin function');
       return updatedPage;

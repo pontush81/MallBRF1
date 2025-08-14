@@ -21,7 +21,23 @@ import {
   Delete as DeleteIcon, 
   Add as AddIcon,
   Article as ArticleIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  // Icons for page types
+  Info as InfoIcon,
+  SportsEsports as SportsEsportsIcon,
+  ElectricBolt as ElectricBoltIcon,
+  Yard as YardIcon,
+  Gavel as GavelIcon,
+  Home as HomeIcon,
+  Work as WorkIcon,
+  School as SchoolIcon,
+  LocalHospital as LocalHospitalIcon,
+  Restaurant as RestaurantIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Build as BuildIcon,
+  Event as EventIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -42,6 +58,52 @@ const PagesList: React.FC = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   
   const navigate = useNavigate();
+
+  // Icon mapping (same as in ModernPagesListProfessional)
+  const iconMapping = {
+    'info': { icon: InfoIcon, color: '#616161', bgColor: '#f5f5f5' },
+    'sports': { icon: SportsEsportsIcon, color: '#e91e63', bgColor: '#fce4ec' },
+    'electric': { icon: ElectricBoltIcon, color: '#ff9800', bgColor: '#fff3e0' },
+    'yard': { icon: YardIcon, color: '#4caf50', bgColor: '#e8f5e8' },
+    'gavel': { icon: GavelIcon, color: '#3f51b5', bgColor: '#e8eaf6' },
+    'home': { icon: HomeIcon, color: '#2196f3', bgColor: '#e3f2fd' },
+    'work': { icon: WorkIcon, color: '#795548', bgColor: '#efebe9' },
+    'school': { icon: SchoolIcon, color: '#9c27b0', bgColor: '#f3e5f5' },
+    'health': { icon: LocalHospitalIcon, color: '#f44336', bgColor: '#ffebee' },
+    'restaurant': { icon: RestaurantIcon, color: '#ff5722', bgColor: '#fff3e0' },
+    'car': { icon: DirectionsCarIcon, color: '#607d8b', bgColor: '#eceff1' },
+    'build': { icon: BuildIcon, color: '#ffc107', bgColor: '#fffde7' },
+    'event': { icon: EventIcon, color: '#673ab7', bgColor: '#ede7f6' },
+    'people': { icon: PeopleIcon, color: '#009688', bgColor: '#e0f2f1' },
+    'settings': { icon: SettingsIcon, color: '#9e9e9e', bgColor: '#f5f5f5' }
+  };
+
+  // Function to get icon and color for a page (same logic as ModernPagesListProfessional)
+  const getPageIconAndColor = (page: Page) => {
+    // First, try to use the saved icon from admin selection
+    if (page.icon && iconMapping[page.icon as keyof typeof iconMapping]) {
+      return iconMapping[page.icon as keyof typeof iconMapping];
+    }
+    
+    // Fallback to title-based detection for existing pages without saved icons
+    const titleLower = page.title.toLowerCase();
+    
+    if (titleLower.includes('aktivitetsrum') || titleLower.includes('aktivitet')) {
+      return iconMapping.sports;
+    }
+    if (titleLower.includes('elbil') || titleLower.includes('el') || titleLower.includes('bil')) {
+      return iconMapping.electric;
+    }
+    if (titleLower.includes('ellagård') || titleLower.includes('trädgård') || titleLower.includes('gård')) {
+      return iconMapping.yard;
+    }
+    if (titleLower.includes('föreningsstämma') || titleLower.includes('stämma') || titleLower.includes('förening')) {
+      return iconMapping.gavel;
+    }
+    
+    // Default icon and color
+    return iconMapping.info;
+  };
 
   // Debug logging
   console.log('🔍 Admin PagesList render:', {
@@ -213,13 +275,16 @@ const PagesList: React.FC = () => {
                     width: '48px', 
                     height: '48px', 
                     borderRadius: modernTheme.borderRadius.xl,
-                    background: modernTheme.gradients.accent,
+                    background: getPageIconAndColor(page).color,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     mb: modernTheme.spacing[2]
                   }}>
-                    <ArticleIcon sx={{ color: 'white', fontSize: '24px' }} />
+                    {(() => {
+                      const PageIcon = getPageIconAndColor(page).icon;
+                      return <PageIcon sx={{ color: 'white', fontSize: '24px' }} />;
+                    })()}
                   </Box>
                   <Chip
                     label={page.isPublished ? 'Publicerad' : 'Ej publicerad'}
