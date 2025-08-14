@@ -30,7 +30,23 @@ import {
   Visibility as VisibilityIcon,
   AttachFile as AttachFileIcon,
   PictureAsPdf as PdfIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  // Available icons for selection
+  SportsEsports as SportsEsportsIcon,
+  ElectricBolt as ElectricBoltIcon,
+  Yard as YardIcon,
+  Gavel as GavelIcon,
+  Info as InfoIcon,
+  Home as HomeIcon,
+  Work as WorkIcon,
+  School as SchoolIcon,
+  LocalHospital as LocalHospitalIcon,
+  Restaurant as RestaurantIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Build as BuildIcon,
+  Event as EventIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import 'easymde/dist/easymde.min.css';
 import '../../styles/PageEditor.css';
@@ -75,6 +91,7 @@ const PageEditor: React.FC = () => {
   const [slug, setSlug] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [show, setShow] = useState(true);
+  const [icon, setIcon] = useState<string>('info'); // Default icon
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -85,6 +102,25 @@ const PageEditor: React.FC = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   
   const navigate = useNavigate();
+
+  // Available icons configuration
+  const availableIcons = [
+    { id: 'info', name: 'Information', icon: InfoIcon, color: '#616161' },
+    { id: 'sports', name: 'Aktiviteter/Spel', icon: SportsEsportsIcon, color: '#e91e63' },
+    { id: 'electric', name: 'Elbil/Elektricitet', icon: ElectricBoltIcon, color: '#ff9800' },
+    { id: 'yard', name: 'Trädgård/Utomhus', icon: YardIcon, color: '#4caf50' },
+    { id: 'gavel', name: 'Möten/Beslut', icon: GavelIcon, color: '#3f51b5' },
+    { id: 'home', name: 'Hem/Boende', icon: HomeIcon, color: '#1976d2' },
+    { id: 'work', name: 'Arbete/Kontor', icon: WorkIcon, color: '#795548' },
+    { id: 'school', name: 'Utbildning', icon: SchoolIcon, color: '#9c27b0' },
+    { id: 'hospital', name: 'Hälsa/Vård', icon: LocalHospitalIcon, color: '#f44336' },
+    { id: 'restaurant', name: 'Mat/Restaurang', icon: RestaurantIcon, color: '#ff5722' },
+    { id: 'car', name: 'Bil/Transport', icon: DirectionsCarIcon, color: '#607d8b' },
+    { id: 'build', name: 'Bygg/Underhåll', icon: BuildIcon, color: '#ffc107' },
+    { id: 'event', name: 'Event/Kalender', icon: EventIcon, color: '#2196f3' },
+    { id: 'people', name: 'Personer/Grupp', icon: PeopleIcon, color: '#009688' },
+    { id: 'settings', name: 'Inställningar', icon: SettingsIcon, color: '#424242' }
+  ];
 
   // Hämta sidan om vi är i redigeringsläge
   useEffect(() => {
@@ -109,6 +145,7 @@ const PageEditor: React.FC = () => {
       setSlug(page.slug);
       setIsPublished(page.isPublished);
       setShow(page.show !== undefined ? page.show : true);
+      setIcon(page.icon || 'info'); // Load saved icon or default to 'info'
       setFiles(page.files || []);
     } catch (err) {
       setError('Ett fel uppstod vid hämtning av sidan');
@@ -199,6 +236,7 @@ const PageEditor: React.FC = () => {
         slug,
         isPublished,
         show,
+        icon, // Include the selected icon
         files
       };
       
@@ -541,6 +579,77 @@ const PageEditor: React.FC = () => {
                   }
                   label="Visa i sidlistan"
                 />
+              </Box>
+            </Grid>
+            
+            {/* Icon Selector */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Välj ikon för sidan
+              </Typography>
+              
+              <Box 
+                sx={{ 
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: 'repeat(3, 1fr)', // 3 kolumner på mobil
+                    sm: 'repeat(4, 1fr)', // 4 kolumner på tablet
+                    md: 'repeat(5, 1fr)'  // 5 kolumner på desktop
+                  },
+                  gap: { xs: 1, sm: 1.5 }, 
+                  mb: 3 
+                }}
+              >
+                {availableIcons.map((iconConfig) => {
+                  const IconComponent = iconConfig.icon;
+                  const isSelected = icon === iconConfig.id;
+                  
+                  return (
+                    <Paper
+                      key={iconConfig.id}
+                      elevation={isSelected ? 3 : 1}
+                      sx={{
+                        p: { xs: 1.5, sm: 2 }, // Mindre padding på mobil
+                        cursor: 'pointer',
+                        border: isSelected ? `2px solid ${iconConfig.color}` : '2px solid transparent',
+                        backgroundColor: isSelected ? `${iconConfig.color}10` : 'background.paper',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center',
+                        aspectRatio: '1', // Kvadratisk form
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        '&:hover': {
+                          elevation: 2,
+                          backgroundColor: `${iconConfig.color}20`
+                        }
+                      }}
+                      onClick={() => setIcon(iconConfig.id)}
+                    >
+                      <IconComponent 
+                        sx={{ 
+                          color: iconConfig.color, 
+                          fontSize: { xs: 24, sm: 28, md: 32 }, // Responsiv storlek
+                          mb: 0.5
+                        }} 
+                      />
+                      <Typography 
+                        variant="caption" 
+                        display="block"
+                        sx={{ 
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? iconConfig.color : 'text.secondary',
+                          fontSize: { xs: '0.65rem', sm: '0.75rem' }, // Mindre text på mobil
+                          lineHeight: 1.2,
+                          textAlign: 'center'
+                        }}
+                      >
+                        {iconConfig.name}
+                      </Typography>
+                    </Paper>
+                  );
+                })}
               </Box>
             </Grid>
             

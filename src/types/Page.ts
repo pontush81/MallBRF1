@@ -5,6 +5,7 @@ export interface Page {
   slug: string;
   isPublished: boolean;
   show: boolean;
+  icon?: string; // Icon identifier for the page
   createdAt?: string;
   updatedAt?: string;
   files?: FileInfo[];

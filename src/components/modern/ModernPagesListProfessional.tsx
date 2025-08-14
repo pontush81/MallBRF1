@@ -19,7 +19,12 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
-  KeyboardArrowUp as KeyboardArrowUpIcon
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+  SportsEsports as SportsEsportsIcon,  // För Aktivitetsrum (gaming/aktiviteter)
+  ElectricBolt as ElectricBoltIcon,     // För Elbil (mer modern el-ikon)
+  Yard as YardIcon,                     // För Ellagården (trädgård/utemiljö)
+  Gavel as GavelIcon,                   // För Föreningsstämma (beslut/möten)
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 
@@ -64,6 +69,42 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
       }
       return newSet;
     });
+  };
+
+  // Available icons mapping (same as in PageEditor)
+  const iconMapping = {
+    'info': { icon: InfoIcon, color: '#616161', bgColor: '#f5f5f5' },
+    'sports': { icon: SportsEsportsIcon, color: '#e91e63', bgColor: '#fce4ec' },
+    'electric': { icon: ElectricBoltIcon, color: '#ff9800', bgColor: '#fff3e0' },
+    'yard': { icon: YardIcon, color: '#4caf50', bgColor: '#e8f5e8' },
+    'gavel': { icon: GavelIcon, color: '#3f51b5', bgColor: '#e8eaf6' }
+  };
+
+  // Function to get icon and color based on saved icon or fallback to title-based detection
+  const getPageIconAndColor = (page: Page) => {
+    // First, try to use the saved icon from admin selection
+    if (page.icon && iconMapping[page.icon as keyof typeof iconMapping]) {
+      return iconMapping[page.icon as keyof typeof iconMapping];
+    }
+    
+    // Fallback to title-based detection for existing pages without saved icons
+    const titleLower = page.title.toLowerCase();
+    
+    if (titleLower.includes('aktivitetsrum') || titleLower.includes('aktivitet')) {
+      return iconMapping.sports;
+    }
+    if (titleLower.includes('elbil') || titleLower.includes('el') || titleLower.includes('bil')) {
+      return iconMapping.electric;
+    }
+    if (titleLower.includes('ellagård') || titleLower.includes('trädgård') || titleLower.includes('gård')) {
+      return iconMapping.yard;
+    }
+    if (titleLower.includes('föreningsstämma') || titleLower.includes('stämma') || titleLower.includes('förening')) {
+      return iconMapping.gavel;
+    }
+    
+    // Default icon and color
+    return iconMapping.info;
   };
 
   // Function to get content summary (first paragraph or sentence)
@@ -264,23 +305,28 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
             {filteredPages.map((page, index) => {
               const isExpanded = expandedCards.has(page.id);
               const summary = getContentSummary(page.content);
+              const { icon: PageIcon, color: iconColor, bgColor } = getPageIconAndColor(page);
               
               return (
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
                   <Card 
                     elevation={2}
                     sx={{ 
-                      borderRadius: 3,
+                      borderRadius: 4,
                       border: `1px solid ${theme.palette.divider}`,
-                      transition: 'all 0.3s ease',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                       '&:hover': {
-                        elevation: 4,
-                        borderColor: 'primary.main'
+                        elevation: 8,
+                        transform: 'translateY(-4px)',
+                        borderColor: iconColor,
+                        boxShadow: `0 8px 25px rgba(0,0,0,0.12), 0 0 0 1px ${iconColor}20`
                       }
                     }}
                   >
                     <CardContent sx={{ p: 4 }}>
-                      {/* Section Header */}
+                      {/* Section Header with Icon */}
                       <Stack 
                         direction="row" 
                         alignItems="center" 
@@ -288,19 +334,39 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         spacing={2}
                         sx={{ mb: 3 }}
                       >
-                        <Typography 
-                          variant="h5" 
-                          component="h2"
-                          id={`section-${page.id}`}
-                          sx={{ 
-                            fontWeight: 600,
-                            color: 'text.primary',
-                            fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                            flex: 1
-                          }}
-                        >
-                          {page.title}
-                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={2} sx={{ flex: 1 }}>
+                          {/* Colored Icon */}
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 2,
+                              backgroundColor: bgColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'transform 0.2s ease',
+                              '&:hover': { transform: 'scale(1.1)' }
+                            }}
+                          >
+                            <PageIcon sx={{ color: iconColor, fontSize: 24 }} />
+                          </Box>
+                          
+                          <Typography 
+                            variant="h5" 
+                            component="h2"
+                            id={`section-${page.id}`}
+                            sx={{ 
+                              fontWeight: 600,
+                              color: 'text.primary',
+                              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                              transition: 'color 0.2s ease',
+                              '&:hover': { color: iconColor }
+                            }}
+                          >
+                            {page.title}
+                          </Typography>
+                        </Stack>
                         
                         <Button
                           onClick={(e) => {
@@ -310,14 +376,17 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                           endIcon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                           sx={{
                             textTransform: 'none',
-                            color: 'primary.main',
+                            color: iconColor,
                             fontSize: '0.875rem',
                             fontWeight: 500,
                             minWidth: 'auto',
                             px: 2,
+                            borderRadius: 2,
+                            transition: 'all 0.2s ease',
                             '&:hover': {
-                              backgroundColor: 'primary.light',
-                              color: 'primary.contrastText'
+                              backgroundColor: bgColor,
+                              color: iconColor,
+                              transform: 'scale(1.05)'
                             }
                           }}
                         >
