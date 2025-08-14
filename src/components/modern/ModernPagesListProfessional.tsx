@@ -325,20 +325,21 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         </Button>
                       </Stack>
 
-                      {/* Content Summary (always visible) */}
-                      <Typography
-                        variant="body1"
-                        color="text.secondary"
-                        sx={{ 
-                          mb: isExpanded ? 3 : 0,
-                          lineHeight: 1.7,
-                          fontSize: '1rem'
-                        }}
-                      >
-                        {summary}
-                      </Typography>
+                      {/* Content Summary (only visible when collapsed) */}
+                      {!isExpanded && (
+                        <Typography
+                          variant="body1"
+                          color="text.secondary"
+                          sx={{ 
+                            lineHeight: 1.7,
+                            fontSize: '1rem'
+                          }}
+                        >
+                          {summary}
+                        </Typography>
+                      )}
 
-                      {/* Expanded Content */}
+                      {/* Expanded Content (only visible when expanded) */}
                       <Collapse in={isExpanded} timeout={400}>
                         <Box
                           dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
@@ -371,8 +372,6 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                             }
                           }}
                         />
-                        
-
                       </Collapse>
                     </CardContent>
                   </Card>
