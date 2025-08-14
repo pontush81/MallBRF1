@@ -30,7 +30,7 @@ import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { Page, FileInfo } from '../../types/Page';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloseIcon from '@mui/icons-material/Close';
-import { OptimizedImage } from '../../components/common/OptimizedImage';
+// import { OptimizedImage } from '../../components/common/OptimizedImage';
 
 // Förbättrade komponentstilar för Markdown-innehåll med bättre läsbarhet
 const markdownStyles = {
@@ -545,13 +545,16 @@ const PageView: React.FC = () => {
                             }}
                             onClick={() => handleFileOpen(file)}
                           >
-                            <OptimizedImage
+                            <img
                               src={getFileUrl(file)}
                               alt={file.originalName || 'Bild'}
                               height={180}
-                              objectFit="cover"
+                              style={{
+                                objectFit: 'cover',
+                                width: '100%',
+                                borderRadius: '8px'
+                              }}
                               loading="lazy"
-                              placeholder={true}
                             />
                             <Box
                               className="zoom-overlay"
@@ -662,18 +665,16 @@ const PageView: React.FC = () => {
             <CloseIcon />
           </IconButton>
           {selectedImage && (
-            <OptimizedImage
+            <img
               src={selectedImage.url}
               alt={selectedImage.originalName || 'Bild'}
-              width="100%"
-              height="auto"
-              objectFit="contain"
-              loading="eager"
-              placeholder={true}
-              sx={{
-                maxHeight: '90vh',
-                display: 'block'
+              style={{
+                width: '100%',
+                height: 'auto',
+                objectFit: 'contain',
+                maxHeight: '80vh'
               }}
+              loading="eager"
             />
           )}
         </DialogContent>

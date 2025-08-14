@@ -5,11 +5,14 @@ module.exports = {
     configure: (webpackConfig, { env, paths }) => {
       // Production optimizations
       if (env === 'production') {
-        // Enable tree shaking
+        // Enable aggressive tree shaking and dead code elimination
         webpackConfig.optimization = {
           ...webpackConfig.optimization,
           usedExports: true,
           sideEffects: false,
+          minimize: true,
+          providedExports: true,
+          concatenateModules: true,
           
           // Better chunk splitting
           splitChunks: {
