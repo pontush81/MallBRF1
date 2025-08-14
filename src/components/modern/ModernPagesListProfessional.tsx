@@ -325,8 +325,8 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         </Button>
                       </Stack>
 
-                      {/* Content Summary (only visible when collapsed) */}
-                      {!isExpanded && (
+                      {/* Content Summary (with smooth collapse animation) */}
+                      <Collapse in={!isExpanded} timeout={400}>
                         <Typography
                           variant="body1"
                           color="text.secondary"
@@ -337,9 +337,9 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                         >
                           {summary}
                         </Typography>
-                      )}
+                      </Collapse>
 
-                      {/* Expanded Content (only visible when expanded) */}
+                      {/* Expanded Content (with smooth expand animation) */}
                       <Collapse in={isExpanded} timeout={400}>
                         <Box
                           dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
