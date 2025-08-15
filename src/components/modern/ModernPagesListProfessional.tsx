@@ -59,13 +59,22 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
 
   // Toggle card expansion
   const toggleCardExpansion = (pageId: string) => {
+    console.log('🔧 toggleCardExpansion called with pageId:', pageId);
+    console.log('🔧 Current expandedCards before:', expandedCards);
+    
     setExpandedCards(prev => {
+      console.log('🔧 Previous expandedCards in setter:', prev);
       const newSet = new Set(prev);
+      
       if (newSet.has(pageId)) {
+        console.log('🔧 Removing pageId from set:', pageId);
         newSet.delete(pageId);
       } else {
+        console.log('🔧 Adding pageId to set:', pageId);
         newSet.add(pageId);
       }
+      
+      console.log('🔧 New expandedCards set:', newSet);
       return newSet;
     });
   };
@@ -435,8 +444,11 @@ const iconMapping = {
                           size="small"
                           endIcon={expandedCards.has(page.id.toString()) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           onClick={(e) => {
+                            console.log('🔘 Button clicked for page:', page.title, 'ID:', page.id);
                             e.stopPropagation(); // Prevent card click
+                            console.log('🔄 Toggling expansion for page ID:', page.id.toString());
                             toggleCardExpansion(page.id.toString());
+                            console.log('📊 Current expanded cards:', expandedCards);
                           }}
                           sx={{
                             color: iconColor,
