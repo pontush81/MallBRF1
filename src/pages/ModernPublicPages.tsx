@@ -41,10 +41,8 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Handle page click - navigate to individual page
+  // Handle page click - navigate to individual page (not used with current expand/collapse behavior)
   const handlePageClick = (page: Page) => {
-    console.log('🖱️ Page clicked:', page.title, 'ID:', page.id);
-    console.log('📍 Navigating to:', `/page/${page.id}`);
     navigate(`/page/${page.id}`);
   };
 

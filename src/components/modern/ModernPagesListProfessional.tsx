@@ -55,6 +55,20 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
   // State for search and TOC
   const [searchTerm, setSearchTerm] = useState('');
   const [tocExpanded, setTocExpanded] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  // Toggle card expansion
+  const toggleCardExpansion = (pageId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(pageId)) {
+        newSet.delete(pageId);
+      } else {
+        newSet.add(pageId);
+      }
+      return newSet;
+    });
+  };
 
   // Enhanced search function
   const filteredPages = useMemo(() => {
@@ -319,15 +333,10 @@ const iconMapping = {
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
                   <Card 
                     elevation={2}
-                    onClick={() => {
-                      console.log('🎯 Card clicked for page:', page.title);
-                      onPageClick(page);
-                    }}
                     sx={{ 
                       borderRadius: 4,
                       border: `1px solid ${theme.palette.divider}`,
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      cursor: 'pointer',
                       background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                       '&:hover': {
                         elevation: 8,
@@ -387,22 +396,10 @@ const iconMapping = {
                           </Typography>
                         </Stack>
                         
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: iconColor,
-                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                            fontWeight: 500,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                          }}
-                        >
-                          Klicka för att läsa mer →
-                        </Typography>
+
                       </Stack>
 
-                      {/* Content Summary */}
+                      {/* Content Summary (always visible) */}
                       <Typography
                         variant="body1"
                         color="text.secondary"
@@ -414,6 +411,55 @@ const iconMapping = {
                       >
                         {summary}
                       </Typography>
+
+                      {/* Expandable Full Content */}
+                      <Collapse in={expandedCards.has(page.id.toString())}>
+                        <Box sx={{ mt: 2 }}>
+                          <Typography
+                            variant="body1"
+                            color="text.secondary"
+                            sx={{ 
+                              lineHeight: 1.7,
+                              fontSize: '1rem'
+                            }}
+                            dangerouslySetInnerHTML={{ 
+                              __html: formatPlainTextToHTML(page.content) 
+                            }}
+                          />
+                        </Box>
+                      </Collapse>
+
+                      {/* Read More/Less Button */}
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                        <Button
+                          size="small"
+                          endIcon={expandedCards.has(page.id.toString()) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            toggleCardExpansion(page.id.toString());
+                          }}
+                          sx={{
+                            color: iconColor,
+                            fontWeight: 500,
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            textTransform: 'none',
+                            minWidth: { xs: 'auto', sm: '120px' },
+                            px: { xs: 1, sm: 2 },
+                            py: { xs: 0.5, sm: 1 },
+                            flexShrink: 0,
+                            '&:hover': {
+                              backgroundColor: `${iconColor}15`,
+                              color: iconColor
+                            },
+                            '& .MuiSvgIcon-root': {
+                              color: iconColor,
+                              fontSize: { xs: '1rem', sm: '1.25rem' }
+                            }
+                          }}
+                        >
+                          {expandedCards.has(page.id.toString()) ? 'Visa mindre' : 'Läs mer'}
+                        </Button>
+                      </Box>
                     </CardContent>
                   </Card>
                 </Fade>
