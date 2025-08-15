@@ -18,7 +18,8 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh',
+      // Only use minHeight for auth pages that need centering
+      minHeight: isAuthPage ? '100vh' : 'auto',
       background: modernTheme.colors.white, // Clean white background instead of gray
       display: 'flex',
       flexDirection: 'column',
@@ -33,7 +34,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         sx={{ 
           flexGrow: 1,
           paddingTop: isAuthPage ? 0 : '64px', // Match exact header height (64px)
-          paddingBottom: modernTheme.spacing[4],
+          paddingBottom: isAuthPage ? modernTheme.spacing[4] : modernTheme.spacing[2], // Less padding for regular pages
           // REMOVED: minHeight constraint that was preventing scrolling
           overflow: 'auto', // CRITICAL: Allow scrolling
           width: '100%', // Ensure full width

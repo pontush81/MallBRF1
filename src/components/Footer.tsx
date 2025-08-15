@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
         bgcolor: 'grey.50',
         borderTop: 1,
         borderColor: 'divider',
-        py: 2, // Reduced from 4 to 2
+        py: 1.5, // Further reduced for tighter spacing
         px: 2
       }}
     >
@@ -122,7 +122,7 @@ const Footer: React.FC = () => {
         </Box>
 
         {/* Copyright - Minimal */}
-        <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+        <Box sx={{ mt: 1, textAlign: 'center' }}>
           <Typography variant="caption" color="text.secondary">
             © {currentYear} BRF Gulmåran • GDPR-compliant
           </Typography>
