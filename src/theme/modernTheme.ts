@@ -82,8 +82,14 @@ export const modernTheme = {
 
   // Professional gradients - subtle and sophisticated
   gradients: {
-    // Elegant header gradient - professional and trustworthy
-    header: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+    // Elegant header gradient - professional with enhanced depth and visual interest
+    header: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 20%, #f1f5f9 40%, #e2e8f0 75%, #cbd5e1 100%)',
+    
+    // Enhanced header with subtle blue accent for Swedish design
+    headerAccent: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 20%, #f0f9ff 40%, #e0f2fe 75%, #bae6fd 100%)',
+    
+    // Header with soft shadow overlay for depth
+    headerWithShadow: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 20%, #f1f5f9 40%, #e2e8f0 75%, #cbd5e1 100%), linear-gradient(180deg, rgba(0,0,0,0.02) 0%, transparent 100%)',
     
     // Subtle card gradient - clean and modern
     card: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
@@ -156,6 +162,9 @@ export const modernTheme = {
     base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
     md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    // Enhanced header shadows
+    header: '0 1px 12px rgba(30, 41, 59, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05)',
+    headerHover: '0 2px 16px rgba(30, 41, 59, 0.05), 0 2px 6px rgba(0, 0, 0, 0.08)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',

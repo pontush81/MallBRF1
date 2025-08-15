@@ -421,13 +421,17 @@ const ModernHeader: React.FC = memo(() => {
         position="fixed"
         elevation={0}
         sx={{
-          background: modernTheme.gradients.header,
-          backdropFilter: 'blur(10px)',
+          background: modernTheme.gradients.headerWithShadow,
+          backdropFilter: 'blur(12px)',
           borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
-          boxShadow: modernTheme.shadows.lg,
+          boxShadow: modernTheme.shadows.header,
           height: '64px', // Fixed height to prevent CLS
           minHeight: '64px !important',
           maxHeight: '64px !important',
+          transition: modernTheme.transitions.normal,
+          '&:hover': {
+            boxShadow: modernTheme.shadows.headerHover,
+          },
         }}
       >
         <Toolbar sx={{ 
@@ -444,13 +448,14 @@ const ModernHeader: React.FC = memo(() => {
             sx={{
               flexGrow: isMobile ? 1 : 0,
               fontWeight: modernTheme.typography.fontWeight.extrabold,
-              fontSize: { xs: modernTheme.typography.fontSize.lg, md: modernTheme.typography.fontSize.xl },
+              fontSize: { xs: modernTheme.typography.fontSize.xl, md: modernTheme.typography.fontSize['2xl'] },
+              letterSpacing: '0.02em', // Better letter spacing for brand
               background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               color: 'transparent',
               cursor: 'pointer',
-              textShadow: 'none',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)', // Subtle depth
               transition: modernTheme.transitions.normal,
               marginRight: isMobile ? 0 : modernTheme.spacing[8],
               '&:hover': {
@@ -458,6 +463,7 @@ const ModernHeader: React.FC = memo(() => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 transform: 'scale(1.02)',
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.15)', // Enhanced shadow on hover
               },
               '&:focus': {
                 outline: `2px solid ${modernTheme.colors.secondary[400]}`,
@@ -625,29 +631,45 @@ const ModernHeader: React.FC = memo(() => {
               sx={{
                 color: modernTheme.colors.primary[700],
                 backgroundColor: modernTheme.colors.white,
-                border: `2px solid ${modernTheme.colors.primary[200]}`,
-                borderRadius: modernTheme.borderRadius.lg,
-                padding: modernTheme.spacing[2],
+                border: `1px solid ${modernTheme.colors.primary[200]}`,
+                borderRadius: '12px', // More modern rounded corners
+                padding: modernTheme.spacing[3],
                 marginRight: modernTheme.spacing[2],
-                boxShadow: modernTheme.shadows.sm,
-                transition: modernTheme.transitions.normal,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)', // Enhanced shadow
+                transition: 'all 0.25s ease-in-out',
                 '&:hover': {
                   backgroundColor: modernTheme.colors.primary[50],
-                  borderColor: modernTheme.colors.primary[300],
-                  boxShadow: modernTheme.shadows.md,
-                  transform: 'scale(1.05)',
+                  borderColor: modernTheme.colors.secondary[300],
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.15)', // Enhanced hover shadow
+                  transform: 'scale(1.05) translateY(-1px)', // Subtle lift
                 },
                 '&:focus': {
-                  outline: `2px solid ${modernTheme.colors.primary[400]}`,
+                  outline: `2px solid ${modernTheme.colors.secondary[400]}`,
                   outlineOffset: '2px',
                   backgroundColor: modernTheme.colors.primary[50],
                 },
                 '&:active': {
-                  transform: 'scale(0.98)',
+                  transform: 'scale(0.98) translateY(0px)',
                 },
               }}
             >
-              <MenuIcon sx={{ fontSize: '1.2rem' }} />
+              {mobileDrawerOpen ? (
+                <CloseIcon 
+                  sx={{ 
+                    fontSize: '1.2rem',
+                    transition: modernTheme.transitions.normal,
+                    transform: 'rotate(90deg)',
+                  }} 
+                />
+              ) : (
+                <MenuIcon 
+                  sx={{ 
+                    fontSize: '1.2rem',
+                    transition: modernTheme.transitions.normal,
+                    transform: 'rotate(0deg)',
+                  }} 
+                />
+              )}
             </IconButton>
           )}
         </Toolbar>

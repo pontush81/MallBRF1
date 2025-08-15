@@ -190,7 +190,7 @@ const iconMapping = {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 4 }}>
+      <Container maxWidth="lg" sx={{ pb: 1 }}>
         <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <Typography variant="body1" color="text.secondary">
@@ -203,13 +203,13 @@ const iconMapping = {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 4 }}>
+    <Container maxWidth="lg" sx={{ pb: 1 }}>
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
-        {/* Clean Search Bar */}
+        {/* Enhanced Modern Search Bar */}
         <Box sx={{ mb: 4 }}>
           <TextField
-            placeholder="Sök..."
+            placeholder="Search handbook..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             variant="outlined"
@@ -220,35 +220,52 @@ const iconMapping = {
               mx: 'auto',
               display: 'block',
               '& .MuiOutlinedInput-root': {
-                borderRadius: 3,
+                borderRadius: '12px', // More modern rounded corners
                 backgroundColor: 'background.paper',
                 border: 'none !important',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)', // Enhanced shadow
+                transition: 'all 0.25s ease-in-out', // Smooth transitions
                 '& > fieldset': {
                   border: 'none !important',
                   borderColor: 'transparent !important',
                 },
                 '&:hover': {
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.15)',
+                  transform: 'translateY(-1px)', // Subtle lift effect
                   '& > fieldset': {
                     border: 'none !important',
                     borderColor: 'transparent !important',
                   }
                 },
                 '&.Mui-focused': {
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  boxShadow: '0 6px 16px rgba(14, 165, 233, 0.15), 0 2px 8px rgba(0,0,0,0.1)', // Blue accent shadow
+                  transform: 'translateY(-2px)', // More lift on focus
                   '& > fieldset': {
                     border: 'none !important',
                     borderColor: 'transparent !important',
                     borderWidth: '0px !important',
                   }
                 }
+              },
+              '& .MuiInputBase-input': {
+                fontSize: '16px', // Better mobile experience
+                padding: '14px 16px', // More comfortable padding
+                '&::placeholder': {
+                  color: 'rgba(0,0,0,0.5)',
+                  fontWeight: '400',
+                }
               }
             }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon color="action" />
+                  <SearchIcon 
+                    sx={{ 
+                      color: 'rgba(0,0,0,0.4)',
+                      fontSize: '20px',
+                      transition: 'color 0.25s ease-in-out',
+                    }} 
+                  />
                 </InputAdornment>
               ),
             }}
@@ -304,7 +321,16 @@ const iconMapping = {
                       }}
                       onClick={() => {
                         const element = document.getElementById(`section-${page.id}`);
-                        element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        if (element) {
+                          const headerOffset = 80; // Fixed header height (64px) + extra margin (16px)
+                          const elementPosition = element.getBoundingClientRect().top;
+                          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                          
+                          window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                          });
+                        }
                         setTocExpanded(false); // Collapse after navigation
                       }}
                     >
@@ -336,20 +362,24 @@ const iconMapping = {
               return (
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
                   <Card 
-                    elevation={2}
+                    elevation={0}
                     onClick={() => toggleCardExpansion(page.id.toString())}
                     sx={{ 
-                      borderRadius: 4,
+                      borderRadius: '16px', // More modern rounded corners
                       border: `1px solid ${theme.palette.divider}`,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transition: 'all 0.25s ease-in-out',
                       cursor: 'pointer',
-                      background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)', // Enhanced gradient
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)', // Subtle initial shadow
                       '&:hover': {
-                        elevation: 8,
-                        transform: 'translateY(-4px)',
-                        borderColor: iconColor,
-                        boxShadow: `0 8px 25px rgba(0,0,0,0.12), 0 0 0 1px ${iconColor}20`
-                      }
+                        transform: 'translateY(-2px) scale(1.01)', // Subtle scale + lift
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.08), 0 3px 12px rgba(0,0,0,0.1)', // Enhanced shadow
+                        borderColor: 'rgba(14, 165, 233, 0.3)', // Blue accent border
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 30%, #f0f9ff 100%)', // Subtle blue tint on hover
+                      },
+                      '&:active': {
+                        transform: 'translateY(-1px) scale(1.005)', // Pressed state
+                      },
                     }}
                   >
                     <CardContent sx={{ p: 4 }}>
@@ -375,11 +405,17 @@ const iconMapping = {
                             sx={{
                               width: 48,
                               height: 48,
-                              borderRadius: 2,
+                              borderRadius: '12px', // More modern rounded corners
                               backgroundColor: bgColor,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)', // Subtle shadow for depth
+                              transition: 'all 0.25s ease-in-out',
+                              '&:hover': {
+                                transform: 'scale(1.05)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                              },
                               ...gpuAnimations.hoverScale
                             }}
                           >

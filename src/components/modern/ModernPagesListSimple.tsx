@@ -157,7 +157,16 @@ const ModernPagesListSimple: React.FC<ModernPagesListSimpleProps> = ({
                   }}
                   onClick={() => {
                     const element = document.getElementById(`section-${page.id}`);
-                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (element) {
+                      const headerOffset = 80; // Fixed header height (64px) + extra margin (16px)
+                      const elementPosition = element.getBoundingClientRect().top;
+                      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                      
+                      window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                      });
+                    }
                   }}
                 >
                   <ListItemText 
