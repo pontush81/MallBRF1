@@ -20,11 +20,22 @@ import {
   ExpandLess as ExpandLessIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
-  SportsEsports as SportsEsportsIcon,  // För Aktivitetsrum (gaming/aktiviteter)
-  ElectricBolt as ElectricBoltIcon,     // För Elbil (mer modern el-ikon)
-  Yard as YardIcon,                     // För Ellagården (trädgård/utemiljö)
-  Gavel as GavelIcon,                   // För Föreningsstämma (beslut/möten)
-  Info as InfoIcon
+  // All available icons (same as in PageEditor)
+  Info as InfoIcon,
+  SportsEsports as SportsEsportsIcon,
+  ElectricBolt as ElectricBoltIcon,
+  Yard as YardIcon,
+  Gavel as GavelIcon,
+  Home as HomeIcon,
+  Work as WorkIcon,
+  School as SchoolIcon,
+  LocalHospital as LocalHospitalIcon,
+  Restaurant as RestaurantIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Build as BuildIcon,
+  Event as EventIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 import { gpuAnimations } from '../../utils/performanceUtils';
@@ -72,13 +83,23 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
     });
   };
 
-  // Available icons mapping (same as in PageEditor)
-  const iconMapping = {
+    // Available icons mapping (same as in PageEditor)
+const iconMapping = {
     'info': { icon: InfoIcon, color: '#616161', bgColor: '#f5f5f5' },
     'sports': { icon: SportsEsportsIcon, color: '#e91e63', bgColor: '#fce4ec' },
     'electric': { icon: ElectricBoltIcon, color: '#ff9800', bgColor: '#fff3e0' },
     'yard': { icon: YardIcon, color: '#4caf50', bgColor: '#e8f5e8' },
-    'gavel': { icon: GavelIcon, color: '#3f51b5', bgColor: '#e8eaf6' }
+    'gavel': { icon: GavelIcon, color: '#3f51b5', bgColor: '#e8eaf6' },
+    'home': { icon: HomeIcon, color: '#1976d2', bgColor: '#e3f2fd' },
+    'work': { icon: WorkIcon, color: '#795548', bgColor: '#efebe9' },
+    'school': { icon: SchoolIcon, color: '#9c27b0', bgColor: '#f3e5f5' },
+    'hospital': { icon: LocalHospitalIcon, color: '#f44336', bgColor: '#ffebee' },
+    'restaurant': { icon: RestaurantIcon, color: '#ff5722', bgColor: '#fff3e0' },
+    'car': { icon: DirectionsCarIcon, color: '#607d8b', bgColor: '#eceff1' },
+    'build': { icon: BuildIcon, color: '#ffc107', bgColor: '#fffde7' },
+    'event': { icon: EventIcon, color: '#2196f3', bgColor: '#e3f2fd' },
+    'people': { icon: PeopleIcon, color: '#009688', bgColor: '#e0f2f1' },
+    'settings': { icon: SettingsIcon, color: '#424242', bgColor: '#f5f5f5' }
   };
 
   // Function to get icon and color based on saved icon or fallback to title-based detection

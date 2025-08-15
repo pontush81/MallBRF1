@@ -59,23 +59,23 @@ const PagesList: React.FC = () => {
   
   const navigate = useNavigate();
 
-  // Icon mapping (same as in ModernPagesListProfessional)
+  // Icon mapping (same as in PageEditor)
   const iconMapping = {
     'info': { icon: InfoIcon, color: '#616161', bgColor: '#f5f5f5' },
     'sports': { icon: SportsEsportsIcon, color: '#e91e63', bgColor: '#fce4ec' },
     'electric': { icon: ElectricBoltIcon, color: '#ff9800', bgColor: '#fff3e0' },
     'yard': { icon: YardIcon, color: '#4caf50', bgColor: '#e8f5e8' },
     'gavel': { icon: GavelIcon, color: '#3f51b5', bgColor: '#e8eaf6' },
-    'home': { icon: HomeIcon, color: '#2196f3', bgColor: '#e3f2fd' },
+    'home': { icon: HomeIcon, color: '#1976d2', bgColor: '#e3f2fd' },
     'work': { icon: WorkIcon, color: '#795548', bgColor: '#efebe9' },
     'school': { icon: SchoolIcon, color: '#9c27b0', bgColor: '#f3e5f5' },
-    'health': { icon: LocalHospitalIcon, color: '#f44336', bgColor: '#ffebee' },
+    'hospital': { icon: LocalHospitalIcon, color: '#f44336', bgColor: '#ffebee' },
     'restaurant': { icon: RestaurantIcon, color: '#ff5722', bgColor: '#fff3e0' },
     'car': { icon: DirectionsCarIcon, color: '#607d8b', bgColor: '#eceff1' },
     'build': { icon: BuildIcon, color: '#ffc107', bgColor: '#fffde7' },
-    'event': { icon: EventIcon, color: '#673ab7', bgColor: '#ede7f6' },
+    'event': { icon: EventIcon, color: '#2196f3', bgColor: '#e3f2fd' },
     'people': { icon: PeopleIcon, color: '#009688', bgColor: '#e0f2f1' },
-    'settings': { icon: SettingsIcon, color: '#9e9e9e', bgColor: '#f5f5f5' }
+    'settings': { icon: SettingsIcon, color: '#424242', bgColor: '#f5f5f5' }
   };
 
   // Function to get icon and color for a page (same logic as ModernPagesListProfessional)
