@@ -11,15 +11,13 @@ import {
   Paper,
   Fade,
   Stack,
-  Collapse,
-  Button
+  Button,
+  Collapse
 } from '@mui/material';
 import { 
   Search as SearchIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  KeyboardArrowDown as KeyboardArrowDownIcon,
-  KeyboardArrowUp as KeyboardArrowUpIcon,
   // All available icons (same as in PageEditor)
   Info as InfoIcon,
   SportsEsports as SportsEsportsIcon,
@@ -54,10 +52,9 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
   const theme = useTheme();
 
   
-  // State for search, TOC, and card expansion
+  // State for search and TOC
   const [searchTerm, setSearchTerm] = useState('');
   const [tocExpanded, setTocExpanded] = useState(false);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Enhanced search function
   const filteredPages = useMemo(() => {
@@ -70,18 +67,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
     );
   }, [pages, searchTerm]);
 
-  // Function to toggle card expansion
-  const toggleCardExpansion = (pageId: string) => {
-    setExpandedCards(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(pageId)) {
-        newSet.delete(pageId);
-      } else {
-        newSet.add(pageId);
-      }
-      return newSet;
-    });
-  };
+
 
     // Available icons mapping (same as in PageEditor)
 const iconMapping = {
@@ -154,6 +140,7 @@ const iconMapping = {
   };
 
   // Function to format plain text to HTML
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatPlainTextToHTML = (text: string) => {
     return text
       // Convert ### headers to h3
@@ -325,7 +312,6 @@ const iconMapping = {
         ) : (
           <Stack spacing={4}>
             {filteredPages.map((page, index) => {
-              const isExpanded = expandedCards.has(page.id);
               const summary = getContentSummary(page.content);
               const { icon: PageIcon, color: iconColor, bgColor } = getPageIconAndColor(page);
               
@@ -333,6 +319,7 @@ const iconMapping = {
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
                   <Card 
                     elevation={2}
+                    onClick={() => onPageClick(page)}
                     sx={{ 
                       borderRadius: 4,
                       border: `1px solid ${theme.palette.divider}`,
@@ -397,85 +384,33 @@ const iconMapping = {
                           </Typography>
                         </Stack>
                         
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleCardExpansion(page.id);
-                          }}
-                          endIcon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                          sx={{
-                            textTransform: 'none',
-                            color: iconColor + ' !important', // Force the icon color
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: iconColor,
                             fontSize: { xs: '0.8rem', sm: '0.875rem' },
                             fontWeight: 500,
-                            minWidth: { xs: 100, sm: 'auto' }, // Sätt minimum bredd på mobil
-                            px: { xs: 1.5, sm: 2 },
-                            py: { xs: 0.5, sm: 1 },
-                            borderRadius: 2,
-                            flexShrink: 0, // Förhindra att knappen krymps
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              backgroundColor: bgColor,
-                              color: iconColor + ' !important', // Force the icon color on hover
-                              transform: 'scale(1.05)'
-                            },
-                            // Ensure icon color is applied to the icon as well
-                            '& .MuiSvgIcon-root': {
-                              color: iconColor + ' !important'
-                            }
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                           }}
                         >
-                          {isExpanded ? 'Visa mindre' : 'Läs mer'}
-                        </Button>
+                          Klicka för att läsa mer →
+                        </Typography>
                       </Stack>
 
-                      {/* Single Collapse with conditional content to prevent text duplication */}
-                      <Collapse in={true} timeout={400} collapsedSize={0}>
-                        {isExpanded ? (
-                          <Box
-                            dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
-                            sx={{
-                              '& h1, & h2, & h3, & h4, & h5, & h6': {
-                                color: 'text.primary',
-                                fontWeight: 600,
-                                mb: 2,
-                                mt: 3,
-                                '&:first-of-type': { mt: 0 }
-                              },
-                              '& p': {
-                                mb: 2,
-                                lineHeight: 1.7,
-                                color: 'text.secondary',
-                                fontSize: '1rem'
-                              },
-                              '& ul, & ol': {
-                                pl: 3,
-                                mb: 2,
-                                '& li': {
-                                  mb: 1,
-                                  color: 'text.secondary',
-                                  lineHeight: 1.6
-                                }
-                              },
-                              '& strong': {
-                                fontWeight: 600,
-                                color: 'text.primary'
-                              }
-                            }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="body1"
-                            color="text.secondary"
-                            sx={{ 
-                              lineHeight: 1.7,
-                              fontSize: '1rem'
-                            }}
-                          >
-                            {summary}
-                          </Typography>
-                        )}
-                      </Collapse>
+                      {/* Content Summary */}
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        sx={{ 
+                          lineHeight: 1.7,
+                          fontSize: '1rem',
+                          mt: 2
+                        }}
+                      >
+                        {summary}
+                      </Typography>
                     </CardContent>
                   </Card>
                 </Fade>
