@@ -57,24 +57,19 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
   const [tocExpanded, setTocExpanded] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
+
+
   // Toggle card expansion
   const toggleCardExpansion = (pageId: string) => {
-    console.log('🔧 toggleCardExpansion called with pageId:', pageId);
-    console.log('🔧 Current expandedCards before:', expandedCards);
-    
     setExpandedCards(prev => {
-      console.log('🔧 Previous expandedCards in setter:', prev);
       const newSet = new Set(prev);
       
       if (newSet.has(pageId)) {
-        console.log('🔧 Removing pageId from set:', pageId);
         newSet.delete(pageId);
       } else {
-        console.log('🔧 Adding pageId to set:', pageId);
         newSet.add(pageId);
       }
       
-      console.log('🔧 New expandedCards set:', newSet);
       return newSet;
     });
   };
@@ -342,10 +337,12 @@ const iconMapping = {
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
                   <Card 
                     elevation={2}
+                    onClick={() => toggleCardExpansion(page.id.toString())}
                     sx={{ 
                       borderRadius: 4,
                       border: `1px solid ${theme.palette.divider}`,
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
                       background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                       '&:hover': {
                         elevation: 8,
@@ -408,22 +405,9 @@ const iconMapping = {
 
                       </Stack>
 
-                      {/* Content Summary (always visible) */}
-                      <Typography
-                        variant="body1"
-                        color="text.secondary"
-                        sx={{ 
-                          lineHeight: 1.7,
-                          fontSize: '1rem',
-                          mt: 2
-                        }}
-                      >
-                        {summary}
-                      </Typography>
-
-                      {/* Expandable Full Content */}
-                      <Collapse in={expandedCards.has(page.id.toString())}>
-                        <Box sx={{ mt: 2 }}>
+                      {/* Content - shows summary when collapsed, full content when expanded */}
+                      <Box sx={{ mt: 2 }}>
+                        {expandedCards.has(page.id.toString()) ? (
                           <Typography
                             variant="body1"
                             color="text.secondary"
@@ -435,42 +419,45 @@ const iconMapping = {
                               __html: formatPlainTextToHTML(page.content) 
                             }}
                           />
-                        </Box>
-                      </Collapse>
+                        ) : (
+                          <Typography
+                            variant="body1"
+                            color="text.secondary"
+                            sx={{ 
+                              lineHeight: 1.7,
+                              fontSize: '1rem'
+                            }}
+                          >
+                            {summary}
+                          </Typography>
+                        )}
+                      </Box>
 
-                      {/* Read More/Less Button */}
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                        <Button
-                          size="small"
-                          endIcon={expandedCards.has(page.id.toString()) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                          onClick={(e) => {
-                            console.log('🔘 Button clicked for page:', page.title, 'ID:', page.id);
-                            e.stopPropagation(); // Prevent card click
-                            console.log('🔄 Toggling expansion for page ID:', page.id.toString());
-                            toggleCardExpansion(page.id.toString());
-                            console.log('📊 Current expanded cards:', expandedCards);
-                          }}
-                          sx={{
+                      {/* Visual indicator for expand/collapse */}
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
                             color: iconColor,
+                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
                             fontWeight: 500,
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                            textTransform: 'none',
-                            minWidth: { xs: 'auto', sm: '120px' },
-                            px: { xs: 1, sm: 2 },
-                            py: { xs: 0.5, sm: 1 },
-                            flexShrink: 0,
-                            '&:hover': {
-                              backgroundColor: `${iconColor}15`,
-                              color: iconColor
-                            },
-                            '& .MuiSvgIcon-root': {
-                              color: iconColor,
-                              fontSize: { xs: '1rem', sm: '1.25rem' }
-                            }
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                           }}
                         >
-                          {expandedCards.has(page.id.toString()) ? 'Visa mindre' : 'Läs mer'}
-                        </Button>
+                          {expandedCards.has(page.id.toString()) ? (
+                            <>
+                              Klicka för att visa mindre
+                              <ExpandLessIcon sx={{ fontSize: '1rem' }} />
+                            </>
+                          ) : (
+                            <>
+                              Klicka för att läsa mer
+                              <ExpandMoreIcon sx={{ fontSize: '1rem' }} />
+                            </>
+                          )}
+                        </Typography>
                       </Box>
                     </CardContent>
                   </Card>
