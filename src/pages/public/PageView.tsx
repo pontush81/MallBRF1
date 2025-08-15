@@ -552,9 +552,12 @@ const PageView: React.FC = () => {
                               style={{
                                 objectFit: 'cover',
                                 width: '100%',
-                                borderRadius: '8px'
+                                borderRadius: '8px',
+                                maxWidth: '100%',
+                                height: 'auto'
                               }}
                               loading="lazy"
+                              decoding="async"
                             />
                             <Box
                               className="zoom-overlay"

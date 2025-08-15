@@ -1,145 +1,67 @@
-// Custom Service Worker för MallBRF
-// Förhindrar caching av localhost URLs på produktion
+// Simple service worker for better caching
+// Only caches static assets, doesn't interfere with app functionality
 
-const CACHE_NAME = 'mallbrf-mobile-v2';
-const PRODUCTION_DOMAIN = 'www.gulmaran.com';
-
-// Critical resources to cache immediately for mobile performance
-const CRITICAL_RESOURCES = [
+const CACHE_NAME = 'gulmaran-v1';
+const STATIC_ASSETS = [
   '/',
-  '/pages',
   '/static/css/main.css',
   '/static/js/main.js',
   '/manifest.json'
 ];
 
-// Kontrollera om vi är på produktion
-const isProduction = () => {
-  return location.hostname === PRODUCTION_DOMAIN || 
-         location.hostname.includes('gulmaran.com');
-};
-
-// Installera service worker
+// Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker: Installing...');
-  
   event.waitUntil(
-    Promise.all([
-      // Rensa gamla caches som innehåller localhost
-      caches.keys().then((cacheNames) => {
-        const localhostCaches = cacheNames.filter(name => 
-          name.includes('localhost') || 
-          name.includes('3000') ||
-          name.includes('workbox') // Rensa gamla workbox caches
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        // Only cache critical assets, don't fail if some are missing
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => 
+            cache.add(url).catch(() => console.log(`Failed to cache: ${url}`))
+          )
         );
-        
-        if (localhostCaches.length > 0) {
-          console.log('🧹 Clearing old localhost caches:', localhostCaches);
-          return Promise.all(
-            localhostCaches.map(name => caches.delete(name))
-          );
-        }
-      }),
-      
-      // Pre-cache critical resources for mobile performance
-      isProduction() ? 
-        caches.open(CACHE_NAME).then((cache) => {
-          console.log('📱 Pre-caching critical resources for mobile...');
-          return cache.addAll(CRITICAL_RESOURCES).catch((error) => {
-            console.warn('⚠️ Some critical resources failed to pre-cache:', error);
-          });
-        }) : Promise.resolve()
-    ])
+      })
+      .then(() => self.skipWaiting())
   );
-  
-  self.skipWaiting();
 });
 
-// Aktivera service worker
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('✅ Service Worker: Activated');
-  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
-      // Rensa alla gamla caches utom den aktuella
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Hantera fetch requests
+// Fetch event - serve from cache when possible, always fallback to network
 self.addEventListener('fetch', (event) => {
-  const requestUrl = new URL(event.request.url);
-  
-  // VIKTIGT: Blockera alla requests till localhost på produktion
-  if (isProduction() && (
-    requestUrl.hostname === 'localhost' || 
-    requestUrl.port === '3000' ||
-    requestUrl.hostname.includes('127.0.0.1')
-  )) {
-    console.warn('🚫 Blocked localhost request on production:', event.request.url);
-    return; // Blockera requesten helt
+  // Only handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
   }
-  
-  // För produktion: bara cacha statiska assets från vår domän
-  if (isProduction() && requestUrl.origin === location.origin) {
-    event.respondWith(
-      caches.match(event.request).then((response) => {
-        if (response) {
-          console.log('📦 PWA: Hämtar från cache:', event.request.url);
-          return response;
-        }
-        
-        return fetch(event.request).then((response) => {
-          // Cacha bara framgångsrika responses för statiska filer
-          if (response.status === 200 && 
-              (event.request.url.includes('/static/') || 
-               event.request.url.includes('.css') ||
-               event.request.url.includes('.js') ||
-               event.request.url.includes('.png') ||
-               event.request.url.includes('.jpg') ||
-               event.request.url.includes('.ico'))) {
-            
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              console.log('💾 PWA: Uppdaterade cache från nätverk:', event.request.url);
-              cache.put(event.request, responseToCache);
-            });
-          }
-          
-          return response;
-        });
-      })
-    );
-  }
-});
 
-// Hantera meddelanden
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+  // Skip caching for API calls and dynamic content
+  if (event.request.url.includes('/api/') || 
+      event.request.url.includes('supabase.co')) {
+    return;
   }
-  
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map(name => caches.delete(name))
-        );
-      }).then(() => {
-        event.ports[0].postMessage({success: true});
-      })
-    );
-  }
-});
 
-console.log('🚀 Custom Service Worker loaded for MallBRF');
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached version if available, otherwise fetch from network
+        return response || fetch(event.request);
+      })
+      .catch(() => {
+        // Always fallback to network if cache fails
+        return fetch(event.request);
+      })
+  );
+});

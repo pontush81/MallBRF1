@@ -14,9 +14,11 @@ module.exports = {
           providedExports: true,
           concatenateModules: true,
           
-          // Better chunk splitting
+          // Better chunk splitting optimized for mobile
           splitChunks: {
             chunks: 'all',
+            minSize: 20000,
+            maxSize: 244000,
             cacheGroups: {
               vendor: {
                 test: /[\\/]node_modules[\\/]/,
@@ -24,7 +26,8 @@ module.exports = {
                 chunks: 'all',
                 priority: 10,
                 reuseExistingChunk: true,
-                enforce: true
+                enforce: true,
+                maxSize: 200000
               },
               mui: {
                 test: /[\\/]node_modules[\\/]@mui[\\/]/,
