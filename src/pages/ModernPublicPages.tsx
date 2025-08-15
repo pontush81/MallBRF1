@@ -43,6 +43,8 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
 
   // Handle page click - navigate to individual page
   const handlePageClick = (page: Page) => {
+    console.log('🖱️ Page clicked:', page.title, 'ID:', page.id);
+    console.log('📍 Navigating to:', `/page/${page.id}`);
     navigate(`/page/${page.id}`);
   };
 

@@ -319,7 +319,10 @@ const iconMapping = {
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
                   <Card 
                     elevation={2}
-                    onClick={() => onPageClick(page)}
+                    onClick={() => {
+                      console.log('🎯 Card clicked for page:', page.title);
+                      onPageClick(page);
+                    }}
                     sx={{ 
                       borderRadius: 4,
                       border: `1px solid ${theme.palette.divider}`,
