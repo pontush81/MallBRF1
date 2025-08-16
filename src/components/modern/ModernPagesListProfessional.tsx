@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Box,
   Container,
@@ -84,6 +84,11 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
       page.content.toLowerCase().includes(searchLower)
     );
   }, [pages, searchTerm]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 All sections being rendered:', filteredPages.map(p => ({ id: p.id, title: p.title })));
+  }, [filteredPages]);
 
 
 
@@ -322,14 +327,16 @@ const iconMapping = {
                       onClick={() => {
                         const element = document.getElementById(`section-${page.id}`);
                         if (element) {
-                          const headerOffset = 80; // Fixed header height (64px) + extra margin (16px)
-                          const elementPosition = element.getBoundingClientRect().top;
-                          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                          
-                          window.scrollTo({
-                            top: offsetPosition,
-                            behavior: 'smooth'
+                          // Try modern CSS scroll-margin approach first
+                          element.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
                           });
+                          
+                          console.log('Scrolled to section:', page.id, page.title, element);
+                          console.log('Element text content:', element.textContent?.substring(0, 50));
+                        } else {
+                          console.error(`Element with id section-${page.id} not found`);
                         }
                         setTocExpanded(false); // Collapse after navigation
                       }}
@@ -343,6 +350,8 @@ const iconMapping = {
           </Box>
         )}
 
+
+        
         {/* Content Sections */}
         {filteredPages.length === 0 ? (
           <Paper elevation={1} sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
@@ -358,6 +367,9 @@ const iconMapping = {
             {filteredPages.map((page, index) => {
               const summary = getContentSummary(page.content);
               const { icon: PageIcon, color: iconColor, bgColor } = getPageIconAndColor(page);
+              
+              // Debug log each section as it renders
+              console.log(`📍 Rendering section: ID=${page.id}, Title="${page.title}"`);
               
               return (
                 <Fade in={true} timeout={300 + index * 100} key={page.id}>
@@ -431,6 +443,7 @@ const iconMapping = {
                               color: 'text.primary',
                               fontSize: { xs: '1.25rem', sm: '1.5rem' },
                               transition: 'color 0.2s ease',
+
                               '&:hover': { color: iconColor }
                             }}
                           >

@@ -28,13 +28,11 @@ code {
     monospace;
 }
 
-/* Scrollning och sektionsmarginal */
-.section-element {
-  scroll-margin-top: 80px; /* Margin för när vi scrollar till sektionen */
-}
+/* Modern scroll behavior for fixed headers */
 
 html {
   scroll-behavior: smooth; /* Global smooth-scroll för bättre upplevelse */
+  scroll-padding-top: 70px; /* Modern solution for fixed headers - reduced value */
   overflow-x: hidden; /* Prevent horizontal scroll */
   overflow-y: auto; /* CRITICAL: Allow vertical scrolling */
   height: 100%; /* Allow full height */

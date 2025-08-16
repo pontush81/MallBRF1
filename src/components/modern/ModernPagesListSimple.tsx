@@ -158,14 +158,15 @@ const ModernPagesListSimple: React.FC<ModernPagesListSimpleProps> = ({
                   onClick={() => {
                     const element = document.getElementById(`section-${page.id}`);
                     if (element) {
-                      const headerOffset = 80; // Fixed header height (64px) + extra margin (16px)
-                      const elementPosition = element.getBoundingClientRect().top;
-                      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                      
-                      window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth'
+                      // Use modern CSS scroll-margin approach
+                      element.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
                       });
+                      
+                      console.log('Scrolled to section:', page.id, page.title);
+                    } else {
+                      console.error(`Element with id section-${page.id} not found`);
                     }
                   }}
                 >
@@ -202,6 +203,7 @@ const ModernPagesListSimple: React.FC<ModernPagesListSimpleProps> = ({
                     alignItems: 'center', 
                     mb: 3,
                     cursor: 'pointer',
+
                     '&:hover .edit-hint': {
                       opacity: 1
                     }
