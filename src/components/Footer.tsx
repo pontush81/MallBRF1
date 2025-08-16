@@ -28,11 +28,11 @@ const Footer: React.FC = () => {
     <Box
       component="footer"
       sx={{
-        mt: 2, // Reduced from 'auto' to create less space
+        mt: 0, // Remove all top margin for tightest layout
         bgcolor: 'grey.50',
         borderTop: 1,
         borderColor: 'divider',
-        py: 1, // Even more reduced padding
+        py: 0.5, // Minimal padding
         px: 2
       }}
     >

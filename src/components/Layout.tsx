@@ -45,6 +45,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
           maxWidth="lg" 
           sx={{ 
             px: { xs: modernTheme.spacing[2], sm: modernTheme.spacing[3], md: modernTheme.spacing[4] },
+            py: 0, // Remove all vertical padding
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
             overflow: 'visible', // Allow content to be scrollable
             width: '100%',

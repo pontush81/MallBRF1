@@ -62,7 +62,7 @@ const Home: React.FC = () => {
         </Box>
       )}
       
-      <Box sx={{ mt: { xs: 3, sm: 4, md: 5 }, mb: 6, textAlign: 'center' }}>
+      <Box sx={{ mt: { xs: 3, sm: 4, md: 5 }, mb: 2, textAlign: 'center' }}>
         <Typography 
           variant="h3" 
           component="h1" 
@@ -80,7 +80,7 @@ const Home: React.FC = () => {
           sx={{ 
             maxWidth: 800, 
             mx: 'auto', 
-            mb: 4, 
+            mb: 1, 
             color: 'text.secondary' 
           }}
         >
@@ -91,7 +91,7 @@ const Home: React.FC = () => {
           direction={{ xs: 'column', sm: 'row' }} 
           spacing={2} 
           justifyContent="center"
-          sx={{ mb: 6 }}
+          sx={{ mb: 2 }}
         >
           <Button 
             variant="contained" 
@@ -128,13 +128,13 @@ const Home: React.FC = () => {
         </Stack>
       </Box>
       
-      <Divider sx={{ mb: 6 }} />
+      <Divider sx={{ mb: 2 }} />
       
-      <Typography variant="h4" component="h2" gutterBottom sx={{ mb: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom sx={{ mb: 2 }}>
         Funktioner
       </Typography>
       
-      <Grid container spacing={3} sx={{ mb: 6 }}>
+      <Grid container spacing={3} sx={{ mb: 2 }}>
         <Grid item xs={12} md={4}>
           <Card sx={{ 
             height: '100%',
@@ -204,7 +204,7 @@ const Home: React.FC = () => {
         borderRadius: 2, 
         p: 4, 
         mt: 4, 
-        mb: 6,
+        mb: 0, // Remove bottom margin to eliminate spacing
         boxShadow: 2
       }}>
         <Typography variant="h5" gutterBottom>
