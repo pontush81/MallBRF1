@@ -1,12 +1,11 @@
 // Simple service worker for better caching
 // Only caches static assets, doesn't interfere with app functionality
 
-const CACHE_NAME = 'gulmaran-v2';
+const CACHE_NAME = 'gulmaran-v3';
 const STATIC_ASSETS = [
   '/',
-  '/static/css/main.css',
-  '/static/js/main.js',
   '/manifest.json'
+  // Note: Don't hardcode CSS/JS files as they have dynamic names with hashes
 ];
 
 // Install event - cache static assets
