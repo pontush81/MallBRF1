@@ -291,7 +291,7 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
   
     const { data: residents, error } = await supabase
       .from('residents')
-      .select('*')
+      .select('apartment_number, apartment_code, resident_names, primary_email, phone, parking_space, storage_space')
     .order('apartment_number', { ascending: true });
 
     if (error) {
