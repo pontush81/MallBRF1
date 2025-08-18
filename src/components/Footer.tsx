@@ -28,11 +28,11 @@ const Footer: React.FC = () => {
     <Box
       component="footer"
       sx={{
-        mt: 6, // Add top margin to create space between content and footer divider line
+        mt: 4, // Reduced top margin but still creates space between content and footer divider line
         bgcolor: 'grey.50',
         borderTop: 1,
         borderColor: 'divider',
-        py: 0.5, // Minimal padding
+        py: 1, // Very minimal padding - reduced from 0.5 to make even more compact
         px: 2
       }}
     >
@@ -44,7 +44,7 @@ const Footer: React.FC = () => {
             flexDirection: isMobile ? 'column' : 'row',
             justifyContent: 'space-between',
             alignItems: isMobile ? 'flex-start' : 'center',
-            gap: isMobile ? 2 : 3
+            gap: isMobile ? 1 : 1.5
           }}
         >
           {/* Company Info - Compact */}
@@ -62,7 +62,7 @@ const Footer: React.FC = () => {
             sx={{ 
               display: 'flex', 
               flexDirection: isMobile ? 'column' : 'row',
-              gap: isMobile ? 0.5 : 2,
+              gap: isMobile ? 0.5 : 1,
               alignItems: isMobile ? 'flex-start' : 'center'
             }}
           >
@@ -122,7 +122,7 @@ const Footer: React.FC = () => {
         </Box>
 
         {/* Copyright - Minimal */}
-        <Box sx={{ mt: 1, textAlign: 'center' }}>
+        <Box sx={{ mt: 0.5, textAlign: 'center' }}>
           <Typography variant="caption" color="text.secondary">
             © {currentYear} BRF Gulmåran • GDPR-compliant
           </Typography>
