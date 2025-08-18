@@ -140,22 +140,42 @@ const iconMapping = {
 
   // Function to get content summary (first paragraph or sentence)
   const getContentSummary = (content: string): string => {
+    // Handle empty or very short content
+    if (!content || content.trim().length === 0) {
+      return 'Klicka för att visa innehåll';
+    }
+
     // Remove markdown formatting for clean summary
     const cleanContent = content
       .replace(/###\s+(.+)/g, '$1') // Remove ### headers
       .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold
       .replace(/\*([^*]+)\*/g, '$1') // Remove italic
-      .replace(/^- (.+)$/gm, '$1'); // Remove bullet points
+      .replace(/^- (.+)$/gm, '$1') // Remove bullet points
+      .trim();
+
+    // Handle very short content (less than 10 characters)
+    if (cleanContent.length < 10) {
+      return 'Klicka för att visa innehåll';
+    }
 
     // Get first paragraph or first 150 characters
-    const firstParagraph = cleanContent.split('\n\n')[0];
+    const firstParagraph = cleanContent.split('\n\n')[0].trim();
+    if (firstParagraph.length === 0) {
+      // Try getting the first line instead
+      const firstLine = cleanContent.split('\n')[0].trim();
+      if (firstLine.length === 0) {
+        return 'Klicka för att visa innehåll';
+      }
+      return firstLine.length <= 150 ? firstLine : firstLine.substring(0, 147).trim() + '...';
+    }
+    
     if (firstParagraph.length <= 150) {
-      return firstParagraph.trim();
+      return firstParagraph;
     }
     
     // If first paragraph is too long, get first sentence or 150 chars
     const firstSentence = firstParagraph.split('.')[0];
-    if (firstSentence.length <= 150) {
+    if (firstSentence.length <= 150 && firstSentence.length > 10) {
       return firstSentence.trim() + '.';
     }
     
