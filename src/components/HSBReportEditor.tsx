@@ -111,8 +111,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // const currentDate = new Date(); // Removed - not currently used
-  const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-                      'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
   
   useEffect(() => {
     fetchReportData();
@@ -1243,44 +1243,28 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         }}
       >
         <DialogTitle>
-          {isModified ? 'Osparade ändringar' : 'Skapa PDF-rapport'}
+          Create PDF Report
         </DialogTitle>
         <DialogContent>
-          {isModified ? (
-            <>
-              <Typography paragraph>
-                Du har osparade ändringar för {monthNames[selectedMonth - 1]} {selectedYear}.
-              </Typography>
-              <Typography paragraph>
-                Vill du fortsätta utan att spara, eller avbryta för att spara ändringarna först?
-              </Typography>
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                Om du fortsätter kommer dina ändringar att inkluderas i PDF:en men inte sparas permanent.
-              </Alert>
-            </>
-          ) : (
-            <>
-              <Typography paragraph>
-                En PDF-rapport kommer att skapas för {monthNames[selectedMonth - 1]} {selectedYear} och laddas ner till din enhet.
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
-              </Typography>
-            </>
-          )}
+          <Typography paragraph>
+            User will print Billing Basis for {monthNames[selectedMonth - 1]} {selectedYear}.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            The report contains {editableHsbData.length} entries with a total amount of {totalAmount.toFixed(2)} kr.
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialog(null)} disabled={saving}>
-            Avbryt
+            Cancel
           </Button>
           <Button 
             onClick={handleGeneratePDF}
             variant="contained"
             disabled={saving}
             startIcon={saving ? <ButtonLoading /> : <PictureAsPdfIcon />}
-            color={isModified ? "warning" : "primary"}
+            color="primary"
           >
-            {saving ? 'Skapar PDF...' : (isModified ? 'Fortsätt ändå' : 'Skapa PDF')}
+            {saving ? 'Creating PDF...' : 'Create Report'}
           </Button>
         </DialogActions>
       </Dialog>
