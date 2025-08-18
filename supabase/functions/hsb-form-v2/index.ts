@@ -46,6 +46,7 @@ interface ResidentData {
   apartmentNumber: string;
   resident: string;
   email: string;
+  phone: string;
   parkingSpace: string;
   storageSpace: string;
 }
@@ -80,7 +81,7 @@ async function getApartmentNumberByName(name: string, email: string, supabase: a
     // Get all residents to search through
     const { data: residents, error: residentError } = await supabase
       .from('residents')
-      .select('apartment_number, resident_names, primary_email');
+      .select('apartment_number, apartment_code, resident_names, primary_email');
     
     if (residentError) {
       console.error('❌ Error fetching residents:', residentError);
@@ -104,13 +105,15 @@ async function getApartmentNumberByName(name: string, email: string, supabase: a
         if (individualName) {
           // Exact match after normalization
           if (cleanName === individualName) {
-            console.log(`✅ Found exact match: "${cleanName}" -> Apartment ${resident.apartment_number}`);
+            const apartmentDisplay = `${resident.apartment_number} (${resident.apartment_code || 'N/A'})`;
+            console.log(`✅ Found exact match: "${cleanName}" -> Apartment ${apartmentDisplay}`);
             return resident.apartment_number;
           }
           
           // Partial match (both directions)
           if (individualName.includes(cleanName) || cleanName.includes(individualName)) {
-            console.log(`✅ Found partial match: "${cleanName}" <-> "${individualName}" -> Apartment ${resident.apartment_number}`);
+            const apartmentDisplay = `${resident.apartment_number} (${resident.apartment_code || 'N/A'})`;
+            console.log(`✅ Found partial match: "${cleanName}" <-> "${individualName}" -> Apartment ${apartmentDisplay}`);
             return resident.apartment_number;
           }
         }
@@ -297,11 +300,12 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
     }
 
   const residentData = residents?.map((resident: any) => ({
-    apartmentNumber: resident.apartment_number,
-      resident: resident.resident_names,
-    email: resident.primary_email,
-      parkingSpace: resident.parking_space || '',
-      storageSpace: resident.storage_space || ''
+    apartmentNumber: `${resident.apartment_number} (${resident.apartment_code || 'N/A'})`,
+    resident: resident.resident_names,
+    email: resident.primary_email || '',
+    phone: resident.phone || '',
+    parkingSpace: resident.parking_space || '',
+    storageSpace: resident.storage_space || ''
   })) || [];
   
   // Sort numerically by apartment number
@@ -607,6 +611,26 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
+    // Check if this is a POST request with edited data
+    let hsbData: HSBReportItem[] = [];
+    let residentData: ResidentData[] = [];
+    
+    if (req.method === 'POST') {
+      console.log('📥 Processing POST request with edited data');
+      const requestBody = await req.json();
+      
+      if (requestBody.editedData && requestBody.residentData) {
+        console.log('✅ Using edited data from frontend');
+        hsbData = requestBody.editedData;
+        residentData = requestBody.residentData;
+      } else {
+        console.log('❌ Invalid POST body, falling back to database data');
+      }
+    }
+    
+    // If no edited data provided (GET request or invalid POST), fetch from database
+    if (hsbData.length === 0) {
+    
     // Get bookings that start in the selected month (to prevent double billing)
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
     const nextMonth = month === 12 ? 1 : month + 1;
@@ -653,12 +677,13 @@ Deno.serve(async (req) => {
     console.log(`🎯 Found ${filteredBookings.length} bookings that start in ${month}/${year}`);
 
     // Transform bookings to HSB format
-    const hsbData = await transformBookingsToHSB(filteredBookings, month, year, supabase);
+    hsbData = await transformBookingsToHSB(filteredBookings, month, year, supabase);
     
     // Get resident data
-    const residentData = await getResidentData(supabase);
+    residentData = await getResidentData(supabase);
     
     console.log(`📈 Generated ${hsbData.length} HSB items from database`);
+    } // Close the if block for database fetching
     
     // Handle different format requests
     switch (format) {
