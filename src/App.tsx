@@ -54,6 +54,7 @@ import {
 
 // Import AuthCallback for OAuth handling
 import { AuthCallback } from './pages/auth/AuthCallback';
+import MaintenancePlan from './pages/MaintenancePlan';
 
 // Import AuthTest for testing (disabled, uncomment for debugging)
 // import AuthTest from './AuthTest';
@@ -208,6 +209,9 @@ function AppRoutes() {
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyContact /></Layout>
           </Suspense>
+        } />
+        <Route path="/maintenance-plan" element={
+          <Layout><MaintenancePlan /></Layout>
         } />
         
         {/* 🧪 AUTH TEST ROUTE - DISABLED (uncomment for debugging) */}

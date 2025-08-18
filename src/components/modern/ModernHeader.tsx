@@ -27,6 +27,7 @@ import {
   AdminPanelSettings as AdminIcon,
   Logout as LogoutIcon,
   Login as LoginIcon,
+  Assignment as MaintenanceIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContextNew';
@@ -52,6 +53,11 @@ const ModernHeader: React.FC = memo(() => {
       label: 'Boka',
       path: '/booking',
       icon: <BookIcon />,
+    },
+    {
+      label: 'Skötselplan',
+      path: '/maintenance-plan',
+      icon: <MaintenanceIcon />,
     },
   ];
 
