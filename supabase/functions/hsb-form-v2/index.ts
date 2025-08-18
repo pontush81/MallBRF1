@@ -652,6 +652,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`📊 Found ${bookings?.length || 0} bookings that start in ${month}/${year}`);
+    console.log('🔍 Raw bookings data:', JSON.stringify(bookings, null, 2));
 
     // Filter bookings to only include those that START in the selected month
     // This prevents double billing for bookings that span multiple months
