@@ -948,52 +948,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               >
                 Lägg till ny post
               </Button>
-              
-              {/* Add Menu */}
-              <Menu
-                anchorEl={addMenuAnchorEl}
-                open={Boolean(addMenuAnchorEl)}
-                onClose={() => setAddMenuAnchorEl(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-              >
-                <MenuItem 
-                  onClick={() => {
-                    handleAddRow('booking');
-                    setAddMenuAnchorEl(null);
-                  }}
-                >
-                  <HomeIcon sx={{ mr: 1 }} color="primary" />
-                  Gästlägenhet
-                </MenuItem>
-                <MenuItem 
-                  onClick={() => {
-                    handleAddRow('subletting');
-                    setAddMenuAnchorEl(null);
-                  }}
-                >
-                  <SubletIcon sx={{ mr: 1 }} color="secondary" />
-                  Andrahandsuthyrning
-                </MenuItem>
-                <MenuItem 
-                  onClick={() => {
-                    handleAddRow('extra');
-                    setAddMenuAnchorEl(null);
-                  }}
-                >
-                  <ExtraIcon sx={{ mr: 1 }} color="success" />
-                  Extra avgift
-                </MenuItem>
-                <MenuItem 
-                  onClick={() => {
-                    handleAddRow('other');
-                    setAddMenuAnchorEl(null);
-                  }}
-                >
-                  <OtherIcon sx={{ mr: 1 }} color="action" />
-                  Övrig debitering
-                </MenuItem>
-              </Menu>
+
             </Box>
           ) : (
             // Desktop: Table layout with inline editing
@@ -1282,55 +1237,55 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                 </TableBody>
               </Table>
             </TableContainer>
-            
-            {/* Add Menu for Desktop */}
-            <Menu
-              anchorEl={addMenuAnchorEl}
-              open={Boolean(addMenuAnchorEl)}
-              onClose={() => setAddMenuAnchorEl(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-            >
-              <MenuItem 
-                onClick={() => {
-                  handleAddRow('booking');
-                  setAddMenuAnchorEl(null);
-                }}
-              >
-                <HomeIcon sx={{ mr: 1 }} color="primary" />
-                Gästlägenhet
-              </MenuItem>
-              <MenuItem 
-                onClick={() => {
-                  handleAddRow('subletting');
-                  setAddMenuAnchorEl(null);
-                }}
-              >
-                <SubletIcon sx={{ mr: 1 }} color="secondary" />
-                Andrahandsuthyrning
-              </MenuItem>
-              <MenuItem 
-                onClick={() => {
-                  handleAddRow('extra');
-                  setAddMenuAnchorEl(null);
-                }}
-              >
-                <ExtraIcon sx={{ mr: 1 }} color="success" />
-                Extra avgift
-              </MenuItem>
-              <MenuItem 
-                onClick={() => {
-                  handleAddRow('other');
-                  setAddMenuAnchorEl(null);
-                }}
-              >
-                <OtherIcon sx={{ mr: 1 }} color="action" />
-                Övrig debitering
-              </MenuItem>
-            </Menu>
           )}
         </AccordionDetails>
       </Accordion>
+
+      {/* Add Menu (shared between mobile and desktop) */}
+      <Menu
+        anchorEl={addMenuAnchorEl}
+        open={Boolean(addMenuAnchorEl)}
+        onClose={() => setAddMenuAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <MenuItem 
+          onClick={() => {
+            handleAddRow('booking');
+            setAddMenuAnchorEl(null);
+          }}
+        >
+          <HomeIcon sx={{ mr: 1 }} color="primary" />
+          Gästlägenhet
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            handleAddRow('subletting');
+            setAddMenuAnchorEl(null);
+          }}
+        >
+          <SubletIcon sx={{ mr: 1 }} color="secondary" />
+          Andrahandsuthyrning
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            handleAddRow('extra');
+            setAddMenuAnchorEl(null);
+          }}
+        >
+          <ExtraIcon sx={{ mr: 1 }} color="success" />
+          Extra avgift
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            handleAddRow('other');
+            setAddMenuAnchorEl(null);
+          }}
+        >
+          <OtherIcon sx={{ mr: 1 }} color="action" />
+          Övrig debitering
+        </MenuItem>
+      </Menu>
 
       {/* Resident Directory (Read-only) */}
       <Accordion sx={{ mt: 2 }}>
