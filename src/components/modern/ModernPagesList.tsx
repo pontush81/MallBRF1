@@ -243,6 +243,7 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
         maxWidth: '1200px',
         margin: '0 auto',
         padding: '24px',
+        paddingBottom: '80px', // Extra avstånd till footer
       }}>
         {isLoading ? (
           <div style={{ 

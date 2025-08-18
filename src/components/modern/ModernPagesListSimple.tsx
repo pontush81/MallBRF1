@@ -76,7 +76,7 @@ const ModernPagesListSimple: React.FC<ModernPagesListSimpleProps> = ({
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 4 }}>
+      <Container maxWidth="lg" sx={{ pb: 8 }}> {/* Ökat från pb: 4 till pb: 8 för bättre avstånd till footer */}
         <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <Typography variant="body1" color="text.secondary">
@@ -89,7 +89,7 @@ const ModernPagesListSimple: React.FC<ModernPagesListSimpleProps> = ({
   }
 
   return (
-    <Container maxWidth="md" sx={{ pb: 4 }}>
+    <Container maxWidth="md" sx={{ pb: 8 }}> {/* Ökat från pb: 4 till pb: 8 för bättre avstånd till footer */}
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
         {/* Search Bar */}

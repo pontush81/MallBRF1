@@ -195,7 +195,7 @@ const iconMapping = {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 1 }}>
+      <Container maxWidth="lg" sx={{ pb: 10 }}> {/* Ökat från pb: 1 till pb: 10 för bättre avstånd till footer */}
         <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <Typography variant="body1" color="text.secondary">
@@ -208,7 +208,7 @@ const iconMapping = {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 1 }}>
+    <Container maxWidth="lg" sx={{ pb: 10 }}> {/* Ökat från pb: 1 till pb: 10 för bättre avstånd till footer */}
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
         {/* Enhanced Modern Search Bar */}

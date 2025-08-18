@@ -334,7 +334,7 @@ const PageView: React.FC = () => {
   if (loading && !page) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ my: 4 }}>
+        <Box sx={{ my: 4, pb: 6 }}> {/* Extra bottom padding för bättre avstånd till footer */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
             <IconButton onClick={handleGoBack} sx={{ mr: 2 }}>
               <ArrowBackIcon />
@@ -352,7 +352,7 @@ const PageView: React.FC = () => {
   if (error) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ my: 4 }}>
+        <Box sx={{ my: 4, pb: 6 }}> {/* Extra bottom padding för bättre avstånd till footer */}
           <Button 
             startIcon={<ArrowBackIcon />} 
             onClick={handleGoBack}
@@ -377,7 +377,7 @@ const PageView: React.FC = () => {
   if (!page) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ my: 4 }}>
+        <Box sx={{ my: 4, pb: 6 }}> {/* Extra bottom padding för bättre avstånd till footer */}
           <Button 
             startIcon={<ArrowBackIcon />} 
             onClick={handleGoBack}
@@ -404,7 +404,7 @@ const PageView: React.FC = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ my: 4 }}>
+      <Box sx={{ my: 4, pb: 6 }}> {/* Lägg till extra bottom padding för bättre avstånd till footer */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <IconButton onClick={handleGoBack} sx={{ mr: 2 }}>
             <ArrowBackIcon />
