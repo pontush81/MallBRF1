@@ -111,8 +111,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // const currentDate = new Date(); // Removed - not currently used
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                      'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+                      'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
   
   useEffect(() => {
     fetchReportData();
@@ -1230,32 +1230,34 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         fullWidth
         sx={{
           '& .MuiDialog-container': {
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
+            paddingTop: '15vh',
           },
           '& .MuiDialog-paper': {
-            margin: 'auto',
+            margin: '0',
             position: 'relative',
             top: 'auto',
             left: 'auto',
             transform: 'none',
+            maxHeight: '70vh',
           }
         }}
       >
         <DialogTitle>
-          Create PDF Report
+          Skapa PDF-rapport
         </DialogTitle>
         <DialogContent>
           <Typography paragraph>
-            User will print Billing Basis for {monthNames[selectedMonth - 1]} {selectedYear}.
+            Användaren kommer att skriva ut Debiteringsunderlag för {monthNames[selectedMonth - 1]} {selectedYear}.
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            The report contains {editableHsbData.length} entries with a total amount of {totalAmount.toFixed(2)} kr.
+            Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialog(null)} disabled={saving}>
-            Cancel
+            Avbryt
           </Button>
           <Button 
             onClick={handleGeneratePDF}
@@ -1264,7 +1266,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             startIcon={saving ? <ButtonLoading /> : <PictureAsPdfIcon />}
             color="primary"
           >
-            {saving ? 'Creating PDF...' : 'Create Report'}
+            {saving ? 'Skapar PDF...' : 'Skapa rapport'}
           </Button>
         </DialogActions>
       </Dialog>
