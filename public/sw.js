@@ -1,7 +1,7 @@
 // Simple service worker for better caching
 // Only caches static assets, doesn't interfere with app functionality
 
-const CACHE_NAME = 'gulmaran-v1';
+const CACHE_NAME = 'gulmaran-v2';
 const STATIC_ASSETS = [
   '/',
   '/static/css/main.css',
