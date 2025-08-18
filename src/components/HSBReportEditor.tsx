@@ -163,9 +163,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       console.log('HSB API not available, using mock data for editing');
       const mockData = await generateMockData();
       // Ensure mock data also has types
-      const mockDataWithTypes = mockData.hsbData.map((item: HSBReportData) => ({
+      const mockDataWithTypes = mockData.hsbData.map((item: any) => ({
         ...item,
-        type: item.type || 'booking'
+        type: (item.type as 'booking' | 'subletting' | 'extra' | 'other') || 'booking'
       }));
       setOriginalHsbData(mockDataWithTypes);
       setEditableHsbData([...mockDataWithTypes]);
@@ -185,7 +185,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     
     const mockHsbData = [
       {
-        apartmentNumber: '1A',
+        apartmentNumber: '1 (80A)',
         resident: 'Test Testsson',
         email: 'test1@example.com',
         phone: '070XXXXXXX',
@@ -193,10 +193,11 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         description: 'Hyra gästlägenhet',
         quantity: 1,
         unitPrice: 600.00,
-        totalAmount: 600.00
+        totalAmount: 600.00,
+        type: 'booking'
       },
       {
-        apartmentNumber: '2B',
+        apartmentNumber: '2 (80B)',
         resident: 'Anna Andersson',
         email: 'test2@example.com',
         phone: '070XXXXXXX',
@@ -204,13 +205,26 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         description: 'Parkering',
         quantity: 1,
         unitPrice: 75.00,
-        totalAmount: 75.00
+        totalAmount: 75.00,
+        type: 'booking'
+      },
+      {
+        apartmentNumber: '5 (80H)',
+        resident: 'Pontus Hörberg',
+        email: 'annie_malmgren@hotmail.com',
+        phone: '070XXXXXXX',
+        period: '15 juli',
+        description: 'Andrahandsuthyrning',
+        quantity: 1,
+        unitPrice: 1200.00,
+        totalAmount: 1200.00,
+        type: 'subletting'
       }
     ];
 
     const mockResidentData = [
       {
-        apartmentNumber: '1, Lägenhet A',
+        apartmentNumber: '1 (80A)',
         resident: 'Test Testsson, Maria Testsson',
         phone: '070XXXXXXX',
         email: 'test1@example.com',
@@ -218,12 +232,36 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         storageSpace: '1'
       },
       {
-        apartmentNumber: '2, Lägenhet B', 
+        apartmentNumber: '2 (80B)', 
         resident: 'Anna Andersson, Björn Andersson',
         phone: '070XXXXXXX',
         email: 'test2@example.com',
         parkingSpace: '2',
         storageSpace: '2'
+      },
+      {
+        apartmentNumber: '3 (80C)', 
+        resident: 'Karin Karlsson, Per Persson',
+        phone: '070XXXXXXX',
+        email: 'test3@example.com',
+        parkingSpace: '3',
+        storageSpace: '3'
+      },
+      {
+        apartmentNumber: '4 (80D)', 
+        resident: 'Lisa Larsson',
+        phone: '070XXXXXXX',
+        email: 'test4@example.com',
+        parkingSpace: '4',
+        storageSpace: '4'
+      },
+      {
+        apartmentNumber: '5 (80H)', 
+        resident: 'Annie Hörberg, Pontus Hörberg',
+        phone: '070XXXXXXX',
+        email: 'annie_malmgren@hotmail.com',
+        parkingSpace: '5',
+        storageSpace: '5'
       }
     ];
 
