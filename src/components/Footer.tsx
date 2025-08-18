@@ -28,7 +28,7 @@ const Footer: React.FC = () => {
     <Box
       component="footer"
       sx={{
-        mt: 0, // Remove all top margin for tightest layout
+        mt: 6, // Add top margin to create space between content and footer divider line
         bgcolor: 'grey.50',
         borderTop: 1,
         borderColor: 'divider',
