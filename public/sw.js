@@ -1,7 +1,7 @@
 // Simple service worker for better caching
 // Only caches static assets, doesn't interfere with app functionality
 
-const CACHE_NAME = 'gulmaran-v3';
+const CACHE_NAME = 'gulmaran-v4-design-system';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json'

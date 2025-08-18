@@ -249,8 +249,9 @@ const ModernPagesListSimple: React.FC<ModernPagesListSimpleProps> = ({
                       '&:first-of-type': { mt: 0 }
                     },
                     '& p': {
-                      mb: 2,
-                      lineHeight: 1.7,
+                      mb: 3, // Ökat från 2 för bättre luftighet
+                      mt: 1, // Lägg till marginTop
+                      lineHeight: 1.8, // Ökat från 1.7
                       color: 'text.secondary',
                       fontSize: '1rem'
                     },

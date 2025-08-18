@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import { getAppTheme, ThemeDesign, ThemeMode, ThemeFont, CustomColors } from '../theme/theme';
+import { ThemeDesign, ThemeMode, ThemeFont, CustomColors } from '../theme/theme';
+import { gulmaranTheme } from '../theme/gulmaranTheme';
 
 import { Theme } from '@mui/material/styles';
 
@@ -99,12 +100,13 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children 
   // Alias för setFont för att matcha interfacet
   const setFontFamily = setFont;
   
-  // Skapa tema baserat på nuvarande inställningar
-  const [theme, setAppTheme] = useState<Theme>(getAppTheme(design, 'light', font, customColors));
+  // Skapa tema baserat på nuvarande inställningar - använd det nya Gulmaran-temat som bas
+  const [theme, setAppTheme] = useState<Theme>(gulmaranTheme);
   
-  // Uppdatera temat när inställningar ändras - alltid använd 'light' som mode
+  // Uppdatera temat när inställningar ändras - använd det nya temat som bas
   useEffect(() => {
-    setAppTheme(getAppTheme(design, 'light', font, customColors));
+    // Använd det nya Gulmaran-temat som primärt tema
+    setAppTheme(gulmaranTheme);
   }, [design, font, customColors]);
   
   // Fördefinierade färgprover för förhandsvisning

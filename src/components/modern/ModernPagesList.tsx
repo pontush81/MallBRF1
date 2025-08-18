@@ -429,9 +429,10 @@ export const ModernPagesList: React.FC<ModernPagesListProps> = ({
                                 // Vanlig paragraf
                                 return (
                                   <p key={index} style={{
-                                    margin: '12px 0',
-                                    lineHeight: '1.6',
+                                    margin: '20px 0', // Ökat från 12px för bättre luftighet
+                                    lineHeight: '1.8', // Ökat från 1.6 för bättre läsbarhet
                                     color: '#374151',
+                                    fontSize: '16px',   // Lägg till explicit storlek
                                   }}>
                                     {trimmed}
                                   </p>

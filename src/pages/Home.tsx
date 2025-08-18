@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 // Optimized imports for Home page
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextNew';
+
+// Import new design system components
+import { GulmaranCard, GulmaranButton, Breadcrumbs } from '../components/ui';
+import { designTokens } from '../theme/designSystem';
 
 // Ikoner
 import ArticleIcon from '@mui/icons-material/Article';
@@ -40,6 +41,8 @@ const Home: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
+      <Breadcrumbs />
+      
       {/* GDPR Goodbye Message */}
       {showGDPRGoodbye && (
         <Box sx={{ my: 2 }}>
@@ -93,35 +96,39 @@ const Home: React.FC = () => {
           justifyContent="center"
           sx={{ mb: 2 }}
         >
-          <Button 
-            variant="contained" 
+          <GulmaranButton 
+            variant="primary" 
             component={RouterLink} 
             to="/pages"
             size="large"
-            startIcon={<ArticleIcon />}
+            icon={<ArticleIcon />}
+            iconPosition="start"
           >
             Utforska sidor
-          </Button>
+          </GulmaranButton>
           
           {!isLoggedIn ? (
-            <Button 
-              variant="outlined" 
+            <GulmaranButton 
+              variant="secondary" 
               component={RouterLink} 
               to="/login"
               size="large"
-              startIcon={<LoginIcon />}
+              icon={<LoginIcon />}
+              iconPosition="start"
             >
               Logga in
-            </Button>
+            </GulmaranButton>
           ) : isAdmin ? (
-            <Button 
-              variant="contained" 
+            <GulmaranButton 
+              variant="success" 
               component={RouterLink} 
               to="/admin"
               size="large"
+              icon={<AdminPanelSettingsIcon />}
+              iconPosition="start"
             >
               Adminpanel
-            </Button>
+            </GulmaranButton>
           ) : (
             null
           )}
@@ -136,66 +143,42 @@ const Home: React.FC = () => {
       
       <Grid container spacing={3} sx={{ mb: 2 }}>
         <Grid item xs={12} md={4}>
-          <Card sx={{ 
-            height: '100%',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: 6
-            }
-          }}>
-            <CardContent>
-              <Typography variant="h5" component="h3" gutterBottom color="primary.main">
-                Innehållshantering
-              </Typography>
-              <Typography variant="body1">
-                Skapa, redigera och publicera sidor med ett intuitivt gränssnitt. 
-                Stöd för markdown-formatering ger dig kraftfulla redigeringsmöjligheter.
-              </Typography>
-            </CardContent>
-          </Card>
+          <GulmaranCard 
+            title="Innehållshantering"
+            variant="elevated"
+            sx={{ height: '100%' }}
+          >
+            <Typography variant="body1">
+              Skapa, redigera och publicera sidor med ett intuitivt gränssnitt. 
+              Stöd för markdown-formatering ger dig kraftfulla redigeringsmöjligheter.
+            </Typography>
+          </GulmaranCard>
         </Grid>
         
         <Grid item xs={12} md={4}>
-          <Card sx={{ 
-            height: '100%',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: 6
-            }
-          }}>
-            <CardContent>
-              <Typography variant="h5" component="h3" gutterBottom color="primary.main">
-                Användarhantering
-              </Typography>
-              <Typography variant="body1">
-                Inloggning och registrering med rollbaserad behörighet.
-                Administratörer kan hantera innehåll medan användare kan bläddra bland publicerade sidor.
-              </Typography>
-            </CardContent>
-          </Card>
+          <GulmaranCard 
+            title="Användarhantering"
+            variant="elevated"
+            sx={{ height: '100%' }}
+          >
+            <Typography variant="body1">
+              Inloggning och registrering med rollbaserad behörighet.
+              Administratörer kan hantera innehåll medan användare kan bläddra bland publicerade sidor.
+            </Typography>
+          </GulmaranCard>
         </Grid>
         
         <Grid item xs={12} md={4}>
-          <Card sx={{ 
-            height: '100%',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: 6
-            }
-          }}>
-            <CardContent>
-              <Typography variant="h5" component="h3" gutterBottom color="primary.main">
-                Modern teknik
-              </Typography>
-              <Typography variant="body1">
-                Byggd med React, TypeScript och Material UI för en responsiv och typesäker användarupplevelse.
-                Anpassningsbar design som fungerar på alla enheter.
-              </Typography>
-            </CardContent>
-          </Card>
+          <GulmaranCard 
+            title="Modern teknik"
+            variant="elevated"
+            sx={{ height: '100%' }}
+          >
+            <Typography variant="body1">
+              Byggd med React, TypeScript och Material UI för en responsiv och typesäker användarupplevelse.
+              Anpassningsbar design som fungerar på alla enheter.
+            </Typography>
+          </GulmaranCard>
         </Grid>
       </Grid>
       

@@ -461,8 +461,17 @@ const iconMapping = {
                             variant="body1"
                             color="text.secondary"
                             sx={{ 
-                              lineHeight: 1.7,
-                              fontSize: '1rem'
+                              lineHeight: 1.8, // Ökat från 1.7
+                              fontSize: '1rem',
+                              '& p': {
+                                marginBottom: '1.5rem', // Lägg till bättre avstånd mellan stycken
+                                '&:last-child': { marginBottom: 0 }
+                              },
+                              '& h3': {
+                                marginTop: '2rem',
+                                marginBottom: '1rem',
+                                '&:first-child': { marginTop: 0 }
+                              }
                             }}
                             dangerouslySetInnerHTML={{ 
                               __html: formatPlainTextToHTML(page.content) 
@@ -473,7 +482,7 @@ const iconMapping = {
                             variant="body1"
                             color="text.secondary"
                             sx={{ 
-                              lineHeight: 1.7,
+                              lineHeight: 1.8, // Ökat från 1.7
                               fontSize: '1rem'
                             }}
                           >

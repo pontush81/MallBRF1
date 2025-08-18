@@ -69,11 +69,13 @@ const markdownStyles = {
     lineHeight: 1.4
   },
   p: {
-    marginBottom: '1.25rem',
-    lineHeight: 1.7,
+    marginBottom: '2rem', // Ökat från 1.25rem för bättre luftighet
+    marginTop: '0.5rem',  // Lägg till marginTop för ännu bättre separation
+    lineHeight: 1.8,      // Ökat från 1.7 för bättre läsbarhet
     fontSize: { xs: '1rem', md: '1.1rem' },
     color: 'text.primary',
-    '&:last-child': { marginBottom: 0 }
+    '&:last-child': { marginBottom: 0 },
+    '&:first-child': { marginTop: 0 }
   },
   ul: {
     marginBottom: '1.5rem',
