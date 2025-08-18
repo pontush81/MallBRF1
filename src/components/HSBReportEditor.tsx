@@ -54,7 +54,11 @@ import {
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
   ArrowBack as ArrowBackIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  Home as HomeIcon,
+  SwapHoriz as SubletIcon,
+  AttachMoney as ExtraIcon,
+  MoreHoriz as OtherIcon
 } from '@mui/icons-material';
 
 interface HSBReportData {
@@ -67,6 +71,7 @@ interface HSBReportData {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  type?: 'booking' | 'subletting' | 'extra' | 'other'; // New field to categorize charges
 }
 
 interface ResidentData {
@@ -101,6 +106,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   });
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [addMenuAnchorEl, setAddMenuAnchorEl] = useState<null | HTMLElement>(null);
   
   // Month/Year selection state - Default to July 2025 for testing
   const [selectedMonth, setSelectedMonth] = useState<number>(7);
@@ -141,8 +147,13 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         if (data.hsbData && data.residentData) {
           console.log('Successfully fetched HSB data for editing:', data.hsbData.length, 'items');
           console.log('HSB Data details:', data.hsbData);
-          setOriginalHsbData(data.hsbData);
-          setEditableHsbData([...data.hsbData]); // Create a copy for editing
+          // Ensure all items have a type field, default to 'booking' for existing data
+          const dataWithTypes = data.hsbData.map((item: HSBReportData) => ({
+            ...item,
+            type: item.type || 'booking'
+          }));
+          setOriginalHsbData(dataWithTypes);
+          setEditableHsbData([...dataWithTypes]); // Create a copy for editing
           setResidentData(data.residentData);
           return;
         }
@@ -151,8 +162,13 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       // Fallback to mock data if API fails
       console.log('HSB API not available, using mock data for editing');
       const mockData = await generateMockData();
-      setOriginalHsbData(mockData.hsbData);
-      setEditableHsbData([...mockData.hsbData]);
+      // Ensure mock data also has types
+      const mockDataWithTypes = mockData.hsbData.map((item: HSBReportData) => ({
+        ...item,
+        type: item.type || 'booking'
+      }));
+      setOriginalHsbData(mockDataWithTypes);
+      setEditableHsbData([...mockDataWithTypes]);
       setResidentData(mockData.residentData);
       
     } catch (err) {
@@ -302,17 +318,49 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     setIsModified(true);
   }, []);
 
-  const handleAddRow = () => {
+  const handleAddRow = (type: 'booking' | 'subletting' | 'extra' | 'other' = 'booking') => {
+    const getDefaultValues = (type: string) => {
+      switch (type) {
+        case 'subletting':
+          return {
+            description: 'Andrahandsuthyrning',
+            quantity: 1,
+            unitPrice: 800,
+            totalAmount: 800
+          };
+        case 'extra':
+          return {
+            description: 'Extra avgift',
+            quantity: 1,
+            unitPrice: 100,
+            totalAmount: 100
+          };
+        case 'other':
+          return {
+            description: 'Övrig debitering',
+            quantity: 1,
+            unitPrice: 200,
+            totalAmount: 200
+          };
+        default: // booking
+          return {
+            description: 'Hyra gästlägenhet',
+            quantity: 1,
+            unitPrice: 600,
+            totalAmount: 600
+          };
+      }
+    };
+
+    const defaults = getDefaultValues(type);
     const newRow: HSBReportData = {
       apartmentNumber: '',
       resident: '',
       email: '',
       phone: '',
       period: '',
-      description: 'Hyra gästlägenhet',
-      quantity: 1,
-      unitPrice: 600,
-      totalAmount: 600
+      type,
+      ...defaults
     };
     
     setEditableHsbData(prev => [...prev, newRow]);
@@ -338,6 +386,40 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
 
   const showSnackbar = (message: string, severity: 'success' | 'warning' | 'error') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  // Get type-specific styling and icon
+  const getTypeInfo = (type?: string) => {
+    switch (type) {
+      case 'subletting':
+        return {
+          color: 'secondary' as const,
+          icon: <SubletIcon />,
+          chipLabel: 'Andrahand',
+          chipColor: 'secondary' as const
+        };
+      case 'extra':
+        return {
+          color: 'success' as const,
+          icon: <ExtraIcon />,
+          chipLabel: 'Extra',
+          chipColor: 'success' as const
+        };
+      case 'other':
+        return {
+          color: 'default' as const,
+          icon: <OtherIcon />,
+          chipLabel: 'Övrig',
+          chipColor: 'default' as const
+        };
+      default: // booking
+        return {
+          color: 'primary' as const,
+          icon: <HomeIcon />,
+          chipLabel: 'Gäst',
+          chipColor: 'primary' as const
+        };
+    }
   };
 
   // Handle period change with unsaved changes warning
@@ -395,12 +477,19 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
       // Use selected month and year from state
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
+      
+      // Send edited data to backend for PDF generation
       const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${selectedMonth}&year=${selectedYear}&reporterName=${reporterName}`, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          editedData: editableHsbData,
+          residentData: residentData
+        })
       });
 
       if (response.ok) {
@@ -825,7 +914,19 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                           {item.description}
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                          {(() => {
+                            const typeInfo = getTypeInfo(item.type);
+                            return (
+                              <Chip
+                                size="small"
+                                label={typeInfo.chipLabel}
+                                color={typeInfo.chipColor}
+                                icon={typeInfo.icon}
+                                variant="outlined"
+                              />
+                            );
+                          })()}
                           <Chip size="small" label={`Antal: ${item.quantity}`} />
                           <Chip size="small" label={`á ${item.unitPrice.toFixed(2)} kr`} />
                         </Box>
@@ -842,11 +943,57 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                 fullWidth
                 variant="outlined"
                 startIcon={<AddIcon />}
-                onClick={handleAddRow}
+                onClick={(e) => setAddMenuAnchorEl(e.currentTarget)}
                 sx={{ mt: 2 }}
               >
                 Lägg till ny post
               </Button>
+              
+              {/* Add Menu */}
+              <Menu
+                anchorEl={addMenuAnchorEl}
+                open={Boolean(addMenuAnchorEl)}
+                onClose={() => setAddMenuAnchorEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+              >
+                <MenuItem 
+                  onClick={() => {
+                    handleAddRow('booking');
+                    setAddMenuAnchorEl(null);
+                  }}
+                >
+                  <HomeIcon sx={{ mr: 1 }} color="primary" />
+                  Gästlägenhet
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    handleAddRow('subletting');
+                    setAddMenuAnchorEl(null);
+                  }}
+                >
+                  <SubletIcon sx={{ mr: 1 }} color="secondary" />
+                  Andrahandsuthyrning
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    handleAddRow('extra');
+                    setAddMenuAnchorEl(null);
+                  }}
+                >
+                  <ExtraIcon sx={{ mr: 1 }} color="success" />
+                  Extra avgift
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    handleAddRow('other');
+                    setAddMenuAnchorEl(null);
+                  }}
+                >
+                  <OtherIcon sx={{ mr: 1 }} color="action" />
+                  Övrig debitering
+                </MenuItem>
+              </Menu>
             </Box>
           ) : (
             // Desktop: Table layout with inline editing
@@ -866,6 +1013,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                     <TableCell><strong>Namn</strong></TableCell>
                     <TableCell><strong>Period</strong></TableCell>
                     <TableCell><strong>Beskrivning</strong></TableCell>
+                    <TableCell align="center"><strong>Typ</strong></TableCell>
                     <TableCell align="center"><strong>Antal</strong></TableCell>
                     <TableCell align="right"><strong>á pris</strong></TableCell>
                     <TableCell align="right"><strong>Summa</strong></TableCell>
@@ -883,6 +1031,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                            <TableCell sx={{ fontWeight: 'bold', fontStyle: 'italic' }}>
                              Subtotal {row.resident}
                            </TableCell>
+                           <TableCell></TableCell>
                            <TableCell></TableCell>
                            <TableCell></TableCell>
                            <TableCell></TableCell>
@@ -993,6 +1142,20 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                         )}
                       </TableCell>
                       <TableCell align="center">
+                        {(() => {
+                          const typeInfo = getTypeInfo(item.type);
+                          return (
+                            <Chip
+                              size="small"
+                              label={typeInfo.chipLabel}
+                              color={typeInfo.chipColor}
+                              icon={typeInfo.icon}
+                              variant="outlined"
+                            />
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell align="center">
                         {editingRow === index ? (
                           <Box>
                             <TextField
@@ -1098,7 +1261,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                      );
                    })}
                   <TableRow>
-                    <TableCell colSpan={6} align="right" sx={{ fontWeight: 'bold' }}>
+                    <TableCell colSpan={7} align="right" sx={{ fontWeight: 'bold' }}>
                       Total summa:
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '1.1em' }}>
@@ -1107,7 +1270,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                     <TableCell align="center">
                       <Tooltip title="Lägg till ny post">
                         <IconButton 
-                          onClick={handleAddRow}
+                          onClick={(e) => setAddMenuAnchorEl(e.currentTarget)}
                           color="primary"
                           size="small"
                         >
@@ -1119,6 +1282,52 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                 </TableBody>
               </Table>
             </TableContainer>
+            
+            {/* Add Menu for Desktop */}
+            <Menu
+              anchorEl={addMenuAnchorEl}
+              open={Boolean(addMenuAnchorEl)}
+              onClose={() => setAddMenuAnchorEl(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <MenuItem 
+                onClick={() => {
+                  handleAddRow('booking');
+                  setAddMenuAnchorEl(null);
+                }}
+              >
+                <HomeIcon sx={{ mr: 1 }} color="primary" />
+                Gästlägenhet
+              </MenuItem>
+              <MenuItem 
+                onClick={() => {
+                  handleAddRow('subletting');
+                  setAddMenuAnchorEl(null);
+                }}
+              >
+                <SubletIcon sx={{ mr: 1 }} color="secondary" />
+                Andrahandsuthyrning
+              </MenuItem>
+              <MenuItem 
+                onClick={() => {
+                  handleAddRow('extra');
+                  setAddMenuAnchorEl(null);
+                }}
+              >
+                <ExtraIcon sx={{ mr: 1 }} color="success" />
+                Extra avgift
+              </MenuItem>
+              <MenuItem 
+                onClick={() => {
+                  handleAddRow('other');
+                  setAddMenuAnchorEl(null);
+                }}
+              >
+                <OtherIcon sx={{ mr: 1 }} color="action" />
+                Övrig debitering
+              </MenuItem>
+            </Menu>
           )}
         </AccordionDetails>
       </Accordion>
