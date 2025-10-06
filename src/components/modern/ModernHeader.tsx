@@ -489,18 +489,6 @@ const ModernHeader: React.FC = memo(() => {
               >
                 Gulmåran
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: { xs: '12px', md: '14px' },
-                  color: '#6b7280',
-                  fontWeight: 400,
-                  lineHeight: 1,
-                  margin: 0
-                }}
-              >
-                Bostadsrättsförening Handbok
-              </Typography>
             </Box>
           </Box>
 
