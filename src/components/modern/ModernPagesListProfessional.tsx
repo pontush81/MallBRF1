@@ -95,20 +95,24 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
     // Available icons mapping (same as in PageEditor)
 const iconMapping = {
     'info': { icon: InfoIcon, color: '#64748b', bgColor: '#f1f5f9' },
-    'sports': { icon: SportsEsportsIcon, color: '#8b5cf6', bgColor: '#f3f4f6' },
+    'sports': { icon: SportsEsportsIcon, color: '#8b5cf6', bgColor: '#f3ebff' },
     'electric': { icon: ElectricBoltIcon, color: '#10b981', bgColor: '#ecfdf5' },
-    'yard': { icon: YardIcon, color: '#059669', bgColor: '#ecfdf5' },
-    'gavel': { icon: GavelIcon, color: '#3b82f6', bgColor: '#eff6ff' },
-    'home': { icon: HomeIcon, color: '#0ea5e9', bgColor: '#f0f9ff' },
-    'work': { icon: WorkIcon, color: '#78716c', bgColor: '#f9fafb' },
+    'yard': { icon: YardIcon, color: '#f97316', bgColor: '#fff7ed' },
+    'gavel': { icon: GavelIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'home': { icon: HomeIcon, color: '#8b5cf6', bgColor: '#f3ebff' },
+    'work': { icon: WorkIcon, color: '#6b7280', bgColor: '#f9fafb' },
     'school': { icon: SchoolIcon, color: '#a855f7', bgColor: '#faf5ff' },
     'hospital': { icon: LocalHospitalIcon, color: '#ef4444', bgColor: '#fef2f2' },
-    'restaurant': { icon: RestaurantIcon, color: '#f97316', bgColor: '#fff7ed' },
+    'restaurant': { icon: RestaurantIcon, color: '#ef4444', bgColor: '#fee2e2' },
     'car': { icon: DirectionsCarIcon, color: '#64748b', bgColor: '#f8fafc' },
     'build': { icon: BuildIcon, color: '#eab308', bgColor: '#fefce8' },
     'event': { icon: EventIcon, color: '#3b82f6', bgColor: '#eff6ff' },
-    'people': { icon: PeopleIcon, color: '#06b6d4', bgColor: '#f0fdfa' },
-    'settings': { icon: SettingsIcon, color: '#6b7280', bgColor: '#f9fafb' }
+    'people': { icon: PeopleIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'settings': { icon: SettingsIcon, color: '#6b7280', bgColor: '#f9fafb' },
+    'palette': { icon: InfoIcon, color: '#ec4899', bgColor: '#fce7f3' },
+    'recycle': { icon: InfoIcon, color: '#10b981', bgColor: '#d1fae5' },
+    'document': { icon: InfoIcon, color: '#6b7280', bgColor: '#f9fafb' },
+    'wash': { icon: InfoIcon, color: '#06b6d4', bgColor: '#cffafe' }
   };
 
   // Function to get icon and color based on saved icon or fallback to title-based detection
@@ -131,7 +135,25 @@ const iconMapping = {
       return iconMapping.yard;
     }
     if (titleLower.includes('föreningsstämma') || titleLower.includes('stämma') || titleLower.includes('förening')) {
-      return iconMapping.gavel;
+      return iconMapping.people;
+    }
+    if (titleLower.includes('grillregler') || titleLower.includes('grill')) {
+      return iconMapping.restaurant;
+    }
+    if (titleLower.includes('gästlägenhet') || titleLower.includes('gäst')) {
+      return iconMapping.home;
+    }
+    if (titleLower.includes('färgkoder') || titleLower.includes('färg')) {
+      return iconMapping.palette;
+    }
+    if (titleLower.includes('sophantering') || titleLower.includes('sop') || titleLower.includes('återvinning')) {
+      return iconMapping.recycle;
+    }
+    if (titleLower.includes('styrelsen') || titleLower.includes('dokument')) {
+      return iconMapping.document;
+    }
+    if (titleLower.includes('tvättsuga') || titleLower.includes('tvätt')) {
+      return iconMapping.wash;
     }
     
     // Default icon and color
@@ -231,52 +253,47 @@ const iconMapping = {
     <Container maxWidth="lg" sx={{ pb: 4 }}> {/* Reducerad padding för att minska död yta */}
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
-        {/* Enhanced Modern Search Bar */}
-        <Box sx={{ mb: 4 }}>
+        {/* Large Prominent Search Bar */}
+        <Box sx={{ mb: 6, px: { xs: 2, sm: 0 } }}>
           <TextField
-            placeholder="Search handbook..."
+            placeholder="Sök i handboken..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             variant="outlined"
-            size="medium"
+            size="large"
             fullWidth
             sx={{ 
-              maxWidth: '600px',
+              maxWidth: '800px',
               mx: 'auto',
               display: 'block',
               '& .MuiOutlinedInput-root': {
-                borderRadius: '12px', // More modern rounded corners
-                backgroundColor: 'background.paper',
-                border: 'none !important',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)', // Enhanced shadow
-                transition: 'all 0.25s ease-in-out', // Smooth transitions
+                borderRadius: '16px',
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.1)',
+                transition: 'all 0.3s ease',
+                fontSize: '16px',
+                minHeight: '56px',
                 '& > fieldset': {
                   border: 'none !important',
-                  borderColor: 'transparent !important',
                 },
                 '&:hover': {
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.15)',
-                  transform: 'translateY(-1px)', // Subtle lift effect
-                  '& > fieldset': {
-                    border: 'none !important',
-                    borderColor: 'transparent !important',
-                  }
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.15)',
+                  borderColor: '#d1d5db',
+                  transform: 'translateY(-1px)',
                 },
                 '&.Mui-focused': {
-                  boxShadow: '0 6px 16px rgba(14, 165, 233, 0.15), 0 2px 8px rgba(0,0,0,0.1)', // Blue accent shadow
-                  transform: 'translateY(-2px)', // More lift on focus
-                  '& > fieldset': {
-                    border: 'none !important',
-                    borderColor: 'transparent !important',
-                    borderWidth: '0px !important',
-                  }
+                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15), 0 3px 12px rgba(0,0,0,0.12)',
+                  borderColor: '#8b5cf6',
+                  transform: 'translateY(-2px)',
                 }
               },
               '& .MuiInputBase-input': {
-                fontSize: '16px', // Better mobile experience
-                padding: '14px 16px', // More comfortable padding
+                fontSize: '16px',
+                padding: '16px 20px',
+                fontWeight: 400,
                 '&::placeholder': {
-                  color: 'rgba(0,0,0,0.5)',
+                  color: '#9ca3af',
                   fontWeight: '400',
                 }
               }
@@ -286,15 +303,42 @@ const iconMapping = {
                 <InputAdornment position="start">
                   <SearchIcon 
                     sx={{ 
-                      color: 'rgba(0,0,0,0.4)',
-                      fontSize: '20px',
-                      transition: 'color 0.25s ease-in-out',
+                      color: '#9ca3af',
+                      fontSize: '22px',
+                      marginLeft: 1
                     }} 
                   />
                 </InputAdornment>
               ),
             }}
           />
+        </Box>
+
+        {/* Main Title Section */}
+        <Box sx={{ mb: 5, textAlign: 'left' }}>
+          <Typography 
+            variant="h1" 
+            sx={{ 
+              fontSize: { xs: '28px', sm: '32px', md: '36px' },
+              fontWeight: 700,
+              color: '#111827',
+              marginBottom: 1,
+              lineHeight: 1.2
+            }}
+          >
+            Handbok
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              fontSize: '16px',
+              color: '#6b7280',
+              fontWeight: 400,
+              lineHeight: 1.5
+            }}
+          >
+            Information och regler för boende i Gulmåran
+          </Typography>
         </Box>
 
         {/* Results count */}

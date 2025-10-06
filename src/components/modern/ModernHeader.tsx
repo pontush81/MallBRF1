@@ -55,7 +55,7 @@ const ModernHeader: React.FC = memo(() => {
       icon: <BookIcon />,
     },
     {
-      label: 'Skötselplan',
+      label: 'Stödsidan',
       path: '/maintenance-plan',
       icon: <MaintenanceIcon />,
     },
@@ -201,24 +201,22 @@ const ModernHeader: React.FC = memo(() => {
       <Button
         key={item.path}
         onClick={() => handleNavigation(item.path)}
-        startIcon={item.icon}
         sx={{
-          color: isActive ? modernTheme.colors.secondary[600] : modernTheme.colors.primary[700],
-          backgroundColor: isActive ? modernTheme.colors.secondary[50] : 'transparent',
-          fontWeight: isActive ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
-          fontSize: modernTheme.typography.fontSize.sm,
+          color: isActive ? '#374151' : '#6b7280',
+          backgroundColor: 'transparent',
+          fontWeight: isActive ? 600 : 500,
+          fontSize: '14px',
           textTransform: 'none',
-          borderRadius: modernTheme.borderRadius.lg,
-          padding: `${modernTheme.spacing[2]} ${modernTheme.spacing[4]}`,
-          minHeight: '40px',
-          transition: modernTheme.transitions.normal,
-          border: isActive ? `1px solid ${modernTheme.colors.secondary[200]}` : '1px solid transparent',
+          borderRadius: '8px',
+          padding: '8px 16px',
+          minHeight: '36px',
+          transition: 'all 0.2s ease',
           '&:hover': {
-            backgroundColor: modernTheme.colors.gray[100],
-            transform: 'translateY(-1px)',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
           },
           '&:focus': {
-            outline: `2px solid ${modernTheme.colors.secondary[400]}`,
+            outline: `2px solid #8b5cf6`,
             outlineOffset: '2px',
           },
         }}
@@ -427,17 +425,13 @@ const ModernHeader: React.FC = memo(() => {
         position="fixed"
         elevation={0}
         sx={{
-          background: modernTheme.gradients.headerWithShadow,
-          backdropFilter: 'blur(12px)',
-          borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
-          boxShadow: modernTheme.shadows.header,
+          background: 'white',
+          borderBottom: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
           height: '64px', // Fixed height to prevent CLS
           minHeight: '64px !important',
           maxHeight: '64px !important',
-          transition: modernTheme.transitions.normal,
-          '&:hover': {
-            boxShadow: modernTheme.shadows.headerHover,
-          },
+          transition: 'all 0.2s ease',
         }}
       >
         <Toolbar sx={{ 
@@ -446,31 +440,16 @@ const ModernHeader: React.FC = memo(() => {
           maxHeight: '64px !important', // Fixed height to prevent CLS
           height: '64px !important', // Fixed height to prevent CLS
         }}>
-          {/* Logo/Brand */}
-          <Typography
-            variant="h6"
-            component="div"
+          {/* Logo/Brand with Icon and Subtitle */}
+          <Box 
             onClick={() => handleNavigation('/')}
             sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: modernTheme.spacing[2],
               flexGrow: isMobile ? 1 : 0,
-              fontWeight: modernTheme.typography.fontWeight.extrabold,
-              fontSize: { xs: modernTheme.typography.fontSize.xl, md: modernTheme.typography.fontSize['2xl'] },
-              letterSpacing: '0.02em', // Better letter spacing for brand
-              background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
               cursor: 'pointer',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)', // Subtle depth
-              transition: modernTheme.transitions.normal,
               marginRight: isMobile ? 0 : modernTheme.spacing[8],
-              '&:hover': {
-                background: `linear-gradient(135deg, ${modernTheme.colors.secondary[500]} 0%, ${modernTheme.colors.secondary[600]} 100%)`,
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                transform: 'scale(1.02)',
-                textShadow: '0 2px 4px rgba(0, 0, 0, 0.15)', // Enhanced shadow on hover
-              },
               '&:focus': {
                 outline: `2px solid ${modernTheme.colors.secondary[400]}`,
                 outlineOffset: '2px',
@@ -481,8 +460,49 @@ const ModernHeader: React.FC = memo(() => {
             role="button"
             aria-label="Gå till startsidan"
           >
-            Gulmåran
-          </Typography>
+            {/* Purple Icon */}
+            <Box sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '12px',
+              backgroundColor: '#8b5cf6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px',
+              fontWeight: 'bold'
+            }}>
+              📋
+            </Box>
+            <Box>
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: { xs: '18px', md: '20px' },
+                  color: '#1f2937',
+                  lineHeight: 1.2,
+                  margin: 0
+                }}
+              >
+                Gulmåran
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: { xs: '12px', md: '14px' },
+                  color: '#6b7280',
+                  fontWeight: 400,
+                  lineHeight: 1,
+                  margin: 0
+                }}
+              >
+                Bostadsrättsförening Handbok
+              </Typography>
+            </Box>
+          </Box>
 
           {/* Desktop Navigation */}
           {!isMobile && (
@@ -605,18 +625,22 @@ const ModernHeader: React.FC = memo(() => {
                   startIcon={<LoginIcon />}
                   onClick={() => handleNavigation('/login')}
                   sx={{
-                    backgroundColor: modernTheme.colors.white,
-                    color: modernTheme.colors.primary[600],
-                    borderRadius: modernTheme.borderRadius.lg,
+                    backgroundColor: '#8b5cf6',
+                    color: 'white',
+                    borderRadius: '12px',
                     textTransform: 'none',
-                    fontWeight: modernTheme.typography.fontWeight.semibold,
-                    boxShadow: modernTheme.shadows.md,
+                    fontWeight: 600,
+                    px: 3,
+                    py: 1.5,
+                    fontSize: '14px',
+                    boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
                     '&:hover': {
-                      backgroundColor: modernTheme.colors.gray[100],
-                      boxShadow: modernTheme.shadows.lg,
+                      backgroundColor: '#7c3aed',
+                      boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+                      transform: 'translateY(-1px)',
                     },
                     '&:focus': {
-                      outline: `2px solid ${modernTheme.colors.white}40`,
+                      outline: `2px solid #8b5cf6`,
                       outlineOffset: '2px',
                     },
                   }}
