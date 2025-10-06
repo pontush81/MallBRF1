@@ -320,20 +320,18 @@ const CustomPickersDay = ({
         <Typography
           sx={{
             position: 'absolute',
-            left: '-32px',
+            left: '-36px',
             top: '50%',
             transform: 'translateY(-50%)',
-            fontSize: '0.875rem',
-            color: '#374151',
-            fontWeight: 600,
-            minWidth: '28px',
-            textAlign: 'left',
+            fontSize: '0.625rem',
+            color: '#6b7280',
+            fontWeight: 500,
+            minWidth: '32px',
+            textAlign: 'right',
             whiteSpace: 'nowrap',
-            zIndex: 10,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            padding: '2px 4px',
-            borderRadius: '4px',
-            border: '1px solid rgba(209, 213, 219, 0.5)'
+            zIndex: 1,
+            fontFamily: 'monospace',
+            letterSpacing: '0.5px'
           }}
         >
           v.{weekNumber}
