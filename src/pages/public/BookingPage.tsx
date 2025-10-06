@@ -320,14 +320,14 @@ const CustomPickersDay = ({
         <Typography
           sx={{
             position: 'absolute',
-            left: '-30px',
+            left: '-28px',
             top: '50%',
             transform: 'translateY(-50%)',
             fontSize: '0.7rem',
             color: '#6b7280',
             fontWeight: 500,
-            minWidth: '28px',
-            textAlign: 'right',
+            minWidth: '26px',
+            textAlign: 'left',
             whiteSpace: 'nowrap',
             zIndex: 1,
             fontFamily: 'monospace',
@@ -885,7 +885,7 @@ const BookingPage: React.FC = () => {
             width: '100%',
             margin: '0',
             padding: '0',
-            paddingLeft: '35px', // Add left padding to make room for week numbers
+            paddingLeft: '32px', // Add left padding to make room for week numbers
             '& .MuiDateCalendar-root': {
               maxHeight: 'none',
               height: 'auto',
