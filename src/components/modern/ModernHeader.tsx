@@ -54,12 +54,15 @@ const ModernHeader: React.FC = memo(() => {
       path: '/booking',
       icon: <BookIcon />,
     },
+  ];
+
+  const loggedInItems = isLoggedIn ? [
     {
       label: 'Stödsidan',
       path: '/maintenance-plan',
       icon: <MaintenanceIcon />,
     },
-  ];
+  ] : [];
 
   const adminItems = isAdmin ? [
     {
@@ -69,7 +72,7 @@ const ModernHeader: React.FC = memo(() => {
     },
   ] : [];
 
-  const allNavigationItems = [...navigationItems, ...adminItems];
+  const allNavigationItems = [...navigationItems, ...loggedInItems, ...adminItems];
 
   const handleDrawerToggle = () => {
     setMobileDrawerOpen(!mobileDrawerOpen);
