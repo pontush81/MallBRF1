@@ -148,6 +148,11 @@ const CustomPickersDay = ({
   // Add week number display
   const weekNumber = other.day ? dateFns.getISOWeek(other.day) : null;
   const isFirstDayOfWeek = other.day ? dateFns.isMonday(other.day) : false;
+  
+  // Debug logging for week numbers
+  if (other.day && isFirstDayOfWeek) {
+    console.log('Week number for', other.day, ':', weekNumber, 'isMonday:', isFirstDayOfWeek);
+  }
 
   // Check if a date is fully booked (not available for checkin or checkout)
   const isDateFullyBooked = (day: Date) => {
