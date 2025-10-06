@@ -260,7 +260,7 @@ const iconMapping = {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             variant="outlined"
-            size="large"
+            size="medium"
             fullWidth
             sx={{ 
               maxWidth: '800px',
