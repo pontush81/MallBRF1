@@ -946,6 +946,8 @@ const BookingPage: React.FC = () => {
             onClick={() => navigateMonths('prev')}
             sx={{
               minWidth: '40px',
+              width: '40px',
+              height: '40px',
               borderRadius: '50%',
               fontSize: '18px',
               fontWeight: 'bold',
@@ -978,6 +980,8 @@ const BookingPage: React.FC = () => {
             onClick={() => navigateMonths('next')}
             sx={{
               minWidth: '40px',
+              width: '40px',
+              height: '40px',
               borderRadius: '50%',
               fontSize: '18px',
               fontWeight: 'bold',
