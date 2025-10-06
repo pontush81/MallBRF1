@@ -473,7 +473,7 @@ const ModernHeader: React.FC = memo(() => {
               fontSize: '20px',
               fontWeight: 'bold'
             }}>
-              📋
+              🏢
             </Box>
             <Box>
               <Typography
