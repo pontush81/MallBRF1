@@ -316,19 +316,24 @@ const CustomPickersDay = ({
 
   return (
     <Box sx={{ position: 'relative' }}>
-      {isFirstDayOfWeek && (
+      {isFirstDayOfWeek && weekNumber && (
         <Typography
           sx={{
             position: 'absolute',
             left: '-32px',
             top: '50%',
             transform: 'translateY(-50%)',
-            fontSize: '0.75rem',
-            color: 'text.secondary',
-            fontWeight: 500,
+            fontSize: '0.875rem',
+            color: '#374151',
+            fontWeight: 600,
             minWidth: '28px',
             textAlign: 'left',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            zIndex: 10,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            padding: '2px 4px',
+            borderRadius: '4px',
+            border: '1px solid rgba(209, 213, 219, 0.5)'
           }}
         >
           v.{weekNumber}
@@ -882,7 +887,7 @@ const BookingPage: React.FC = () => {
             width: '100%',
             margin: '0',
             padding: '0',
-            paddingLeft: '32px', // Add left padding to make room for week numbers
+            paddingLeft: '40px', // Add more left padding to make room for week numbers
             '& .MuiDateCalendar-root': {
               maxHeight: 'none',
               height: 'auto',
