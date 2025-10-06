@@ -465,13 +465,15 @@ const ModernHeader: React.FC = memo(() => {
               width: 40,
               height: 40,
               borderRadius: '12px',
-              backgroundColor: '#8b5cf6',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
+              color: '#475569',
               fontSize: '20px',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
             }}>
               🏢
             </Box>
