@@ -6,7 +6,7 @@
 /* CRITICAL: Ensure root elements allow scrolling */
 #root {
   height: auto !important;
-  min-height: 100vh;
+  /* Removed min-height: 100vh that was causing dead space */
   overflow: visible !important;
 }
 

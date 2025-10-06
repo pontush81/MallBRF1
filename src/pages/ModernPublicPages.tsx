@@ -85,9 +85,14 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
     return (
       <Container maxWidth="lg">
         <Box sx={{ 
-          my: 8, 
+          my: 4, // Reducerat från 8 till 4
           textAlign: 'center',
-          padding: modernTheme.spacing[12],
+          padding: modernTheme.spacing[6], // Reducerat från 12 till 6
+          minHeight: '40vh', // La till minHeight istället för stora paddings
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
         }}>
           <Typography 
             variant="h5" 

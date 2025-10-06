@@ -94,21 +94,21 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
 
     // Available icons mapping (same as in PageEditor)
 const iconMapping = {
-    'info': { icon: InfoIcon, color: '#616161', bgColor: '#f5f5f5' },
-    'sports': { icon: SportsEsportsIcon, color: '#e91e63', bgColor: '#fce4ec' },
-    'electric': { icon: ElectricBoltIcon, color: '#ff9800', bgColor: '#fff3e0' },
-    'yard': { icon: YardIcon, color: '#4caf50', bgColor: '#e8f5e8' },
-    'gavel': { icon: GavelIcon, color: '#3f51b5', bgColor: '#e8eaf6' },
-    'home': { icon: HomeIcon, color: '#1976d2', bgColor: '#e3f2fd' },
-    'work': { icon: WorkIcon, color: '#795548', bgColor: '#efebe9' },
-    'school': { icon: SchoolIcon, color: '#9c27b0', bgColor: '#f3e5f5' },
-    'hospital': { icon: LocalHospitalIcon, color: '#f44336', bgColor: '#ffebee' },
-    'restaurant': { icon: RestaurantIcon, color: '#ff5722', bgColor: '#fff3e0' },
-    'car': { icon: DirectionsCarIcon, color: '#607d8b', bgColor: '#eceff1' },
-    'build': { icon: BuildIcon, color: '#ffc107', bgColor: '#fffde7' },
-    'event': { icon: EventIcon, color: '#2196f3', bgColor: '#e3f2fd' },
-    'people': { icon: PeopleIcon, color: '#009688', bgColor: '#e0f2f1' },
-    'settings': { icon: SettingsIcon, color: '#424242', bgColor: '#f5f5f5' }
+    'info': { icon: InfoIcon, color: '#64748b', bgColor: '#f1f5f9' },
+    'sports': { icon: SportsEsportsIcon, color: '#8b5cf6', bgColor: '#f3f4f6' },
+    'electric': { icon: ElectricBoltIcon, color: '#10b981', bgColor: '#ecfdf5' },
+    'yard': { icon: YardIcon, color: '#059669', bgColor: '#ecfdf5' },
+    'gavel': { icon: GavelIcon, color: '#3b82f6', bgColor: '#eff6ff' },
+    'home': { icon: HomeIcon, color: '#0ea5e9', bgColor: '#f0f9ff' },
+    'work': { icon: WorkIcon, color: '#78716c', bgColor: '#f9fafb' },
+    'school': { icon: SchoolIcon, color: '#a855f7', bgColor: '#faf5ff' },
+    'hospital': { icon: LocalHospitalIcon, color: '#ef4444', bgColor: '#fef2f2' },
+    'restaurant': { icon: RestaurantIcon, color: '#f97316', bgColor: '#fff7ed' },
+    'car': { icon: DirectionsCarIcon, color: '#64748b', bgColor: '#f8fafc' },
+    'build': { icon: BuildIcon, color: '#eab308', bgColor: '#fefce8' },
+    'event': { icon: EventIcon, color: '#3b82f6', bgColor: '#eff6ff' },
+    'people': { icon: PeopleIcon, color: '#06b6d4', bgColor: '#f0fdfa' },
+    'settings': { icon: SettingsIcon, color: '#6b7280', bgColor: '#f9fafb' }
   };
 
   // Function to get icon and color based on saved icon or fallback to title-based detection
@@ -215,7 +215,7 @@ const iconMapping = {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 10 }}> {/* Ökat från pb: 1 till pb: 10 för bättre avstånd till footer */}
+      <Container maxWidth="lg" sx={{ pb: 4 }}> {/* Reducerad padding för att minska död yta */}
         <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <Typography variant="body1" color="text.secondary">
@@ -228,7 +228,7 @@ const iconMapping = {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 10 }}> {/* Ökat från pb: 1 till pb: 10 för bättre avstånd till footer */}
+    <Container maxWidth="lg" sx={{ pb: 4 }}> {/* Reducerad padding för att minska död yta */}
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
         {/* Enhanced Modern Search Bar */}
@@ -414,14 +414,14 @@ const iconMapping = {
                       },
                     }}
                   >
-                    <CardContent sx={{ p: 4 }}>
+                    <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                       {/* Section Header with Icon */}
                       <Stack 
                         direction="row" 
-                        alignItems="center" 
+                        alignItems="flex-start" 
                         justifyContent="space-between"
-                        spacing={{ xs: 1, sm: 2 }}
-                        sx={{ mb: 3 }}
+                        spacing={{ xs: 2, sm: 3 }}
+                        sx={{ mb: 4 }}
                       >
                         <Stack 
                           direction="row" 
@@ -432,26 +432,43 @@ const iconMapping = {
                             minWidth: 0 // Tillåt text att truncate om nödvändigt
                           }}
                         >
-                          {/* Colored Icon */}
+                          {/* Enhanced Icon Design */}
                           <Box
                             sx={{
-                              width: 48,
-                              height: 48,
-                              borderRadius: '12px', // More modern rounded corners
+                              width: 56, // Slightly larger for better visual impact
+                              height: 56,
+                              borderRadius: '16px', // More rounded for modern feel
                               backgroundColor: bgColor,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)', // Subtle shadow for depth
-                              transition: 'all 0.25s ease-in-out',
+                              boxShadow: '0 3px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05)', // Enhanced shadow
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smoother easing
+                              position: 'relative',
                               '&:hover': {
-                                transform: 'scale(1.05)',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                transform: 'scale(1.08) translateY(-1px)', // More pronounced hover
+                                boxShadow: '0 6px 20px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+                                backgroundColor: iconColor + '10', // Subtle color shift on hover
+                              },
+                              '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                inset: 0,
+                                borderRadius: '16px',
+                                border: `1px solid ${iconColor}15`,
+                                transition: 'border-color 0.3s ease',
+                              },
+                              '&:hover::before': {
+                                borderColor: iconColor + '25',
                               },
                               ...gpuAnimations.hoverScale
                             }}
                           >
-                            <PageIcon sx={{ color: iconColor, fontSize: 24 }} />
+                            <PageIcon sx={{ 
+                              color: iconColor, 
+                              fontSize: 28, // Larger icon
+                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))', // Subtle icon shadow
+                            }} />
                           </Box>
                           
                           <Typography 
@@ -459,11 +476,13 @@ const iconMapping = {
                             component="h2"
                             id={`section-${page.id}`}
                             sx={{ 
-                              fontWeight: 600,
+                              fontWeight: 700,
                               color: 'text.primary',
-                              fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                              transition: 'color 0.2s ease',
-
+                              fontSize: { xs: '1.375rem', sm: '1.625rem' },
+                              lineHeight: 1.3,
+                              letterSpacing: '-0.025em',
+                              transition: 'color 0.3s ease',
+                              mb: 0.5,
                               '&:hover': { color: iconColor }
                             }}
                           >
@@ -475,7 +494,7 @@ const iconMapping = {
                       </Stack>
 
                       {/* Content - shows summary when collapsed, full content when expanded */}
-                      <Box sx={{ mt: 2 }}>
+                      <Box sx={{ mt: 3 }}>
                         {expandedCards.has(page.id.toString()) ? (
                           <Typography
                             variant="body1"
@@ -511,31 +530,58 @@ const iconMapping = {
                         )}
                       </Box>
 
-                      {/* Visual indicator for expand/collapse */}
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: iconColor,
-                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                            fontWeight: 500,
-                            display: 'flex',
+                      {/* Enhanced CTA Button */}
+                      <Box sx={{ 
+                        mt: 3, 
+                        display: 'flex', 
+                        justifyContent: 'flex-end', 
+                        alignItems: 'center' 
+                      }}>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 0.5
+                            gap: 1,
+                            px: 3,
+                            py: 1.5,
+                            borderRadius: '12px',
+                            backgroundColor: `${iconColor}08`,
+                            border: `1px solid ${iconColor}20`,
+                            transition: 'all 0.25s ease-in-out',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: `${iconColor}12`,
+                              border: `1px solid ${iconColor}30`,
+                              transform: 'translateY(-1px)',
+                              boxShadow: `0 4px 12px ${iconColor}15`,
+                            }
                           }}
                         >
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: iconColor,
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                              letterSpacing: '0.025em'
+                            }}
+                          >
+                            {expandedCards.has(page.id.toString()) ? 'Visa mindre' : 'Läs mer'}
+                          </Typography>
                           {expandedCards.has(page.id.toString()) ? (
-                            <>
-                              Klicka för att visa mindre
-                              <ExpandLessIcon sx={{ fontSize: '1rem' }} />
-                            </>
+                            <ExpandLessIcon sx={{ 
+                              fontSize: '1.1rem', 
+                              color: iconColor,
+                              transition: 'transform 0.2s ease',
+                            }} />
                           ) : (
-                            <>
-                              Klicka för att läsa mer
-                              <ExpandMoreIcon sx={{ fontSize: '1rem' }} />
-                            </>
+                            <ExpandMoreIcon sx={{ 
+                              fontSize: '1.1rem', 
+                              color: iconColor,
+                              transition: 'transform 0.2s ease',
+                            }} />
                           )}
-                        </Typography>
+                        </Box>
                       </Box>
                     </CardContent>
                   </Card>

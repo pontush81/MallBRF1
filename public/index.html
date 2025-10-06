@@ -65,7 +65,7 @@
         contain: layout style paint;
       }
       #root { 
-        min-height: 100vh; 
+        /* Removed min-height: 100vh that was causing dead space */
         display: flex;
         flex-direction: column;
       }
@@ -92,7 +92,7 @@
       /* CRITICAL: Main content spacing to prevent shifts */
       .main-content, .MuiContainer-root { 
         padding-top: 64px !important;
-        min-height: calc(100vh - 64px) !important;
+        /* Removed min-height constraint that was causing dead space */
       }
       
       /* CRITICAL: Loading states with reserved space */

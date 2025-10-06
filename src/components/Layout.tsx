@@ -46,7 +46,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
           sx={{ 
             px: { xs: modernTheme.spacing[2], sm: modernTheme.spacing[3], md: modernTheme.spacing[4] },
             py: 0, // Remove vertical padding from top
-            pb: 8, // Add bottom padding to prevent footer overlap
+            pb: 0, // Removed bottom padding - footer handles its own spacing
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
             overflow: 'visible', // Allow content to be scrollable
             width: '100%',
