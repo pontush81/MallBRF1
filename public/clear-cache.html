@@ -150,6 +150,16 @@
         // Auto-clear on page load for quick fix
         window.addEventListener('load', () => {
             console.log('🧹 Auto-clearing old cache...');
+            // Auto-run all steps for Safari iPhone users
+            setTimeout(() => {
+                clearAllCaches();
+            }, 500);
+            setTimeout(() => {
+                unregisterServiceWorkers();  
+            }, 1000);
+            setTimeout(() => {
+                clearStorage();
+            }, 1500);
         });
     </script>
 </body>
