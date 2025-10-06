@@ -2,6 +2,9 @@ import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 
+// Import cache management for automatic Safari iPhone fixes
+import { initCacheManagement } from './utils/cacheManager';
+
 // Importera den nya ThemeProvider
 import { ThemeProvider } from './context/ThemeContext';
 
