@@ -58,7 +58,7 @@ const ModernHeader: React.FC = memo(() => {
 
   const loggedInItems = isLoggedIn ? [
     {
-      label: 'Stödsidan',
+      label: 'Underhållsplan',
       path: '/maintenance-plan',
       icon: <MaintenanceIcon />,
     },
