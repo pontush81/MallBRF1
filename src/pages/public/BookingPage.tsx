@@ -209,21 +209,58 @@ const CustomPickersDay = ({
   // Check if a date is effectively fully booked (either fully booked or has back-to-back bookings)
 
 
-  const isSelected = selectedDays.some(
-    (date) => {
-      if (!date || !other.day) return false;
-      
-      // Normalize both dates to midnight for comparison
+  // Enhanced date selection logic for range selection
+  const checkDateInRange = () => {
+    if (!other.day) return { isSelected: false, isStartDate: false, isEndDate: false, isInRange: false };
+    
+    const dayToCheck = new Date(other.day);
+    dayToCheck.setHours(0, 0, 0, 0);
+    const dayTime = dayToCheck.getTime();
+    
+    // Check if it's exactly a selected date (start or end)
+    const isExactMatch = selectedDays.some(date => {
+      if (!date) return false;
       const selectedDate = new Date(date);
-      const dayToCheck = new Date(other.day);
-      
       selectedDate.setHours(0, 0, 0, 0);
-      dayToCheck.setHours(0, 0, 0, 0);
+      return selectedDate.getTime() === dayTime;
+    });
+    
+    // If we have both start and end dates, check if current day is in range
+    if (selectedDays.length === 2 && selectedDays[0] && selectedDays[1]) {
+      const startDate = new Date(selectedDays[0]);
+      const endDate = new Date(selectedDays[1]);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
       
-      // Compare timestamps for reliable comparison
-      return selectedDate.getTime() === dayToCheck.getTime();
+      const startTime = startDate.getTime();
+      const endTime = endDate.getTime();
+      
+      // Ensure proper order (start <= end)
+      const actualStart = Math.min(startTime, endTime);
+      const actualEnd = Math.max(startTime, endTime);
+      
+      const isStartDate = dayTime === actualStart;
+      const isEndDate = dayTime === actualEnd;
+      const isInRange = dayTime > actualStart && dayTime < actualEnd;
+      
+      return {
+        isSelected: isExactMatch || isInRange,
+        isStartDate,
+        isEndDate,
+        isInRange
+      };
     }
-  );
+    
+    return {
+      isSelected: isExactMatch,
+      isStartDate: isExactMatch,
+      isEndDate: false,
+      isInRange: false
+    };
+  };
+  
+  const dateRangeStatus = checkDateInRange();
+  const { isSelected, isStartDate, isEndDate, isInRange } = dateRangeStatus;
   
   const isFullyBooked = isDateFullyBooked(other.day);
   const isCheckout = isCheckoutDate(other.day);
@@ -232,7 +269,15 @@ const CustomPickersDay = ({
   
   // Determine what tooltip to show
   let tooltipText = "Tillgängligt";
-  if (isFullyBooked || isBackToBack) {
+  if (isStartDate && isEndDate) {
+    tooltipText = "Enstaka dag vald";
+  } else if (isStartDate) {
+    tooltipText = "Incheckningsdatum";
+  } else if (isEndDate) {
+    tooltipText = "Utcheckningsdatum";
+  } else if (isInRange) {
+    tooltipText = "Ingår i bokningen";
+  } else if (isFullyBooked || isBackToBack) {
     tooltipText = "Upptaget";
   } else if (isCheckout) {
     tooltipText = "Tillgänglig för incheckning";
@@ -247,8 +292,8 @@ const CustomPickersDay = ({
   };
 
   // Apply styles in order of priority
-  if (isSelected) {
-    // Selected dates (highest priority)
+  if (isStartDate || isEndDate) {
+    // Start and end dates (highest priority)
     styles = {
       ...styles,
       backgroundColor: 'primary.main',
@@ -257,8 +302,24 @@ const CustomPickersDay = ({
       transform: { xs: 'scale(1.08)', sm: 'scale(1.12)', md: 'scale(1.15)' },
       boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
       zIndex: 10,
+      borderRadius: isStartDate && isEndDate ? '50%' : 
+                   isStartDate ? '50% 8px 8px 50%' : 
+                   isEndDate ? '8px 50% 50% 8px' : '50%',
       '&:hover': {
         backgroundColor: 'primary.dark',
+      },
+    };
+  } else if (isInRange) {
+    // Days between start and end (range selection)
+    styles = {
+      ...styles,
+      backgroundColor: 'rgba(25, 118, 210, 0.12)', // Light blue background
+      color: 'primary.main',
+      fontWeight: 'medium',
+      borderRadius: '8px',
+      '&:hover': {
+        backgroundColor: 'rgba(25, 118, 210, 0.2)',
+        transform: 'scale(1.02)',
       },
     };
   } else if (isFullyBooked || isBackToBack) {
