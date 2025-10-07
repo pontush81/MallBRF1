@@ -614,27 +614,31 @@ const ModernHeader: React.FC = memo(() => {
                 </>
               ) : (
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   startIcon={<LoginIcon />}
                   onClick={() => handleNavigation('/login')}
                   sx={{
-                    backgroundColor: '#8b5cf6',
-                    color: 'white',
-                    borderRadius: '12px',
+                    backgroundColor: '#ffffff',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
                     textTransform: 'none',
-                    fontWeight: 600,
-                    px: 3,
-                    py: 1.5,
+                    fontWeight: 500,
+                    px: 2.5,
+                    py: 1,
                     fontSize: '14px',
-                    boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                     '&:hover': {
-                      backgroundColor: '#7c3aed',
-                      boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+                      backgroundColor: '#f9fafb',
+                      borderColor: '#9ca3af',
+                      color: '#111827',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                       transform: 'translateY(-1px)',
                     },
                     '&:focus': {
-                      outline: `2px solid #8b5cf6`,
+                      outline: `2px solid #3b82f6`,
                       outlineOffset: '2px',
+                      borderColor: '#3b82f6',
                     },
                   }}
                 >
