@@ -38,6 +38,17 @@ const getWeekNumber = (date: Date | string | any): number => {
     // Use date-fns getISOWeek for reliable calculation
     const weekNumber = getISOWeek(validDate);
     
+    // Extra validation - ensure we got a valid number
+    if (typeof weekNumber !== 'number' || isNaN(weekNumber)) {
+      console.error('🚨 getISOWeek returned NaN for date:', validDate.toISOString());
+      // Fallback: manual week calculation
+      const startOfYear = new Date(validDate.getFullYear(), 0, 1);
+      const daysSinceStart = Math.floor((validDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+      const fallbackWeek = Math.ceil((daysSinceStart + startOfYear.getDay()) / 7);
+      console.log('🔄 Using fallback week calculation:', fallbackWeek);
+      return Math.max(1, Math.min(53, fallbackWeek));
+    }
+    
     // Sanity check - ISO week should be between 1-53
     if (weekNumber < 1 || weekNumber > 53) {
       console.warn('🚨 Suspicious week number:', weekNumber, 'for date:', validDate.toISOString());
@@ -236,8 +247,17 @@ const BookingStatusPage: React.FC = () => {
               });
               
               const startDate = new Date(startDateStr);
+              console.log('🔍 Debug week calculation for', booking.name, ':', {
+                startDateStr,
+                startDate,
+                isValidDate: !isNaN(startDate.getTime()),
+                startDateISO: startDate.toISOString()
+              });
+              
               // Use our robust getWeekNumber function for consistent results
               const week = isValid(startDate) ? getWeekNumber(startDate) : 0;
+              
+              console.log('📅 Week result:', week, 'for date:', startDateStr);
               
               return {
                 id: booking.id,
