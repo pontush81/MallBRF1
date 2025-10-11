@@ -29,15 +29,33 @@ class ErrorBoundary extends Component<Props, State> {
     // logErrorToService(error, errorInfo);
   }
 
-  handleRefresh = () => {
+  handleRefresh = async () => {
     // Clear any cached data that might be corrupted
-    localStorage.removeItem('pages_last_load');
+    try {
+      // Clear app-specific storage
+      localStorage.removeItem('pages_last_load');
+      localStorage.removeItem('app-version');
+      
+      // Clear service worker caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+      }
+    } catch (error) {
+      console.warn('Cache cleanup failed:', error);
+    }
     
     // Reset error state
     this.setState({ hasError: false, error: null });
     
-    // Reload the page
-    window.location.reload();
+    // Redirect to cache clearing page for thorough cleanup
+    window.location.href = '/clear-cache.html';
   };
 
   handleGoHome = () => {

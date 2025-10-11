@@ -1,5 +1,5 @@
 // Simple service worker for better caching
-// Only caches static assets, doesn't interfere with app functionality
+// Enhanced version with better cleanup and fallback handling
 
 const CACHE_NAME = 'gulmaran-v5-modern-ui-update';
 const STATIC_ASSETS = [
@@ -8,34 +8,57 @@ const STATIC_ASSETS = [
   // Note: Don't hardcode CSS/JS files as they have dynamic names with hashes
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets and cleanup aggressively
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        // Only cache critical assets, don't fail if some are missing
-        return Promise.allSettled(
-          STATIC_ASSETS.map(url => 
-            cache.add(url).catch(() => console.log(`Failed to cache: ${url}`))
-          )
+    Promise.all([
+      // Cache new assets
+      caches.open(CACHE_NAME)
+        .then((cache) => {
+          return Promise.allSettled(
+            STATIC_ASSETS.map(url => 
+              cache.add(url).catch(() => console.log(`Failed to cache: ${url}`))
+            )
+          );
+        }),
+      // Immediately cleanup old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME && cacheName.includes('gulmaran')) {
+              console.log('🧹 SW: Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
         );
       })
-      .then(() => self.skipWaiting())
+    ]).then(() => {
+      console.log('✅ SW: Installation complete, taking control immediately');
+      self.skipWaiting();
+    })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - take control immediately and cleanup
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    Promise.all([
+      // Cleanup old caches again (double-check)
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('🧹 SW: Cleaning up cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Take control of all clients immediately
+      self.clients.claim().then(() => {
+        console.log('✅ SW: Now controlling all clients');
+      })
+    ])
   );
 });
 

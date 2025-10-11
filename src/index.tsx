@@ -24,14 +24,19 @@ root.render(
   </React.StrictMode>
 );
 
-// Automatisk cache-rensning för alla användare (speciellt Safari iPhone)
-const clearStaleCache = async () => {
+// Förbättrad cache-detection och automatisk åtgärd
+const detectAndFixCacheIssues = async () => {
   try {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
     const shouldForceClear = isIOS || isSafari;
     
-    // Always check for old cache versions
+    // Check if we're coming from a cache clear attempt
+    const urlParams = new URLSearchParams(window.location.search);
+    const cacheCleared = urlParams.get('cache-cleared');
+    const safariFixed = urlParams.get('safari-fix');
+    
+    // Always check for problematic cache versions
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       const oldCaches = cacheNames.filter(name => 
@@ -39,28 +44,53 @@ const clearStaleCache = async () => {
         name.includes('gulmaran-v2') || 
         name.includes('gulmaran-v3') || 
         name.includes('gulmaran-v4') ||
-        name !== 'gulmaran-v5-modern-ui-update'
+        (name !== 'gulmaran-v5-modern-ui-update' && name.includes('gulmaran'))
       );
       
-      if (oldCaches.length > 0 || shouldForceClear) {
-        console.log('🧹 Clearing old cache for compatibility...');
+      // More aggressive detection for cache problems
+      const hasProblematicCache = oldCaches.length > 0;
+      const hasStaleStorage = localStorage.getItem('app-version') !== 'v5-modern-ui-update';
+      
+      if (hasProblematicCache || hasStaleStorage || shouldForceClear) {
+        console.log('🧹 Problematic cache detected, clearing...');
+        
+        // Clear all old caches
         await Promise.all(oldCaches.map(cacheName => caches.delete(cacheName)));
         
-        // Clear storage for iOS Safari specifically
-        if (shouldForceClear) {
-          try {
-            localStorage.removeItem('theme');
-            localStorage.removeItem('user-preferences');
-            sessionStorage.clear();
-          } catch (e) {
-            // Silent fail for storage clearing
-          }
+        // Update version marker
+        localStorage.setItem('app-version', 'v5-modern-ui-update');
+        
+        // Clear problematic storage for all browsers
+        try {
+          const keysToRemove = ['theme', 'user-preferences', 'cached-pages', 'ui-state'];
+          keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+          });
+        } catch (e) {
+          console.warn('Storage clearing failed:', e);
+        }
+        
+        // Force reload if not already attempted
+        if (!cacheCleared && !safariFixed) {
+          console.log('🔄 Reloading after cache clear...');
+          window.location.href = window.location.pathname + '?cache-cleared=true';
+          return;
         }
       }
     }
+    
+    // Detect white screen after 3 seconds and redirect to fix page
+    setTimeout(() => {
+      const root = document.getElementById('root');
+      if (root && (!root.innerHTML || root.innerHTML.trim() === '')) {
+        console.warn('⚠️ White screen detected, redirecting to cache fix...');
+        window.location.href = '/clear-cache.html';
+      }
+    }, 3000);
+    
   } catch (error) {
-    // Silent fail - don't break the app
-    console.log('Cache clear attempt completed');
+    console.log('Cache detection completed with errors:', error);
   }
 };
 
@@ -68,7 +98,7 @@ const clearStaleCache = async () => {
 if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', async () => {
     // Clear stale cache FIRST
-    await clearStaleCache();
+    await detectAndFixCacheIssues();
     
     // Then register new service worker
     navigator.serviceWorker.register('/sw.js')
@@ -81,7 +111,7 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   });
 } else {
   // Still clear cache in development for testing
-  clearStaleCache();
+  detectAndFixCacheIssues();
 }
 
 // Web vitals removed for production performance
