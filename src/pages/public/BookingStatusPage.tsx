@@ -10,6 +10,10 @@ import {
 import { StandardLoading } from '../../components/common/StandardLoading';
 import { format, differenceInDays, getISOWeek, isValid } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { Booking } from '../../types/Booking';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
+import BookingStatus from '../../components/booking/BookingStatus';
+import { useAuth } from '../../context/AuthContextNew';
 
 // Robust week number calculation that works consistently across platforms
 const getWeekNumber = (date: Date | string | any): number => {
@@ -57,15 +61,8 @@ const getWeekNumber = (date: Date | string | any): number => {
     }
     
     return weekNumber;
-  } catch (error) {
-    console.error('❌ Error in getWeekNumber:', error, 'for input:', date);
-    return 0;
   }
 };
-import { Booking } from '../../types/Booking';
-import bookingServiceSupabase from '../../services/bookingServiceSupabase';
-import BookingStatus from '../../components/booking/BookingStatus';
-import { useAuth } from '../../context/AuthContextNew';
 
 const BookingStatusPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);

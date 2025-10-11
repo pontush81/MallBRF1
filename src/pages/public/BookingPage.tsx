@@ -45,6 +45,16 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import * as dateFns from 'date-fns';
 import { sv } from 'date-fns/locale';
+import bookingServiceSupabase from '../../services/bookingServiceSupabase';
+import BookingSkeleton from '../../components/common/BookingSkeleton';
+import pageServiceSupabase from '../../services/pageServiceSupabase';
+import { useAuth } from '../../context/AuthContextNew';
+import { toast, Toaster } from 'react-hot-toast';
+import BookingStatus from '../../components/booking/BookingStatus';
+import { Booking } from '../../types/Booking';
+import { modernTheme } from '../../theme/modernTheme';
+import { adminUtils } from '../../utils/adminUtils';
+import { MinimalLoading, ButtonLoading } from '../../components/common/StandardLoading';
 
 // Robust week number calculation that works consistently across platforms
 const getWeekNumber = (date: Date | string | any): number => {
@@ -97,18 +107,6 @@ const getWeekNumber = (date: Date | string | any): number => {
     return 0;
   }
 };
-import bookingServiceSupabase from '../../services/bookingServiceSupabase';
-import BookingSkeleton from '../../components/common/BookingSkeleton';
-import pageServiceSupabase from '../../services/pageServiceSupabase';
-import { useAuth } from '../../context/AuthContextNew';
-
-
-import { toast, Toaster } from 'react-hot-toast';
-import BookingStatus from '../../components/booking/BookingStatus';
-import { Booking } from '../../types/Booking';
-import { modernTheme } from '../../theme/modernTheme';
-import { adminUtils } from '../../utils/adminUtils';
-import { MinimalLoading, ButtonLoading } from '../../components/common/StandardLoading';
 
 // Modern styled components for booking page
 // ModernHeroSection removed - not currently used
