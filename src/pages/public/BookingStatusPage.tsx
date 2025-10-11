@@ -61,6 +61,9 @@ const getWeekNumber = (date: Date | string | any): number => {
     }
     
     return weekNumber;
+  } catch (error) {
+    console.error('❌ Error in getWeekNumber:', error, 'for input:', date);
+    return 0;
   }
 };
 
