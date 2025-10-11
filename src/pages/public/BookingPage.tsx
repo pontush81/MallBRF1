@@ -45,6 +45,47 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import * as dateFns from 'date-fns';
 import { sv } from 'date-fns/locale';
+
+// Robust week number calculation that works consistently across platforms
+const getWeekNumber = (date: Date | string | any): number => {
+  try {
+    // Handle various date input types
+    let validDate: Date;
+    
+    if (date instanceof Date) {
+      validDate = date;
+    } else if (typeof date === 'string') {
+      validDate = new Date(date);
+    } else if (date && typeof date === 'object' && date.getTime) {
+      // Handle date-like objects that might come from date pickers
+      validDate = new Date(date.getTime());
+    } else {
+      console.warn('🔄 Unexpected date type for week calculation:', typeof date, date);
+      return 0;
+    }
+    
+    // Validate the date
+    if (isNaN(validDate.getTime())) {
+      console.warn('⚠️ Invalid date for week calculation:', date);
+      return 0;
+    }
+    
+    // Use date-fns getISOWeek for reliable calculation
+    const weekNumber = dateFns.getISOWeek(validDate);
+    
+    // Sanity check - ISO week should be between 1-53
+    if (weekNumber < 1 || weekNumber > 53) {
+      console.warn('🚨 Suspicious week number:', weekNumber, 'for date:', validDate.toISOString());
+      // Fallback calculation if needed
+      return Math.max(1, Math.min(53, weekNumber));
+    }
+    
+    return weekNumber;
+  } catch (error) {
+    console.error('❌ Error in getWeekNumber:', error, 'for input:', date);
+    return 0;
+  }
+};
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
@@ -145,8 +186,32 @@ const CustomPickersDay = ({
     return `${year}-${month}-${day}`;
   };
 
-  // Add week number display
-  const weekNumber = other.day ? dateFns.getISOWeek(other.day) : null;
+  // Add week number display with robust error handling
+  const weekNumber = (() => {
+    if (!other.day) return null;
+    
+    try {
+      // Debug logging to understand mobile vs desktop differences
+      console.log('📅 Week calculation debug:', {
+        day: other.day,
+        dayType: typeof other.day,
+        dayConstructor: other.day.constructor.name,
+        isValidDate: other.day instanceof Date && !isNaN(other.day.getTime()),
+        getTime: other.day.getTime ? other.day.getTime() : 'No getTime method',
+        toISOString: other.day.toISOString ? other.day.toISOString() : 'No toISOString method'
+      });
+      
+      // Use our robust week number calculation
+      const isoWeek = getWeekNumber(other.day);
+      console.log('📅 Calculated ISO week:', isoWeek, 'for day:', other.day);
+      
+      return isoWeek > 0 ? isoWeek : null;
+    } catch (error) {
+      console.error('❌ Error calculating week number:', error, 'for day:', other.day);
+      return null;
+    }
+  })();
+  
   // Show week number on the leftmost day of each week row (Monday)
   const isFirstDayOfWeek = other.day ? (other.day.getDay() === 1) : false;
   
@@ -377,18 +442,20 @@ const CustomPickersDay = ({
         <Typography
           sx={{
             position: 'absolute',
-            left: '-28px',
+            left: { xs: '-20px', sm: '-28px' }, // Less negative on mobile to prevent clipping
             top: '50%',
             transform: 'translateY(-50%)',
-            fontSize: '0.7rem',
+            fontSize: { xs: '0.6rem', sm: '0.7rem' }, // Smaller on mobile if needed
             color: '#6b7280',
             fontWeight: 500,
-            minWidth: '26px',
+            minWidth: { xs: '18px', sm: '26px' }, // Smaller width on mobile
             textAlign: 'left',
             whiteSpace: 'nowrap',
             zIndex: 1,
             fontFamily: 'monospace',
-            letterSpacing: '0.5px'
+            letterSpacing: '0.5px',
+            // Ensure it's not clipped on mobile
+            overflow: 'visible'
           }}
         >
           v.{weekNumber}
@@ -942,7 +1009,7 @@ const BookingPage: React.FC = () => {
             width: '100%',
             margin: '0',
             padding: '0',
-            paddingLeft: '32px', // Add left padding to make room for week numbers
+            paddingLeft: { xs: '24px', sm: '32px' }, // Less padding on mobile, more room for week numbers
             '& .MuiDateCalendar-root': {
               maxHeight: 'none',
               height: 'auto',
@@ -971,6 +1038,10 @@ const BookingPage: React.FC = () => {
             '& .MuiDayCalendar-root': {
               overflow: 'visible',
               paddingLeft: '0', // Reset any default padding
+              // Ensure container doesn't clip week numbers on mobile
+              '& .MuiPickersSlideTransition-root': {
+                overflow: 'visible',
+              },
             },
             '& .MuiPickersDay-root': {
               fontSize: { xs: '0.8rem', sm: '0.85rem' },

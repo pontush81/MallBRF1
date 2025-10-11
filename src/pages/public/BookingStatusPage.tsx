@@ -10,6 +10,47 @@ import {
 import { StandardLoading } from '../../components/common/StandardLoading';
 import { format, differenceInDays, getISOWeek, isValid } from 'date-fns';
 import { sv } from 'date-fns/locale';
+
+// Robust week number calculation that works consistently across platforms
+const getWeekNumber = (date: Date | string | any): number => {
+  try {
+    // Handle various date input types
+    let validDate: Date;
+    
+    if (date instanceof Date) {
+      validDate = date;
+    } else if (typeof date === 'string') {
+      validDate = new Date(date);
+    } else if (date && typeof date === 'object' && date.getTime) {
+      // Handle date-like objects that might come from date pickers
+      validDate = new Date(date.getTime());
+    } else {
+      console.warn('🔄 Unexpected date type for week calculation:', typeof date, date);
+      return 0;
+    }
+    
+    // Validate the date
+    if (isNaN(validDate.getTime())) {
+      console.warn('⚠️ Invalid date for week calculation:', date);
+      return 0;
+    }
+    
+    // Use date-fns getISOWeek for reliable calculation
+    const weekNumber = getISOWeek(validDate);
+    
+    // Sanity check - ISO week should be between 1-53
+    if (weekNumber < 1 || weekNumber > 53) {
+      console.warn('🚨 Suspicious week number:', weekNumber, 'for date:', validDate.toISOString());
+      // Fallback calculation if needed
+      return Math.max(1, Math.min(53, weekNumber));
+    }
+    
+    return weekNumber;
+  } catch (error) {
+    console.error('❌ Error in getWeekNumber:', error, 'for input:', date);
+    return 0;
+  }
+};
 import { Booking } from '../../types/Booking';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingStatus from '../../components/booking/BookingStatus';
@@ -195,8 +236,8 @@ const BookingStatusPage: React.FC = () => {
               });
               
               const startDate = new Date(startDateStr);
-              // Use getISOWeek for proper ISO week calculation (Swedish standard)
-              const week = isValid(startDate) ? getISOWeek(startDate) : 0;
+              // Use our robust getWeekNumber function for consistent results
+              const week = isValid(startDate) ? getWeekNumber(startDate) : 0;
               
               return {
                 id: booking.id,
