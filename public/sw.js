@@ -1,7 +1,7 @@
 // Simple service worker for better caching
 // Enhanced version with better cleanup and fallback handling
 
-const CACHE_NAME = 'gulmaran-v5-modern-ui-update';
+const CACHE_NAME = 'gulmaran-v6-mobile-fix-2025';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json'

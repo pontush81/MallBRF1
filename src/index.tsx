@@ -44,12 +44,13 @@ const detectAndFixCacheIssues = async () => {
         name.includes('gulmaran-v2') || 
         name.includes('gulmaran-v3') || 
         name.includes('gulmaran-v4') ||
-        (name !== 'gulmaran-v5-modern-ui-update' && name.includes('gulmaran'))
+        name.includes('gulmaran-v5') ||
+        (name !== 'gulmaran-v6-mobile-fix-2025' && name.includes('gulmaran'))
       );
       
       // More aggressive detection for cache problems
       const hasProblematicCache = oldCaches.length > 0;
-      const hasStaleStorage = localStorage.getItem('app-version') !== 'v5-modern-ui-update';
+      const hasStaleStorage = localStorage.getItem('app-version') !== 'v6-mobile-fix-2025';
       
       if (hasProblematicCache || hasStaleStorage || shouldForceClear) {
         console.log('🧹 Problematic cache detected, clearing...');
@@ -58,7 +59,7 @@ const detectAndFixCacheIssues = async () => {
         await Promise.all(oldCaches.map(cacheName => caches.delete(cacheName)));
         
         // Update version marker
-        localStorage.setItem('app-version', 'v5-modern-ui-update');
+        localStorage.setItem('app-version', 'v6-mobile-fix-2025');
         
         // Clear problematic storage for all browsers
         try {
