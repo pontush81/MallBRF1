@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
     
     <!-- Performance optimizations: Preconnect to external domains -->
@@ -13,14 +13,10 @@
     <!-- Mobile performance: Resource hints -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Preload critical resources for mobile -->
-    <link rel="modulepreload" href="/static/js/main.js">
-    <link rel="preload" href="/static/css/main.css" as="style">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     
-    <!-- CSS will be injected automatically by React build process -->
+    <!-- CSS and JS will be injected automatically by React build process with correct hashed filenames -->
     
     <!-- Critical font preloading for LCP text optimization -->
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
