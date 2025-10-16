@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { 
   Container, 
   Typography, 
   Box, 
   Alert,
-  Fab,
 } from '@mui/material';
 import { StandardLoading } from '../components/common/StandardLoading';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useNavigate } from 'react-router-dom';
 import ModernPagesListProfessional from '../components/modern/ModernPagesListProfessional';
 import { modernTheme } from '../theme/modernTheme';
@@ -16,7 +14,6 @@ import { Page } from '../types/Page';
 
 const ModernPublicPages: React.FC = (): JSX.Element => {
   const { pages, loading, error } = usePages();
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const navigate = useNavigate();
 
   // Clean up hash fragments in URL when component loads
@@ -25,21 +22,6 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
-
-  // Handle scroll for scroll-to-top button
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Scroll to top function
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   // Handle page click - navigate to individual page (not used with current expand/collapse behavior)
   const handlePageClick = (page: Page) => {
@@ -124,29 +106,6 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
         onPageClick={handlePageClick}
         isLoading={loading && pages.length === 0}
       />
-
-      {/* Scroll to top button */}
-      {showScrollTop && (
-        <Fab
-          color="primary"
-          aria-label="scroll back to top"
-          onClick={scrollToTop}
-          sx={{
-            position: 'fixed',
-            bottom: 32,
-            right: 32,
-            background: modernTheme.gradients.accent,
-            boxShadow: modernTheme.shadows.xl,
-            '&:hover': {
-              transform: 'scale(1.1)',
-              boxShadow: modernTheme.shadows['2xl'],
-            },
-            transition: modernTheme.transitions.normal,
-          }}
-        >
-          <KeyboardArrowUpIcon />
-        </Fab>
-      )}
     </Box>
   );
 };

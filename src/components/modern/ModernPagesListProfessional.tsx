@@ -91,26 +91,26 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
 
 
 
-    // Available icons mapping (same as in PageEditor)
+    // Available icons mapping - Blue tones only for unified design
 const iconMapping = {
-    'info': { icon: InfoIcon, color: '#64748b', bgColor: '#f1f5f9' },
-    'sports': { icon: SportsEsportsIcon, color: '#8b5cf6', bgColor: '#f3ebff' },
-    'electric': { icon: ElectricBoltIcon, color: '#10b981', bgColor: '#ecfdf5' },
-    'yard': { icon: YardIcon, color: '#f97316', bgColor: '#fff7ed' },
+    'info': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'sports': { icon: SportsEsportsIcon, color: '#6366f1', bgColor: '#e0e7ff' },
+    'electric': { icon: ElectricBoltIcon, color: '#0ea5e9', bgColor: '#e0f2fe' },
+    'yard': { icon: YardIcon, color: '#0891b2', bgColor: '#cffafe' },
     'gavel': { icon: GavelIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'home': { icon: HomeIcon, color: '#8b5cf6', bgColor: '#f3ebff' },
-    'work': { icon: WorkIcon, color: '#6b7280', bgColor: '#f9fafb' },
-    'school': { icon: SchoolIcon, color: '#a855f7', bgColor: '#faf5ff' },
-    'hospital': { icon: LocalHospitalIcon, color: '#ef4444', bgColor: '#fef2f2' },
-    'restaurant': { icon: RestaurantIcon, color: '#ef4444', bgColor: '#fee2e2' },
+    'home': { icon: HomeIcon, color: '#6366f1', bgColor: '#e0e7ff' },
+    'work': { icon: WorkIcon, color: '#475569', bgColor: '#f1f5f9' },
+    'school': { icon: SchoolIcon, color: '#8b5cf6', bgColor: '#ede9fe' },
+    'hospital': { icon: LocalHospitalIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'restaurant': { icon: RestaurantIcon, color: '#0ea5e9', bgColor: '#e0f2fe' },
     'car': { icon: DirectionsCarIcon, color: '#64748b', bgColor: '#f8fafc' },
-    'build': { icon: BuildIcon, color: '#eab308', bgColor: '#fefce8' },
+    'build': { icon: BuildIcon, color: '#0891b2', bgColor: '#cffafe' },
     'event': { icon: EventIcon, color: '#3b82f6', bgColor: '#eff6ff' },
     'people': { icon: PeopleIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'settings': { icon: SettingsIcon, color: '#6b7280', bgColor: '#f9fafb' },
-    'palette': { icon: InfoIcon, color: '#ec4899', bgColor: '#fce7f3' },
-    'recycle': { icon: InfoIcon, color: '#10b981', bgColor: '#d1fae5' },
-    'document': { icon: InfoIcon, color: '#6b7280', bgColor: '#f9fafb' },
+    'settings': { icon: SettingsIcon, color: '#64748b', bgColor: '#f1f5f9' },
+    'palette': { icon: InfoIcon, color: '#6366f1', bgColor: '#e0e7ff' },
+    'recycle': { icon: InfoIcon, color: '#0891b2', bgColor: '#cffafe' },
+    'document': { icon: InfoIcon, color: '#475569', bgColor: '#f1f5f9' },
     'wash': { icon: InfoIcon, color: '#06b6d4', bgColor: '#cffafe' }
   };
 
@@ -249,7 +249,7 @@ const iconMapping = {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 4 }}> {/* Reducerad padding för att minska död yta */}
+    <Container maxWidth="lg" sx={{ pb: 12 }}> {/* Extra padding för scroll-to-top-knappen */}
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
         {/* Large Prominent Search Bar - Enhanced modern design */}
