@@ -141,8 +141,9 @@ function AppRoutes() {
       <ScrollToTop />
       <OfflineIndicator />
       <Routes>
-        {/* Redirect root to pages */}
-        <Route path="/" element={<Navigate to="/pages" replace />} />
+        {/* Root and /pages both show the handbook */}
+        <Route path="/" element={<Layout><ModernPublicPages /></Layout>} />
+        <Route path="/pages" element={<Layout><ModernPublicPages /></Layout>} />
         
         {/* Public routes with lazy loading */}
         <Route path="/login" element={
@@ -159,9 +160,6 @@ function AppRoutes() {
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyPageView /></Layout>
           </Suspense>
-        } />
-        <Route path="/pages" element={
-          <Layout><ModernPublicPages /></Layout>
         } />
         <Route path="/booking" element={
           <Suspense fallback={<LoadingFallback />}>
