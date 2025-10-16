@@ -5,7 +5,6 @@ import {
   TextField,
   InputAdornment,
   Typography,
-  useTheme,
   Card,
   CardContent,
   Paper,
@@ -37,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
 import { gpuAnimations } from '../../utils/performanceUtils';
+import { modernTheme } from '../../theme/modernTheme';
 
 interface ModernPagesListProfessionalProps {
   pages: Page[];
@@ -49,7 +49,6 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
   onPageClick, 
   isLoading = false 
 }) => {
-  const theme = useTheme();
 
   
   // State for search and TOC
@@ -253,7 +252,7 @@ const iconMapping = {
     <Container maxWidth="lg" sx={{ pb: 4 }}> {/* Reducerad padding för att minska död yta */}
       <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
         
-        {/* Large Prominent Search Bar */}
+        {/* Large Prominent Search Bar - Enhanced modern design */}
         <Box sx={{ mb: 6, px: { xs: 2, sm: 0 } }}>
           <TextField
             placeholder="Sök i handboken..."
@@ -267,34 +266,34 @@ const iconMapping = {
               mx: 'auto',
               display: 'block',
               '& .MuiOutlinedInput-root': {
-                borderRadius: '16px',
-                backgroundColor: 'white',
-                border: '1px solid #e5e7eb',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.1)',
-                transition: 'all 0.3s ease',
-                fontSize: '16px',
+                borderRadius: modernTheme.borderRadius['2xl'],
+                backgroundColor: modernTheme.colors.white,
+                border: `1px solid ${modernTheme.colors.gray[200]}`,
+                boxShadow: modernTheme.shadows.search,
+                transition: modernTheme.transitions.normal,
+                fontSize: modernTheme.typography.fontSize.base,
                 minHeight: '56px',
                 '& > fieldset': {
                   border: 'none !important',
                 },
                 '&:hover': {
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.15)',
-                  borderColor: '#d1d5db',
+                  boxShadow: modernTheme.shadows.cardHover,
+                  borderColor: modernTheme.colors.gray[300],
                   transform: 'translateY(-1px)',
                 },
                 '&.Mui-focused': {
-                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15), 0 3px 12px rgba(0,0,0,0.12)',
-                  borderColor: '#8b5cf6',
+                  boxShadow: modernTheme.shadows.searchFocus,
+                  borderColor: modernTheme.colors.primary[500],
                   transform: 'translateY(-2px)',
                 }
               },
               '& .MuiInputBase-input': {
-                fontSize: '16px',
-                padding: '16px 20px',
-                fontWeight: 400,
+                fontSize: modernTheme.typography.fontSize.base,
+                padding: modernTheme.spacing[4],
+                fontWeight: modernTheme.typography.fontWeight.normal,
                 '&::placeholder': {
-                  color: '#9ca3af',
-                  fontWeight: '400',
+                  color: modernTheme.colors.gray[400],
+                  fontWeight: modernTheme.typography.fontWeight.normal,
                 }
               }
             }}
@@ -303,7 +302,7 @@ const iconMapping = {
                 <InputAdornment position="start">
                   <SearchIcon 
                     sx={{ 
-                      color: '#9ca3af',
+                      color: modernTheme.colors.gray[400],
                       fontSize: '22px',
                       marginLeft: 1
                     }} 
@@ -314,32 +313,6 @@ const iconMapping = {
           />
         </Box>
 
-        {/* Main Title Section */}
-        <Box sx={{ mb: 5, textAlign: 'left' }}>
-          <Typography 
-            variant="h1" 
-            sx={{ 
-              fontSize: { xs: '28px', sm: '32px', md: '36px' },
-              fontWeight: 700,
-              color: '#111827',
-              marginBottom: 1,
-              lineHeight: 1.2
-            }}
-          >
-            Handbok
-          </Typography>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              fontSize: '16px',
-              color: '#6b7280',
-              fontWeight: 400,
-              lineHeight: 1.5
-            }}
-          >
-            Information och regler för boende i Gulmåran
-          </Typography>
-        </Box>
 
         {/* Results count */}
         {searchTerm && (
@@ -418,11 +391,34 @@ const iconMapping = {
         
         {/* Content Sections */}
         {filteredPages.length === 0 ? (
-          <Paper elevation={1} sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
-            <Typography variant="h5" color="text.secondary" sx={{ mb: 2 }}>
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: modernTheme.spacing[8], 
+              textAlign: 'center', 
+              borderRadius: modernTheme.borderRadius['2xl'],
+              border: `1px solid ${modernTheme.colors.gray[200]}`,
+              background: modernTheme.gradients.card,
+              boxShadow: modernTheme.shadows.card,
+            }}
+          >
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                mb: modernTheme.spacing[3],
+                color: modernTheme.colors.gray[700],
+                fontWeight: modernTheme.typography.fontWeight.semibold,
+              }}
+            >
               {searchTerm ? 'Inga resultat hittades' : 'Inga sidor tillgängliga'}
             </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                color: modernTheme.colors.gray[600],
+                fontSize: modernTheme.typography.fontSize.base,
+              }}
+            >
               {searchTerm ? 'Prova att söka med andra ord.' : 'Det finns inga publicerade sidor att visa för tillfället.'}
             </Typography>
           </Paper>
@@ -441,20 +437,15 @@ const iconMapping = {
                     elevation={0}
                     onClick={() => toggleCardExpansion(page.id.toString())}
                     sx={{ 
-                      borderRadius: '16px', // More modern rounded corners
-                      border: `1px solid ${theme.palette.divider}`,
-                      transition: 'all 0.25s ease-in-out',
+                      borderRadius: '12px',
+                      border: `1px solid ${modernTheme.colors.gray[200]}`,
+                      transition: 'all 0.2s ease',
                       cursor: 'pointer',
-                      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)', // Enhanced gradient
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)', // Subtle initial shadow
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                       '&:hover': {
-                        transform: 'translateY(-2px) scale(1.01)', // Subtle scale + lift
-                        boxShadow: '0 8px 20px rgba(0,0,0,0.08), 0 3px 12px rgba(0,0,0,0.1)', // Enhanced shadow
-                        borderColor: 'rgba(14, 165, 233, 0.3)', // Blue accent border
-                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 30%, #f0f9ff 100%)', // Subtle blue tint on hover
-                      },
-                      '&:active': {
-                        transform: 'translateY(-1px) scale(1.005)', // Pressed state
+                        backgroundColor: '#f8fafc',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                       },
                     }}
                   >
@@ -476,42 +467,45 @@ const iconMapping = {
                             minWidth: 0 // Tillåt text att truncate om nödvändigt
                           }}
                         >
-                          {/* Enhanced Icon Design */}
+                          {/* Enhanced Icon Design - Modern style */}
                           <Box
                             sx={{
-                              width: 56, // Slightly larger for better visual impact
+                              width: 56,
                               height: 56,
-                              borderRadius: '16px', // More rounded for modern feel
+                              borderRadius: modernTheme.borderRadius['2xl'],
                               backgroundColor: bgColor,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              boxShadow: '0 3px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05)', // Enhanced shadow
-                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smoother easing
+                              boxShadow: modernTheme.shadows.icon,
+                              transition: modernTheme.transitions.normal,
                               position: 'relative',
+                              flexShrink: 0,
+                              willChange: 'transform, box-shadow',
                               '&:hover': {
-                                transform: 'scale(1.08) translateY(-1px)', // More pronounced hover
-                                boxShadow: '0 6px 20px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
-                                backgroundColor: iconColor + '10', // Subtle color shift on hover
+                                transform: 'scale(1.1) translateY(-2px)',
+                                boxShadow: modernTheme.shadows.iconHover,
+                                backgroundColor: bgColor,
                               },
                               '&::before': {
                                 content: '""',
                                 position: 'absolute',
                                 inset: 0,
-                                borderRadius: '16px',
-                                border: `1px solid ${iconColor}15`,
-                                transition: 'border-color 0.3s ease',
+                                borderRadius: modernTheme.borderRadius['2xl'],
+                                border: `1.5px solid ${iconColor}20`,
+                                transition: modernTheme.transitions.normal,
                               },
                               '&:hover::before': {
-                                borderColor: iconColor + '25',
+                                borderColor: `${iconColor}35`,
                               },
                               ...gpuAnimations.hoverScale
                             }}
                           >
                             <PageIcon sx={{ 
                               color: iconColor, 
-                              fontSize: 28, // Larger icon
-                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))', // Subtle icon shadow
+                              fontSize: 28,
+                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
+                              transition: modernTheme.transitions.fast,
                             }} />
                           </Box>
                           
@@ -520,13 +514,12 @@ const iconMapping = {
                             component="h2"
                             id={`section-${page.id}`}
                             sx={{ 
-                              fontWeight: 700,
-                              color: 'text.primary',
-                              fontSize: { xs: '1.375rem', sm: '1.625rem' },
-                              lineHeight: 1.3,
+                              fontWeight: modernTheme.typography.fontWeight.bold,
+                              color: modernTheme.colors.gray[900],
+                              fontSize: { xs: modernTheme.typography.fontSize.xl, sm: modernTheme.typography.fontSize['2xl'] },
+                              lineHeight: modernTheme.typography.lineHeight.snug,
                               letterSpacing: '-0.025em',
-                              transition: 'color 0.3s ease',
-                              mb: 0.5,
+                              transition: modernTheme.transitions.fast,
                               '&:hover': { color: iconColor }
                             }}
                           >
@@ -538,21 +531,24 @@ const iconMapping = {
                       </Stack>
 
                       {/* Content - shows summary when collapsed, full content when expanded */}
-                      <Box sx={{ mt: 3 }}>
+                      <Box sx={{ mt: modernTheme.spacing[4] }}>
                         {expandedCards.has(page.id.toString()) ? (
                           <Typography
                             variant="body1"
-                            color="text.secondary"
                             sx={{ 
-                              lineHeight: 1.8, // Ökat från 1.7
-                              fontSize: '1rem',
+                              color: modernTheme.colors.gray[700],
+                              lineHeight: modernTheme.typography.lineHeight.relaxed,
+                              fontSize: modernTheme.typography.fontSize.base,
+                              fontWeight: modernTheme.typography.fontWeight.normal,
                               '& p': {
-                                marginBottom: '1.5rem', // Lägg till bättre avstånd mellan stycken
+                                marginBottom: modernTheme.spacing[4],
                                 '&:last-child': { marginBottom: 0 }
                               },
                               '& h3': {
-                                marginTop: '2rem',
-                                marginBottom: '1rem',
+                                marginTop: modernTheme.spacing[6],
+                                marginBottom: modernTheme.spacing[3],
+                                fontWeight: modernTheme.typography.fontWeight.semibold,
+                                color: modernTheme.colors.gray[900],
                                 '&:first-child': { marginTop: 0 }
                               }
                             }}
@@ -563,10 +559,11 @@ const iconMapping = {
                         ) : (
                           <Typography
                             variant="body1"
-                            color="text.secondary"
                             sx={{ 
-                              lineHeight: 1.8, // Ökat från 1.7
-                              fontSize: '1rem'
+                              color: modernTheme.colors.gray[600],
+                              lineHeight: modernTheme.typography.lineHeight.relaxed,
+                              fontSize: modernTheme.typography.fontSize.base,
+                              fontWeight: modernTheme.typography.fontWeight.normal,
                             }}
                           >
                             {summary}
@@ -574,9 +571,9 @@ const iconMapping = {
                         )}
                       </Box>
 
-                      {/* Enhanced CTA Button */}
+                      {/* Enhanced CTA Button - Modern design */}
                       <Box sx={{ 
-                        mt: 3, 
+                        mt: modernTheme.spacing[4], 
                         display: 'flex', 
                         justifyContent: 'flex-end', 
                         alignItems: 'center' 
@@ -585,19 +582,23 @@ const iconMapping = {
                           sx={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 1,
-                            px: 3,
-                            py: 1.5,
-                            borderRadius: '12px',
+                            gap: modernTheme.spacing[2],
+                            px: modernTheme.spacing[4],
+                            py: modernTheme.spacing[2],
+                            borderRadius: modernTheme.borderRadius.xl,
                             backgroundColor: `${iconColor}08`,
-                            border: `1px solid ${iconColor}20`,
-                            transition: 'all 0.25s ease-in-out',
+                            border: `1.5px solid ${iconColor}20`,
+                            transition: modernTheme.transitions.normal,
                             cursor: 'pointer',
+                            willChange: 'transform, background-color, box-shadow',
                             '&:hover': {
-                              backgroundColor: `${iconColor}12`,
-                              border: `1px solid ${iconColor}30`,
+                              backgroundColor: `${iconColor}15`,
+                              border: `1.5px solid ${iconColor}35`,
                               transform: 'translateY(-1px)',
-                              boxShadow: `0 4px 12px ${iconColor}15`,
+                              boxShadow: `0 4px 12px ${iconColor}20`,
+                            },
+                            '&:active': {
+                              transform: 'translateY(0)',
                             }
                           }}
                         >
@@ -605,8 +606,8 @@ const iconMapping = {
                             variant="body2" 
                             sx={{ 
                               color: iconColor,
-                              fontSize: '0.875rem',
-                              fontWeight: 600,
+                              fontSize: modernTheme.typography.fontSize.sm,
+                              fontWeight: modernTheme.typography.fontWeight.semibold,
                               letterSpacing: '0.025em'
                             }}
                           >
@@ -614,15 +615,15 @@ const iconMapping = {
                           </Typography>
                           {expandedCards.has(page.id.toString()) ? (
                             <ExpandLessIcon sx={{ 
-                              fontSize: '1.1rem', 
+                              fontSize: '1.125rem', 
                               color: iconColor,
-                              transition: 'transform 0.2s ease',
+                              transition: modernTheme.transitions.fast,
                             }} />
                           ) : (
                             <ExpandMoreIcon sx={{ 
-                              fontSize: '1.1rem', 
+                              fontSize: '1.125rem', 
                               color: iconColor,
-                              transition: 'transform 0.2s ease',
+                              transition: modernTheme.transitions.fast,
                             }} />
                           )}
                         </Box>

@@ -4,18 +4,20 @@
 export const modernTheme = {
   // Professional color palette - trust, stability, sophistication
   colors: {
+    // Professional navy blue - main primary (inspired by handbok.org)
     primary: {
-      50: '#f8fafc',
-      100: '#f1f5f9', 
-      200: '#e2e8f0',
-      300: '#cbd5e1',
-      400: '#94a3b8',
-      500: '#64748b', // Professional slate gray - main primary
-      600: '#475569',
-      700: '#334155',
-      800: '#1e293b',
-      900: '#0f172a',
+      50: '#f0f4f8',
+      100: '#d9e5ee',
+      200: '#b3cbe0',
+      300: '#8db1d2',
+      400: '#6797c4',
+      500: '#4a7ba7', // Professional navy blue
+      600: '#3e6689',
+      700: '#32516b',
+      800: '#263c4d',
+      900: '#1a272f',
     },
+    // Keep professional blue as secondary
     secondary: {
       50: '#f0f9ff',
       100: '#e0f2fe',
@@ -27,6 +29,45 @@ export const modernTheme = {
       700: '#0369a1',
       800: '#075985',
       900: '#0c4a6e',
+    },
+    // Warm orange accent (inspired by handbok.org)
+    accent: {
+      50: '#fff7ed',
+      100: '#ffedd5',
+      200: '#fed7aa',
+      300: '#fdba74',
+      400: '#fb923c',
+      500: '#f97316', // Vibrant warm orange
+      600: '#ea580c',
+      700: '#c2410c',
+      800: '#9a3412',
+      900: '#7c2d12',
+    },
+    // Green accent for success states
+    accentGreen: {
+      50: '#ecfdf5',
+      100: '#d1fae5',
+      200: '#a7f3d0',
+      300: '#6ee7b7',
+      400: '#34d399',
+      500: '#059669', // Professional green
+      600: '#047857',
+      700: '#065f46',
+      800: '#064e3b',
+      900: '#022c22',
+    },
+    // Purple accent for variety
+    accentPurple: {
+      50: '#f5f3ff',
+      100: '#ede9fe',
+      200: '#ddd6fe',
+      300: '#c4b5fd',
+      400: '#a78bfa',
+      500: '#8b5cf6', // Modern purple
+      600: '#7c3aed',
+      700: '#6d28d9',
+      800: '#5b21b6',
+      900: '#4c1d95',
     },
     success: {
       50: '#f0fdf4',
@@ -80,25 +121,33 @@ export const modernTheme = {
     black: '#000000',
   },
 
-  // Professional gradients - subtle and sophisticated
+  // Professional gradients - subtle and sophisticated (inspired by handbok.org)
   gradients: {
-    // Elegant header gradient - professional with enhanced depth and visual interest
+    // Modern card gradient - multi-layer effect
+    card: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
+    
+    // Enhanced card hover with subtle blue tint
+    cardHover: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 30%, #f0f9ff 100%)',
+    
+    // Primary gradient for buttons and CTAs
+    primary: 'linear-gradient(135deg, #4a7ba7 0%, #3e6689 100%)',
+    
+    // Warm accent gradient
+    accent: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+    
+    // Green accent gradient
+    accentGreen: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    
+    // Purple accent gradient
+    accentPurple: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+    
+    // Subtle background gradient
+    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    
+    // Header gradient (for ModernHeader)
     header: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 20%, #f1f5f9 40%, #e2e8f0 75%, #cbd5e1 100%)',
     
-    // Enhanced header with subtle blue accent for Swedish design
-    headerAccent: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 20%, #f0f9ff 40%, #e0f2fe 75%, #bae6fd 100%)',
-    
-    // Header with soft shadow overlay for depth
-    headerWithShadow: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 20%, #f1f5f9 40%, #e2e8f0 75%, #cbd5e1 100%), linear-gradient(180deg, rgba(0,0,0,0.02) 0%, transparent 100%)',
-    
-    // Subtle card gradient - clean and modern
-    card: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-    
-    // Professional accent gradient for highlights
-    accent: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
-    
-    // Dark mode variants
-    darkHeader: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
+    // Dark mode variants (for ModernCard)
     darkCard: 'linear-gradient(145deg, #27272a 0%, #3f3f46 100%)',
   },
 
@@ -156,17 +205,28 @@ export const modernTheme = {
     32: '8rem',     // 128px
   },
 
-  // Modern shadows
+  // Modern shadows - multi-layer for depth (inspired by handbok.org)
   shadows: {
     sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
     base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
     md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    // Enhanced header shadows
-    header: '0 1px 12px rgba(30, 41, 59, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05)',
-    headerHover: '0 2px 16px rgba(30, 41, 59, 0.05), 0 2px 6px rgba(0, 0, 0, 0.08)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    
+    // Enhanced card shadows for modern feel
+    card: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)',
+    cardHover: '0 8px 20px rgba(0,0,0,0.08), 0 3px 12px rgba(0,0,0,0.1)',
+    cardActive: '0 12px 28px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.15)',
+    
+    // Enhanced icon shadows
+    icon: '0 3px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05)',
+    iconHover: '0 6px 20px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+    
+    // Search bar shadows
+    search: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.1)',
+    searchFocus: '0 8px 24px rgba(139, 92, 246, 0.15), 0 3px 12px rgba(0,0,0,0.12)',
+    
     inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
   },
 
