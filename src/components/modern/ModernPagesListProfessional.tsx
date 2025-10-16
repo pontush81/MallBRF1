@@ -91,27 +91,27 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
 
 
 
-    // Available icons mapping - Blue tones only for unified design
+    // Available icons mapping - Single blue color for unified, professional design
 const iconMapping = {
     'info': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'sports': { icon: SportsEsportsIcon, color: '#6366f1', bgColor: '#e0e7ff' },
-    'electric': { icon: ElectricBoltIcon, color: '#0ea5e9', bgColor: '#e0f2fe' },
-    'yard': { icon: YardIcon, color: '#0891b2', bgColor: '#cffafe' },
+    'sports': { icon: SportsEsportsIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'electric': { icon: ElectricBoltIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'yard': { icon: YardIcon, color: '#3b82f6', bgColor: '#dbeafe' },
     'gavel': { icon: GavelIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'home': { icon: HomeIcon, color: '#6366f1', bgColor: '#e0e7ff' },
-    'work': { icon: WorkIcon, color: '#475569', bgColor: '#f1f5f9' },
-    'school': { icon: SchoolIcon, color: '#8b5cf6', bgColor: '#ede9fe' },
+    'home': { icon: HomeIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'work': { icon: WorkIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'school': { icon: SchoolIcon, color: '#3b82f6', bgColor: '#dbeafe' },
     'hospital': { icon: LocalHospitalIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'restaurant': { icon: RestaurantIcon, color: '#0ea5e9', bgColor: '#e0f2fe' },
-    'car': { icon: DirectionsCarIcon, color: '#64748b', bgColor: '#f8fafc' },
-    'build': { icon: BuildIcon, color: '#0891b2', bgColor: '#cffafe' },
-    'event': { icon: EventIcon, color: '#3b82f6', bgColor: '#eff6ff' },
+    'restaurant': { icon: RestaurantIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'car': { icon: DirectionsCarIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'build': { icon: BuildIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'event': { icon: EventIcon, color: '#3b82f6', bgColor: '#dbeafe' },
     'people': { icon: PeopleIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'settings': { icon: SettingsIcon, color: '#64748b', bgColor: '#f1f5f9' },
-    'palette': { icon: InfoIcon, color: '#6366f1', bgColor: '#e0e7ff' },
-    'recycle': { icon: InfoIcon, color: '#0891b2', bgColor: '#cffafe' },
-    'document': { icon: InfoIcon, color: '#475569', bgColor: '#f1f5f9' },
-    'wash': { icon: InfoIcon, color: '#06b6d4', bgColor: '#cffafe' }
+    'settings': { icon: SettingsIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'palette': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'recycle': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'document': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
+    'wash': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' }
   };
 
   // Function to get icon and color based on saved icon or fallback to title-based detection
