@@ -30,11 +30,17 @@ export const isSlowConnection = (): boolean => {
 
 /**
  * Prioritera kritiska resurser för mobil
+ * Note: In production, CRA uses hashed filenames, so we skip manual preloading
  */
 export const preloadCriticalResources = (): void => {
   if (typeof document === 'undefined') return;
   
-  // Preload kritiska CSS och JS filer
+  // Skip in production - Create React App handles this automatically with hashed filenames
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  
+  // Only preload in development where filenames are predictable
   const criticalResources = [
     '/static/css/main.css',
     '/static/js/main.js'
