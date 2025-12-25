@@ -900,34 +900,61 @@ const BookingPage: React.FC = () => {
                 overflow: 'visible',
               },
             },
-            // Fix alignment between weekday headers and day numbers
-            '& .MuiDayCalendar-header': {
-              justifyContent: 'space-around',
+            // Force CSS Grid for perfect alignment between header and body
+            '& .MuiDayCalendar-header, & .MuiDayCalendar-weekContainer': {
+              display: 'grid',
+              gridTemplateColumns: { 
+                xs: '28px repeat(7, 28px)', 
+                sm: '32px repeat(7, 32px)' 
+              },
+              gap: { xs: '2px', sm: '4px' },
+              justifyItems: 'center',
+              alignItems: 'center',
+              margin: 0,
+              padding: 0,
             },
-            '& .MuiDayCalendar-weekContainer': {
-              justifyContent: 'space-around',
-            },
-            // Week number styling
+            // Week number label (# header)
             '& .MuiDayCalendar-weekNumberLabel': {
               width: { xs: '28px', sm: '32px' },
+              height: { xs: '28px', sm: '32px' },
               fontSize: { xs: '0.7rem', sm: '0.75rem' },
               color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: 0,
+              padding: 0,
             },
+            // Week number in each row
             '& .MuiDayCalendar-weekNumber': {
               width: { xs: '28px', sm: '32px' },
+              height: { xs: '28px', sm: '32px' },
               fontSize: { xs: '0.7rem', sm: '0.75rem' },
               color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: 0,
+              padding: 0,
             },
-            // Weekday header styling
+            // Weekday labels (M, T, O, T, F, L, S)
             '& .MuiDayCalendar-weekDayLabel': {
               width: { xs: '28px', sm: '32px' },
               height: { xs: '28px', sm: '32px' },
               fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: 0,
+              padding: 0,
             },
+            // Day buttons
             '& .MuiPickersDay-root': {
               fontSize: { xs: '0.8rem', sm: '0.85rem' },
               width: { xs: '28px', sm: '32px' },
               height: { xs: '28px', sm: '32px' },
+              margin: 0,
+              padding: 0,
             }
           }}
           showDaysOutsideCurrentMonth={true}
