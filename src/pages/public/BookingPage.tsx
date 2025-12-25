@@ -600,23 +600,7 @@ const BookingPage: React.FC = () => {
         
         // Visa ett snyggt toast-meddelande för bekräftelse
         toast.success(
-          `Din bokning ${formattedStartDate} - ${formattedEndDate} (${nights} nätter) är bekräftad!`, 
-          {
-            duration: 8000, // Längre duration så den hinner synas
-            position: 'top-center', // Centrera toasten för bättre synlighet
-            style: {
-              background: '#4caf50',
-              color: '#fff',
-              borderRadius: '12px',
-              padding: '20px 24px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-              maxWidth: '90vw',
-              textAlign: 'center' as const,
-            },
-            icon: '🎉'
-          }
+          `🎉 Din bokning ${formattedStartDate} - ${formattedEndDate} (${nights} nätter) är bekräftad!`
         );
         
         // Återställ formuläret
@@ -633,18 +617,7 @@ const BookingPage: React.FC = () => {
               console.error('Ett fel uppstod när bokningen skulle skapas:', error);
       
       // Visa ett toast-meddelande för felet
-      toast.error('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.', {
-        duration: 4000,
-        position: isMobile ? 'bottom-center' : 'top-right',
-        style: {
-          background: '#f44336',
-          color: '#fff',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          maxWidth: '400px'
-        }
-      });
+      toast.error('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
     } finally {
       setIsLoading(false);
     }
@@ -1690,7 +1663,49 @@ const BookingPage: React.FC = () => {
 
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
+    <>
+      {/* Toast notification container - MUST be at root level for proper portal rendering */}
+      <Toaster 
+        position="top-center"
+        containerStyle={{
+          zIndex: 99999,
+          top: 80,
+        }}
+        toastOptions={{
+          duration: 8000,
+          style: {
+            zIndex: 99999,
+          },
+          success: {
+            style: {
+              background: '#4caf50',
+              color: '#fff',
+              borderRadius: '12px',
+              padding: '20px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+              maxWidth: '90vw',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: '#4caf50',
+            },
+          },
+          error: {
+            style: {
+              background: '#f44336',
+              color: '#fff',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              fontSize: '16px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+            },
+          },
+        }}
+      />
+      
+      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
       {/* Hero Section removed - only admin toolbar and content */}
 
         <Container 
@@ -2167,22 +2182,10 @@ const BookingPage: React.FC = () => {
             </DialogActions>
           </Dialog>
         
-        {/* Add the Toaster component with proper z-index to show above header */}
-        <Toaster 
-          position="top-center"
-          containerStyle={{
-            zIndex: 99999, // Much higher z-index to ensure visibility
-            top: 100, // Below header
-          }}
-          toastOptions={{
-            style: {
-              zIndex: 99999,
-            },
-          }}
-        />
           </ModernCard>
         </Container>
-    </LocalizationProvider>
+      </LocalizationProvider>
+    </>
   );
 };
 
