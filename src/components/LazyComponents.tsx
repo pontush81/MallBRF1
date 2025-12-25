@@ -20,6 +20,7 @@ export const LazyCookiePolicy = lazy(() => import('../pages/CookiePolicy'));
 export const LazyAccessibility = lazy(() => import('../pages/Accessibility'));
 export const LazyComplaints = lazy(() => import('../pages/Complaints'));
 export const LazyContact = lazy(() => import('../pages/Contact'));
+export const LazyStadgar = lazy(() => import('../pages/Stadgar'));
 export const LazyNotFound = lazy(() => import('../pages/NotFound'));
 
 // Admin Components  

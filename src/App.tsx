@@ -40,6 +40,7 @@ import {
   LazyAccessibility,
   LazyComplaints,
   LazyContact,
+  LazyStadgar,
   LazyDashboard,
   LazyDashboardHome,
   LazyPagesList,
@@ -210,6 +211,11 @@ function AppRoutes() {
         <Route path="/contact" element={
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyContact /></Layout>
+          </Suspense>
+        } />
+        <Route path="/stadgar" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyStadgar /></Layout>
           </Suspense>
         } />
         <Route path="/maintenance-plan" element={
