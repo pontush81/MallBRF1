@@ -1965,46 +1965,61 @@ const BookingPage: React.FC = () => {
             maxWidth="sm"
             scroll="paper"
             aria-labelledby="delete-dialog-title"
+            PaperProps={{
+              sx: isMobile ? {
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              } : {}
+            }}
           >
-            <DialogTitle sx={{ 
-              bgcolor: 'error.lighter', 
-              color: 'error.dark',
-              fontWeight: 'bold',
-              borderBottom: '1px solid',
-              borderColor: 'error.light'
+            <Box sx={{ 
+              width: '100%',
+              maxWidth: isMobile ? '320px' : '100%',
+              bgcolor: 'white',
+              borderRadius: isMobile ? 2 : 0,
+              overflow: 'hidden',
             }}>
-              Radera bokning
-            </DialogTitle>
-            <DialogContent sx={{ pt: 2 }}>
-              <DialogContentText>
-                Är du säker på att du vill radera denna bokning?
-                Detta kan inte ångras.
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 3 }}>
-              <ModernButton 
-                onClick={() => setDeleteDialogOpen(false)} 
-                variant="outlined"
-                sx={{ 
-                  color: 'text.primary',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    borderColor: 'text.primary',
-                    backgroundColor: 'rgba(0,0,0,0.04)'
-                  }
-                }}
-              >
-                Avbryt
-              </ModernButton>
-              <ModernButton 
-                onClick={handleBookingDeleted} 
-                variant="contained" 
-                color="error" 
-                autoFocus
-              >
-                Radera
-              </ModernButton>
-            </DialogActions>
+              <DialogTitle sx={{ 
+                bgcolor: 'error.lighter', 
+                color: 'error.dark',
+                fontWeight: 'bold',
+                borderBottom: '1px solid',
+                borderColor: 'error.light'
+              }}>
+                Radera bokning
+              </DialogTitle>
+              <DialogContent sx={{ pt: 2 }}>
+                <DialogContentText>
+                  Är du säker på att du vill radera denna bokning?
+                  Detta kan inte ångras.
+                </DialogContentText>
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 3 }}>
+                <ModernButton 
+                  onClick={() => setDeleteDialogOpen(false)} 
+                  variant="outlined"
+                  sx={{ 
+                    color: 'text.primary',
+                    borderColor: 'divider',
+                    '&:hover': {
+                      borderColor: 'text.primary',
+                      backgroundColor: 'rgba(0,0,0,0.04)'
+                    }
+                  }}
+                >
+                  Avbryt
+                </ModernButton>
+                <ModernButton 
+                  onClick={handleBookingDeleted} 
+                  variant="contained" 
+                  color="error" 
+                  autoFocus
+                >
+                  Radera
+                </ModernButton>
+              </DialogActions>
+            </Box>
           </Dialog>
 
           {/* Bekräftelsedialog för lyckad radering - MUI standard pattern */}
