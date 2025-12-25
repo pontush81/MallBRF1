@@ -40,7 +40,7 @@ const CompactHero: React.FC<CompactHeroProps> = ({
               display: 'inline-block',
               color: bastadTheme.colors.terracotta[500],
               fontFamily: bastadTheme.typography.fontFamily.body,
-              fontSize: { xs: '0.625rem', sm: '0.6875rem' },
+              fontSize: { xs: '0.75rem', sm: '0.8125rem', md: '0.875rem' },
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
