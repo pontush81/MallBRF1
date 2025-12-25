@@ -406,9 +406,12 @@ const BookingPage: React.FC = () => {
 
   
 
-  // State för bekräftelsedialog
+  // State för bekräftelsedialog (bokning skapad)
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState('');
+  
+  // State för raderingsbekräftelse
+  const [deleteSuccessDialogOpen, setDeleteSuccessDialogOpen] = useState(false);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
@@ -1093,19 +1096,16 @@ const BookingPage: React.FC = () => {
         prev.filter(b => b.id !== bookingToDelete.id)
       );
         
-        // Stäng dialogen först
-        setDeleteDialogOpen(false);
+      // Stäng raderingsdialogen
+      setDeleteDialogOpen(false);
+      
+      // Visa bekräftelsedialog för lyckad radering
+      setDeleteSuccessDialogOpen(true);
         
-        // Visa meddelande
-        setSnackbarMessage('Bokningen har raderats');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-        
-        // Kort timeout innan vi uppdaterar bokningslistan
-        // Detta ger tid för UI att hantera scrollposition
-        setTimeout(() => {
-          fetchBookings();
-        }, 300);
+      // Uppdatera bokningslistan
+      setTimeout(() => {
+        fetchBookings();
+      }, 300);
     } catch (error) {
       console.error('Error deleting booking:', error);
       setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
@@ -1991,6 +1991,68 @@ const BookingPage: React.FC = () => {
               >
                 Radera
               </ModernButton>
+            </DialogActions>
+          </Dialog>
+
+          {/* Bekräftelsedialog för lyckad radering */}
+          <Dialog
+            open={deleteSuccessDialogOpen}
+            onClose={() => setDeleteSuccessDialogOpen(false)}
+            fullWidth
+            maxWidth="xs"
+            PaperProps={{
+              sx: {
+                borderRadius: 3,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                overflow: 'hidden',
+              }
+            }}
+          >
+            <Box sx={{ 
+              bgcolor: '#f44336', 
+              py: 3,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <Box sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                bgcolor: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Check sx={{ fontSize: 40, color: 'white' }} />
+              </Box>
+            </Box>
+            <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: '#c62828' }}>
+                Bokning raderad
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Bokningen har tagits bort från systemet.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+              <Button 
+                onClick={() => setDeleteSuccessDialogOpen(false)}
+                variant="contained"
+                sx={{ 
+                  bgcolor: '#f44336',
+                  borderRadius: 2,
+                  px: 4,
+                  py: 1,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    bgcolor: '#d32f2f',
+                  }
+                }}
+              >
+                Stäng
+              </Button>
             </DialogActions>
           </Dialog>
           
