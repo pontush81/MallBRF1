@@ -49,7 +49,7 @@ import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { useAuth } from '../../context/AuthContextNew';
-import { toast, Toaster } from 'react-hot-toast';
+// toast removed - using Dialog for confirmation instead
 import BookingStatus from '../../components/booking/BookingStatus';
 import { Booking } from '../../types/Booking';
 import { modernTheme } from '../../theme/modernTheme';
@@ -406,6 +406,10 @@ const BookingPage: React.FC = () => {
 
   
 
+  // State för bekräftelsedialog
+  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [editName, setEditName] = useState('');
@@ -591,17 +595,16 @@ const BookingPage: React.FC = () => {
       });
       
       if (booking) {
-        // Formatera datumen för visning i toast-meddelandet
+        // Formatera datumen för visning i bekräftelsedialogen
         const formattedStartDate = dateFns.format(normalizedStartDate, 'd MMM', { locale: sv });
         const formattedEndDate = dateFns.format(normalizedEndDate, 'd MMM', { locale: sv });
         const nights = dateFns.differenceInDays(normalizedEndDate, normalizedStartDate);
         
-        console.log('🎉 Booking successful! Showing toast...');
+        console.log('🎉 Booking successful! Showing confirmation dialog...');
         
-        // Visa ett snyggt toast-meddelande för bekräftelse
-        toast.success(
-          `🎉 Din bokning ${formattedStartDate} - ${formattedEndDate} (${nights} nätter) är bekräftad!`
-        );
+        // Visa bekräftelsedialog istället för toast
+        setConfirmationMessage(`Din bokning ${formattedStartDate} - ${formattedEndDate} (${nights} ${nights === 1 ? 'natt' : 'nätter'}) är bekräftad!`);
+        setConfirmationDialogOpen(true);
         
         // Återställ formuläret
         setStartDate(null);
@@ -614,10 +617,11 @@ const BookingPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
-              console.error('Ett fel uppstod när bokningen skulle skapas:', error);
       
-      // Visa ett toast-meddelande för felet
-      toast.error('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
+      // Visa snackbar för felet
+      setSnackbarMessage('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
       setIsLoading(false);
     }
@@ -1714,48 +1718,6 @@ const BookingPage: React.FC = () => {
 
   return (
     <>
-      {/* Toast notification container - centered in viewport */}
-      <Toaster 
-        position="top-center"
-        containerStyle={{
-          zIndex: 99999,
-          top: '50%',
-          transform: 'translateY(-50%)',
-        }}
-        toastOptions={{
-          duration: 5000,
-          style: {
-            zIndex: 99999,
-          },
-          success: {
-            style: {
-              background: '#4caf50',
-              color: '#fff',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              fontSize: '15px',
-              fontWeight: 'bold',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-              maxWidth: '90vw',
-            },
-            iconTheme: {
-              primary: '#fff',
-              secondary: '#4caf50',
-            },
-          },
-          error: {
-            style: {
-              background: '#f44336',
-              color: '#fff',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              fontSize: '16px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-            },
-          },
-        }}
-      />
-      
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sv}>
       {/* Hero Section removed - only admin toolbar and content */}
 
@@ -1915,6 +1877,68 @@ const BookingPage: React.FC = () => {
             onClose={() => setSnackbarOpen(false)}
             message={snackbarMessage}
           />
+
+          {/* Bekräftelsedialog för lyckad bokning */}
+          <Dialog
+            open={confirmationDialogOpen}
+            onClose={() => setConfirmationDialogOpen(false)}
+            fullWidth
+            maxWidth="xs"
+            PaperProps={{
+              sx: {
+                borderRadius: 3,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                overflow: 'hidden',
+              }
+            }}
+          >
+            <Box sx={{ 
+              bgcolor: '#4caf50', 
+              py: 3,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <Box sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                bgcolor: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Check sx={{ fontSize: 40, color: 'white' }} />
+              </Box>
+            </Box>
+            <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: '#2e7d32' }}>
+                Bokning bekräftad!
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {confirmationMessage}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+              <Button 
+                onClick={() => setConfirmationDialogOpen(false)}
+                variant="contained"
+                sx={{ 
+                  bgcolor: '#4caf50',
+                  borderRadius: 2,
+                  px: 4,
+                  py: 1,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    bgcolor: '#388e3c',
+                  }
+                }}
+              >
+                Stäng
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* Raderingsdialog */}
           <Dialog
