@@ -12,8 +12,8 @@ interface CompactHeroProps {
  * Ren design som matchar resten av sidan
  */
 const CompactHero: React.FC<CompactHeroProps> = ({
-  title = 'Gulmåran',
-  subtitle = 'Handbok för boende',
+  title = 'Din boendehandbok',
+  subtitle = 'Allt du behöver veta som boende i föreningen',
 }) => {
   return (
     <Box

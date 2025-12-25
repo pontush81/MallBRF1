@@ -130,10 +130,7 @@ const ModernPublicPages: React.FC = (): JSX.Element => {
       pb: { xs: 8, md: 12 },
     }}>
       {/* Kompakt Hero - Ljus & Ren */}
-      <CompactHero 
-        title="Gulmåran"
-        subtitle="Allt du behöver veta som boende i föreningen"
-      />
+      <CompactHero />
       
       {/* Huvudinnehåll - Handboken */}
       <ModernPagesListProfessional 
