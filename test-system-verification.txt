@@ -1,0 +1,1 @@
+Detta är en test för att verifiera att systemet fungerar korrekt efter alla uppdateringar. Systemet ska kunna processa denna text och skapa chunks för sökning via GPT.

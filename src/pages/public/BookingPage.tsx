@@ -342,22 +342,21 @@ const CustomPickersDay = ({
   const isBackToBack = hasBackToBackBookings(other.day);
   
   // Determine what tooltip to show
+  // Airbnb-style: checkout dates are available, checkin dates are blocked
   let tooltipText = "Tillgängligt";
   if (isStartDate && isEndDate) {
     tooltipText = "Enstaka dag vald";
   } else if (isStartDate) {
-    tooltipText = "Incheckningsdatum";
+    tooltipText = "Ankomst";
   } else if (isEndDate) {
-    tooltipText = "Utcheckningsdatum";
+    tooltipText = "Avresa";
   } else if (isInRange) {
     tooltipText = "Ingår i bokningen";
-  } else if (isFullyBooked || isBackToBack) {
+  } else if (isFullyBooked || isBackToBack || isCheckin) {
+    // Checkin dates are blocked (someone is checking in that day)
     tooltipText = "Upptaget";
-  } else if (isCheckout) {
-    tooltipText = "Tillgänglig för incheckning";
-  } else if (isCheckin) {
-    tooltipText = "Tillgänglig för utcheckning";
   }
+  // isCheckout dates are available (checkout at 11:00, new checkin at 14:00)
 
   // Determine style properties based on date status
   let styles: any = {
@@ -396,45 +395,24 @@ const CustomPickersDay = ({
         transform: 'scale(1.02)',
       },
     };
-  } else if (isFullyBooked || isBackToBack) {
-    // Fully booked dates
+  } else if (isFullyBooked || isBackToBack || isCheckin) {
+    // Blocked dates: fully booked, back-to-back, or checkin day (Airbnb-style)
+    // Checkout dates are NOT blocked - new guests can check in after checkout
     styles = {
       ...styles,
-      backgroundColor: 'error.light',
-      color: 'white',
-      fontWeight: 'bold',
+      backgroundColor: '#e5e7eb', // Neutral gray (like Airbnb)
+      color: '#9ca3af',
+      fontWeight: 'normal',
       cursor: 'not-allowed',
       pointerEvents: 'none',
+      textDecoration: 'line-through',
       '&:hover': {
-        backgroundColor: 'error.main',
+        backgroundColor: '#e5e7eb',
         cursor: 'not-allowed'
       },
     };
-  } else if (isCheckout) {
-    // Checkout dates (half booked - left side red, vertical split)
-    styles = {
-      ...styles,
-      background: 'linear-gradient(90deg, #ffcdd2 0%, #ffcdd2 50%, white 50%, white 100%)',
-      color: 'text.primary',
-      fontWeight: 'medium',
-      '&:hover': {
-        background: 'linear-gradient(90deg, #ef9a9a 0%, #ef9a9a 50%, #e3f2fd 50%, #e3f2fd 100%)',
-        transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
-      },
-    };
-  } else if (isCheckin) {
-    // Checkin dates (half booked - right side red, vertical split)
-    styles = {
-      ...styles,
-      background: 'linear-gradient(90deg, white 0%, white 50%, #ffcdd2 50%, #ffcdd2 100%)',
-      color: 'text.primary',
-      fontWeight: 'medium',
-      '&:hover': {
-        background: 'linear-gradient(90deg, #e3f2fd 0%, #e3f2fd 50%, #ef9a9a 50%, #ef9a9a 100%)',
-        transform: { xs: 'scale(1.04)', sm: 'scale(1.06)' },
-      },
-    };
   } else {
+    // Available dates (including checkout dates - available for new checkin)
     // Available dates (lowest priority)
     styles = {
       ...styles,
@@ -1392,6 +1370,81 @@ const BookingPage: React.FC = () => {
     );
   };
 
+  // Rendera in/utcheckningstider
+  const renderCheckInOutInfo = () => {
+    return (
+      <Box sx={{ mb: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 2.5 },
+            backgroundColor: 'rgba(76, 175, 80, 0.05)',
+            border: '1px solid',
+            borderColor: 'success.light',
+            borderRadius: 2,
+          }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    backgroundColor: 'success.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '14px',
+                  }}
+                >
+                  →
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' } }}>
+                    Incheckning
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'success.dark' }}>
+                    kl. 14:00
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={6}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    backgroundColor: 'warning.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '14px',
+                  }}
+                >
+                  ←
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' } }}>
+                    Utcheckning
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'warning.dark' }}>
+                    kl. 11:00
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Box>
+    );
+  };
+
   // Rendera bokningsstatus
   const renderBookingStatus = () => {
     const groupedBookings = groupBookingsByMonth(existingBookings);
@@ -1820,6 +1873,7 @@ const BookingPage: React.FC = () => {
           <ModernCard sx={{ marginBottom: modernTheme.spacing[6], mt: 2 }}>
 
           {renderPriceList()}
+          {renderCheckInOutInfo()}
 
           <Grid container spacing={2}>
             <Grid item xs={12}>

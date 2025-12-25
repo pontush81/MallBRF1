@@ -1,0 +1,1 @@
+Test för att verifiera checksum-beräkning och systemfunktionalitet

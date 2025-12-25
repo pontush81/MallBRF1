@@ -1,0 +1,12 @@
+Detta är ett testdokument för Gulmåran-GPT.
+
+BRF Gulmåran är en bostadsrättsförening som ligger i Stockholm.
+
+Viktiga regler:
+- Sophantering sker på måndagar
+- Tvättstugan bokas via app
+- Grillar får endast användas på balkonger
+
+Styrelsen träffas varje månad för att diskutera föreningens angelägenheter.
+
+Kontakt: info@gulmaran.com

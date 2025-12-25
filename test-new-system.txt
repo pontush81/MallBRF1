@@ -1,0 +1,1 @@
+Detta är ett test-dokument för att verifiera att det nya systemet fungerar korrekt. Systemet ska kunna processa denna text och göra den sökbar via GPT-chatten.

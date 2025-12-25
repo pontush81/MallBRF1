@@ -1,0 +1,1 @@
+Detta är en test för att verifiera att det nya systemet fungerar med textfiler. Systemet ska kunna processa denna text och skapa chunks för sökning.
