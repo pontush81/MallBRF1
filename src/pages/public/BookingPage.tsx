@@ -1884,11 +1884,18 @@ const BookingPage: React.FC = () => {
             onClose={() => setConfirmationDialogOpen(false)}
             fullWidth
             maxWidth="xs"
+            sx={{
+              '& .MuiDialog-container': {
+                alignItems: 'center',
+              },
+            }}
             PaperProps={{
               sx: {
                 borderRadius: 3,
                 boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                 overflow: 'hidden',
+                margin: { xs: 2, sm: 4 },
+                maxHeight: 'calc(100vh - 64px)',
               }
             }}
           >
@@ -2000,11 +2007,18 @@ const BookingPage: React.FC = () => {
             onClose={() => setDeleteSuccessDialogOpen(false)}
             fullWidth
             maxWidth="xs"
+            sx={{
+              '& .MuiDialog-container': {
+                alignItems: 'center',
+              },
+            }}
             PaperProps={{
               sx: {
                 borderRadius: 3,
                 boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                 overflow: 'hidden',
+                margin: { xs: 2, sm: 4 },
+                maxHeight: 'calc(100vh - 64px)',
               }
             }}
           >
