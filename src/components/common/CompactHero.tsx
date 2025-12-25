@@ -22,9 +22,9 @@ const CompactHero: React.FC<CompactHeroProps> = ({
         // LJUS bakgrund - samma som resten av sidan
         background: bastadTheme.colors.sand[50],
         borderBottom: `1px solid ${bastadTheme.colors.sand[200]}`,
-        // Kompakt padding
-        pt: { xs: '80px', sm: '88px', md: '96px' }, // Space for header
-        pb: { xs: 3, sm: 4, md: 5 },
+        // Kompakt padding - tightare mot header
+        pt: { xs: '72px', sm: '76px', md: '80px' }, // Space for header (64px + lite luft)
+        pb: { xs: 2.5, sm: 3, md: 4 },
         px: { xs: 2, sm: 3 },
       }}
     >
