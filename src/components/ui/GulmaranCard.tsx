@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardProps, CardContent, CardActions, Typography, Box } from '@mui/material';
-import { designTokens } from '../../theme/designSystem';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 interface GulmaranCardProps extends Omit<CardProps, 'variant'> {
   variant?: 'elevated' | 'flat' | 'outlined';
@@ -26,29 +26,32 @@ const GulmaranCard: React.FC<GulmaranCardProps> = ({
       case 'flat':
         return {
           boxShadow: 'none',
-          border: `1px solid ${designTokens.colors.neutral.outline}`,
+          border: `1px solid ${bastadTheme.colors.sand[300]}`,
+          backgroundColor: bastadTheme.colors.white,
         };
       case 'outlined':
         return {
           boxShadow: 'none',
-          border: `2px solid ${designTokens.colors.neutral.outline}`,
+          border: `2px solid ${bastadTheme.colors.sand[400]}`,
           backgroundColor: 'transparent',
         };
       case 'elevated':
       default:
         return {
-          boxShadow: designTokens.shadows.sm,
-          border: `1px solid ${designTokens.colors.neutral.outline}`,
+          boxShadow: bastadTheme.shadows.card,
+          border: `1px solid ${bastadTheme.colors.sand[300]}`,
+          backgroundColor: bastadTheme.colors.white,
         };
     }
   };
 
   const hoverStyles = hover ? {
     '&:hover': {
-      boxShadow: designTokens.shadows.md,
-      transform: 'translateY(-2px)',
+      boxShadow: bastadTheme.shadows.cardHover,
+      transform: 'translateY(-4px)',
+      borderColor: bastadTheme.colors.terracotta[500],
       '& .card-title': {
-        color: designTokens.colors.primary[600],
+        color: bastadTheme.colors.terracotta[600],
       },
     },
   } : {};
@@ -56,8 +59,8 @@ const GulmaranCard: React.FC<GulmaranCardProps> = ({
   return (
     <Card
       sx={{
-        borderRadius: designTokens.borderRadius.lg,
-        transition: designTokens.transitions.normal,
+        borderRadius: bastadTheme.borderRadius.xl,
+        transition: bastadTheme.transitions.normal,
         ...getVariantStyles(),
         ...hoverStyles,
         ...sx,
@@ -72,9 +75,10 @@ const GulmaranCard: React.FC<GulmaranCardProps> = ({
               component="h3"
               className="card-title"
               sx={{ 
-                fontWeight: designTokens.typography.fontWeight.semibold,
-                color: designTokens.colors.secondary[800],
-                transition: designTokens.transitions.color,
+                fontFamily: bastadTheme.typography.fontFamily.heading,
+                fontWeight: 600,
+                color: bastadTheme.colors.ocean[900],
+                transition: bastadTheme.transitions.fast,
                 mb: subtitle ? 0.5 : 0,
               }}
             >
@@ -85,7 +89,8 @@ const GulmaranCard: React.FC<GulmaranCardProps> = ({
             <Typography 
               variant="body2" 
               sx={{ 
-                color: designTokens.colors.secondary[600],
+                fontFamily: bastadTheme.typography.fontFamily.body,
+                color: bastadTheme.colors.ocean[600],
               }}
             >
               {subtitle}

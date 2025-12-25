@@ -17,7 +17,6 @@ import {
   Search as SearchIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  // All available icons (same as in PageEditor)
   Info as InfoIcon,
   SportsEsports as SportsEsportsIcon,
   ElectricBolt as ElectricBoltIcon,
@@ -35,8 +34,7 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { Page } from '../../types/Page';
-import { gpuAnimations } from '../../utils/performanceUtils';
-import { modernTheme } from '../../theme/modernTheme';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 interface ModernPagesListProfessionalProps {
   pages: Page[];
@@ -49,34 +47,24 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
   onPageClick, 
   isLoading = false 
 }) => {
-
-  
-  // State for search and TOC
   const [searchTerm, setSearchTerm] = useState('');
   const [tocExpanded, setTocExpanded] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
-
-
-  // Toggle card expansion
   const toggleCardExpansion = (pageId: string) => {
     setExpandedCards(prev => {
       const newSet = new Set(prev);
-      
       if (newSet.has(pageId)) {
         newSet.delete(pageId);
       } else {
         newSet.add(pageId);
       }
-      
       return newSet;
     });
   };
 
-  // Enhanced search function
   const filteredPages = useMemo(() => {
     if (!searchTerm.trim()) return pages;
-    
     const searchLower = searchTerm.toLowerCase().trim();
     return pages.filter(page => 
       page.title.toLowerCase().includes(searchLower) ||
@@ -84,162 +72,111 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
     );
   }, [pages, searchTerm]);
 
-  // Debug logging
   useEffect(() => {
     console.log('🔍 All sections being rendered:', filteredPages.map(p => ({ id: p.id, title: p.title })));
   }, [filteredPages]);
 
-
-
-    // Available icons mapping - Single blue color for unified, professional design
-const iconMapping = {
-    'info': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'sports': { icon: SportsEsportsIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'electric': { icon: ElectricBoltIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'yard': { icon: YardIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'gavel': { icon: GavelIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'home': { icon: HomeIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'work': { icon: WorkIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'school': { icon: SchoolIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'hospital': { icon: LocalHospitalIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'restaurant': { icon: RestaurantIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'car': { icon: DirectionsCarIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'build': { icon: BuildIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'event': { icon: EventIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'people': { icon: PeopleIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'settings': { icon: SettingsIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'palette': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'recycle': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'document': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' },
-    'wash': { icon: InfoIcon, color: '#3b82f6', bgColor: '#dbeafe' }
+  // Färgschema med Båstad-tema - terrakotta som accent
+  const iconMapping = {
+    'info': { icon: InfoIcon, color: bastadTheme.colors.twilight[500], bgColor: `${bastadTheme.colors.twilight[500]}15` },
+    'sports': { icon: SportsEsportsIcon, color: bastadTheme.colors.twilight[500], bgColor: `${bastadTheme.colors.twilight[500]}15` },
+    'electric': { icon: ElectricBoltIcon, color: bastadTheme.colors.terracotta[500], bgColor: `${bastadTheme.colors.terracotta[500]}15` },
+    'yard': { icon: YardIcon, color: bastadTheme.colors.seagreen[500], bgColor: `${bastadTheme.colors.seagreen[500]}15` },
+    'gavel': { icon: GavelIcon, color: bastadTheme.colors.ocean[700], bgColor: `${bastadTheme.colors.ocean[700]}15` },
+    'home': { icon: HomeIcon, color: bastadTheme.colors.terracotta[500], bgColor: `${bastadTheme.colors.terracotta[500]}15` },
+    'work': { icon: WorkIcon, color: bastadTheme.colors.twilight[500], bgColor: `${bastadTheme.colors.twilight[500]}15` },
+    'school': { icon: SchoolIcon, color: bastadTheme.colors.twilight[500], bgColor: `${bastadTheme.colors.twilight[500]}15` },
+    'hospital': { icon: LocalHospitalIcon, color: bastadTheme.colors.error, bgColor: `${bastadTheme.colors.error}15` },
+    'restaurant': { icon: RestaurantIcon, color: bastadTheme.colors.terracotta[500], bgColor: `${bastadTheme.colors.terracotta[500]}15` },
+    'car': { icon: DirectionsCarIcon, color: bastadTheme.colors.twilight[500], bgColor: `${bastadTheme.colors.twilight[500]}15` },
+    'build': { icon: BuildIcon, color: bastadTheme.colors.ocean[600], bgColor: `${bastadTheme.colors.ocean[600]}15` },
+    'event': { icon: EventIcon, color: bastadTheme.colors.terracotta[500], bgColor: `${bastadTheme.colors.terracotta[500]}15` },
+    'people': { icon: PeopleIcon, color: bastadTheme.colors.seagreen[500], bgColor: `${bastadTheme.colors.seagreen[500]}15` },
+    'settings': { icon: SettingsIcon, color: bastadTheme.colors.ocean[600], bgColor: `${bastadTheme.colors.ocean[600]}15` },
+    'palette': { icon: InfoIcon, color: bastadTheme.colors.terracotta[500], bgColor: `${bastadTheme.colors.terracotta[500]}15` },
+    'recycle': { icon: InfoIcon, color: bastadTheme.colors.seagreen[500], bgColor: `${bastadTheme.colors.seagreen[500]}15` },
+    'document': { icon: InfoIcon, color: bastadTheme.colors.ocean[700], bgColor: `${bastadTheme.colors.ocean[700]}15` },
+    'wash': { icon: InfoIcon, color: bastadTheme.colors.twilight[500], bgColor: `${bastadTheme.colors.twilight[500]}15` }
   };
 
-  // Function to get icon and color based on saved icon or fallback to title-based detection
   const getPageIconAndColor = (page: Page) => {
-    // First, try to use the saved icon from admin selection
     if (page.icon && iconMapping[page.icon as keyof typeof iconMapping]) {
       return iconMapping[page.icon as keyof typeof iconMapping];
     }
     
-    // Fallback to title-based detection for existing pages without saved icons
     const titleLower = page.title.toLowerCase();
     
-    if (titleLower.includes('aktivitetsrum') || titleLower.includes('aktivitet')) {
-      return iconMapping.sports;
-    }
-    if (titleLower.includes('elbil') || titleLower.includes('el') || titleLower.includes('bil')) {
-      return iconMapping.electric;
-    }
-    if (titleLower.includes('ellagård') || titleLower.includes('trädgård') || titleLower.includes('gård')) {
-      return iconMapping.yard;
-    }
-    if (titleLower.includes('föreningsstämma') || titleLower.includes('stämma') || titleLower.includes('förening')) {
-      return iconMapping.people;
-    }
-    if (titleLower.includes('grillregler') || titleLower.includes('grill')) {
-      return iconMapping.restaurant;
-    }
-    if (titleLower.includes('gästlägenhet') || titleLower.includes('gäst')) {
-      return iconMapping.home;
-    }
-    if (titleLower.includes('färgkoder') || titleLower.includes('färg')) {
-      return iconMapping.palette;
-    }
-    if (titleLower.includes('sophantering') || titleLower.includes('sop') || titleLower.includes('återvinning')) {
-      return iconMapping.recycle;
-    }
-    if (titleLower.includes('styrelsen') || titleLower.includes('dokument')) {
-      return iconMapping.document;
-    }
-    if (titleLower.includes('tvättsuga') || titleLower.includes('tvätt')) {
-      return iconMapping.wash;
-    }
+    if (titleLower.includes('aktivitetsrum') || titleLower.includes('aktivitet')) return iconMapping.sports;
+    if (titleLower.includes('elbil') || titleLower.includes('el') || titleLower.includes('bil')) return iconMapping.electric;
+    if (titleLower.includes('ellagård') || titleLower.includes('trädgård') || titleLower.includes('gård')) return iconMapping.yard;
+    if (titleLower.includes('föreningsstämma') || titleLower.includes('stämma') || titleLower.includes('förening')) return iconMapping.people;
+    if (titleLower.includes('grillregler') || titleLower.includes('grill')) return iconMapping.restaurant;
+    if (titleLower.includes('gästlägenhet') || titleLower.includes('gäst')) return iconMapping.home;
+    if (titleLower.includes('färgkoder') || titleLower.includes('färg')) return iconMapping.palette;
+    if (titleLower.includes('sophantering') || titleLower.includes('sop') || titleLower.includes('återvinning')) return iconMapping.recycle;
+    if (titleLower.includes('styrelsen') || titleLower.includes('dokument')) return iconMapping.document;
+    if (titleLower.includes('tvättsuga') || titleLower.includes('tvätt')) return iconMapping.wash;
     
-    // Default icon and color
     return iconMapping.info;
   };
 
-  // Function to get content summary (first paragraph or sentence)
   const getContentSummary = (content: string): string => {
-    // Handle empty or very short content
-    if (!content || content.trim().length === 0) {
-      return 'Klicka för att visa innehåll';
-    }
+    if (!content || content.trim().length === 0) return 'Klicka för att visa innehåll';
 
-    // Remove markdown formatting for clean summary
     const cleanContent = content
-      .replace(/###\s+(.+)/g, '$1') // Remove ### headers
-      .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold
-      .replace(/\*([^*]+)\*/g, '$1') // Remove italic
-      .replace(/^- (.+)$/gm, '$1') // Remove bullet points
+      .replace(/###\s+(.+)/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/^- (.+)$/gm, '$1')
       .trim();
 
-    // Handle very short content (less than 10 characters)
-    if (cleanContent.length < 10) {
-      return 'Klicka för att visa innehåll';
-    }
+    if (cleanContent.length < 10) return 'Klicka för att visa innehåll';
 
-    // Get first paragraph or first 150 characters
     const firstParagraph = cleanContent.split('\n\n')[0].trim();
     if (firstParagraph.length === 0) {
-      // Try getting the first line instead
       const firstLine = cleanContent.split('\n')[0].trim();
-      if (firstLine.length === 0) {
-        return 'Klicka för att visa innehåll';
-      }
-      return firstLine.length <= 150 ? firstLine : firstLine.substring(0, 147).trim() + '...';
+      if (firstLine.length === 0) return 'Klicka för att visa innehåll';
+      return firstLine.length <= 120 ? firstLine : firstLine.substring(0, 117).trim() + '...';
     }
     
-    if (firstParagraph.length <= 150) {
-      return firstParagraph;
-    }
+    if (firstParagraph.length <= 120) return firstParagraph;
     
-    // If first paragraph is too long, get first sentence or 150 chars
     const firstSentence = firstParagraph.split('.')[0];
-    if (firstSentence.length <= 150 && firstSentence.length > 10) {
-      return firstSentence.trim() + '.';
-    }
+    if (firstSentence.length <= 120 && firstSentence.length > 10) return firstSentence.trim() + '.';
     
-    return firstParagraph.substring(0, 147).trim() + '...';
+    return firstParagraph.substring(0, 117).trim() + '...';
   };
 
-  // Function to format plain text to HTML
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatPlainTextToHTML = (text: string) => {
     return text
-      // Convert ### headers to h3
       .replace(/###\s+(.+)/g, '<h3>$1</h3>')
-      // Convert ** bold ** to <strong>
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      // Convert * italic * to <em>
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      // Convert bullet points to ul/li
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
-      // Convert line breaks to paragraphs
       .split('\n\n')
       .map(paragraph => paragraph.trim())
       .filter(paragraph => paragraph.length > 0)
       .map(paragraph => {
-        // Don't wrap if already wrapped in HTML tags
-        if (paragraph.startsWith('<') && paragraph.endsWith('>')) {
-          return paragraph;
-        }
+        if (paragraph.startsWith('<') && paragraph.endsWith('>')) return paragraph;
         return `<p>${paragraph.replace(/\n/g, '<br>')}</p>`;
       })
       .join('')
-      // Remove href attributes from any anchor tags to prevent navigation
       .replace(/href\s*=\s*["'][^"']*["']/gi, '');
   };
 
-
-
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 4 }}> {/* Reducerad padding för att minska död yta */}
-        <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <Typography variant="body1" color="text.secondary">
+      <Container maxWidth="lg" sx={{ pb: 4, px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mt: { xs: 2, sm: 3 } }}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="150px">
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                color: bastadTheme.colors.ocean[500],
+                fontFamily: bastadTheme.typography.fontFamily.body,
+              }}
+            >
               Laddar sidor...
             </Typography>
           </Box>
@@ -249,11 +186,17 @@ const iconMapping = {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 12 }}> {/* Extra padding för scroll-to-top-knappen */}
-      <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        pb: { xs: 16, md: 20 }, // Mer utrymme före footer
+        px: { xs: 2, sm: 3 },
+      }}
+    >
+      <Box sx={{ mt: { xs: 3, sm: 4 } }}>
         
-        {/* Large Prominent Search Bar - Enhanced modern design */}
-        <Box sx={{ mb: 6, px: { xs: 2, sm: 0 } }}>
+        {/* SÖKFÄLT - MOBIL-OPTIMERAT */}
+        <Box sx={{ mb: { xs: 3, md: 5 } }}>
           <TextField
             placeholder="Sök i handboken..."
             value={searchTerm}
@@ -262,152 +205,87 @@ const iconMapping = {
             size="medium"
             fullWidth
             sx={{ 
-              maxWidth: '800px',
+              maxWidth: { xs: '100%', md: '700px' },
               mx: 'auto',
               display: 'block',
               '& .MuiOutlinedInput-root': {
-                borderRadius: modernTheme.borderRadius['2xl'],
-                backgroundColor: modernTheme.colors.white,
-                border: `1px solid ${modernTheme.colors.gray[200]}`,
-                boxShadow: modernTheme.shadows.search,
-                transition: modernTheme.transitions.normal,
-                fontSize: modernTheme.typography.fontSize.base,
-                minHeight: '56px',
-                '& > fieldset': {
-                  border: 'none !important',
-                },
+                borderRadius: bastadTheme.borderRadius.xl,
+                backgroundColor: bastadTheme.colors.white,
+                border: `1px solid ${bastadTheme.colors.sand[300]}`,
+                boxShadow: bastadTheme.shadows.card,
+                transition: bastadTheme.transitions.normal,
+                // MOBIL: Mindre höjd
+                minHeight: { xs: '48px', md: '54px' },
+                '& > fieldset': { border: 'none !important' },
                 '&:hover': {
-                  boxShadow: modernTheme.shadows.cardHover,
-                  borderColor: modernTheme.colors.gray[300],
-                  transform: 'translateY(-1px)',
+                  boxShadow: bastadTheme.shadows.cardHover,
+                  borderColor: bastadTheme.colors.sand[400],
                 },
                 '&.Mui-focused': {
-                  boxShadow: modernTheme.shadows.searchFocus,
-                  borderColor: modernTheme.colors.primary[500],
-                  transform: 'translateY(-2px)',
+                  boxShadow: `0 0 0 3px ${bastadTheme.colors.terracotta[500]}25`,
+                  borderColor: bastadTheme.colors.terracotta[500],
                 }
               },
               '& .MuiInputBase-input': {
-                fontSize: modernTheme.typography.fontSize.base,
-                padding: modernTheme.spacing[4],
-                fontWeight: modernTheme.typography.fontWeight.normal,
+                fontFamily: bastadTheme.typography.fontFamily.body,
+                fontSize: { xs: '0.9375rem', md: '1rem' },
+                padding: { xs: '12px 16px', md: '14px 18px' },
                 '&::placeholder': {
-                  color: modernTheme.colors.gray[400],
-                  fontWeight: modernTheme.typography.fontWeight.normal,
+                  color: bastadTheme.colors.ocean[400],
                 }
               }
             }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon 
-                    sx={{ 
-                      color: modernTheme.colors.gray[400],
-                      fontSize: '22px',
-                      marginLeft: 1
-                    }} 
-                  />
+                  <SearchIcon sx={{ 
+                    color: bastadTheme.colors.ocean[400],
+                    fontSize: { xs: '20px', md: '22px' },
+                    ml: { xs: 0.5, md: 1 },
+                  }} />
                 </InputAdornment>
               ),
             }}
           />
         </Box>
 
-
-        {/* Results count */}
+        {/* Sökresultat */}
         {searchTerm && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              {filteredPages.length} {filteredPages.length === 1 ? 'resultat' : 'resultat'} för "{searchTerm}"
+          <Box sx={{ mb: 2 }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: bastadTheme.colors.ocean[500],
+                fontFamily: bastadTheme.typography.fontFamily.body,
+                fontSize: { xs: '0.8125rem', md: '0.875rem' },
+              }}
+            >
+              {filteredPages.length} resultat för "{searchTerm}"
             </Typography>
           </Box>
         )}
 
-        {/* Collapsible Table of Contents */}
-        {filteredPages.length > 3 && !searchTerm && (
-          <Box sx={{ mb: 3 }}>
-            <Button
-              onClick={() => setTocExpanded(!tocExpanded)}
-              startIcon={tocExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              sx={{
-                textTransform: 'none',
-                color: 'text.secondary',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                p: 0,
-                minWidth: 'auto',
-                '&:hover': {
-                  backgroundColor: 'transparent',
-                  color: 'primary.main'
-                }
-              }}
-            >
-              På denna sida ({filteredPages.length} avsnitt)
-            </Button>
-            
-            <Collapse in={tocExpanded}>
-              <Box sx={{ mt: 2, pl: 2 }}>
-                <Stack spacing={1}>
-                  {filteredPages.map((page, index) => (
-                    <Typography
-                      key={page.id}
-                      variant="body2"
-                      color="primary.main"
-                      sx={{
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        '&:hover': {
-                          color: 'primary.dark',
-                          textDecoration: 'underline'
-                        }
-                      }}
-                      onClick={() => {
-                        const element = document.getElementById(`section-${page.id}`);
-                        if (element) {
-                          // Try modern CSS scroll-margin approach first
-                          element.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'start' 
-                          });
-                          
-                          console.log('Scrolled to section:', page.id, page.title, element);
-                          console.log('Element text content:', element.textContent?.substring(0, 50));
-                        } else {
-                          console.error(`Element with id section-${page.id} not found`);
-                        }
-                        setTocExpanded(false); // Collapse after navigation
-                      }}
-                    >
-                      {index + 1}. {page.title}
-                    </Typography>
-                  ))}
-                </Stack>
-              </Box>
-            </Collapse>
-          </Box>
-        )}
 
-
-        
-        {/* Content Sections */}
+        {/* KORT-LISTA - MOBIL-FÖRST */}
         {filteredPages.length === 0 ? (
           <Paper 
             elevation={0} 
             sx={{ 
-              p: modernTheme.spacing[8], 
+              p: { xs: 4, md: 6 }, 
               textAlign: 'center', 
-              borderRadius: modernTheme.borderRadius['2xl'],
-              border: `1px solid ${modernTheme.colors.gray[200]}`,
-              background: modernTheme.gradients.card,
-              boxShadow: modernTheme.shadows.card,
+              borderRadius: bastadTheme.borderRadius.xl,
+              border: `1px solid ${bastadTheme.colors.sand[300]}`,
+              background: bastadTheme.colors.white,
+              boxShadow: bastadTheme.shadows.card,
             }}
           >
             <Typography 
               variant="h5" 
               sx={{ 
-                mb: modernTheme.spacing[3],
-                color: modernTheme.colors.gray[700],
-                fontWeight: modernTheme.typography.fontWeight.semibold,
+                mb: 2,
+                fontFamily: bastadTheme.typography.fontFamily.heading,
+                color: bastadTheme.colors.ocean[800],
+                fontSize: { xs: '1.125rem', md: '1.25rem' },
               }}
             >
               {searchTerm ? 'Inga resultat hittades' : 'Inga sidor tillgängliga'}
@@ -415,155 +293,127 @@ const iconMapping = {
             <Typography 
               variant="body1" 
               sx={{ 
-                color: modernTheme.colors.gray[600],
-                fontSize: modernTheme.typography.fontSize.base,
+                fontFamily: bastadTheme.typography.fontFamily.body,
+                color: bastadTheme.colors.ocean[500],
+                fontSize: { xs: '0.875rem', md: '1rem' },
               }}
             >
-              {searchTerm ? 'Prova att söka med andra ord.' : 'Det finns inga publicerade sidor att visa för tillfället.'}
+              {searchTerm ? 'Prova att söka med andra ord.' : 'Det finns inga publicerade sidor.'}
             </Typography>
           </Paper>
         ) : (
-          <Stack spacing={4}>
+          <Stack spacing={{ xs: 2, md: 3 }}>
             {filteredPages.map((page, index) => {
               const summary = getContentSummary(page.content);
               const { icon: PageIcon, color: iconColor, bgColor } = getPageIconAndColor(page);
               
-              // Debug log each section as it renders
-              console.log(`📍 Rendering section: ID=${page.id}, Title="${page.title}"`);
-              
               return (
-                <Fade in={true} timeout={300 + index * 100} key={page.id}>
+                <Fade in={true} timeout={200 + index * 50} key={page.id}>
                   <Card 
                     elevation={0}
                     onClick={() => toggleCardExpansion(page.id.toString())}
                     sx={{ 
-                      borderRadius: '12px',
-                      border: `1px solid ${modernTheme.colors.gray[200]}`,
-                      transition: 'all 0.2s ease',
+                      borderRadius: { xs: bastadTheme.borderRadius.lg, md: bastadTheme.borderRadius.xl },
+                      border: `1px solid ${bastadTheme.colors.sand[300]}`,
+                      transition: bastadTheme.transitions.normal,
                       cursor: 'pointer',
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      backgroundColor: bastadTheme.colors.white,
+                      boxShadow: bastadTheme.shadows.card,
+                      // MOBIL: Touch feedback
+                      WebkitTapHighlightColor: 'transparent',
                       '&:hover': {
-                        backgroundColor: '#f8fafc',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                        boxShadow: bastadTheme.shadows.cardHover,
+                        borderColor: bastadTheme.colors.terracotta[500],
+                      },
+                      '&:active': {
+                        transform: { xs: 'scale(0.99)', md: 'none' },
                       },
                     }}
                   >
-                    <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                      {/* Section Header with Icon */}
+                    <CardContent sx={{ 
+                      // MOBIL-FÖRST: Tight padding
+                      p: { xs: 2.5, sm: 3, md: 4 },
+                      '&:last-child': { pb: { xs: 2.5, sm: 3, md: 4 } },
+                    }}>
+                      {/* Header med ikon och titel */}
                       <Stack 
                         direction="row" 
-                        alignItems="flex-start" 
-                        justifyContent="space-between"
-                        spacing={{ xs: 2, sm: 3 }}
-                        sx={{ mb: 4 }}
+                        alignItems="center" 
+                        spacing={{ xs: 1.5, md: 2 }}
+                        sx={{ mb: { xs: 1.5, md: 2 } }}
                       >
-                        <Stack 
-                          direction="row" 
-                          alignItems="center" 
-                          spacing={2} 
-                          sx={{ 
-                            flex: 1,
-                            minWidth: 0 // Tillåt text att truncate om nödvändigt
+                        {/* IKON - MINDRE PÅ MOBIL */}
+                        <Box
+                          sx={{
+                            width: { xs: 44, md: 52 },
+                            height: { xs: 44, md: 52 },
+                            borderRadius: bastadTheme.borderRadius.lg,
+                            backgroundColor: bgColor,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            border: `1px solid ${iconColor}20`,
                           }}
                         >
-                          {/* Enhanced Icon Design - Modern style */}
-                          <Box
-                            sx={{
-                              width: 56,
-                              height: 56,
-                              borderRadius: modernTheme.borderRadius['2xl'],
-                              backgroundColor: bgColor,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: modernTheme.shadows.icon,
-                              transition: modernTheme.transitions.normal,
-                              position: 'relative',
-                              flexShrink: 0,
-                              willChange: 'transform, box-shadow',
-                              '&:hover': {
-                                transform: 'scale(1.1) translateY(-2px)',
-                                boxShadow: modernTheme.shadows.iconHover,
-                                backgroundColor: bgColor,
-                              },
-                              '&::before': {
-                                content: '""',
-                                position: 'absolute',
-                                inset: 0,
-                                borderRadius: modernTheme.borderRadius['2xl'],
-                                border: `1.5px solid ${iconColor}20`,
-                                transition: modernTheme.transitions.normal,
-                              },
-                              '&:hover::before': {
-                                borderColor: `${iconColor}35`,
-                              },
-                              ...gpuAnimations.hoverScale
-                            }}
-                          >
-                            <PageIcon sx={{ 
-                              color: iconColor, 
-                              fontSize: 28,
-                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
-                              transition: modernTheme.transitions.fast,
-                            }} />
-                          </Box>
-                          
-                          <Typography 
-                            variant="h5" 
-                            component="h2"
-                            id={`section-${page.id}`}
-                            sx={{ 
-                              fontWeight: modernTheme.typography.fontWeight.bold,
-                              color: modernTheme.colors.gray[900],
-                              fontSize: { xs: modernTheme.typography.fontSize.xl, sm: modernTheme.typography.fontSize['2xl'] },
-                              lineHeight: modernTheme.typography.lineHeight.snug,
-                              letterSpacing: '-0.025em',
-                              transition: modernTheme.transitions.fast,
-                              '&:hover': { color: iconColor }
-                            }}
-                          >
-                            {page.title}
-                          </Typography>
-                        </Stack>
+                          <PageIcon sx={{ 
+                            color: iconColor, 
+                            fontSize: { xs: 22, md: 26 },
+                          }} />
+                        </Box>
                         
-
+                        {/* TITEL */}
+                        <Typography 
+                          variant="h6" 
+                          component="h2"
+                          id={`section-${page.id}`}
+                          sx={{ 
+                            fontFamily: bastadTheme.typography.fontFamily.heading,
+                            fontWeight: 600,
+                            color: bastadTheme.colors.ocean[900],
+                            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+                            lineHeight: 1.3,
+                            flex: 1,
+                            // MOBIL: Förhindra overflow
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {page.title}
+                        </Typography>
                       </Stack>
 
-                      {/* Content - shows summary when collapsed, full content when expanded */}
-                      <Box sx={{ mt: modernTheme.spacing[4] }}>
+                      {/* INNEHÅLL */}
+                      <Box sx={{ mt: { xs: 1, md: 2 } }}>
                         {expandedCards.has(page.id.toString()) ? (
                           <Typography
                             variant="body1"
+                            component="div"
                             sx={{ 
-                              color: modernTheme.colors.gray[700],
-                              lineHeight: modernTheme.typography.lineHeight.relaxed,
-                              fontSize: modernTheme.typography.fontSize.base,
-                              fontWeight: modernTheme.typography.fontWeight.normal,
-                              '& p': {
-                                marginBottom: modernTheme.spacing[4],
-                                '&:last-child': { marginBottom: 0 }
-                              },
+                              fontFamily: bastadTheme.typography.fontFamily.body,
+                              color: bastadTheme.colors.ocean[700],
+                              lineHeight: 1.7,
+                              fontSize: { xs: '0.875rem', md: '0.9375rem' },
+                              '& p': { mb: 2, '&:last-child': { mb: 0 } },
                               '& h3': {
-                                marginTop: modernTheme.spacing[6],
-                                marginBottom: modernTheme.spacing[3],
-                                fontWeight: modernTheme.typography.fontWeight.semibold,
-                                color: modernTheme.colors.gray[900],
-                                '&:first-child': { marginTop: 0 }
-                              }
+                                mt: 3, mb: 1.5,
+                                fontFamily: bastadTheme.typography.fontFamily.heading,
+                                fontWeight: 600,
+                                color: bastadTheme.colors.ocean[800],
+                                fontSize: { xs: '1rem', md: '1.0625rem' },
+                              },
+                              '& ul': { pl: 2, mb: 2 },
+                              '& li': { mb: 0.5 },
                             }}
-                            dangerouslySetInnerHTML={{ 
-                              __html: formatPlainTextToHTML(page.content) 
-                            }}
+                            dangerouslySetInnerHTML={{ __html: formatPlainTextToHTML(page.content) }}
                           />
                         ) : (
                           <Typography
-                            variant="body1"
+                            variant="body2"
                             sx={{ 
-                              color: modernTheme.colors.gray[600],
-                              lineHeight: modernTheme.typography.lineHeight.relaxed,
-                              fontSize: modernTheme.typography.fontSize.base,
-                              fontWeight: modernTheme.typography.fontWeight.normal,
+                              fontFamily: bastadTheme.typography.fontFamily.body,
+                              color: bastadTheme.colors.ocean[500],
+                              lineHeight: 1.6,
+                              fontSize: { xs: '0.8125rem', md: '0.875rem' },
                             }}
                           >
                             {summary}
@@ -571,60 +421,46 @@ const iconMapping = {
                         )}
                       </Box>
 
-                      {/* Enhanced CTA Button - Modern design */}
+                      {/* LÄS MER-KNAPP - MOBIL-OPTIMERAD */}
                       <Box sx={{ 
-                        mt: modernTheme.spacing[4], 
+                        mt: { xs: 2, md: 3 }, 
                         display: 'flex', 
-                        justifyContent: 'flex-end', 
-                        alignItems: 'center' 
+                        justifyContent: 'flex-end',
                       }}>
                         <Box
                           sx={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: modernTheme.spacing[2],
-                            px: modernTheme.spacing[4],
-                            py: modernTheme.spacing[2],
-                            borderRadius: modernTheme.borderRadius.xl,
-                            backgroundColor: `${iconColor}08`,
-                            border: `1.5px solid ${iconColor}20`,
-                            transition: modernTheme.transitions.normal,
-                            cursor: 'pointer',
-                            willChange: 'transform, background-color, box-shadow',
+                            gap: 1,
+                            px: { xs: 2.5, md: 3 },
+                            py: { xs: 1, md: 1.25 },
+                            borderRadius: bastadTheme.borderRadius.lg,
+                            backgroundColor: `${iconColor}10`,
+                            border: `1px solid ${iconColor}25`,
+                            transition: bastadTheme.transitions.fast,
+                            // MOBIL: Touch-vänlig storlek
+                            minHeight: { xs: '40px', md: '36px' },
                             '&:hover': {
-                              backgroundColor: `${iconColor}15`,
-                              border: `1.5px solid ${iconColor}35`,
-                              transform: 'translateY(-1px)',
-                              boxShadow: `0 4px 12px ${iconColor}20`,
+                              backgroundColor: `${iconColor}18`,
+                              borderColor: `${iconColor}40`,
                             },
-                            '&:active': {
-                              transform: 'translateY(0)',
-                            }
                           }}
                         >
                           <Typography 
                             variant="body2" 
                             sx={{ 
+                              fontFamily: bastadTheme.typography.fontFamily.body,
                               color: iconColor,
-                              fontSize: modernTheme.typography.fontSize.sm,
-                              fontWeight: modernTheme.typography.fontWeight.semibold,
-                              letterSpacing: '0.025em'
+                              fontSize: { xs: '0.8125rem', md: '0.875rem' },
+                              fontWeight: 600,
                             }}
                           >
                             {expandedCards.has(page.id.toString()) ? 'Visa mindre' : 'Läs mer'}
                           </Typography>
                           {expandedCards.has(page.id.toString()) ? (
-                            <ExpandLessIcon sx={{ 
-                              fontSize: '1.125rem', 
-                              color: iconColor,
-                              transition: modernTheme.transitions.fast,
-                            }} />
+                            <ExpandLessIcon sx={{ fontSize: { xs: 18, md: 20 }, color: iconColor }} />
                           ) : (
-                            <ExpandMoreIcon sx={{ 
-                              fontSize: '1.125rem', 
-                              color: iconColor,
-                              transition: modernTheme.transitions.fast,
-                            }} />
+                            <ExpandMoreIcon sx={{ fontSize: { xs: 18, md: 20 }, color: iconColor }} />
                           )}
                         </Box>
                       </Box>
@@ -635,12 +471,9 @@ const iconMapping = {
             })}
           </Stack>
         )}
-
-
       </Box>
     </Container>
   );
 };
 
 export default ModernPagesListProfessional;
-

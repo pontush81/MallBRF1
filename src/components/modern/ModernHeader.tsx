@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -31,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContextNew';
-import { modernTheme } from '../../theme/modernTheme';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 const ModernHeader: React.FC = memo(() => {
   const navigate = useNavigate();
@@ -42,34 +42,28 @@ const ModernHeader: React.FC = memo(() => {
   
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Handle scroll for subtle shadow effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navigationItems = [
-    {
-      label: 'Hem',
-      path: '/',
-      icon: <HomeIcon />,
-    },
-    {
-      label: 'Boka',
-      path: '/booking',
-      icon: <BookIcon />,
-    },
+    { label: 'Hem', path: '/', icon: <HomeIcon /> },
+    { label: 'Boka', path: '/booking', icon: <BookIcon /> },
   ];
 
   const loggedInItems = isLoggedIn ? [
-    {
-      label: 'Underhållsplan',
-      path: '/maintenance-plan',
-      icon: <MaintenanceIcon />,
-    },
+    { label: 'Underhållsplan', path: '/maintenance-plan', icon: <MaintenanceIcon /> },
   ] : [];
 
   const adminItems = isAdmin ? [
-    {
-      label: 'Admin',
-      path: '/admin',
-      icon: <AdminIcon />,
-    },
+    { label: 'Admin', path: '/admin', icon: <AdminIcon /> },
   ] : [];
 
   const allNavigationItems = [...navigationItems, ...loggedInItems, ...adminItems];
@@ -78,12 +72,9 @@ const ModernHeader: React.FC = memo(() => {
     setMobileDrawerOpen(!mobileDrawerOpen);
   };
 
-  // Force close all overlays when navigating
   const forceCloseOverlays = () => {
     setMobileDrawerOpen(false);
     setUserMenuAnchor(null);
-    
-    // Also close any potential stuck Material-UI backdrops
     const backdrops = document.querySelectorAll('.MuiBackdrop-root');
     backdrops.forEach(backdrop => {
       if (backdrop.parentNode) {
@@ -101,13 +92,8 @@ const ModernHeader: React.FC = memo(() => {
   };
 
   const handleNavigation = (path: string) => {
-    // Force close all overlays immediately
     forceCloseOverlays();
-    
-    // Small delay to ensure all overlays are closed before navigation
-    setTimeout(() => {
-      navigate(path);
-    }, 150);
+    setTimeout(() => navigate(path), 150);
   };
 
   const handleLogout = async () => {
@@ -120,45 +106,49 @@ const ModernHeader: React.FC = memo(() => {
     }
   };
 
-  const getUserInitials = (user: any) => {
+  const getUserInitials = (user: { email?: string; name?: string } | null): string => {
     if (!user) return 'G';
-    if (user.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    if (user.name) {
-      return user.name.charAt(0).toUpperCase();
-    }
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    if (user.name) return user.name.charAt(0).toUpperCase();
     return 'U';
   };
 
-  const isActivePath = (path: string) => {
+  const isActivePath = (path: string): boolean => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
   };
 
-  const renderNavigationItem = (item: any, isMobile: boolean = false) => {
+  // Clean header styling - alltid vit bakgrund
+  const headerBackground = bastadTheme.colors.white;
+  const headerBorder = `1px solid ${bastadTheme.colors.sand[300]}`;
+  const textColor = bastadTheme.colors.ocean[900];
+
+  const renderNavigationItem = (
+    item: { label: string; path: string; icon: React.ReactNode },
+    isMobileView: boolean = false
+  ) => {
     const isActive = isActivePath(item.path);
     
-    if (isMobile) {
+    if (isMobileView) {
       return (
         <ListItem key={item.path} disablePadding>
           <ListItemButton
             onClick={() => handleNavigation(item.path)}
             selected={isActive}
             sx={{
-              borderRadius: modernTheme.borderRadius.lg,
-              margin: `0 ${modernTheme.spacing[2]}`,
-              padding: modernTheme.spacing[3],
+              borderRadius: bastadTheme.borderRadius.lg,
+              margin: `0 ${bastadTheme.spacing[2]}`,
+              padding: bastadTheme.spacing[3],
               '&.Mui-selected': {
-                backgroundColor: modernTheme.colors.primary[50],
-                color: modernTheme.colors.primary[700],
+                backgroundColor: bastadTheme.colors.ocean[50],
+                color: bastadTheme.colors.ocean[900],
                 '&:hover': {
-                  backgroundColor: modernTheme.colors.primary[100],
+                  backgroundColor: bastadTheme.colors.ocean[100],
                 },
               },
               '&:focus': {
-                outline: `2px solid ${modernTheme.colors.primary[300]}`,
+                outline: `2px solid ${bastadTheme.colors.terracotta[500]}`,
                 outlineOffset: '2px',
               },
             }}
@@ -166,20 +156,26 @@ const ModernHeader: React.FC = memo(() => {
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: modernTheme.spacing[3],
+              gap: bastadTheme.spacing[3],
               width: '100%',
             }}>
-              {React.cloneElement(item.icon, {
+              {React.cloneElement(item.icon as React.ReactElement, {
                 sx: { 
-                  color: isActive ? modernTheme.colors.primary[600] : modernTheme.colors.gray[600],
-                  fontSize: modernTheme.typography.fontSize.xl,
+                  color: isActive 
+                    ? bastadTheme.colors.terracotta[500] 
+                    : bastadTheme.colors.ocean[600],
+                  fontSize: '1.25rem',
                 }
               })}
               <ListItemText 
                 primary={item.label}
                 primaryTypographyProps={{
-                  fontWeight: isActive ? modernTheme.typography.fontWeight.semibold : modernTheme.typography.fontWeight.medium,
-                  fontSize: modernTheme.typography.fontSize.base,
+                  fontFamily: bastadTheme.typography.fontFamily.body,
+                  fontWeight: isActive ? 600 : 500,
+                  fontSize: '1rem',
+                  color: isActive 
+                    ? bastadTheme.colors.ocean[900] 
+                    : bastadTheme.colors.ocean[700],
                 }}
               />
               {isActive && (
@@ -187,10 +183,11 @@ const ModernHeader: React.FC = memo(() => {
                   label="Aktiv"
                   size="small"
                   sx={{
-                    backgroundColor: modernTheme.colors.primary[100],
-                    color: modernTheme.colors.primary[700],
-                    fontSize: modernTheme.typography.fontSize.xs,
-                    height: '24px',
+                    backgroundColor: bastadTheme.colors.terracotta[500],
+                    color: bastadTheme.colors.white,
+                    fontSize: '0.75rem',
+                    height: '22px',
+                    fontFamily: bastadTheme.typography.fontFamily.body,
                   }}
                 />
               )}
@@ -205,21 +202,34 @@ const ModernHeader: React.FC = memo(() => {
         key={item.path}
         onClick={() => handleNavigation(item.path)}
         sx={{
-          color: isActive ? '#374151' : '#6b7280',
+          color: isActive ? textColor : `${textColor}99`,
           backgroundColor: 'transparent',
+          fontFamily: bastadTheme.typography.fontFamily.body,
           fontWeight: isActive ? 600 : 500,
-          fontSize: '14px',
+          fontSize: '0.9375rem',
           textTransform: 'none',
-          borderRadius: '8px',
+          borderRadius: bastadTheme.borderRadius.md,
           padding: '8px 16px',
           minHeight: '36px',
-          transition: 'all 0.2s ease',
+          transition: bastadTheme.transitions.normal,
+          position: 'relative',
+          '&::after': isActive ? {
+            content: '""',
+            position: 'absolute',
+            bottom: 4,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '20px',
+            height: '2px',
+            backgroundColor: bastadTheme.colors.terracotta[500],
+            borderRadius: '1px',
+          } : {},
           '&:hover': {
-            backgroundColor: '#f3f4f6',
-            color: '#374151',
+            backgroundColor: bastadTheme.colors.sand[200],
+            color: textColor,
           },
           '&:focus': {
-            outline: `2px solid #8b5cf6`,
+            outline: `2px solid ${bastadTheme.colors.terracotta[500]}`,
             outlineOffset: '2px',
           },
         }}
@@ -231,32 +241,29 @@ const ModernHeader: React.FC = memo(() => {
 
   const mobileDrawer = (
     <>
-      {/* Header (fixed at top) - flex: 0 0 auto */}
+      {/* Header */}
       <Box
         component="header"
         sx={{
           flex: '0 0 auto',
-          padding: modernTheme.spacing[3],
-          background: modernTheme.gradients.header,
-          color: modernTheme.colors.primary[800],
-          borderBottom: `1px solid ${modernTheme.colors.gray[200]}`,
+          padding: bastadTheme.spacing[4],
+          background: `linear-gradient(135deg, ${bastadTheme.colors.ocean[900]} 0%, ${bastadTheme.colors.twilight[500]} 100%)`,
+          color: bastadTheme.colors.sand[200],
         }}
       >
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: modernTheme.spacing[1],
+          marginBottom: bastadTheme.spacing[1],
         }}>
           <Typography
             variant="h6"
             sx={{
-              fontWeight: modernTheme.typography.fontWeight.extrabold,
-              fontSize: modernTheme.typography.fontSize.lg,
-              background: `linear-gradient(135deg, ${modernTheme.colors.secondary[600]} 0%, ${modernTheme.colors.secondary[700]} 100%)`,
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
+              fontFamily: bastadTheme.typography.fontFamily.heading,
+              fontWeight: 700,
+              fontSize: '1.25rem',
+              color: bastadTheme.colors.sand[200],
             }}
           >
             Gulmåran
@@ -264,9 +271,9 @@ const ModernHeader: React.FC = memo(() => {
           <IconButton
             onClick={handleDrawerToggle}
             sx={{ 
-              color: modernTheme.colors.white,
+              color: bastadTheme.colors.sand[200],
               '&:focus': {
-                outline: `2px solid ${modernTheme.colors.white}40`,
+                outline: `2px solid ${bastadTheme.colors.sand[200]}40`,
                 outlineOffset: '2px',
               },
             }}
@@ -278,23 +285,25 @@ const ModernHeader: React.FC = memo(() => {
         <Typography
           variant="body2"
           sx={{
-            opacity: 0.9,
-            fontSize: modernTheme.typography.fontSize.sm,
+            opacity: 0.8,
+            fontSize: '0.875rem',
+            fontFamily: bastadTheme.typography.fontFamily.body,
           }}
         >
           Bostadsrättsförening
         </Typography>
       </Box>
 
-      {/* Middle scrollable content - flex: 1 1 auto */}
+      {/* Navigation */}
       <Box
         component="nav"
         sx={{
           flex: '1 1 auto',
-          minHeight: 0, // Critical for overflow to work inside flex container
+          minHeight: 0,
           overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch', // Better mobile scrolling
-          paddingTop: modernTheme.spacing[2],
+          WebkitOverflowScrolling: 'touch',
+          paddingTop: bastadTheme.spacing[2],
+          background: bastadTheme.colors.sand[50],
         }}
       >
         <List>
@@ -302,34 +311,34 @@ const ModernHeader: React.FC = memo(() => {
         </List>
       </Box>
 
-      {/* Footer (fixed at bottom) - flex: 0 0 auto */}
+      {/* Footer */}
       <Box
         component="footer"
         sx={{
           flex: '0 0 auto',
-          padding: modernTheme.spacing[3],
-          borderTop: `1px solid ${modernTheme.colors.gray[200]}`,
-          backgroundColor: modernTheme.colors.white,
-          paddingBottom: `calc(${modernTheme.spacing[3]} + env(safe-area-inset-bottom))`, // iOS safe area
+          padding: bastadTheme.spacing[4],
+          borderTop: `1px solid ${bastadTheme.colors.sand[300]}`,
+          backgroundColor: bastadTheme.colors.white,
+          paddingBottom: `calc(${bastadTheme.spacing[4]} + env(safe-area-inset-bottom))`,
         }}
       >
         {isLoggedIn && currentUser ? (
           <Box>
-            {/* User Info */}
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: modernTheme.spacing[2],
-              marginBottom: modernTheme.spacing[2],
+              gap: bastadTheme.spacing[3],
+              marginBottom: bastadTheme.spacing[3],
             }}>
               <Avatar
                 sx={{
-                  backgroundColor: modernTheme.colors.primary[500],
-                  color: modernTheme.colors.white,
-                  width: 40,
-                  height: 40,
-                  fontSize: modernTheme.typography.fontSize.lg,
-                  fontWeight: modernTheme.typography.fontWeight.semibold,
+                  backgroundColor: bastadTheme.colors.ocean[800],
+                  color: bastadTheme.colors.sand[200],
+                  width: 44,
+                  height: 44,
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  fontFamily: bastadTheme.typography.fontFamily.heading,
                 }}
               >
                 {getUserInitials(currentUser)}
@@ -338,10 +347,10 @@ const ModernHeader: React.FC = memo(() => {
                 <Typography
                   variant="body2"
                   sx={{
-                    fontWeight: modernTheme.typography.fontWeight.semibold,
-                    color: modernTheme.colors.gray[900],
-                    fontSize: modernTheme.typography.fontSize.sm,
-                    display: 'block',
+                    fontFamily: bastadTheme.typography.fontFamily.body,
+                    fontWeight: 600,
+                    color: bastadTheme.colors.ocean[900],
+                    fontSize: '0.9375rem',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -354,37 +363,35 @@ const ModernHeader: React.FC = memo(() => {
                     label="Admin"
                     size="small"
                     sx={{
-                      backgroundColor: modernTheme.colors.primary[100],
-                      color: modernTheme.colors.primary[700],
-                      fontSize: modernTheme.typography.fontSize.xs,
+                      backgroundColor: bastadTheme.colors.terracotta[500],
+                      color: bastadTheme.colors.white,
+                      fontSize: '0.75rem',
                       height: '20px',
                       mt: 0.5,
+                      fontFamily: bastadTheme.typography.fontFamily.body,
                     }}
                   />
                 )}
               </Box>
             </Box>
-            {/* ALWAYS VISIBLE Logout Button */}
             <Button
               fullWidth
               variant="outlined"
               startIcon={<LogoutIcon />}
               onClick={handleLogout}
               sx={{
-                borderRadius: modernTheme.borderRadius.lg,
+                borderRadius: bastadTheme.borderRadius.lg,
                 textTransform: 'none',
-                borderColor: modernTheme.colors.gray[300],
-                color: modernTheme.colors.gray[700],
-                fontSize: modernTheme.typography.fontSize.sm,
+                borderColor: bastadTheme.colors.ocean[300],
+                color: bastadTheme.colors.ocean[700],
+                fontFamily: bastadTheme.typography.fontFamily.body,
+                fontSize: '0.9375rem',
                 py: 1.5,
-                minHeight: '44px', // Accessibility compliant touch target
+                minHeight: '48px',
+                transition: bastadTheme.transitions.normal,
                 '&:hover': {
-                  borderColor: modernTheme.colors.gray[400],
-                  backgroundColor: modernTheme.colors.gray[50],
-                },
-                '&:focus': {
-                  outline: `2px solid ${modernTheme.colors.primary[300]}`,
-                  outlineOffset: '2px',
+                  borderColor: bastadTheme.colors.ocean[500],
+                  backgroundColor: bastadTheme.colors.ocean[50],
                 },
               }}
             >
@@ -398,20 +405,20 @@ const ModernHeader: React.FC = memo(() => {
             startIcon={<LoginIcon />}
             onClick={() => handleNavigation('/login')}
             sx={{
-              background: modernTheme.gradients.accent,
-              borderRadius: modernTheme.borderRadius.lg,
+              background: bastadTheme.gradients.ctaButton,
+              borderRadius: bastadTheme.borderRadius.lg,
               textTransform: 'none',
-              boxShadow: modernTheme.shadows.md,
-              color: modernTheme.colors.white,
-              fontSize: modernTheme.typography.fontSize.sm,
+              boxShadow: bastadTheme.shadows.warmGlow,
+              color: bastadTheme.colors.ocean[950],
+              fontFamily: bastadTheme.typography.fontFamily.body,
+              fontWeight: 600,
+              fontSize: '0.9375rem',
               py: 1.5,
-              minHeight: '44px', // Accessibility compliant touch target
+              minHeight: '48px',
+              transition: bastadTheme.transitions.normal,
               '&:hover': {
-                boxShadow: modernTheme.shadows.lg,
-              },
-              '&:focus': {
-                outline: `2px solid ${modernTheme.colors.secondary[300]}`,
-                outlineOffset: '2px',
+                boxShadow: `0 14px 50px -10px rgba(194, 112, 58, 0.5)`,
+                transform: 'translateY(-1px)',
               },
             }}
           >
@@ -428,68 +435,67 @@ const ModernHeader: React.FC = memo(() => {
         position="fixed"
         elevation={0}
         sx={{
-          background: 'white',
-          borderBottom: '1px solid #e5e7eb',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          height: '64px', // Fixed height to prevent CLS
+          background: headerBackground,
+          borderBottom: headerBorder,
+          boxShadow: isScrolled ? bastadTheme.shadows.sm : 'none',
+          height: '64px',
           minHeight: '64px !important',
           maxHeight: '64px !important',
-          transition: 'all 0.2s ease',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Toolbar sx={{ 
-          padding: { xs: modernTheme.spacing[2], md: modernTheme.spacing[4] },
-          minHeight: '64px !important', // Fixed height to prevent CLS
-          maxHeight: '64px !important', // Fixed height to prevent CLS
-          height: '64px !important', // Fixed height to prevent CLS
+          padding: { xs: bastadTheme.spacing[2], md: bastadTheme.spacing[4] },
+          minHeight: '64px !important',
+          maxHeight: '64px !important',
+          height: '64px !important',
         }}>
-          {/* Logo/Brand with Icon and Subtitle */}
+          {/* Logo */}
           <Box 
             onClick={() => handleNavigation('/')}
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: modernTheme.spacing[2],
+              gap: bastadTheme.spacing[2],
               flexGrow: isMobile ? 1 : 0,
               cursor: 'pointer',
-              marginRight: isMobile ? 0 : modernTheme.spacing[8],
+              marginRight: isMobile ? 0 : bastadTheme.spacing[8],
               '&:focus': {
-                outline: `2px solid ${modernTheme.colors.secondary[400]}`,
+                outline: `2px solid ${bastadTheme.colors.terracotta[500]}`,
                 outlineOffset: '2px',
-                borderRadius: modernTheme.borderRadius.md,
+                borderRadius: bastadTheme.borderRadius.md,
               },
             }}
             tabIndex={0}
             role="button"
             aria-label="Gå till startsidan"
           >
-            {/* Purple Icon */}
+            {/* Logo mark - enkelt och rent */}
             <Box sx={{
               width: 40,
               height: 40,
-              borderRadius: '12px',
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              borderRadius: bastadTheme.borderRadius.md,
+              background: bastadTheme.colors.sand[100],
+              border: `1px solid ${bastadTheme.colors.sand[300]}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#475569',
-              fontSize: '20px',
-              fontWeight: 'bold',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+              fontSize: '18px',
             }}>
-              🏢
+              🏠
             </Box>
             <Box>
               <Typography
                 variant="h6"
                 component="div"
                 sx={{
+                  fontFamily: bastadTheme.typography.fontFamily.heading,
                   fontWeight: 700,
-                  fontSize: { xs: '18px', md: '20px' },
-                  color: '#1f2937',
+                  fontSize: { xs: '1.125rem', md: '1.25rem' },
+                  color: textColor,
                   lineHeight: 1.2,
-                  margin: 0
+                  margin: 0,
+                  transition: bastadTheme.transitions.normal,
                 }}
               >
                 Gulmåran
@@ -501,7 +507,7 @@ const ModernHeader: React.FC = memo(() => {
           {!isMobile && (
             <Box sx={{ 
               display: 'flex', 
-              gap: modernTheme.spacing[2],
+              gap: bastadTheme.spacing[1],
               flexGrow: 1,
               alignItems: 'center',
             }}>
@@ -511,7 +517,7 @@ const ModernHeader: React.FC = memo(() => {
 
           {/* Desktop User Section */}
           {!isMobile && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: modernTheme.spacing[2] }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: bastadTheme.spacing[2] }}>
               {isLoggedIn && currentUser ? (
                 <>
                   <Button
@@ -519,28 +525,27 @@ const ModernHeader: React.FC = memo(() => {
                     startIcon={
                       <Avatar
                         sx={{
-                          backgroundColor: modernTheme.colors.white,
-                          color: modernTheme.colors.primary[600],
+                          backgroundColor: bastadTheme.colors.ocean[800],
+                          color: bastadTheme.colors.sand[200],
                           width: 32,
                           height: 32,
-                          fontSize: modernTheme.typography.fontSize.sm,
-                          fontWeight: modernTheme.typography.fontWeight.semibold,
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          fontFamily: bastadTheme.typography.fontFamily.heading,
                         }}
                       >
                         {getUserInitials(currentUser)}
                       </Avatar>
                     }
                     sx={{
-                      color: modernTheme.colors.primary[800],
+                      color: textColor,
                       textTransform: 'none',
-                      borderRadius: modernTheme.borderRadius.lg,
-                      padding: `${modernTheme.spacing[2]} ${modernTheme.spacing[4]}`,
+                      fontFamily: bastadTheme.typography.fontFamily.body,
+                      borderRadius: bastadTheme.borderRadius.lg,
+                      padding: `${bastadTheme.spacing[2]} ${bastadTheme.spacing[3]}`,
+                      transition: bastadTheme.transitions.normal,
                       '&:hover': {
-                        backgroundColor: modernTheme.colors.gray[100],
-                      },
-                      '&:focus': {
-                        outline: `2px solid ${modernTheme.colors.secondary[400]}`,
-                        outlineOffset: '2px',
+                        backgroundColor: bastadTheme.colors.sand[200],
                       },
                     }}
                     aria-haspopup="true"
@@ -554,20 +559,22 @@ const ModernHeader: React.FC = memo(() => {
                     onClose={handleUserMenuClose}
                     sx={{
                       '& .MuiPaper-root': {
-                        borderRadius: modernTheme.borderRadius.lg,
-                        boxShadow: modernTheme.shadows.xl,
-                        minWidth: '200px',
-                        marginTop: modernTheme.spacing[1],
+                        borderRadius: bastadTheme.borderRadius.lg,
+                        boxShadow: bastadTheme.shadows.xl,
+                        minWidth: '220px',
+                        marginTop: bastadTheme.spacing[1],
+                        border: `1px solid ${bastadTheme.colors.sand[300]}`,
                       },
                     }}
                   >
-                    <Box sx={{ padding: modernTheme.spacing[3] }}>
+                    <Box sx={{ padding: bastadTheme.spacing[3] }}>
                       <Typography
                         variant="body2"
                         sx={{
-                          color: modernTheme.colors.gray[600],
-                          fontSize: modernTheme.typography.fontSize.sm,
-                          marginBottom: modernTheme.spacing[1],
+                          color: bastadTheme.colors.ocean[500],
+                          fontSize: '0.8125rem',
+                          marginBottom: bastadTheme.spacing[1],
+                          fontFamily: bastadTheme.typography.fontFamily.body,
                         }}
                       >
                         Inloggad som
@@ -575,9 +582,10 @@ const ModernHeader: React.FC = memo(() => {
                       <Typography
                         variant="body1"
                         sx={{
-                          fontWeight: modernTheme.typography.fontWeight.semibold,
-                          color: modernTheme.colors.gray[900],
-                          fontSize: modernTheme.typography.fontSize.sm,
+                          fontWeight: 600,
+                          color: bastadTheme.colors.ocean[900],
+                          fontSize: '0.9375rem',
+                          fontFamily: bastadTheme.typography.fontFamily.body,
                         }}
                       >
                         {currentUser.email}
@@ -587,10 +595,11 @@ const ModernHeader: React.FC = memo(() => {
                           label="Administratör"
                           size="small"
                           sx={{
-                            backgroundColor: modernTheme.colors.primary[100],
-                            color: modernTheme.colors.primary[700],
-                            fontSize: modernTheme.typography.fontSize.xs,
-                            marginTop: modernTheme.spacing[1],
+                            backgroundColor: bastadTheme.colors.terracotta[500],
+                            color: bastadTheme.colors.white,
+                            fontSize: '0.75rem',
+                            marginTop: bastadTheme.spacing[1],
+                            fontFamily: bastadTheme.typography.fontFamily.body,
                           }}
                         />
                       )}
@@ -599,46 +608,41 @@ const ModernHeader: React.FC = memo(() => {
                     <MenuItem
                       onClick={handleLogout}
                       sx={{
-                        gap: modernTheme.spacing[2],
-                        padding: modernTheme.spacing[3],
-                        '&:focus': {
-                          outline: `2px solid ${modernTheme.colors.primary[300]}`,
-                          outlineOffset: '-2px',
+                        gap: bastadTheme.spacing[2],
+                        padding: bastadTheme.spacing[3],
+                        fontFamily: bastadTheme.typography.fontFamily.body,
+                        '&:hover': {
+                          backgroundColor: bastadTheme.colors.sand[100],
                         },
                       }}
                     >
-                      <LogoutIcon sx={{ fontSize: modernTheme.typography.fontSize.lg }} />
-                      <Typography variant="body2">Logga ut</Typography>
+                      <LogoutIcon sx={{ fontSize: '1.125rem', color: bastadTheme.colors.ocean[600] }} />
+                      <Typography variant="body2" sx={{ fontFamily: bastadTheme.typography.fontFamily.body }}>
+                        Logga ut
+                      </Typography>
                     </MenuItem>
                   </Menu>
                 </>
               ) : (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   startIcon={<LoginIcon />}
                   onClick={() => handleNavigation('/login')}
                   sx={{
-                    backgroundColor: '#ffffff',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
+                    background: bastadTheme.gradients.ctaButton,
+                    color: bastadTheme.colors.ocean[950],
+                    borderRadius: bastadTheme.borderRadius.md,
                     textTransform: 'none',
-                    fontWeight: 500,
-                    px: 2.5,
+                    fontFamily: bastadTheme.typography.fontFamily.body,
+                    fontWeight: 600,
+                    px: 3,
                     py: 1,
-                    fontSize: '14px',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                    fontSize: '0.9375rem',
+                    boxShadow: 'none',
+                    transition: bastadTheme.transitions.normal,
                     '&:hover': {
-                      backgroundColor: '#f9fafb',
-                      borderColor: '#9ca3af',
-                      color: '#111827',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                      boxShadow: bastadTheme.shadows.warmGlow,
                       transform: 'translateY(-1px)',
-                    },
-                    '&:focus': {
-                      outline: `2px solid #3b82f6`,
-                      outlineOffset: '2px',
-                      borderColor: '#3b82f6',
                     },
                   }}
                 >
@@ -656,46 +660,22 @@ const ModernHeader: React.FC = memo(() => {
               edge="end"
               onClick={handleDrawerToggle}
               sx={{
-                color: modernTheme.colors.primary[700],
-                backgroundColor: modernTheme.colors.white,
-                border: `1px solid ${modernTheme.colors.primary[200]}`,
-                borderRadius: '12px', // More modern rounded corners
-                padding: modernTheme.spacing[3],
-                marginRight: modernTheme.spacing[2],
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)', // Enhanced shadow
-                transition: 'all 0.25s ease-in-out',
+                color: textColor,
+                backgroundColor: bastadTheme.colors.sand[100],
+                border: `1px solid ${bastadTheme.colors.sand[300]}`,
+                borderRadius: bastadTheme.borderRadius.md,
+                padding: bastadTheme.spacing[2],
+                marginRight: bastadTheme.spacing[2],
+                transition: bastadTheme.transitions.normal,
                 '&:hover': {
-                  backgroundColor: modernTheme.colors.primary[50],
-                  borderColor: modernTheme.colors.secondary[300],
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.15)', // Enhanced hover shadow
-                  transform: 'scale(1.05) translateY(-1px)', // Subtle lift
-                },
-                '&:focus': {
-                  outline: `2px solid ${modernTheme.colors.secondary[400]}`,
-                  outlineOffset: '2px',
-                  backgroundColor: modernTheme.colors.primary[50],
-                },
-                '&:active': {
-                  transform: 'scale(0.98) translateY(0px)',
+                  backgroundColor: bastadTheme.colors.sand[200],
                 },
               }}
             >
               {mobileDrawerOpen ? (
-                <CloseIcon 
-                  sx={{ 
-                    fontSize: '1.2rem',
-                    transition: modernTheme.transitions.normal,
-                    transform: 'rotate(90deg)',
-                  }} 
-                />
+                <CloseIcon sx={{ fontSize: '1.25rem' }} />
               ) : (
-                <MenuIcon 
-                  sx={{ 
-                    fontSize: '1.2rem',
-                    transition: modernTheme.transitions.normal,
-                    transform: 'rotate(0deg)',
-                  }} 
-                />
+                <MenuIcon sx={{ fontSize: '1.25rem' }} />
               )}
             </IconButton>
           )}
@@ -708,23 +688,19 @@ const ModernHeader: React.FC = memo(() => {
         anchor="right"
         open={mobileDrawerOpen}
         onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true, // Better mobile performance
-        }}
+        ModalProps={{ keepMounted: true }}
         PaperProps={{
           sx: {
             display: 'flex',
             flexDirection: 'column',
-            height: '100dvh', // Dynamic viewport height for mobile
-            width: 280,
-            background: modernTheme.colors.white,
+            height: '100dvh',
+            width: 300,
+            background: bastadTheme.colors.sand[50],
             border: 'none',
-            boxShadow: modernTheme.shadows['2xl'],
+            boxShadow: bastadTheme.shadows['2xl'],
           },
         }}
-        sx={{
-          display: { xs: 'block', md: 'none' },
-        }}
+        sx={{ display: { xs: 'block', md: 'none' } }}
       >
         {mobileDrawer}
       </Drawer>
@@ -732,4 +708,4 @@ const ModernHeader: React.FC = memo(() => {
   );
 });
 
-export default ModernHeader; 
+export default ModernHeader;

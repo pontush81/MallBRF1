@@ -1,15 +1,14 @@
 import React from 'react';
 import { Button, ButtonProps, CircularProgress } from '@mui/material';
-import { designTokens } from '../../theme/designSystem';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 interface GulmaranButtonProps extends Omit<ButtonProps, 'variant'> {
   variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'ghost' | 'link';
   loading?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'start' | 'end';
-  // Support router props
   to?: string;
-  [key: string]: any; // Allow additional props for router links
+  [key: string]: unknown;
 }
 
 const GulmaranButton: React.FC<GulmaranButtonProps> = ({
@@ -24,15 +23,15 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
 }) => {
   const getVariantStyles = () => {
     const baseStyles = {
-      borderRadius: designTokens.borderRadius.lg,
-      fontWeight: designTokens.typography.fontWeight.medium,
+      borderRadius: bastadTheme.borderRadius.lg,
+      fontFamily: bastadTheme.typography.fontFamily.body,
+      fontWeight: 600,
       textTransform: 'none' as const,
-      transition: designTokens.transitions.normal,
+      transition: bastadTheme.transitions.normal,
       boxShadow: 'none',
       
       '&:hover': {
-        boxShadow: designTokens.shadows.sm,
-        transform: 'translateY(-1px)',
+        transform: 'translateY(-2px)',
       },
       
       '&:active': {
@@ -44,63 +43,67 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
       case 'primary':
         return {
           ...baseStyles,
-          backgroundColor: designTokens.colors.primary[500],
-          color: designTokens.colors.neutral.white,
+          background: bastadTheme.gradients.ctaButton,
+          color: bastadTheme.colors.ocean[950],
           '&:hover': {
             ...baseStyles['&:hover'],
-            backgroundColor: designTokens.colors.primary[600],
+            boxShadow: bastadTheme.shadows.warmGlow,
           },
           '&:active': {
             ...baseStyles['&:active'],
-            backgroundColor: designTokens.colors.primary[700],
+            background: `linear-gradient(135deg, ${bastadTheme.colors.terracotta[600]} 0%, ${bastadTheme.colors.terracotta[700]} 100%)`,
           },
         };
         
       case 'secondary':
         return {
           ...baseStyles,
-          backgroundColor: designTokens.colors.secondary[100],
-          color: designTokens.colors.secondary[700],
+          backgroundColor: bastadTheme.colors.sand[200],
+          color: bastadTheme.colors.ocean[800],
           '&:hover': {
             ...baseStyles['&:hover'],
-            backgroundColor: designTokens.colors.secondary[200],
+            backgroundColor: bastadTheme.colors.sand[300],
+            boxShadow: bastadTheme.shadows.sm,
           },
           '&:active': {
             ...baseStyles['&:active'],
-            backgroundColor: designTokens.colors.secondary[300],
+            backgroundColor: bastadTheme.colors.sand[400],
           },
         };
         
       case 'success':
         return {
           ...baseStyles,
-          backgroundColor: designTokens.colors.success[500],
-          color: designTokens.colors.neutral.white,
+          backgroundColor: bastadTheme.colors.seagreen[500],
+          color: bastadTheme.colors.white,
           '&:hover': {
             ...baseStyles['&:hover'],
-            backgroundColor: designTokens.colors.success[600],
+            backgroundColor: bastadTheme.colors.seagreen[600],
+            boxShadow: `0 10px 40px -10px ${bastadTheme.colors.seagreen[500]}60`,
           },
         };
         
       case 'warning':
         return {
           ...baseStyles,
-          backgroundColor: designTokens.colors.warning[500],
-          color: designTokens.colors.neutral.white,
+          backgroundColor: bastadTheme.colors.warning,
+          color: bastadTheme.colors.white,
           '&:hover': {
             ...baseStyles['&:hover'],
-            backgroundColor: designTokens.colors.warning[600],
+            backgroundColor: '#b45309',
+            boxShadow: `0 10px 40px -10px ${bastadTheme.colors.warning}60`,
           },
         };
         
       case 'error':
         return {
           ...baseStyles,
-          backgroundColor: designTokens.colors.error[500],
-          color: designTokens.colors.neutral.white,
+          backgroundColor: bastadTheme.colors.error,
+          color: bastadTheme.colors.white,
           '&:hover': {
             ...baseStyles['&:hover'],
-            backgroundColor: designTokens.colors.error[600],
+            backgroundColor: '#9f1239',
+            boxShadow: `0 10px 40px -10px ${bastadTheme.colors.error}60`,
           },
         };
         
@@ -108,12 +111,12 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
         return {
           ...baseStyles,
           backgroundColor: 'transparent',
-          color: designTokens.colors.secondary[700],
-          border: `1px solid ${designTokens.colors.neutral.outline}`,
+          color: bastadTheme.colors.ocean[700],
+          border: `1px solid ${bastadTheme.colors.sand[400]}`,
           '&:hover': {
             ...baseStyles['&:hover'],
-            backgroundColor: designTokens.colors.secondary[50],
-            borderColor: designTokens.colors.secondary[300],
+            backgroundColor: bastadTheme.colors.sand[100],
+            borderColor: bastadTheme.colors.ocean[300],
           },
         };
         
@@ -121,10 +124,10 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
         return {
           ...baseStyles,
           backgroundColor: 'transparent',
-          color: designTokens.colors.primary[600],
+          color: bastadTheme.colors.twilight[500],
           boxShadow: 'none',
           '&:hover': {
-            backgroundColor: designTokens.colors.primary[50],
+            backgroundColor: bastadTheme.colors.ocean[50],
             boxShadow: 'none',
             transform: 'none',
             textDecoration: 'underline',
@@ -148,7 +151,7 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
             sx={{ 
               mr: 1,
               color: variant === 'primary' || variant === 'success' || variant === 'warning' || variant === 'error' 
-                ? designTokens.colors.neutral.white 
+                ? bastadTheme.colors.white 
                 : 'inherit'
             }} 
           />
@@ -160,7 +163,7 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
     if (icon && iconPosition === 'start') {
       return (
         <>
-          <span style={{ marginRight: designTokens.spacing[2], display: 'flex', alignItems: 'center' }}>
+          <span style={{ marginRight: bastadTheme.spacing[2], display: 'flex', alignItems: 'center' }}>
             {icon}
           </span>
           {children}
@@ -172,7 +175,7 @@ const GulmaranButton: React.FC<GulmaranButtonProps> = ({
       return (
         <>
           {children}
-          <span style={{ marginLeft: designTokens.spacing[2], display: 'flex', alignItems: 'center' }}>
+          <span style={{ marginLeft: bastadTheme.spacing[2], display: 'flex', alignItems: 'center' }}>
             {icon}
           </span>
         </>

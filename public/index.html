@@ -18,9 +18,27 @@
     
     <!-- CSS and JS will be injected automatically by React build process with correct hashed filenames -->
     
-    <!-- Critical font preloading for LCP text optimization -->
-    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- Critical font preloading for LCP text optimization - only in production -->
+    <script>
+      // Only preload fonts in production to avoid dev warnings
+      if (window.location.hostname !== 'localhost') {
+        const link1 = document.createElement('link');
+        link1.rel = 'preload';
+        link1.href = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2';
+        link1.as = 'font';
+        link1.type = 'font/woff2';
+        link1.crossOrigin = 'anonymous';
+        document.head.appendChild(link1);
+        
+        const link2 = document.createElement('link');
+        link2.rel = 'preload';
+        link2.href = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2';
+        link2.as = 'font';
+        link2.type = 'font/woff2';
+        link2.crossOrigin = 'anonymous';
+        document.head.appendChild(link2);
+      }
+    </script>
     
     <!-- System font fallback for instant LCP text rendering -->
     <style>
@@ -141,8 +159,9 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     
     <!-- Preload critical resources for faster LCP -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    <!-- New distinctive fonts: Fraunces (serif headlines) + DM Sans (modern body) -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=DM+Sans:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=DM+Sans:wght@400;500;600;700&display=swap"></noscript>
     
     <!-- DNS prefetch for external resources -->
     <link rel="dns-prefetch" href="//qhdgqevdmvkrwnzpwikz.supabase.co">
