@@ -149,6 +149,8 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
 
   const formatPlainTextToHTML = (text: string) => {
     return text
+      // Markdown-länkar: [text](url) -> <a href="url">text</a>
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #c2703a; text-decoration: underline;">$1</a>')
       .replace(/###\s+(.+)/g, '<h3>$1</h3>')
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
@@ -161,8 +163,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
         if (paragraph.startsWith('<') && paragraph.endsWith('>')) return paragraph;
         return `<p>${paragraph.replace(/\n/g, '<br>')}</p>`;
       })
-      .join('')
-      .replace(/href\s*=\s*["'][^"']*["']/gi, '');
+      .join('');
   };
 
   if (isLoading) {
