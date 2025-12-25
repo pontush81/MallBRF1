@@ -24,6 +24,7 @@ const Footer: React.FC = () => {
 
   const footerLinks = [
     { label: 'Om föreningen', path: '/about' },
+    { label: 'Stadgar', path: '/stadgar' },
     { label: 'Kontakt', path: '/contact' },
     { label: 'Integritet', path: '/privacy-policy' },
   ];
