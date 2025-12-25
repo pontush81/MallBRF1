@@ -1878,26 +1878,15 @@ const BookingPage: React.FC = () => {
             message={snackbarMessage}
           />
 
-          {/* Bekräftelsedialog för lyckad bokning */}
+          {/* Bekräftelsedialog för lyckad bokning - MUI standard pattern */}
           <Dialog
             open={confirmationDialogOpen}
             onClose={() => setConfirmationDialogOpen(false)}
+            fullScreen={isMobile}
             fullWidth
             maxWidth="xs"
-            sx={{
-              '& .MuiDialog-container': {
-                alignItems: 'center',
-              },
-            }}
-            PaperProps={{
-              sx: {
-                borderRadius: 3,
-                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-                overflow: 'hidden',
-                margin: { xs: 2, sm: 4 },
-                maxHeight: 'calc(100vh - 64px)',
-              }
-            }}
+            scroll="paper"
+            aria-labelledby="booking-confirmation-dialog"
           >
             <Box sx={{ 
               bgcolor: '#4caf50', 
@@ -1919,7 +1908,7 @@ const BookingPage: React.FC = () => {
               </Box>
             </Box>
             <DialogContent sx={{ textAlign: 'center', py: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: '#2e7d32' }}>
+              <Typography variant="h5" id="booking-confirmation-dialog" sx={{ fontWeight: 'bold', mb: 1, color: '#2e7d32' }}>
                 Bokning bekräftad!
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1930,6 +1919,7 @@ const BookingPage: React.FC = () => {
               <Button 
                 onClick={() => setConfirmationDialogOpen(false)}
                 variant="contained"
+                autoFocus
                 sx={{ 
                   bgcolor: '#4caf50',
                   borderRadius: 2,
@@ -1947,18 +1937,15 @@ const BookingPage: React.FC = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Raderingsdialog */}
+          {/* Raderingsdialog - MUI standard pattern */}
           <Dialog
             open={deleteDialogOpen}
             onClose={() => setDeleteDialogOpen(false)}
+            fullScreen={isMobile}
             fullWidth
             maxWidth="sm"
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-              }
-            }}
+            scroll="paper"
+            aria-labelledby="delete-dialog-title"
           >
             <DialogTitle sx={{ 
               bgcolor: 'error.lighter', 
@@ -2001,26 +1988,15 @@ const BookingPage: React.FC = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Bekräftelsedialog för lyckad radering */}
+          {/* Bekräftelsedialog för lyckad radering - MUI standard pattern */}
           <Dialog
             open={deleteSuccessDialogOpen}
             onClose={() => setDeleteSuccessDialogOpen(false)}
+            fullScreen={isMobile}
             fullWidth
             maxWidth="xs"
-            sx={{
-              '& .MuiDialog-container': {
-                alignItems: 'center',
-              },
-            }}
-            PaperProps={{
-              sx: {
-                borderRadius: 3,
-                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-                overflow: 'hidden',
-                margin: { xs: 2, sm: 4 },
-                maxHeight: 'calc(100vh - 64px)',
-              }
-            }}
+            scroll="paper"
+            aria-labelledby="delete-confirmation-dialog"
           >
             <Box sx={{ 
               bgcolor: '#f44336', 
@@ -2042,7 +2018,7 @@ const BookingPage: React.FC = () => {
               </Box>
             </Box>
             <DialogContent sx={{ textAlign: 'center', py: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: '#c62828' }}>
+              <Typography variant="h5" id="delete-confirmation-dialog" sx={{ fontWeight: 'bold', mb: 1, color: '#c62828' }}>
                 Bokning raderad
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -2053,6 +2029,7 @@ const BookingPage: React.FC = () => {
               <Button 
                 onClick={() => setDeleteSuccessDialogOpen(false)}
                 variant="contained"
+                autoFocus
                 sx={{ 
                   bgcolor: '#f44336',
                   borderRadius: 2,
@@ -2070,18 +2047,15 @@ const BookingPage: React.FC = () => {
             </DialogActions>
           </Dialog>
           
-          {/* Redigeringsdialog */}
+          {/* Redigeringsdialog - MUI standard pattern */}
           <Dialog 
             open={editDialogOpen} 
             onClose={() => setEditDialogOpen(false)}
+            fullScreen={isMobile}
             fullWidth
             maxWidth="sm"
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-              }
-            }}
+            scroll="paper"
+            aria-labelledby="edit-dialog-title"
           >
             <DialogTitle sx={{ 
               bgcolor: 'primary.lighter', 
