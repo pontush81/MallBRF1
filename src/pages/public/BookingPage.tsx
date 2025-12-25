@@ -702,19 +702,24 @@ const BookingPage: React.FC = () => {
         const formattedEndDate = dateFns.format(normalizedEndDate, 'd MMM', { locale: sv });
         const nights = dateFns.differenceInDays(normalizedEndDate, normalizedStartDate);
         
+        console.log('🎉 Booking successful! Showing toast...');
+        
         // Visa ett snyggt toast-meddelande för bekräftelse
         toast.success(
           `Din bokning ${formattedStartDate} - ${formattedEndDate} (${nights} nätter) är bekräftad!`, 
           {
-            duration: 5000,
-            position: isMobile ? 'bottom-center' : 'top-right',
+            duration: 8000, // Längre duration så den hinner synas
+            position: 'top-center', // Centrera toasten för bättre synlighet
             style: {
               background: '#4caf50',
               color: '#fff',
-              borderRadius: '8px',
-              padding: '16px',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-              maxWidth: '400px'
+              borderRadius: '12px',
+              padding: '20px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+              maxWidth: '90vw',
+              textAlign: 'center' as const,
             },
             icon: '🎉'
           }
@@ -2271,13 +2276,14 @@ const BookingPage: React.FC = () => {
         
         {/* Add the Toaster component with proper z-index to show above header */}
         <Toaster 
-          position={isMobile ? "bottom-center" : "top-right" as const}
+          position="top-center"
           containerStyle={{
-            zIndex: 10001, // Higher than header (1100) and other overlays
+            zIndex: 99999, // Much higher z-index to ensure visibility
+            top: 100, // Below header
           }}
           toastOptions={{
             style: {
-              zIndex: 10001,
+              zIndex: 99999,
             },
           }}
         />
