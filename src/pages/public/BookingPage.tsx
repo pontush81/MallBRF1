@@ -895,11 +895,34 @@ const BookingPage: React.FC = () => {
             },
             '& .MuiDayCalendar-root': {
               overflow: 'visible',
-              paddingLeft: '0', // Reset any default padding
-              // Ensure container doesn't clip week numbers on mobile
+              paddingLeft: '0',
               '& .MuiPickersSlideTransition-root': {
                 overflow: 'visible',
               },
+            },
+            // Fix alignment between weekday headers and day numbers
+            '& .MuiDayCalendar-header': {
+              justifyContent: 'space-around',
+            },
+            '& .MuiDayCalendar-weekContainer': {
+              justifyContent: 'space-around',
+            },
+            // Week number styling
+            '& .MuiDayCalendar-weekNumberLabel': {
+              width: { xs: '28px', sm: '32px' },
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              color: 'text.secondary',
+            },
+            '& .MuiDayCalendar-weekNumber': {
+              width: { xs: '28px', sm: '32px' },
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              color: 'text.secondary',
+            },
+            // Weekday header styling
+            '& .MuiDayCalendar-weekDayLabel': {
+              width: { xs: '28px', sm: '32px' },
+              height: { xs: '28px', sm: '32px' },
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
             },
             '& .MuiPickersDay-root': {
               fontSize: { xs: '0.8rem', sm: '0.85rem' },
