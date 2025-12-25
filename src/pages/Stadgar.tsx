@@ -224,11 +224,9 @@ const Stadgar: React.FC = () => {
               fontSize: { xs: '0.875rem', md: '0.9375rem' },
             }}
           >
-            Viktig information
+            Obs!
           </Typography>
-          Denna sida innehåller en förenklad och pedagogisk sammanfattning av föreningens stadgar. 
-          De fullständiga och juridiskt bindande stadgarna finns fastställda i originalhandling och 
-          kan inte återges i sin helhet här.
+          Detta är en förenklad sammanfattning – inte de fullständiga stadgarna.
         </Alert>
 
         {/* Info om originalstadgar */}

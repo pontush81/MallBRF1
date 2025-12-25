@@ -30,8 +30,8 @@ describe('Stadgar Page', () => {
   it('renders the legal disclaimer', () => {
     renderWithProviders(<Stadgar />);
     
-    expect(screen.getByText('Viktig information')).toBeInTheDocument();
-    expect(screen.getByText(/förenklad och pedagogisk sammanfattning/i)).toBeInTheDocument();
+    expect(screen.getByText('Obs!')).toBeInTheDocument();
+    expect(screen.getByText(/förenklad sammanfattning/i)).toBeInTheDocument();
   });
 
   it('renders the complete statutes notice', () => {
