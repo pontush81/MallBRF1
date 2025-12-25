@@ -2269,8 +2269,18 @@ const BookingPage: React.FC = () => {
             </DialogActions>
           </Dialog>
         
-        {/* Add the Toaster component with proper type for position */}
-        <Toaster position={isMobile ? "bottom-center" : "top-right" as const} />
+        {/* Add the Toaster component with proper z-index to show above header */}
+        <Toaster 
+          position={isMobile ? "bottom-center" : "top-right" as const}
+          containerStyle={{
+            zIndex: 10001, // Higher than header (1100) and other overlays
+          }}
+          toastOptions={{
+            style: {
+              zIndex: 10001,
+            },
+          }}
+        />
           </ModernCard>
         </Container>
     </LocalizationProvider>
