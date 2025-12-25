@@ -7,8 +7,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   Alert,
-  Chip,
-  Stack,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -249,57 +247,6 @@ const Stadgar: React.FC = () => {
           >
             Vid tolkning eller tillämpning gäller alltid föreningens stadgar i original samt tillämplig lagstiftning.
           </Typography>
-        </Box>
-
-        {/* Snabbnavigering */}
-        <Box sx={{ mb: { xs: 3, md: 4 } }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: bastadTheme.colors.ocean[600],
-              fontFamily: bastadTheme.typography.fontFamily.body,
-              fontSize: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              mb: 1.5,
-            }}
-          >
-            Snabbnavigering
-          </Typography>
-          <Stack
-            direction="row"
-            flexWrap="wrap"
-            gap={1}
-            sx={{ mb: 2 }}
-          >
-            {stadgarSections.slice(0, 6).map((section) => (
-              <Chip
-                key={section.id}
-                label={section.title}
-                size="small"
-                onClick={() => {
-                  setExpandedPanel(section.id);
-                  document.getElementById(`section-${section.id}`)?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                  });
-                }}
-                sx={{
-                  fontFamily: bastadTheme.typography.fontFamily.body,
-                  fontSize: '0.75rem',
-                  backgroundColor: bastadTheme.colors.white,
-                  border: `1px solid ${bastadTheme.colors.sand[300]}`,
-                  color: bastadTheme.colors.ocean[700],
-                  transition: bastadTheme.transitions.fast,
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: bastadTheme.colors.sand[100],
-                    borderColor: bastadTheme.colors.terracotta[300],
-                  },
-                }}
-              />
-            ))}
-          </Stack>
         </Box>
 
         {/* Accordions med stadgar-sektioner */}
