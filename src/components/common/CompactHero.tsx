@@ -12,7 +12,7 @@ interface CompactHeroProps {
  * Ren design som matchar resten av sidan
  */
 const CompactHero: React.FC<CompactHeroProps> = ({
-  title = 'Din boendehandbok',
+  title = 'Din handbok',
   subtitle = 'Allt du behöver veta som boende i föreningen',
 }) => {
   return (
@@ -56,11 +56,11 @@ const CompactHero: React.FC<CompactHeroProps> = ({
             component="h1"
             sx={{
               fontFamily: bastadTheme.typography.fontFamily.heading,
-              fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.5rem' },
+              fontSize: { xs: '1.375rem', sm: '1.75rem', md: '2rem' },
               fontWeight: 700,
               color: bastadTheme.colors.ocean[900],
-              lineHeight: 1.15,
-              mb: 1,
+              lineHeight: 1.2,
+              mb: 0.75,
             }}
           >
             {title}
