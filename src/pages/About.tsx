@@ -16,7 +16,6 @@ import {
 import {
   Business as BusinessIcon,
   LocationOn as LocationIcon,
-  Email as EmailIcon,
   Description as DocumentIcon,
   People as PeopleIcon
 } from '@mui/icons-material';
@@ -46,7 +45,7 @@ const About: React.FC = () => {
           </Typography>
 
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <Card variant="outlined">
                 <CardContent>
                   <List>
@@ -75,42 +74,6 @@ const About: React.FC = () => {
                       <ListItemText
                         primary="Registrerad adress"
                         secondary="Köpmansgatan 80, 269 31 Båstad"
-                      />
-                    </ListItem>
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <List>
-                    <ListItem>
-                      <ListItemIcon>
-                        <EmailIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Kontakt e-post"
-                        secondary="gulmaranbrf@gmail.com"
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <EmailIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="E-post (allmän)"
-                        secondary="gulmaranbrf@gmail.com"
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <PeopleIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Styrelseordförande"
-                        secondary="BRF Gulmåran"
                       />
                     </ListItem>
                   </List>
@@ -175,21 +138,6 @@ const About: React.FC = () => {
               />
             </ListItem>
           </List>
-        </Box>
-
-        <Divider sx={{ my: 4 }} />
-
-        {/* Contact Information */}
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="h5" gutterBottom color="primary">
-            Har du frågor?
-          </Typography>
-          <Typography variant="body1" paragraph>
-            Kontakta styrelsen via e-post eller genom att använda vårt kontaktformulär.
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Vi strävar efter att svara på alla förfrågningar inom 2-3 arbetsdagar.
-          </Typography>
         </Box>
 
         <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
