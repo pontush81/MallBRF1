@@ -1716,13 +1716,13 @@ const BookingPage: React.FC = () => {
     <>
       {/* Toast notification container - MUST be at root level for proper portal rendering */}
       <Toaster 
-        position="top-center"
+        position="bottom-center"
         containerStyle={{
           zIndex: 99999,
-          top: 80,
+          bottom: 40,
         }}
         toastOptions={{
-          duration: 8000,
+          duration: 6000,
           style: {
             zIndex: 99999,
           },
@@ -1731,8 +1731,8 @@ const BookingPage: React.FC = () => {
               background: '#4caf50',
               color: '#fff',
               borderRadius: '12px',
-              padding: '20px 24px',
-              fontSize: '16px',
+              padding: '16px 20px',
+              fontSize: '15px',
               fontWeight: 'bold',
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
               maxWidth: '90vw',
