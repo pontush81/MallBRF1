@@ -17,7 +17,6 @@ import {
   Business as BusinessIcon,
   LocationOn as LocationIcon,
   Description as DocumentIcon,
-  People as PeopleIcon
 } from '@mui/icons-material';
 
 const About: React.FC = () => {
@@ -96,48 +95,6 @@ const About: React.FC = () => {
             gästlägenhet, tvättstuga och parkeringsplatser. Föreningen sköts professionellt 
             med fokus på ekonomisk stabilitet och trivsel.
           </Typography>
-        </Box>
-
-        <Divider sx={{ my: 4 }} />
-
-        {/* Digital Services */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" gutterBottom color="primary">
-            Digitala tjänster
-          </Typography>
-          <Typography variant="body1" paragraph>
-            Denna webbplats tillhandahåller digitala tjänster för våra medlemmar:
-          </Typography>
-          
-          <List>
-            <ListItem>
-              <ListItemIcon>
-                <BusinessIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText
-                primary="Bokningshantering"
-                secondary="Boka gästlägenhet och andra gemensamma utrymmen"
-              />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <DocumentIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText
-                primary="Information och dokument"
-                secondary="Tillgång till föreningsinformation och viktiga dokument"
-              />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <PeopleIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText
-                primary="Medlemshantering"
-                secondary="Säker hantering av medlemsuppgifter enligt GDPR"
-              />
-            </ListItem>
-          </List>
         </Box>
 
         <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
