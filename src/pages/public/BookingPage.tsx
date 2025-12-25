@@ -1888,53 +1888,61 @@ const BookingPage: React.FC = () => {
             scroll="paper"
             aria-labelledby="booking-confirmation-dialog"
           >
+            {/* Wrapper för vertikal centrering på mobil */}
             <Box sx={{ 
-              bgcolor: '#4caf50', 
-              py: 3,
               display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+              flexDirection: 'column',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              minHeight: isMobile ? '100vh' : 'auto',
             }}>
-              <Box sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255,255,255,0.2)',
+              <Box sx={{ 
+                bgcolor: '#4caf50', 
+                py: 3,
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
+                alignItems: 'center',
               }}>
-                <Check sx={{ fontSize: 40, color: 'white' }} />
+                <Box sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Check sx={{ fontSize: 40, color: 'white' }} />
+                </Box>
               </Box>
+              <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography variant="h5" id="booking-confirmation-dialog" sx={{ fontWeight: 'bold', mb: 1, color: '#2e7d32' }}>
+                  Bokning bekräftad!
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {confirmationMessage}
+                </Typography>
+              </DialogContent>
+              <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+                <Button 
+                  onClick={() => setConfirmationDialogOpen(false)}
+                  variant="contained"
+                  autoFocus
+                  sx={{ 
+                    bgcolor: '#4caf50',
+                    borderRadius: 2,
+                    px: 4,
+                    py: 1,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      bgcolor: '#388e3c',
+                    }
+                  }}
+                >
+                  Stäng
+                </Button>
+              </DialogActions>
             </Box>
-            <DialogContent sx={{ textAlign: 'center', py: 3 }}>
-              <Typography variant="h5" id="booking-confirmation-dialog" sx={{ fontWeight: 'bold', mb: 1, color: '#2e7d32' }}>
-                Bokning bekräftad!
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {confirmationMessage}
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-              <Button 
-                onClick={() => setConfirmationDialogOpen(false)}
-                variant="contained"
-                autoFocus
-                sx={{ 
-                  bgcolor: '#4caf50',
-                  borderRadius: 2,
-                  px: 4,
-                  py: 1,
-                  textTransform: 'none',
-                  fontWeight: 'bold',
-                  '&:hover': {
-                    bgcolor: '#388e3c',
-                  }
-                }}
-              >
-                Stäng
-              </Button>
-            </DialogActions>
           </Dialog>
 
           {/* Raderingsdialog - MUI standard pattern */}
@@ -1998,53 +2006,61 @@ const BookingPage: React.FC = () => {
             scroll="paper"
             aria-labelledby="delete-confirmation-dialog"
           >
+            {/* Wrapper för vertikal centrering på mobil */}
             <Box sx={{ 
-              bgcolor: '#f44336', 
-              py: 3,
               display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+              flexDirection: 'column',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              minHeight: isMobile ? '100vh' : 'auto',
             }}>
-              <Box sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255,255,255,0.2)',
+              <Box sx={{ 
+                bgcolor: '#f44336', 
+                py: 3,
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
+                alignItems: 'center',
               }}>
-                <Check sx={{ fontSize: 40, color: 'white' }} />
+                <Box sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Check sx={{ fontSize: 40, color: 'white' }} />
+                </Box>
               </Box>
+              <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography variant="h5" id="delete-confirmation-dialog" sx={{ fontWeight: 'bold', mb: 1, color: '#c62828' }}>
+                  Bokning raderad
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Bokningen har tagits bort från systemet.
+                </Typography>
+              </DialogContent>
+              <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+                <Button 
+                  onClick={() => setDeleteSuccessDialogOpen(false)}
+                  variant="contained"
+                  autoFocus
+                  sx={{ 
+                    bgcolor: '#f44336',
+                    borderRadius: 2,
+                    px: 4,
+                    py: 1,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      bgcolor: '#d32f2f',
+                    }
+                  }}
+                >
+                  Stäng
+                </Button>
+              </DialogActions>
             </Box>
-            <DialogContent sx={{ textAlign: 'center', py: 3 }}>
-              <Typography variant="h5" id="delete-confirmation-dialog" sx={{ fontWeight: 'bold', mb: 1, color: '#c62828' }}>
-                Bokning raderad
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Bokningen har tagits bort från systemet.
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-              <Button 
-                onClick={() => setDeleteSuccessDialogOpen(false)}
-                variant="contained"
-                autoFocus
-                sx={{ 
-                  bgcolor: '#f44336',
-                  borderRadius: 2,
-                  px: 4,
-                  py: 1,
-                  textTransform: 'none',
-                  fontWeight: 'bold',
-                  '&:hover': {
-                    bgcolor: '#d32f2f',
-                  }
-                }}
-              >
-                Stäng
-              </Button>
-            </DialogActions>
           </Dialog>
           
           {/* Redigeringsdialog - MUI standard pattern */}
