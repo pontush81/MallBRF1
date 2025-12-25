@@ -39,7 +39,6 @@ import {
   LazyCookiePolicy,
   LazyAccessibility,
   LazyComplaints,
-  LazyContact,
   LazyStadgar,
   LazyDashboard,
   LazyDashboardHome,
@@ -206,11 +205,6 @@ function AppRoutes() {
         <Route path="/complaints" element={
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyComplaints /></Layout>
-          </Suspense>
-        } />
-        <Route path="/contact" element={
-          <Suspense fallback={<LoadingFallback />}>
-            <Layout><LazyContact /></Layout>
           </Suspense>
         } />
         <Route path="/stadgar" element={
