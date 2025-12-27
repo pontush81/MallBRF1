@@ -31,6 +31,7 @@ interface NotificationSettingsData {
   booking_confirmations: boolean;
   maintenance_reminders: boolean;
   system_alerts: boolean;
+  fault_report_notifications: boolean;
   admin_email: string;
   created_at?: string;
   updated_at?: string;
@@ -42,6 +43,7 @@ const NotificationSettings: React.FC = () => {
     booking_confirmations: true,
     maintenance_reminders: true,
     system_alerts: true,
+    fault_report_notifications: true,
     admin_email: ''
   });
   const [loading, setLoading] = useState(true);
@@ -236,6 +238,22 @@ const NotificationSettings: React.FC = () => {
                   />
                   <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
                     🚨 Skickar e-post vid systemfel, säkerhetsproblem eller viktiga uppdateringar
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.fault_report_notifications}
+                        onChange={handleToggle('fault_report_notifications')}
+                        disabled={!settings.email_notifications}
+                      />
+                    }
+                    label="Felanmälningar"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
+                    🔧 Skickar e-post till admin när boende rapporterar fel i gemensamma utrymmen
                   </Typography>
                 </Box>
               </Box>

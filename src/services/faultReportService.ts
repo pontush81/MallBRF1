@@ -421,6 +421,60 @@ export async function getFaultReportByReference(
 }
 
 /**
+ * Get notification settings from database
+ */
+async function getNotificationSettings(): Promise<{
+  email_notifications: boolean;
+  fault_report_notifications: boolean;
+  admin_email: string;
+} | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('notification_settings')
+      .select('email_notifications, fault_report_notifications, admin_email')
+      .single();
+    
+    if (error) {
+      console.error('Get notification settings error:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('Get notification settings exception:', err);
+    return null;
+  }
+}
+
+/**
+ * Send notification to admin for new fault report (checks settings first)
+ */
+export async function notifyAdminOfNewReport(report: FaultReport): Promise<void> {
+  try {
+    const settings = await getNotificationSettings();
+    
+    if (!settings) {
+      console.log('No notification settings found, skipping admin notification');
+      return;
+    }
+    
+    if (!settings.email_notifications || !settings.fault_report_notifications) {
+      console.log('Fault report notifications disabled');
+      return;
+    }
+    
+    if (!settings.admin_email) {
+      console.log('No admin email configured');
+      return;
+    }
+    
+    await sendFaultReportNotification(report, settings.admin_email);
+  } catch (err) {
+    console.error('Failed to notify admin:', err);
+  }
+}
+
+/**
  * Send email notification for new fault report
  */
 export async function sendFaultReportNotification(
@@ -524,6 +578,7 @@ export default {
   getFaultReportStats,
   sendFaultReportNotification,
   sendReporterConfirmation,
+  notifyAdminOfNewReport,
   CATEGORY_LABELS,
   LOCATION_LABELS,
   STATUS_LABELS,

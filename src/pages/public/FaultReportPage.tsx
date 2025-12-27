@@ -32,6 +32,7 @@ import CompactHero from '../../components/common/CompactHero';
 import {
   createFaultReport,
   sendReporterConfirmation,
+  notifyAdminOfNewReport,
   CreateFaultReportInput,
   FaultReport,
   FaultCategory,
@@ -123,6 +124,9 @@ const FaultReportPage: React.FC = () => {
       if (contactEmail && result.data) {
         sendReporterConfirmation(result.data, contactEmail).catch(console.error);
       }
+      
+      // Notify admin about new report
+      notifyAdminOfNewReport(result.data).catch(console.error);
       
       // Clear form
       setApartmentNumber('');
