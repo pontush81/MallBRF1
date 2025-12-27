@@ -41,6 +41,7 @@ import {
   LazyComplaints,
   LazyStadgar,
   LazyFaultReportPage,
+  LazyFaultReportStatus,
   LazyDashboard,
   LazyDashboardHome,
   LazyPagesList,
@@ -220,6 +221,11 @@ function AppRoutes() {
         <Route path="/felanmalan" element={
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyFaultReportPage /></Layout>
+          </Suspense>
+        } />
+        <Route path="/felanmalan/status" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyFaultReportStatus /></Layout>
           </Suspense>
         } />
         

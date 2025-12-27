@@ -9,6 +9,7 @@ import { supabaseClient } from './supabaseClient';
 // Types
 export interface FaultReport {
   id: string;
+  reference_number: string;
   apartment_number: string;
   contact_email: string | null;
   contact_phone: string | null;
@@ -394,13 +395,135 @@ export async function getFaultReportStats(): Promise<{
   }
 }
 
+/**
+ * Get a fault report by reference number (public - for status tracking)
+ */
+export async function getFaultReportByReference(
+  referenceNumber: string
+): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('fault_reports')
+      .select('id, reference_number, apartment_number, category, location, description, status, created_at, updated_at, resolved_at')
+      .eq('reference_number', referenceNumber.toUpperCase())
+      .single();
+    
+    if (error) {
+      console.error('Get fault report by reference error:', error);
+      return { success: false, error: 'Kunde inte hitta felanmälan med det referensnumret.' };
+    }
+    
+    return { success: true, data: data as FaultReport };
+  } catch (err) {
+    console.error('Get fault report by reference exception:', err);
+    return { success: false, error: 'Ett oväntat fel uppstod.' };
+  }
+}
+
+/**
+ * Send email notification for new fault report
+ */
+export async function sendFaultReportNotification(
+  report: FaultReport,
+  adminEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+    
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        to: adminEmail,
+        subject: `Ny felanmälan: ${report.reference_number} - ${CATEGORY_LABELS[report.category]}`,
+        text: `En ny felanmälan har inkommit.\n\nReferensnummer: ${report.reference_number}\nLägenhet: ${report.apartment_number}\nKategori: ${CATEGORY_LABELS[report.category]}\nPlats: ${LOCATION_LABELS[report.location]}\nBeskrivning: ${report.description}\n\nLogga in för att hantera ärendet.`,
+        html: `
+          <h2>Ny felanmälan</h2>
+          <p><strong>Referensnummer:</strong> ${report.reference_number}</p>
+          <p><strong>Lägenhet:</strong> ${report.apartment_number}</p>
+          <p><strong>Kategori:</strong> ${CATEGORY_LABELS[report.category]}</p>
+          <p><strong>Plats:</strong> ${LOCATION_LABELS[report.location]}</p>
+          <p><strong>Beskrivning:</strong><br/>${report.description}</p>
+          <p><a href="https://www.gulmaran.com/admin/fault-reports">Logga in för att hantera ärendet</a></p>
+        `,
+        type: 'user-notification',
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error('Email notification failed:', await response.text());
+      return { success: false, error: 'Kunde inte skicka e-postnotifikation.' };
+    }
+    
+    return { success: true };
+  } catch (err) {
+    console.error('Email notification exception:', err);
+    return { success: false, error: 'Ett oväntat fel uppstod vid e-postutskick.' };
+  }
+}
+
+/**
+ * Send confirmation email to reporter
+ */
+export async function sendReporterConfirmation(
+  report: FaultReport,
+  reporterEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+    
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        to: reporterEmail,
+        subject: `Bekräftelse felanmälan ${report.reference_number}`,
+        text: `Tack för din felanmälan!\n\nDitt referensnummer är: ${report.reference_number}\n\nDu kan följa statusen på din anmälan här:\nhttps://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}\n\nVi återkommer så snart vi har åtgärdat felet.\n\nMed vänlig hälsning,\nBRF Gulmåran`,
+        html: `
+          <h2>Tack för din felanmälan!</h2>
+          <p><strong>Ditt referensnummer är:</strong> ${report.reference_number}</p>
+          <p><strong>Kategori:</strong> ${CATEGORY_LABELS[report.category]}</p>
+          <p><strong>Plats:</strong> ${LOCATION_LABELS[report.location]}</p>
+          <p><strong>Beskrivning:</strong><br/>${report.description}</p>
+          <hr/>
+          <p><a href="https://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}">Följ statusen på din anmälan</a></p>
+          <p>Vi återkommer så snart vi har åtgärdat felet.</p>
+          <p>Med vänlig hälsning,<br/>BRF Gulmåran</p>
+        `,
+        type: 'user-notification',
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error('Reporter confirmation email failed:', await response.text());
+      return { success: false, error: 'Kunde inte skicka bekräftelse.' };
+    }
+    
+    return { success: true };
+  } catch (err) {
+    console.error('Reporter confirmation exception:', err);
+    return { success: false, error: 'Ett oväntat fel uppstod.' };
+  }
+}
+
 export default {
   createFaultReport,
   getAllFaultReports,
   getFaultReportById,
+  getFaultReportByReference,
   updateFaultReport,
   deleteFaultReport,
   getFaultReportStats,
+  sendFaultReportNotification,
+  sendReporterConfirmation,
   CATEGORY_LABELS,
   LOCATION_LABELS,
   STATUS_LABELS,

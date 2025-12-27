@@ -21,6 +21,7 @@ export const LazyAccessibility = lazy(() => import('../pages/Accessibility'));
 export const LazyComplaints = lazy(() => import('../pages/Complaints'));
 export const LazyStadgar = lazy(() => import('../pages/Stadgar'));
 export const LazyFaultReportPage = lazy(() => import('../pages/public/FaultReportPage'));
+export const LazyFaultReportStatus = lazy(() => import('../pages/public/FaultReportStatus'));
 export const LazyNotFound = lazy(() => import('../pages/NotFound'));
 
 // Admin Components  

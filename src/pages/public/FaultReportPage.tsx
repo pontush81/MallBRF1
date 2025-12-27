@@ -31,7 +31,9 @@ import { bastadTheme } from '../../theme/bastadTheme';
 import CompactHero from '../../components/common/CompactHero';
 import {
   createFaultReport,
+  sendReporterConfirmation,
   CreateFaultReportInput,
+  FaultReport,
   FaultCategory,
   FaultLocation,
   CATEGORY_LABELS,
@@ -57,6 +59,7 @@ const FaultReportPage: React.FC = () => {
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submittedReport, setSubmittedReport] = useState<FaultReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSnackbar, setShowSnackbar] = useState(false);
   
@@ -111,9 +114,16 @@ const FaultReportPage: React.FC = () => {
     
     setIsSubmitting(false);
     
-    if (result.success) {
+    if (result.success && result.data) {
+      setSubmittedReport(result.data);
       setSuccess(true);
       setShowSnackbar(true);
+      
+      // Send confirmation email if email was provided
+      if (contactEmail && result.data) {
+        sendReporterConfirmation(result.data, contactEmail).catch(console.error);
+      }
+      
       // Clear form
       setApartmentNumber('');
       setContactEmail('');
@@ -132,7 +142,7 @@ const FaultReportPage: React.FC = () => {
   };
   
   // Success view
-  if (success) {
+  if (success && submittedReport) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: bastadTheme.colors.sand[50] }}>
         <CompactHero subtitle="Rapportera fel i gemensamma utrymmen" />
@@ -157,29 +167,61 @@ const FaultReportPage: React.FC = () => {
             <Typography variant="h5" gutterBottom fontWeight={600}>
               Tack för din felanmälan!
             </Typography>
+            
+            {/* Reference number box */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 3,
+                bgcolor: bastadTheme.colors.ocean[50],
+                borderRadius: 2,
+                border: `1px solid ${bastadTheme.colors.ocean[200]}`,
+              }}
+            >
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Ditt referensnummer:
+              </Typography>
+              <Typography 
+                variant="h4" 
+                fontWeight={700} 
+                color={bastadTheme.colors.ocean[700]}
+                sx={{ fontFamily: 'monospace', letterSpacing: 1 }}
+              >
+                {submittedReport.reference_number}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Spara detta nummer för att följa din anmälan
+              </Typography>
+            </Paper>
+            
             <Typography color="text.secondary" sx={{ mb: 3 }}>
               Vi har tagit emot din anmälan och styrelsen kommer att åtgärda felet så snart som möjligt.
             </Typography>
+            
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
-                onClick={handleNewReport}
+                onClick={() => navigate(`/felanmalan/status?ref=${submittedReport.reference_number}`)}
                 sx={{
-                  bgcolor: bastadTheme.colors.terracotta[500],
-                  '&:hover': { bgcolor: bastadTheme.colors.terracotta[600] },
+                  bgcolor: bastadTheme.colors.ocean[600],
+                  '&:hover': { bgcolor: bastadTheme.colors.ocean[700] },
                 }}
               >
-                Gör en ny anmälan
+                Följ din anmälan
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  setSuccess(false);
+                  setSubmittedReport(null);
+                }}
                 sx={{
-                  borderColor: bastadTheme.colors.ocean[300],
-                  color: bastadTheme.colors.ocean[700],
+                  borderColor: bastadTheme.colors.terracotta[300],
+                  color: bastadTheme.colors.terracotta[600],
                 }}
               >
-                Tillbaka till startsidan
+                Gör en ny anmälan
               </Button>
             </Box>
           </Paper>
