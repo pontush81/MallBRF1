@@ -5,9 +5,9 @@ import {
   Button, 
   Typography, 
   Paper, 
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
-import { StandardLoading } from '../../components/common/StandardLoading';
 import { Google as GoogleIcon } from '@mui/icons-material';
 import { loginWithGoogle } from '../../services/supabaseAuthNew';
 
@@ -62,8 +62,8 @@ export const Login: React.FC = () => {
           sx={{ py: 1.5 }}
         >
           {loading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StandardLoading size={20} variant="minimal" />
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+              <CircularProgress size={18} thickness={5} sx={{ color: 'primary.main' }} />
               <span>Loggar in...</span>
             </Box>
           ) : (
