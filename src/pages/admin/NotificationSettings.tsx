@@ -113,14 +113,41 @@ const NotificationSettings: React.FC = () => {
       
       console.log('💾 Sparar notifikationsinställningar:', settings);
       
-      const { data, error } = await supabaseClient
-        .from('notification_settings')
-        .upsert([{
-          ...settings,
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
+      // Use update if we have an ID, otherwise insert
+      let result;
+      if (settings.id) {
+        // Update existing row
+        result = await supabaseClient
+          .from('notification_settings')
+          .update({
+            email_notifications: settings.email_notifications,
+            booking_confirmations: settings.booking_confirmations,
+            maintenance_reminders: settings.maintenance_reminders,
+            system_alerts: settings.system_alerts,
+            fault_report_notifications: settings.fault_report_notifications,
+            admin_email: settings.admin_email,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', settings.id)
+          .select()
+          .single();
+      } else {
+        // Insert new row
+        result = await supabaseClient
+          .from('notification_settings')
+          .insert({
+            email_notifications: settings.email_notifications,
+            booking_confirmations: settings.booking_confirmations,
+            maintenance_reminders: settings.maintenance_reminders,
+            system_alerts: settings.system_alerts,
+            fault_report_notifications: settings.fault_report_notifications,
+            admin_email: settings.admin_email
+          })
+          .select()
+          .single();
+      }
+      
+      const { data, error } = result;
 
       if (error) {
         console.error('❌ Databasfel:', error);
