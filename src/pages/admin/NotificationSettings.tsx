@@ -56,14 +56,28 @@ const NotificationSettings: React.FC = () => {
   }, []);
 
   const loadSettings = async () => {
+    console.log('🔄 Loading notification settings...');
+    setLoading(true);
+    setError(null);
+    
+    // Use AbortController for proper timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Timeout triggered');
+      controller.abort();
+    }, 10000);
+    
     try {
-      setLoading(true);
       const { data, error } = await supabaseClient
         .from('notification_settings')
         .select('*')
+        .abortSignal(controller.signal)
         .single();
+      
+      clearTimeout(timeoutId);
 
       if (error) {
+        console.log('❌ Supabase error:', error.code, error.message);
         // If table doesn't exist, show helpful message
         if (error.code === '42P01') {
           setError('Notifikationstabellen behöver skapas i databasen. Kontakta administratör för att köra migrationen.');
@@ -76,11 +90,16 @@ const NotificationSettings: React.FC = () => {
       }
 
       if (data) {
+        console.log('✅ Settings loaded successfully');
         setSettings(data);
       }
-      setError(null);
     } catch (err: any) {
-      setError('Kunde inte ladda notifikationsinställningar: ' + err.message);
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setError('Laddningen tog för lång tid. Klicka Uppdatera för att försöka igen.');
+      } else {
+        setError('Kunde inte ladda notifikationsinställningar: ' + err.message);
+      }
       console.error('Error loading notification settings:', err);
     } finally {
       setLoading(false);

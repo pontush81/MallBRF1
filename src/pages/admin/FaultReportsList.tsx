@@ -87,27 +87,38 @@ const FaultReportsList: React.FC = () => {
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
   
-  // Load data
+  // Load data with timeout protection
   const loadData = async () => {
     setLoading(true);
     setError(null);
     
-    const [reportsResult, statsResult] = await Promise.all([
-      getAllFaultReports(statusFilter === 'all' ? undefined : statusFilter),
-      getFaultReportStats(),
-    ]);
-    
-    if (reportsResult.success && reportsResult.data) {
-      setReports(reportsResult.data);
-    } else {
-      setError(reportsResult.error || 'Kunde inte hämta felanmälningar');
+    try {
+      // Add timeout protection (15 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout - försök igen')), 15000)
+      );
+      
+      const fetchPromise = Promise.all([
+        getAllFaultReports(statusFilter === 'all' ? undefined : statusFilter),
+        getFaultReportStats(),
+      ]);
+      
+      const [reportsResult, statsResult] = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (reportsResult.success && reportsResult.data) {
+        setReports(reportsResult.data);
+      } else {
+        setError(reportsResult.error || 'Kunde inte hämta felanmälningar');
+      }
+      
+      if (statsResult.success && statsResult.data) {
+        setStats(statsResult.data);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Ett fel uppstod vid laddning');
+    } finally {
+      setLoading(false);
     }
-    
-    if (statsResult.success && statsResult.data) {
-      setStats(statsResult.data);
-    }
-    
-    setLoading(false);
   };
   
   useEffect(() => {
