@@ -112,7 +112,7 @@ const HeroSection: React.FC<{ isLoggedIn: boolean; isAdmin: boolean }> = ({
               transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s',
             }}
           >
-            Bostadsrättsförening i Båstad
+            BRF Gulmåran
           </Typography>
 
           {/* Main headline */}

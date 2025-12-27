@@ -40,3 +40,4 @@ FOR SELECT USING (
   AND auth.role() = 'authenticated'
 );
 
+

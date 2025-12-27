@@ -97,3 +97,4 @@ GROUP BY processing_status;
 
 COMMENT ON VIEW processing_status_summary IS 'Summary view for monitoring document processing performance and status';
 
+

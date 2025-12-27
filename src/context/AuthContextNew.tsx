@@ -84,12 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         unsubscribe();
       }
       // Force close any WebLocks for BFCache compatibility
-      if ('locks' in navigator) {
-        navigator.locks.query().then((state) => {
-          // Log but don't interfere with Supabase internal locks
-          console.debug('Active locks:', state);
-        });
-      }
+      // (Silent - no debug logging needed in production)
     };
 
     // Enhanced BFCache support

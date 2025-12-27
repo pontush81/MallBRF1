@@ -25,55 +25,40 @@ root.render(
 );
 
 // Förbättrad cache-detection och automatisk åtgärd
+// Current version - update when deploying new cache-breaking changes
+const CURRENT_CACHE_VERSION = 'gulmaran-v8';
+const CURRENT_APP_VERSION = 'v8';
+
 const detectAndFixCacheIssues = async () => {
   try {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const shouldForceClear = isIOS || isSafari;
-    
     // Check if we're coming from a cache clear attempt
     const urlParams = new URLSearchParams(window.location.search);
     const cacheCleared = urlParams.get('cache-cleared');
-    const safariFixed = urlParams.get('safari-fix');
     
-    // Always check for problematic cache versions
+    // Clean up URL if cache-cleared parameter exists
+    if (cacheCleared) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+    
+    // Only check for very old problematic caches
     if ('caches' in window) {
       const cacheNames = await caches.keys();
+      // Only clear truly old caches (v1-v5), let the service worker handle v6+
       const oldCaches = cacheNames.filter(name => 
         name.includes('gulmaran-v1') || 
         name.includes('gulmaran-v2') || 
         name.includes('gulmaran-v3') || 
         name.includes('gulmaran-v4') ||
-        name.includes('gulmaran-v5') ||
-        (name !== 'gulmaran-v6-mobile-fix-2025' && name.includes('gulmaran'))
+        name.includes('gulmaran-v5')
       );
       
-      // More aggressive detection for cache problems
-      const hasProblematicCache = oldCaches.length > 0;
-      const hasStaleStorage = localStorage.getItem('app-version') !== 'v6-mobile-fix-2025';
-      
-      if (hasProblematicCache || hasStaleStorage || shouldForceClear) {
-        console.log('🧹 Problematic cache detected, clearing...');
-        
-        // Clear all old caches
+      if (oldCaches.length > 0) {
+        console.log('🧹 Old caches detected, clearing:', oldCaches);
         await Promise.all(oldCaches.map(cacheName => caches.delete(cacheName)));
+        localStorage.setItem('app-version', CURRENT_APP_VERSION);
         
-        // Update version marker
-        localStorage.setItem('app-version', 'v6-mobile-fix-2025');
-        
-        // Clear problematic storage for all browsers
-        try {
-          const keysToRemove = ['theme', 'user-preferences', 'cached-pages', 'ui-state'];
-          keysToRemove.forEach(key => {
-            localStorage.removeItem(key);
-            sessionStorage.removeItem(key);
-          });
-        } catch (e) {
-          console.warn('Storage clearing failed:', e);
-        }
-        
-        // Force reload if not already attempted
-        if (!cacheCleared && !safariFixed) {
+        if (!cacheCleared) {
           console.log('🔄 Reloading after cache clear...');
           window.location.href = window.location.pathname + '?cache-cleared=true';
           return;
@@ -81,14 +66,19 @@ const detectAndFixCacheIssues = async () => {
       }
     }
     
-    // Detect white screen after 3 seconds and redirect to fix page
+    // Update version marker if not set
+    if (localStorage.getItem('app-version') !== CURRENT_APP_VERSION) {
+      localStorage.setItem('app-version', CURRENT_APP_VERSION);
+    }
+    
+    // Detect white screen after 5 seconds and redirect to fix page
     setTimeout(() => {
       const root = document.getElementById('root');
       if (root && (!root.innerHTML || root.innerHTML.trim() === '')) {
         console.warn('⚠️ White screen detected, redirecting to cache fix...');
         window.location.href = '/clear-cache.html';
       }
-    }, 3000);
+    }, 5000);
     
   } catch (error) {
     console.log('Cache detection completed with errors:', error);

@@ -107,23 +107,13 @@ export const addResourceHints = () => {
 };
 
 // Bundle splitting optimization
-export const optimizeBundleLoading = () => {
-  // Prefetch non-critical chunks
-  const nonCriticalChunks = [
-    '/static/js/vendor.chunk.js',
-    '/static/js/admin.chunk.js'
-  ];
-
-  nonCriticalChunks.forEach(chunk => {
-    const link = document.createElement('link');
-    link.rel = 'prefetch';
-    link.href = chunk;
-    
-    // Only add if not already present and chunk exists
-    if (!document.querySelector(`link[href="${chunk}"]`)) {
-      document.head.appendChild(link);
-    }
-  });
+// Note: Chunk names are generated dynamically by webpack with hashes,
+// so we don't prefetch specific chunk files. Instead, we rely on the
+// browser's native resource hints from the index.html
+export const optimizeBundleLoading = (): void => {
+  // No-op: Chunk prefetching is handled by webpack's magic comments
+  // and the browser's preload scanner. Dynamic chunk names make
+  // hardcoded prefetch links unreliable.
 };
 
 // Main optimization function to run on app start

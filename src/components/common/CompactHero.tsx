@@ -47,7 +47,7 @@ const CompactHero: React.FC<CompactHeroProps> = ({
               mb: 1,
             }}
           >
-            BRF i Båstad
+            BRF Gulmåran
           </Typography>
 
           {/* Main title - MÖRKBLÅ text på ljus bakgrund */}

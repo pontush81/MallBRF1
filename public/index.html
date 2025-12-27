@@ -18,28 +18,6 @@
     
     <!-- CSS and JS will be injected automatically by React build process with correct hashed filenames -->
     
-    <!-- Critical font preloading for LCP text optimization - only in production -->
-    <script>
-      // Only preload fonts in production to avoid dev warnings
-      if (window.location.hostname !== 'localhost') {
-        const link1 = document.createElement('link');
-        link1.rel = 'preload';
-        link1.href = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2';
-        link1.as = 'font';
-        link1.type = 'font/woff2';
-        link1.crossOrigin = 'anonymous';
-        document.head.appendChild(link1);
-        
-        const link2 = document.createElement('link');
-        link2.rel = 'preload';
-        link2.href = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2';
-        link2.as = 'font';
-        link2.type = 'font/woff2';
-        link2.crossOrigin = 'anonymous';
-        document.head.appendChild(link2);
-      }
-    </script>
-    
     <!-- System font fallback for instant LCP text rendering -->
     <style>
       /* Critical: Instant text fallback for LCP */
@@ -186,15 +164,5 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>
