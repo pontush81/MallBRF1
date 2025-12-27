@@ -55,15 +55,22 @@ export const Login: React.FC = () => {
 
         <Button
           fullWidth
-          variant="outlined"
+          variant={loading ? 'contained' : 'outlined'}
           startIcon={!loading ? <GoogleIcon /> : undefined}
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          sx={{ py: 1.5 }}
+          onClick={loading ? undefined : handleGoogleLogin}
+          sx={{ 
+            py: 1.5,
+            ...(loading && {
+              bgcolor: 'primary.main',
+              color: 'white',
+              '&:hover': { bgcolor: 'primary.main' },
+              cursor: 'wait'
+            })
+          }}
         >
           {loading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
-              <CircularProgress size={18} thickness={5} sx={{ color: 'primary.main' }} />
+              <CircularProgress size={18} thickness={5} sx={{ color: 'white' }} />
               <span>Loggar in...</span>
             </Box>
           ) : (
