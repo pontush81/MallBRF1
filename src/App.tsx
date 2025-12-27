@@ -54,7 +54,6 @@ import {
   LazyDataRetentionManager,
   LazyNotFound,
   LazyHSBReportEditor,
-  LazyGulmaranGPT,
   LazyFaultReportsList,
   CookieConsentBanner
 } from './components/LazyComponents';
@@ -294,11 +293,6 @@ function AppRoutes() {
           <Route path="hsb-report" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyHSBReportEditor />
-            </Suspense>
-          } />
-          <Route path="gulmaran-gpt" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyGulmaranGPT />
             </Suspense>
           } />
           <Route path="felanmalningar" element={

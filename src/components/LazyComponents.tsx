@@ -35,7 +35,6 @@ export const LazyUsersList = lazy(() => import('../pages/admin/UsersList'));
 export const LazyNotificationSettings = lazy(() => import('../pages/admin/NotificationSettings'));
 export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/MaintenancePlanPage'));
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));
-export const LazyGulmaranGPT = lazy(() => import('../pages/admin/GulmaranGPT'));
 export const LazyFaultReportsList = lazy(() => import('../pages/admin/FaultReportsList'));
 
 // Component Exports
