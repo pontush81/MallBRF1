@@ -162,12 +162,17 @@ async function checkRateLimit(ipHash: string): Promise<{ allowed: boolean; remai
 export async function createFaultReport(
   input: CreateFaultReportInput
 ): Promise<{ success: boolean; data?: FaultReport; error?: string; rateLimitRemaining?: number }> {
+  // Use AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  
   try {
     const ipHash = await hashIP();
     
-    // Check rate limit
+    // Check rate limit with timeout
     const rateLimit = await checkRateLimit(ipHash);
     if (!rateLimit.allowed) {
+      clearTimeout(timeoutId);
       return {
         success: false,
         error: 'Du har nått maxgränsen för felanmälningar idag. Försök igen imorgon.',
@@ -189,7 +194,10 @@ export async function createFaultReport(
         status: 'new',
       })
       .select()
+      .abortSignal(controller.signal)
       .single();
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       console.error('Create fault report error:', error);
@@ -201,8 +209,12 @@ export async function createFaultReport(
       data: data as FaultReport,
       rateLimitRemaining: rateLimit.remaining - 1,
     };
-  } catch (err) {
+  } catch (err: any) {
+    clearTimeout(timeoutId);
     console.error('Create fault report exception:', err);
+    if (err.name === 'AbortError') {
+      return { success: false, error: 'Anslutningen tog för lång tid. Försök igen.' };
+    }
     return { success: false, error: 'Ett oväntat fel uppstod.' };
   }
 }
