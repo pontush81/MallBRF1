@@ -56,12 +56,19 @@ export const Login: React.FC = () => {
         <Button
           fullWidth
           variant="outlined"
-          startIcon={loading ? <StandardLoading size={20} variant="minimal" /> : <GoogleIcon />}
+          startIcon={!loading ? <GoogleIcon /> : undefined}
           onClick={handleGoogleLogin}
           disabled={loading}
           sx={{ py: 1.5 }}
         >
-          {loading ? 'Loggar in...' : 'Logga in med Google'}
+          {loading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StandardLoading size={20} variant="minimal" />
+              <span>Loggar in...</span>
+            </Box>
+          ) : (
+            'Logga in med Google'
+          )}
         </Button>
 
         <Typography variant="body2" align="center" sx={{ mt: 3 }} color="text.secondary">
