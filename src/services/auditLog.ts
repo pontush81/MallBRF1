@@ -4,7 +4,7 @@ interface AuditLogEntry {
   user_id?: string;
   user_email?: string;
   table_name: string;
-  access_type: 'read' | 'write' | 'delete' | 'export';
+  access_type: 'read' | 'create' | 'update' | 'delete' | 'export';
   record_id?: string;
   data_categories: string[];
   purpose: string;
@@ -91,8 +91,8 @@ class AuditLogService {
       // Map old operations to new access types
       const accessTypeMap = {
         'SELECT': 'read' as const,
-        'INSERT': 'write' as const,
-        'UPDATE': 'write' as const,
+        'INSERT': 'create' as const,
+        'UPDATE': 'update' as const,
         'DELETE': 'delete' as const
       };
 
@@ -131,8 +131,8 @@ class AuditLogService {
     // Map operations and determine categories (same logic as above)
     const accessTypeMap = {
       'SELECT': 'read' as const,
-      'INSERT': 'write' as const,
-      'UPDATE': 'write' as const,
+      'INSERT': 'create' as const,
+      'UPDATE': 'update' as const,
       'DELETE': 'delete' as const
     };
 
