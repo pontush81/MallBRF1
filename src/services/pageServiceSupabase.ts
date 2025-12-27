@@ -140,11 +140,25 @@ const pageServiceSupabase = {
     try {
       console.log('🚀 Fetching all pages via direct REST API...');
       
-      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/pages?select=*&order=createdat.asc`, {
+      const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+      
+      // Try to get authenticated session for admin access
+      let authToken = SUPABASE_ANON_KEY;
+      try {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (sessionData?.session?.access_token) {
+          authToken = sessionData.session.access_token;
+          console.log('🔐 Using authenticated session for admin access');
+        }
+      } catch (authErr) {
+        console.log('ℹ️ Using anon key (no auth session)');
+      }
+      
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/pages?select=*&order=createdat.asc`, {
         method: 'GET',
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         },
         signal: AbortSignal.timeout(10000) // 10s timeout för admin
@@ -320,6 +334,14 @@ const pageServiceSupabase = {
       
       // Call the admin Edge Function (bypasses RLS with service role)
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+      
+      // Add timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Create request timeout after 10 seconds');
+        controller.abort();
+      }, 10000);
+      
       const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
         method: 'POST',
         headers: {
@@ -330,8 +352,11 @@ const pageServiceSupabase = {
           pageData: dbData,
           userEmail: parsedUser.email,
           userRole: parsedUser.role
-        })
+        }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -342,8 +367,8 @@ const pageServiceSupabase = {
       const { page } = await response.json();
       const createdPage = transformPageFromDB(page);
       
-      // Log the page creation
-      await logUserAccess('pages', 'INSERT', createdPage.id, `admin_create_page_${createdPage.title}`);
+      // Log the page creation (don't await - fire and forget to prevent blocking)
+      logUserAccess('pages', 'INSERT', createdPage.id, `admin_create_page_${createdPage.title}`).catch(console.error);
       
       console.log('✅ Page created successfully via admin function');
       return createdPage;
