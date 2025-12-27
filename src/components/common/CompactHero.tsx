@@ -3,7 +3,7 @@ import { Box, Container, Typography } from '@mui/material';
 import { bastadTheme } from '../../theme/bastadTheme';
 
 interface CompactHeroProps {
-  title?: string;
+  title?: string; // Optional page-specific title (shown below BRF Gulmåran)
   subtitle?: string;
 }
 
@@ -12,7 +12,7 @@ interface CompactHeroProps {
  * Ren design som matchar resten av sidan
  */
 const CompactHero: React.FC<CompactHeroProps> = ({
-  title = 'Din handbok',
+  title,
   subtitle = 'Allt du behöver veta som boende i föreningen',
 }) => {
   return (
@@ -33,38 +33,40 @@ const CompactHero: React.FC<CompactHeroProps> = ({
         sx={{ px: { xs: 0, sm: 2 } }}
       >
         <Box sx={{ textAlign: 'center' }}>
-          {/* Pre-title badge */}
+          {/* Main title - BRF Gulmåran - större med terracotta färg */}
           <Typography
-            component="span"
+            component={title ? 'span' : 'h1'}
             sx={{
-              display: 'inline-block',
+              display: 'block',
               color: bastadTheme.colors.terracotta[500],
               fontFamily: bastadTheme.typography.fontFamily.body,
-              fontSize: { xs: '0.75rem', sm: '0.8125rem', md: '0.875rem' },
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
-              mb: 1,
+              mb: title ? 1 : 1.5,
             }}
           >
             BRF Gulmåran
           </Typography>
 
-          {/* Main title - MÖRKBLÅ text på ljus bakgrund */}
-          <Typography
-            variant="h1"
-            component="h1"
-            sx={{
-              fontFamily: bastadTheme.typography.fontFamily.heading,
-              fontSize: { xs: '1.375rem', sm: '1.75rem', md: '2rem' },
-              fontWeight: 700,
-              color: bastadTheme.colors.ocean[900],
-              lineHeight: 1.2,
-              mb: 0.75,
-            }}
-          >
-            {title}
-          </Typography>
+          {/* Optional page-specific title */}
+          {title && (
+            <Typography
+              variant="h1"
+              component="h1"
+              sx={{
+                fontFamily: bastadTheme.typography.fontFamily.heading,
+                fontSize: { xs: '1.375rem', sm: '1.75rem', md: '2rem' },
+                fontWeight: 700,
+                color: bastadTheme.colors.ocean[900],
+                lineHeight: 1.2,
+                mb: 0.75,
+              }}
+            >
+              {title}
+            </Typography>
+          )}
 
           {/* Subtitle - grå text */}
           <Typography
@@ -87,4 +89,3 @@ const CompactHero: React.FC<CompactHeroProps> = ({
 };
 
 export default CompactHero;
-

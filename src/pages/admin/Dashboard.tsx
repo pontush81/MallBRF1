@@ -32,6 +32,7 @@ const Dashboard: React.FC = () => {
     if (path.includes('/maintenance')) return 'Underhållsplan';
     if (path.includes('/data-retention')) return 'Data Retention';
     if (path.includes('/gulmaran-gpt')) return 'Gulmåran-GPT';
+    if (path.includes('/felanmalningar')) return 'Felanmälningar';
     return 'Översikt';
   };
 

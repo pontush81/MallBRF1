@@ -40,6 +40,7 @@ import {
   LazyAccessibility,
   LazyComplaints,
   LazyStadgar,
+  LazyFaultReportPage,
   LazyDashboard,
   LazyDashboardHome,
   LazyPagesList,
@@ -53,6 +54,7 @@ import {
   LazyNotFound,
   LazyHSBReportEditor,
   LazyGulmaranGPT,
+  LazyFaultReportsList,
   CookieConsentBanner
 } from './components/LazyComponents';
 
@@ -215,6 +217,11 @@ function AppRoutes() {
         <Route path="/maintenance-plan" element={
           <Layout><MaintenancePlan /></Layout>
         } />
+        <Route path="/felanmalan" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <Layout><LazyFaultReportPage /></Layout>
+          </Suspense>
+        } />
         
         {/* 🧪 AUTH TEST ROUTE - DISABLED (uncomment for debugging) */}
         {/* 
@@ -286,6 +293,11 @@ function AppRoutes() {
           <Route path="gulmaran-gpt" element={
             <Suspense fallback={<LoadingFallback />}>
               <LazyGulmaranGPT />
+            </Suspense>
+          } />
+          <Route path="felanmalningar" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyFaultReportsList />
             </Suspense>
           } />
         </Route>

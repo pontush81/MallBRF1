@@ -20,6 +20,7 @@ export const LazyCookiePolicy = lazy(() => import('../pages/CookiePolicy'));
 export const LazyAccessibility = lazy(() => import('../pages/Accessibility'));
 export const LazyComplaints = lazy(() => import('../pages/Complaints'));
 export const LazyStadgar = lazy(() => import('../pages/Stadgar'));
+export const LazyFaultReportPage = lazy(() => import('../pages/public/FaultReportPage'));
 export const LazyNotFound = lazy(() => import('../pages/NotFound'));
 
 // Admin Components  
@@ -34,6 +35,7 @@ export const LazyNotificationSettings = lazy(() => import('../pages/admin/Notifi
 export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/MaintenancePlanPage'));
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));
 export const LazyGulmaranGPT = lazy(() => import('../pages/admin/GulmaranGPT'));
+export const LazyFaultReportsList = lazy(() => import('../pages/admin/FaultReportsList'));
 
 // Component Exports
 

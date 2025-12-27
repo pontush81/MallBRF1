@@ -18,7 +18,8 @@ import {
   Add as AddIcon,
   List as ListIcon,
   Assessment as ReportIcon,
-  SmartToy as AIIcon
+  SmartToy as AIIcon,
+  ReportProblem as FaultIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -92,6 +93,13 @@ const DashboardHome: React.FC = () => {
       icon: <AIIcon />,
       path: '/admin/gulmaran-gpt',
       color: modernTheme.colors.primary[700]
+    },
+    {
+      title: 'Felanmälningar',
+      description: 'Hantera felanmälningar från boende',
+      icon: <FaultIcon />,
+      path: '/admin/felanmalningar',
+      color: modernTheme.colors.error[500]
     }
   ];
 

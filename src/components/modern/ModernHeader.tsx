@@ -29,6 +29,7 @@ import {
   Login as LoginIcon,
   Assignment as MaintenanceIcon,
   Gavel as StadgarIcon,
+  ReportProblem as FaultIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContextNew';
@@ -58,6 +59,7 @@ const ModernHeader: React.FC = memo(() => {
     { label: 'Hem', path: '/', icon: <HomeIcon /> },
     { label: 'Boka', path: '/booking', icon: <BookIcon /> },
     { label: 'Stadgar', path: '/stadgar', icon: <StadgarIcon /> },
+    { label: 'Felanmälan', path: '/felanmalan', icon: <FaultIcon /> },
   ];
 
   const loggedInItems = isLoggedIn ? [
