@@ -413,12 +413,18 @@ export async function getFaultReportStats(): Promise<{
 export async function getFaultReportByReference(
   referenceNumber: string
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  
   try {
     const { data, error } = await supabaseClient
       .from('fault_reports')
       .select('id, reference_number, apartment_number, category, location, description, status, created_at, updated_at, resolved_at')
       .eq('reference_number', referenceNumber.toUpperCase())
+      .abortSignal(controller.signal)
       .single();
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       console.error('Get fault report by reference error:', error);
@@ -426,8 +432,12 @@ export async function getFaultReportByReference(
     }
     
     return { success: true, data: data as FaultReport };
-  } catch (err) {
+  } catch (err: any) {
+    clearTimeout(timeoutId);
     console.error('Get fault report by reference exception:', err);
+    if (err.name === 'AbortError') {
+      return { success: false, error: 'Anslutningen tog för lång tid. Försök igen.' };
+    }
     return { success: false, error: 'Ett oväntat fel uppstod.' };
   }
 }
