@@ -454,14 +454,20 @@ async function getNotificationSettings(): Promise<{
     const { data, error } = await supabaseClient
       .from('notification_settings')
       .select('email_notifications, fault_report_notifications, admin_email')
-      .single();
+      .limit(1);
     
     if (error) {
       console.error('Get notification settings error:', error);
       return null;
     }
     
-    return data;
+    // Return first row if exists, otherwise null
+    if (data && data.length > 0) {
+      return data[0];
+    }
+    
+    console.log('No notification settings found in database');
+    return null;
   } catch (err) {
     console.error('Get notification settings exception:', err);
     return null;
