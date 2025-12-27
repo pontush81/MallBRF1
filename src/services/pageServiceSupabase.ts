@@ -202,11 +202,25 @@ const pageServiceSupabase = {
     try {
       console.log(`🔍 Fetching page by ID: ${id}`);
       
-      const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/pages?id=eq.${id}&select=*`, {
+      const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
+      
+      // Try to get authenticated session for admin access to unpublished pages
+      let authToken = SUPABASE_ANON_KEY;
+      try {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (sessionData?.session?.access_token) {
+          authToken = sessionData.session.access_token;
+          console.log('🔐 Using authenticated session for page fetch');
+        }
+      } catch (authErr) {
+        console.log('ℹ️ Using anon key (no auth session)');
+      }
+      
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/pages?id=eq.${id}&select=*`, {
         method: 'GET',
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         },
         signal: AbortSignal.timeout(10000) // Ökat timeout för editor
