@@ -2,12 +2,11 @@
 import React, { useState } from 'react';
 import { 
   Box, 
-  Button, 
   Typography, 
   Paper, 
-  Alert,
-  CircularProgress
+  Alert
 } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
 import { Google as GoogleIcon } from '@mui/icons-material';
 import { loginWithGoogle } from '../../services/supabaseAuthNew';
 
@@ -53,30 +52,17 @@ export const Login: React.FC = () => {
           </Alert>
         )}
 
-        <Button
+        <LoadingButton
           fullWidth
-          variant={loading ? 'contained' : 'outlined'}
-          startIcon={!loading ? <GoogleIcon /> : undefined}
-          onClick={loading ? undefined : handleGoogleLogin}
-          sx={{ 
-            py: 1.5,
-            ...(loading && {
-              bgcolor: 'primary.main',
-              color: 'white',
-              '&:hover': { bgcolor: 'primary.main' },
-              cursor: 'wait'
-            })
-          }}
+          variant="outlined"
+          startIcon={<GoogleIcon />}
+          onClick={handleGoogleLogin}
+          loading={loading}
+          loadingPosition="start"
+          sx={{ py: 1.5 }}
         >
-          {loading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
-              <CircularProgress size={18} thickness={5} sx={{ color: 'white' }} />
-              <span>Loggar in...</span>
-            </Box>
-          ) : (
-            'Logga in med Google'
-          )}
-        </Button>
+          {loading ? 'Loggar in...' : 'Logga in med Google'}
+        </LoadingButton>
 
         <Typography variant="body2" align="center" sx={{ mt: 3 }} color="text.secondary">
           Kontakta styrelsen för att få tillgång till systemet
