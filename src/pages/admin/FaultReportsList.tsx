@@ -51,6 +51,7 @@ import {
   getAllFaultReports,
   updateFaultReport,
   getFaultReportStats,
+  sendStatusUpdateEmail,
   CATEGORY_LABELS,
   LOCATION_LABELS,
   STATUS_LABELS,
@@ -136,6 +137,9 @@ const FaultReportsList: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!selectedReport) return;
     
+    const oldStatus = selectedReport.status;
+    const statusChanged = oldStatus !== editStatus;
+    
     setSaving(true);
     const result = await updateFaultReport(selectedReport.id, {
       status: editStatus,
@@ -144,6 +148,17 @@ const FaultReportsList: React.FC = () => {
     setSaving(false);
     
     if (result.success) {
+      // Send email notification if status changed and reporter has email
+      if (statusChanged && selectedReport.contact_email) {
+        sendStatusUpdateEmail(selectedReport, editStatus, selectedReport.contact_email)
+          .then(emailResult => {
+            if (emailResult.success) {
+              console.log('✅ Statusuppdatering skickad till:', selectedReport.contact_email);
+            }
+          })
+          .catch(console.error);
+      }
+      
       setEditDialogOpen(false);
       loadData();
     } else {

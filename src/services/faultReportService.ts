@@ -543,6 +543,66 @@ export async function sendFaultReportNotification(
 }
 
 /**
+ * Send status update email to reporter
+ */
+export async function sendStatusUpdateEmail(
+  report: FaultReport,
+  newStatus: FaultStatus,
+  reporterEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+    
+    // Status-specific messages
+    const statusMessages: Record<FaultStatus, { subject: string; message: string; emoji: string }> = {
+      new: { subject: 'Mottagen', message: 'Din felanmälan har mottagits.', emoji: '📥' },
+      in_progress: { subject: 'Under arbete', message: 'Vi arbetar nu med att åtgärda felet du rapporterat.', emoji: '🔧' },
+      waiting: { subject: 'Väntar på åtgärd', message: 'Vi väntar på leverantör eller material för att kunna åtgärda felet.', emoji: '⏳' },
+      resolved: { subject: 'Åtgärdat', message: 'Felet du rapporterade har nu åtgärdats!', emoji: '✅' },
+      closed: { subject: 'Avslutat', message: 'Ditt ärende har avslutats.', emoji: '📁' },
+    };
+    
+    const statusInfo = statusMessages[newStatus];
+    
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        to: reporterEmail,
+        subject: `${statusInfo.emoji} Felanmälan ${report.reference_number}: ${statusInfo.subject}`,
+        text: `Hej!\n\n${statusInfo.message}\n\nReferensnummer: ${report.reference_number}\nKategori: ${CATEGORY_LABELS[report.category]}\nPlats: ${LOCATION_LABELS[report.location]}\n\nFölj statusen här:\nhttps://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}\n\nMed vänlig hälsning,\nBRF Gulmåran`,
+        html: `
+          <h2>${statusInfo.emoji} ${statusInfo.subject}</h2>
+          <p>${statusInfo.message}</p>
+          <hr/>
+          <p><strong>Referensnummer:</strong> ${report.reference_number}</p>
+          <p><strong>Kategori:</strong> ${CATEGORY_LABELS[report.category]}</p>
+          <p><strong>Plats:</strong> ${LOCATION_LABELS[report.location]}</p>
+          <hr/>
+          <p><a href="https://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}">Följ statusen på din anmälan</a></p>
+          <p>Med vänlig hälsning,<br/>BRF Gulmåran</p>
+        `,
+        type: 'user-notification',
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error('Status update email failed:', await response.text());
+      return { success: false, error: 'Kunde inte skicka statusuppdatering.' };
+    }
+    
+    return { success: true };
+  } catch (err) {
+    console.error('Status update email exception:', err);
+    return { success: false, error: 'Ett oväntat fel uppstod.' };
+  }
+}
+
+/**
  * Send confirmation email to reporter
  */
 export async function sendReporterConfirmation(
@@ -600,6 +660,7 @@ export default {
   getFaultReportStats,
   sendFaultReportNotification,
   sendReporterConfirmation,
+  sendStatusUpdateEmail,
   notifyAdminOfNewReport,
   CATEGORY_LABELS,
   LOCATION_LABELS,
