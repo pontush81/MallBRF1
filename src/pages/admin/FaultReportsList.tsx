@@ -40,11 +40,7 @@ import {
 import {
   Visibility as ViewIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Refresh as RefreshIcon,
-  CheckCircle as ResolvedIcon,
-  Warning as WarningIcon,
-  Schedule as PendingIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -54,7 +50,6 @@ import {
   FaultStatus,
   getAllFaultReports,
   updateFaultReport,
-  deleteFaultReport,
   getFaultReportStats,
   CATEGORY_LABELS,
   LOCATION_LABELS,
@@ -80,7 +75,6 @@ const FaultReportsList: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<FaultReport | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   // Edit form state
   const [editStatus, setEditStatus] = useState<FaultStatus>('new');
@@ -138,10 +132,6 @@ const FaultReportsList: React.FC = () => {
     setEditDialogOpen(true);
   };
   
-  const handleDeleteReport = (report: FaultReport) => {
-    setSelectedReport(report);
-    setDeleteDialogOpen(true);
-  };
   
   const handleSaveEdit = async () => {
     if (!selectedReport) return;
@@ -161,20 +151,6 @@ const FaultReportsList: React.FC = () => {
     }
   };
   
-  const handleConfirmDelete = async () => {
-    if (!selectedReport) return;
-    
-    setSaving(true);
-    const result = await deleteFaultReport(selectedReport.id);
-    setSaving(false);
-    
-    if (result.success) {
-      setDeleteDialogOpen(false);
-      loadData();
-    } else {
-      setError(result.error || 'Kunde inte ta bort');
-    }
-  };
   
   // Filtered reports
   const filteredReports = statusFilter === 'all' 
@@ -398,14 +374,9 @@ const FaultReportsList: React.FC = () => {
                         <ViewIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Redigera">
+                    <Tooltip title="Redigera status">
                       <IconButton size="small" onClick={() => handleEditReport(report)}>
                         <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Ta bort">
-                      <IconButton size="small" onClick={() => handleDeleteReport(report)} color="error">
-                        <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -542,32 +513,6 @@ const FaultReportsList: React.FC = () => {
         )}
       </Dialog>
       
-      {/* Delete Dialog */}
-      <Dialog 
-        open={deleteDialogOpen} 
-        onClose={() => setDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Ta bort felanmälan?</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Är du säker på att du vill ta bort denna felanmälan? 
-            Detta kan inte ångras.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} disabled={saving}>
-            Avbryt
-          </Button>
-          <Button 
-            variant="contained" 
-            color="error"
-            onClick={handleConfirmDelete}
-            disabled={saving}
-          >
-            {saving ? 'Tar bort...' : 'Ta bort'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 };
