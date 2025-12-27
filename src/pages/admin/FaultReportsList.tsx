@@ -371,10 +371,26 @@ const FaultReportsList: React.FC = () => {
                   <TableCell>
                     {LOCATION_LABELS[report.location]}
                   </TableCell>
-                  <TableCell sx={{ maxWidth: 200 }}>
-                    <Typography variant="body2" noWrap>
+                  <TableCell sx={{ maxWidth: 220 }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        maxWidth: 200,
+                        color: bastadTheme.colors.ocean[700],
+                      }}
+                    >
                       {report.description}
                     </Typography>
+                    {report.description.length > 50 && (
+                      <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }}>
+                        Klicka för att läsa mer...
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Chip
