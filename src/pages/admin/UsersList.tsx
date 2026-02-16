@@ -63,7 +63,7 @@ const UsersList: React.FC = () => {
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE',
           'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(5000) // 5s timeout
+        signal: AbortSignal.timeout(30000) // 30s timeout (cold start can be slow)
       });
 
       if (!response.ok) {
@@ -95,7 +95,7 @@ const UsersList: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isactive: !currentStatus }),
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(30000)
       });
 
       if (!response.ok) {
@@ -124,7 +124,7 @@ const UsersList: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ role: newRole }),
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(30000)
       });
 
       if (!response.ok) {

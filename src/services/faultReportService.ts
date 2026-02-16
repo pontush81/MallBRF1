@@ -357,7 +357,7 @@ export async function getFaultReportByReference(
   referenceNumber: string
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (cold start)
   
   try {
     const { data, error } = await supabaseClient

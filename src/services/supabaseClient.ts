@@ -76,7 +76,7 @@ export async function executePublic<T>(
     // Add timeout protection to all public operations
     const operationPromise = operation(supabaseClient);
     const timeoutPromise = new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error('Public operation timeout after 10 seconds')), 10000)
+      setTimeout(() => reject(new Error('Public operation timeout after 30 seconds')), 30000)
     );
     
     return await Promise.race([operationPromise, timeoutPromise]);
@@ -107,7 +107,7 @@ export async function executeWithRLS<T>(
     // Add timeout protection to all RLS operations
     const operationPromise = operation(authenticatedClient);
     const timeoutPromise = new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error('RLS operation timeout after 10 seconds')), 10000)
+      setTimeout(() => reject(new Error('RLS operation timeout after 30 seconds')), 30000)
     );
     
     return await Promise.race([operationPromise, timeoutPromise]);
