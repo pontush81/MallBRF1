@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts"
+import nodemailer from "npm:nodemailer@6.9.12"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,45 +11,24 @@ interface EmailRequest {
   subject: string
   text: string
   html?: string
-  type: 'booking-confirmation' | 'user-notification' | 'backup-notification'
+  type?: string
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Basic authorization check (same as original Express route)
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Parse request body
     const { to, subject, text, html, type }: EmailRequest = await req.json()
 
-    // Validate required fields
     if (!to || !subject || !text) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: to, subject, text' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get environment variables
-    const SMTP_HOST = Deno.env.get('SMTP_HOST') || 'smtp.gmail.com'
-    const SMTP_PORT = parseInt(Deno.env.get('SMTP_PORT') || '587')
     const SMTP_USER = Deno.env.get('SMTP_USER')
     const SMTP_PASSWORD = Deno.env.get('SMTP_PASSWORD')
     const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || SMTP_USER
@@ -58,60 +37,53 @@ serve(async (req) => {
       console.error('Missing SMTP credentials')
       return new Response(
         JSON.stringify({ error: 'Email service not configured' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create SMTP client
-    const client = new SmtpClient()
+    console.log(`📧 Sending email via Gmail SMTP to: ${to}`)
+    console.log(`Subject: ${subject} | Type: ${type || 'general'}`)
 
-    await client.connectTLS({
-      hostname: SMTP_HOST,
-      port: SMTP_PORT,
-      username: SMTP_USER,
-      password: SMTP_PASSWORD,
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASSWORD,
+      },
     })
 
-    // Send email
-    await client.send({
-      from: FROM_EMAIL!,
+    const info = await transporter.sendMail({
+      from: `BRF Gulmåran <${FROM_EMAIL}>`,
       to: to,
       subject: subject,
-      content: html || text,
-      html: html ? html : undefined,
+      text: text,
+      html: html || undefined,
     })
 
-    await client.close()
-
-    console.log(`Email sent successfully: ${type} to ${to}`)
+    console.log(`✅ Email sent to ${to} (messageId: ${info.messageId})`)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Email sent successfully',
-        type: type
+        messageId: info.messageId,
+        to: to,
+        subject: subject,
+        type: type || 'general'
       }),
-      { 
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Error sending email:', error)
-    
+    console.error('Email sending error:', error)
     return new Response(
-      JSON.stringify({ 
-        error: 'Failed to send email',
-        details: error.message
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Unknown email error',
+        details: error instanceof Error ? error.stack : undefined
       }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
-}) 
+})
