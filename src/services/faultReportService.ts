@@ -58,6 +58,8 @@ export interface CreateFaultReportInput {
   location: FaultLocation;
   description: string;
   photo_url?: string;
+  turnstileToken?: string;
+  honeypot?: string;
 }
 
 export interface UpdateFaultReportInput {
@@ -111,104 +113,47 @@ export const STATUS_COLORS: Record<FaultStatus, 'default' | 'primary' | 'warning
 };
 
 /**
- * Generate a hash of the client IP for rate limiting (GDPR compliant)
- * We use a simple hash since we don't need to reverse it
- */
-async function hashIP(): Promise<string> {
-  try {
-    // Use a timestamp-based identifier since we can't reliably get IP from client
-    // This provides basic rate limiting while being GDPR compliant
-    const identifier = `${navigator.userAgent}-${new Date().toDateString()}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(identifier);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
-  } catch {
-    return 'unknown';
-  }
-}
-
-/**
- * Check rate limit - max 5 reports per day from same client
- */
-async function checkRateLimit(ipHash: string): Promise<{ allowed: boolean; remaining: number }> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const { count, error } = await supabaseClient
-    .from('fault_reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('ip_hash', ipHash)
-    .gte('created_at', today.toISOString());
-  
-  if (error) {
-    console.error('Rate limit check failed:', error);
-    return { allowed: true, remaining: 5 }; // Allow on error
-  }
-  
-  const used = count || 0;
-  const limit = 5;
-  
-  return {
-    allowed: used < limit,
-    remaining: Math.max(0, limit - used),
-  };
-}
-
-/**
- * Create a new fault report (public - no auth required)
+ * Create a new fault report via server-side Edge Function
+ * All spam protection (Turnstile, rate limit, honeypot) is verified server-side
  */
 export async function createFaultReport(
   input: CreateFaultReportInput
-): Promise<{ success: boolean; data?: FaultReport; error?: string; rateLimitRemaining?: number }> {
-  // Use AbortController for timeout
+): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-  
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
   try {
-    const ipHash = await hashIP();
-    
-    // Check rate limit with timeout
-    const rateLimit = await checkRateLimit(ipHash);
-    if (!rateLimit.allowed) {
-      clearTimeout(timeoutId);
-      return {
-        success: false,
-        error: 'Du har nått maxgränsen för felanmälningar idag. Försök igen imorgon.',
-        rateLimitRemaining: 0,
-      };
-    }
-    
-    const { data, error } = await supabaseClient
-      .from('fault_reports')
-      .insert({
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+    const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMjM4NTYsImV4cCI6MjA1Nzg5OTg1Nn0.xCt8q6sLP2fJtZJmT4zCQuTRpSt2MJLIusxLby7jKRE';
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-fault-report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
         apartment_number: input.apartment_number,
-        contact_email: input.contact_email || null,
-        contact_phone: input.contact_phone || null,
+        contact_email: input.contact_email || undefined,
+        contact_phone: input.contact_phone || undefined,
         category: input.category,
         location: input.location,
         description: input.description,
-        photo_url: input.photo_url || null,
-        ip_hash: ipHash,
-        status: 'new',
-      })
-      .select()
-      .abortSignal(controller.signal)
-      .single();
-    
+        turnstileToken: input.turnstileToken || undefined,
+        honeypot: input.honeypot || '',
+      }),
+      signal: controller.signal,
+    });
+
     clearTimeout(timeoutId);
-    
-    if (error) {
-      console.error('Create fault report error:', error);
-      return { success: false, error: 'Kunde inte skicka felanmälan. Försök igen.' };
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Kunde inte skicka felanmälan. Försök igen.' };
     }
-    
-    return {
-      success: true,
-      data: data as FaultReport,
-      rateLimitRemaining: rateLimit.remaining - 1,
-    };
+
+    return { success: true, data: result.data as FaultReport };
   } catch (err: any) {
     clearTimeout(timeoutId);
     console.error('Create fault report exception:', err);

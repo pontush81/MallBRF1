@@ -26,13 +26,13 @@ import {
   CheckCircle as CheckCircleIcon,
   ReportProblem as ReportIcon,
 } from '@mui/icons-material';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { useNavigate } from 'react-router-dom';
 import { bastadTheme } from '../../theme/bastadTheme';
+import { TURNSTILE_SITE_KEY } from '../../config';
 import CompactHero from '../../components/common/CompactHero';
 import {
   createFaultReport,
-  sendReporterConfirmation,
-  notifyAdminOfNewReport,
   CreateFaultReportInput,
   FaultReport,
   FaultCategory,
@@ -41,9 +41,9 @@ import {
   LOCATION_LABELS,
 } from '../../services/faultReportService';
 
-// Apartment numbers for BRF Gulmåran (11 apartments)
+// Apartments for BRF Gulmåran (Köpmansgatan 80)
 const APARTMENT_NUMBERS = [
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
+  '80A', '80B', '80C', '80D', '80E', '80F', '80G', '80H', '80I', '80J', '80K'
 ];
 
 const FaultReportPage: React.FC = () => {
@@ -56,7 +56,11 @@ const FaultReportPage: React.FC = () => {
   const [category, setCategory] = useState<FaultCategory | ''>('');
   const [location, setLocation] = useState<FaultLocation | ''>('');
   const [description, setDescription] = useState<string>('');
-  
+
+  // Spam protection
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState<string>('');
+
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -71,7 +75,7 @@ const FaultReportPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
     
     if (!apartmentNumber) {
-      newErrors.apartmentNumber = 'Välj lägenhetsnummer';
+      newErrors.apartmentNumber = 'Välj adress';
     }
     if (!category) {
       newErrors.category = 'Välj kategori';
@@ -109,8 +113,10 @@ const FaultReportPage: React.FC = () => {
       category: category as FaultCategory,
       location: location as FaultLocation,
       description: description.trim(),
+      turnstileToken: turnstileToken || undefined,
+      honeypot,
     };
-    
+
     const result = await createFaultReport(input);
     
     setIsSubmitting(false);
@@ -119,15 +125,9 @@ const FaultReportPage: React.FC = () => {
       setSubmittedReport(result.data);
       setSuccess(true);
       setShowSnackbar(true);
-      
-      // Send confirmation email if email was provided
-      if (contactEmail && result.data) {
-        sendReporterConfirmation(result.data, contactEmail).catch(console.error);
-      }
-      
-      // Notify admin about new report
-      notifyAdminOfNewReport(result.data).catch(console.error);
-      
+
+      // Emails are now sent server-side by the Edge Function
+
       // Clear form
       setApartmentNumber('');
       setContactEmail('');
@@ -135,6 +135,7 @@ const FaultReportPage: React.FC = () => {
       setCategory('');
       setLocation('');
       setDescription('');
+      setTurnstileToken(null);
     } else {
       setError(result.error || 'Ett fel uppstod');
     }
@@ -271,15 +272,15 @@ const FaultReportPage: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* Apartment Number */}
             <FormControl fullWidth error={!!errors.apartmentNumber} sx={{ mb: 3 }}>
-              <InputLabel>Lägenhetsnummer *</InputLabel>
+              <InputLabel>Adress *</InputLabel>
               <Select
                 value={apartmentNumber}
-                label="Lägenhetsnummer *"
+                label="Adress *"
                 onChange={(e) => setApartmentNumber(e.target.value)}
               >
                 {APARTMENT_NUMBERS.map((num) => (
                   <MenuItem key={num} value={num}>
-                    Lägenhet {num}
+                    {num}
                   </MenuItem>
                 ))}
               </Select>
@@ -365,16 +366,41 @@ const FaultReportPage: React.FC = () => {
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
               helperText="Om vi behöver kontakta dig för mer information"
-              sx={{ mb: 4 }}
+              sx={{ mb: 3 }}
             />
-            
+
+            {/* Honeypot - hidden from humans, bots auto-fill */}
+            <input
+              type="text"
+              name="website"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              autoComplete="off"
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, width: 0, overflow: 'hidden' }}
+            />
+
+            {/* Turnstile CAPTCHA */}
+            {TURNSTILE_SITE_KEY && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={(token: string) => setTurnstileToken(token)}
+                  onError={() => setTurnstileToken(null)}
+                  onExpire={() => setTurnstileToken(null)}
+                  options={{ theme: 'light', size: 'normal' }}
+                />
+              </Box>
+            )}
+
             {/* Submit Button */}
             <Button
               type="submit"
               variant="contained"
               fullWidth
               size="large"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
               startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
               sx={{
                 py: 1.5,
