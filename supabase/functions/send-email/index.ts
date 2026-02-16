@@ -12,6 +12,10 @@ interface EmailRequest {
   text: string
   html?: string
   type?: string
+  attachments?: Array<{
+    filename: string
+    content: number[] | string
+  }>
 }
 
 serve(async (req) => {
@@ -20,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, text, html, type }: EmailRequest = await req.json()
+    const { to, subject, text, html, type, attachments }: EmailRequest = await req.json()
 
     if (!to || !subject || !text) {
       return new Response(
@@ -54,13 +58,22 @@ serve(async (req) => {
       },
     })
 
-    const info = await transporter.sendMail({
+    const mailOptions: any = {
       from: `BRF Gulmåran <${FROM_EMAIL}>`,
       to: to,
       subject: subject,
       text: text,
       html: html || undefined,
-    })
+    }
+
+    if (attachments?.length) {
+      mailOptions.attachments = attachments.map(att => ({
+        filename: att.filename,
+        content: Array.isArray(att.content) ? Buffer.from(att.content) : att.content,
+      }))
+    }
+
+    const info = await transporter.sendMail(mailOptions)
 
     console.log(`✅ Email sent to ${to} (messageId: ${info.messageId})`)
 

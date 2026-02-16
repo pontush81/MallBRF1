@@ -30,15 +30,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')!
-
-    if (!resendApiKey) {
-      console.error('❌ RESEND_API_KEY not found')
-      return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { type, taskId, assigneeId, assignedBy, taskName, dueDate, description }: NotificationRequest = await req.json()
@@ -96,17 +87,18 @@ serve(async (req) => {
     // Send email notification if enabled
     if (shouldSendEmail && recipientEmail) {
       try {
-        const emailResponse = await fetch('https://api.resend.com/emails', {
+        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'BRF Gulmåran <underhall@gulmaran.se>',
-            to: [recipientEmail],
+            to: recipientEmail,
             subject: template.subject,
+            text: template.subject,
             html: template.html,
+            type: 'task-notification',
           }),
         })
 

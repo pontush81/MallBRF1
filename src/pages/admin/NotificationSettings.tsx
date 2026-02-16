@@ -417,7 +417,7 @@ const NotificationSettings: React.FC = () => {
 
                 <Alert severity="info">
                   <Typography variant="body2">
-                    E-post skickas via Resend API. Inga SMTP-inställningar behövs.
+                    E-post skickas via Gmail SMTP (gulmaranbrf@gmail.com).
                   </Typography>
                 </Alert>
               </Box>

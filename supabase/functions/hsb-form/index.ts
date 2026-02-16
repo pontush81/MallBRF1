@@ -265,68 +265,68 @@ function generateExcelContent(hsbData: HSBReportItem[], residentData: ResidentDa
 
 async function sendHSBReportEmail(fileContent: Uint8Array, hsbData: HSBReportItem[], month: number, year: number) {
   console.log('Sending HSB report email...');
-  
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
   const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
                       'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-  
+
   const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
-  
-  // Use Supabase's built-in email service or Resend
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  
-  if (!resendApiKey) {
-    console.error('RESEND_API_KEY not found in environment variables');
-    return;
-  }
-  
-  const emailData = {
-    from: 'BRF Gulmåran <noreply@brf-gulmaran.se>',
-    to: ['hsb@example.com', 'gulmaranbrf@gmail.com'],
-    subject: `HSB Debiteringsunderlag - BRF Gulmåran - ${monthNames[month - 1]} ${year}`,
-    html: `
-      <h2>HSB Debiteringsunderlag</h2>
-      <p><strong>Bostadsrättsförening:</strong> BRF Gulmåran</p>
-      <p><strong>Period:</strong> ${monthNames[month - 1]} ${year}</p>
-      <p><strong>Uppgiftslämmare:</strong> Kristina Utas</p>
-      <p><strong>Datum:</strong> ${new Date().toLocaleDateString('sv-SE')}</p>
-      
-      <h3>Sammanfattning</h3>
-      <ul>
-        <li>Antal poster: ${hsbData.length}</li>
-        <li>Total summa: ${totalAmount.toFixed(2)} kr</li>
-      </ul>
-      
-      <p>Se bifogad fil för komplett debiteringsunderlag och boendeförteckning.</p>
-      
-      <p>Med vänliga hälsningar,<br>
-      BRF Gulmåran Bokningssystem</p>
-    `,
-    attachments: [
-      {
-        filename: `HSB-debiteringsunderlag-${year}-${String(month).padStart(2, '0')}.csv`,
-        content: Array.from(fileContent)
+
+  const recipients = ['hsb@example.com', 'gulmaranbrf@gmail.com'];
+  const subject = `HSB Debiteringsunderlag - BRF Gulmåran - ${monthNames[month - 1]} ${year}`;
+  const html = `
+    <h2>HSB Debiteringsunderlag</h2>
+    <p><strong>Bostadsrättsförening:</strong> BRF Gulmåran</p>
+    <p><strong>Period:</strong> ${monthNames[month - 1]} ${year}</p>
+    <p><strong>Uppgiftslämmare:</strong> Kristina Utas</p>
+    <p><strong>Datum:</strong> ${new Date().toLocaleDateString('sv-SE')}</p>
+
+    <h3>Sammanfattning</h3>
+    <ul>
+      <li>Antal poster: ${hsbData.length}</li>
+      <li>Total summa: ${totalAmount.toFixed(2)} kr</li>
+    </ul>
+
+    <p>Se bifogad fil för komplett debiteringsunderlag och boendeförteckning.</p>
+
+    <p>Med vänliga hälsningar,<br>
+    BRF Gulmåran Bokningssystem</p>
+  `;
+
+  for (const recipient of recipients) {
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: recipient,
+          subject,
+          text: `HSB Debiteringsunderlag - ${monthNames[month - 1]} ${year}`,
+          html,
+          type: 'hsb-report',
+          attachments: [
+            {
+              filename: `HSB-debiteringsunderlag-${year}-${String(month).padStart(2, '0')}.csv`,
+              content: Array.from(fileContent)
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`Failed to send email to ${recipient}:`, error);
+      } else {
+        const result = await response.json();
+        console.log(`Email sent to ${recipient}:`, result);
       }
-    ]
-  };
-  
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(emailData)
-    });
-    
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Failed to send email:', error);
-    } else {
-      const result = await response.json();
-      console.log('Email sent successfully:', result);
+    } catch (error) {
+      console.error(`Error sending email to ${recipient}:`, error);
     }
-  } catch (error) {
-    console.error('Error sending email:', error);
   }
 } 

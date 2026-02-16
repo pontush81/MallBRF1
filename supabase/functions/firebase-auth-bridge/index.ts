@@ -149,59 +149,59 @@ async function handleDeleteUser(userId: string): Promise<Response> {
 
 async function sendFirebaseCleanupNotification(userId: string) {
   try {
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY not found - cannot send Firebase cleanup notification');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY - cannot send notification');
       return;
     }
 
-    const emailData = {
-      from: 'BRF Gulmåran <noreply@brf-gulmaran.se>',
-      to: ['gulmaranbrf@gmail.com'],
-      subject: '🚨 URGENT: Firebase Auth Cleanup Required - GDPR Erasure',
-      html: `
-        <h2>🚨 URGENT ACTION REQUIRED - Firebase Auth Cleanup</h2>
-        
-        <p><strong>User ID:</strong> ${userId}</p>
-        <p><strong>Reason:</strong> GDPR Erasure Request</p>
-        <p><strong>Timestamp:</strong> ${new Date().toLocaleString('sv-SE')}</p>
-        
-        <div style="background: #fee; padding: 15px; border-left: 4px solid #f00; margin: 20px 0;">
-          <h3>⚠️ MANUAL ACTION REQUIRED</h3>
-          <p>The user has been disabled in our Supabase database, but <strong>Firebase Auth deletion must be done manually</strong>:</p>
-          <ol>
-            <li>Go to <a href="https://console.firebase.google.com">Firebase Console</a></li>
-            <li>Select your project</li>
-            <li>Go to Authentication → Users</li>
-            <li>Find user with ID: <strong>${userId}</strong></li>
-            <li>Delete the user permanently</li>
-          </ol>
-        </div>
-        
-        <p><strong>Status:</strong></p>
-        <ul>
-          <li>✅ User disabled in Supabase (cannot authenticate through our system)</li>
-          <li>✅ Personal data deleted from database</li>
-          <li>❌ Firebase Auth deletion pending manual action</li>
-        </ul>
-        
-        <p><strong>GDPR Compliance:</strong> This deletion request must be completed within 30 days.</p>
-        
-        <hr>
-        <p style="color: #666; font-size: 12px;">
-          This notification is required for GDPR compliance.<br>
-          System: BRF Gulmåran GDPR Automation
-        </p>
-      `
-    };
-
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(emailData)
+      body: JSON.stringify({
+        to: 'gulmaranbrf@gmail.com',
+        subject: '🚨 URGENT: Firebase Auth Cleanup Required - GDPR Erasure',
+        text: `URGENT: Firebase Auth Cleanup Required for user ${userId}`,
+        html: `
+          <h2>🚨 URGENT ACTION REQUIRED - Firebase Auth Cleanup</h2>
+
+          <p><strong>User ID:</strong> ${userId}</p>
+          <p><strong>Reason:</strong> GDPR Erasure Request</p>
+          <p><strong>Timestamp:</strong> ${new Date().toLocaleString('sv-SE')}</p>
+
+          <div style="background: #fee; padding: 15px; border-left: 4px solid #f00; margin: 20px 0;">
+            <h3>⚠️ MANUAL ACTION REQUIRED</h3>
+            <p>The user has been disabled in our Supabase database, but <strong>Firebase Auth deletion must be done manually</strong>:</p>
+            <ol>
+              <li>Go to <a href="https://console.firebase.google.com">Firebase Console</a></li>
+              <li>Select your project</li>
+              <li>Go to Authentication → Users</li>
+              <li>Find user with ID: <strong>${userId}</strong></li>
+              <li>Delete the user permanently</li>
+            </ol>
+          </div>
+
+          <p><strong>Status:</strong></p>
+          <ul>
+            <li>✅ User disabled in Supabase (cannot authenticate through our system)</li>
+            <li>✅ Personal data deleted from database</li>
+            <li>❌ Firebase Auth deletion pending manual action</li>
+          </ul>
+
+          <p><strong>GDPR Compliance:</strong> This deletion request must be completed within 30 days.</p>
+
+          <hr>
+          <p style="color: #666; font-size: 12px;">
+            This notification is required for GDPR compliance.<br>
+            System: BRF Gulmåran GDPR Automation
+          </p>
+        `,
+        type: 'firebase-cleanup',
+      })
     });
 
     if (!response.ok) {
@@ -209,7 +209,7 @@ async function sendFirebaseCleanupNotification(userId: string) {
       console.error('Failed to send Firebase cleanup notification:', error);
     } else {
       const result = await response.json();
-      console.log('Firebase cleanup notification sent:', result.id);
+      console.log('Firebase cleanup notification sent:', result.messageId);
     }
   } catch (error) {
     console.error('Error sending Firebase cleanup notification:', error);

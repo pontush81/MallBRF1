@@ -36,14 +36,12 @@ async function sendGDPRNotificationEmail(
   console.log('Request type:', requestType);
   console.log('User email:', userEmail);
   console.log('Status:', status);
-  
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  console.log('RESEND_API_KEY present:', !!resendApiKey);
-  console.log('RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0);
-  
-  if (!resendApiKey) {
-    console.error('❌ RESEND_API_KEY not found - cannot send admin notification');
-    console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(key => key.includes('RESEND')));
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY - cannot send admin notification');
     return; // Don't throw, as email failure shouldn't stop GDPR request
   }
 
@@ -57,73 +55,69 @@ async function sendGDPRNotificationEmail(
   const statusIcon = status === 'completed' ? '✅' : '❌';
   const statusText = status === 'completed' ? 'SLUTFÖRD' : 'MISSLYCKAD';
   
-  const emailData = {
-    from: 'BRF Gulmåran <onboarding@resend.dev>',
-    to: ['gulmaranbrf@gmail.com'],
-    subject: `${statusIcon} GDPR ${requestTypeNames[requestType]} - ${statusText}`,
-    html: `
-      <h2>${statusIcon} GDPR-begäran ${statusText.toLowerCase()}</h2>
-      
-      <p><strong>Typ:</strong> ${requestTypeNames[requestType]}</p>
-      <p><strong>Användarens e-post:</strong> ${userEmail}</p>
-      <p><strong>Status:</strong> ${statusText}</p>
-      <p><strong>Tidpunkt:</strong> ${new Date().toLocaleString('sv-SE')}</p>
-      
-      ${details ? `<p><strong>Detaljer:</strong> ${details}</p>` : ''}
-      
-      ${requestType === 'erasure' && status === 'completed' ? 
-        `<div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
-          <h3>⚠️ Viktigt - Data har raderats permanent</h3>
-          <p>All personlig data för användaren <strong>${userEmail}</strong> har raderats från systemet enligt GDPR Artikel 17 (Rätt till radering).</p>
-          <p>Detta inkluderar:</p>
-          <ul>
-            <li>Användarprofil</li>
-            <li>Bokningshistorik</li>
-            <li>Anonymisering av skapad innehåll</li>
-          </ul>
-        </div>` : ''
-      }
-      
-      <hr style="margin: 20px 0;">
-      <p style="color: #666; font-size: 12px;">
-        Detta meddelande är automatiskt genererat av BRF Gulmårans GDPR-system.<br>
-        För frågor kontakta systemadministratören.
-      </p>
-    `
-  };
+  const subject = `${statusIcon} GDPR ${requestTypeNames[requestType]} - ${statusText}`;
+  const html = `
+    <h2>${statusIcon} GDPR-begäran ${statusText.toLowerCase()}</h2>
+
+    <p><strong>Typ:</strong> ${requestTypeNames[requestType]}</p>
+    <p><strong>Användarens e-post:</strong> ${userEmail}</p>
+    <p><strong>Status:</strong> ${statusText}</p>
+    <p><strong>Tidpunkt:</strong> ${new Date().toLocaleString('sv-SE')}</p>
+
+    ${details ? `<p><strong>Detaljer:</strong> ${details}</p>` : ''}
+
+    ${requestType === 'erasure' && status === 'completed' ?
+      `<div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3>⚠️ Viktigt - Data har raderats permanent</h3>
+        <p>All personlig data för användaren <strong>${userEmail}</strong> har raderats från systemet enligt GDPR Artikel 17 (Rätt till radering).</p>
+        <p>Detta inkluderar:</p>
+        <ul>
+          <li>Användarprofil</li>
+          <li>Bokningshistorik</li>
+          <li>Anonymisering av skapad innehåll</li>
+        </ul>
+      </div>` : ''
+    }
+
+    <hr style="margin: 20px 0;">
+    <p style="color: #666; font-size: 12px;">
+      Detta meddelande är automatiskt genererat av BRF Gulmårans GDPR-system.<br>
+      För frågor kontakta systemadministratören.
+    </p>
+  `;
 
   try {
-    console.log('📧 Sending email to:', emailData.to);
-    console.log('📧 Email subject:', emailData.subject);
-    console.log('📧 Making request to Resend API...');
-    
-    const response = await fetch('https://api.resend.com/emails', {
+    console.log('📧 Sending GDPR notification to gulmaranbrf@gmail.com');
+    console.log('📧 Email subject:', subject);
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(emailData)
+      body: JSON.stringify({
+        to: 'gulmaranbrf@gmail.com',
+        subject,
+        text: `GDPR ${requestTypeNames[requestType]} - ${statusText} - ${userEmail}`,
+        html,
+        type: 'gdpr-notification',
+      })
     });
 
-    console.log('📧 Resend API response status:', response.status);
-    console.log('📧 Resend API response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('📧 send-email response status:', response.status);
 
     if (!response.ok) {
       const error = await response.text();
       console.error('❌ Failed to send GDPR notification email:', error);
-      console.error('❌ Response status:', response.status);
-      console.error('❌ Response headers:', Object.fromEntries(response.headers.entries()));
     } else {
       const result = await response.json();
       console.log('✅ GDPR notification email sent successfully!');
-      console.log('✅ Email ID:', result.id);
-      console.log('✅ Full response:', result);
+      console.log('✅ Response:', result);
     }
   } catch (error) {
     console.error('💥 Exception while sending GDPR notification email:', error);
     console.error('💥 Error details:', error.message);
-    console.error('💥 Error stack:', error.stack);
   }
 }
 
