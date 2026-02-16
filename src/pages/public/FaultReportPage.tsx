@@ -35,9 +35,7 @@ import {
   createFaultReport,
   CreateFaultReportInput,
   FaultReport,
-  FaultCategory,
   FaultLocation,
-  CATEGORY_LABELS,
   LOCATION_LABELS,
 } from '../../services/faultReportService';
 
@@ -53,7 +51,6 @@ const FaultReportPage: React.FC = () => {
   const [apartmentNumber, setApartmentNumber] = useState<string>('');
   const [contactEmail, setContactEmail] = useState<string>('');
   const [contactPhone, setContactPhone] = useState<string>('');
-  const [category, setCategory] = useState<FaultCategory | ''>('');
   const [location, setLocation] = useState<FaultLocation | ''>('');
   const [description, setDescription] = useState<string>('');
 
@@ -77,11 +74,8 @@ const FaultReportPage: React.FC = () => {
     if (!apartmentNumber) {
       newErrors.apartmentNumber = 'Välj adress';
     }
-    if (!category) {
-      newErrors.category = 'Välj kategori';
-    }
     if (!location) {
-      newErrors.location = 'Välj plats';
+      newErrors.location = 'Välj var felet finns';
     }
     if (!description.trim()) {
       newErrors.description = 'Beskriv felet';
@@ -110,7 +104,6 @@ const FaultReportPage: React.FC = () => {
       apartment_number: apartmentNumber,
       contact_email: contactEmail || undefined,
       contact_phone: contactPhone || undefined,
-      category: category as FaultCategory,
       location: location as FaultLocation,
       description: description.trim(),
       turnstileToken: turnstileToken || undefined,
@@ -132,7 +125,6 @@ const FaultReportPage: React.FC = () => {
       setApartmentNumber('');
       setContactEmail('');
       setContactPhone('');
-      setCategory('');
       setLocation('');
       setDescription('');
       setTurnstileToken(null);
@@ -289,31 +281,12 @@ const FaultReportPage: React.FC = () => {
               )}
             </FormControl>
             
-            {/* Category */}
-            <FormControl fullWidth error={!!errors.category} sx={{ mb: 3 }}>
-              <InputLabel>Kategori *</InputLabel>
-              <Select
-                value={category}
-                label="Kategori *"
-                onChange={(e) => setCategory(e.target.value as FaultCategory)}
-              >
-                {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.category && (
-                <FormHelperText>{errors.category}</FormHelperText>
-              )}
-            </FormControl>
-            
             {/* Location */}
             <FormControl fullWidth error={!!errors.location} sx={{ mb: 3 }}>
-              <InputLabel>Plats *</InputLabel>
+              <InputLabel>Var finns felet? *</InputLabel>
               <Select
                 value={location}
-                label="Plats *"
+                label="Var finns felet? *"
                 onChange={(e) => setLocation(e.target.value as FaultLocation)}
               >
                 {Object.entries(LOCATION_LABELS).map(([value, label]) => (

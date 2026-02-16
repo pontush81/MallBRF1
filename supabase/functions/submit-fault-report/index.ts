@@ -19,20 +19,13 @@ function getCorsHeaders(origin?: string | null) {
   }
 }
 
-// Categories and locations must match frontend
-const VALID_CATEGORIES = ['belysning', 'vatten', 'el', 'dorrar', 'hiss', 'ventilation', 'utemiljo', 'skadedjur', 'ovrigt']
-const VALID_LOCATIONS = ['trappuppgang', 'tvattstuga', 'kallare', 'vind', 'parkering', 'gard', 'entré', 'garage', 'ovrigt']
-
-const CATEGORY_LABELS: Record<string, string> = {
-  belysning: 'Belysning', vatten: 'Vatten & VVS', el: 'El & Eluttag',
-  dorrar: 'Dörrar & Lås', hiss: 'Hiss', ventilation: 'Ventilation',
-  utemiljo: 'Utemiljö', skadedjur: 'Skadedjur', ovrigt: 'Övrigt',
-}
+// Locations must match frontend
+const VALID_LOCATIONS = ['lagenhet', 'trappuppgang', 'tvattstuga', 'kallare', 'vind', 'parkering', 'gard', 'entré', 'ovrigt']
 
 const LOCATION_LABELS: Record<string, string> = {
-  trappuppgang: 'Trappuppgång', tvattstuga: 'Tvättstuga', kallare: 'Källare',
-  vind: 'Vind', parkering: 'Parkering', gard: 'Gård',
-  entré: 'Entré', garage: 'Garage', ovrigt: 'Övrigt',
+  lagenhet: 'I lägenheten', trappuppgang: 'Trappuppgång', tvattstuga: 'Tvättstuga',
+  kallare: 'Källare', vind: 'Vind', parkering: 'Parkering', gard: 'Gård',
+  entré: 'Entré', ovrigt: 'Övrigt',
 }
 
 async function verifyTurnstile(token: string, remoteIp: string): Promise<boolean> {
@@ -149,7 +142,7 @@ serve(async (req) => {
     }
 
     // Validation
-    if (!apartment_number || !category || !location || !description?.trim()) {
+    if (!apartment_number || !location || !description?.trim()) {
       return new Response(
         JSON.stringify({ error: 'Alla obligatoriska fält måste fyllas i.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -159,13 +152,6 @@ serve(async (req) => {
     if (description.trim().length < 10) {
       return new Response(
         JSON.stringify({ error: 'Beskrivningen måste vara minst 10 tecken.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (!VALID_CATEGORIES.includes(category)) {
-      return new Response(
-        JSON.stringify({ error: 'Ogiltig kategori.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -191,7 +177,7 @@ serve(async (req) => {
         apartment_number,
         contact_email: contact_email || null,
         contact_phone: contact_phone || null,
-        category,
+        category: 'ovrigt',
         location,
         description: description.trim(),
         ip_hash: ipHash,
@@ -231,9 +217,9 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               to: settings.admin_email,
-              subject: `Ny felanmälan: ${report.reference_number} - ${CATEGORY_LABELS[category] || category}`,
-              text: `En ny felanmälan har inkommit.\n\nReferensnummer: ${report.reference_number}\nLägenhet: ${apartment_number}\nKategori: ${CATEGORY_LABELS[category] || category}\nPlats: ${LOCATION_LABELS[location] || location}\nBeskrivning: ${description}\n\nLogga in för att hantera ärendet.`,
-              html: `<h2>Ny felanmälan</h2><p><strong>Referensnummer:</strong> ${report.reference_number}</p><p><strong>Lägenhet:</strong> ${apartment_number}</p><p><strong>Kategori:</strong> ${CATEGORY_LABELS[category] || category}</p><p><strong>Plats:</strong> ${LOCATION_LABELS[location] || location}</p><p><strong>Beskrivning:</strong><br/>${description}</p><p><a href="https://www.gulmaran.com/admin/felanmalningar">Logga in för att hantera ärendet</a></p>`,
+              subject: `Ny felanmälan: ${report.reference_number} - ${LOCATION_LABELS[location] || location}`,
+              text: `En ny felanmälan har inkommit.\n\nReferensnummer: ${report.reference_number}\nLägenhet: ${apartment_number}\nPlats: ${LOCATION_LABELS[location] || location}\nBeskrivning: ${description}\n\nLogga in för att hantera ärendet.`,
+              html: `<h2>Ny felanmälan</h2><p><strong>Referensnummer:</strong> ${report.reference_number}</p><p><strong>Lägenhet:</strong> ${apartment_number}</p><p><strong>Plats:</strong> ${LOCATION_LABELS[location] || location}</p><p><strong>Beskrivning:</strong><br/>${description}</p><p><a href="https://www.gulmaran.com/admin/felanmalningar">Logga in för att hantera ärendet</a></p>`,
               type: 'user-notification',
             }),
           })
@@ -257,7 +243,7 @@ serve(async (req) => {
               to: contact_email,
               subject: `Bekräftelse felanmälan ${report.reference_number}`,
               text: `Tack för din felanmälan!\n\nDitt referensnummer är: ${report.reference_number}\n\nDu kan följa statusen på din anmälan här:\nhttps://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}\n\nVi återkommer så snart vi har åtgärdat felet.\n\nMed vänlig hälsning,\nBRF Gulmåran`,
-              html: `<h2>Tack för din felanmälan!</h2><p><strong>Ditt referensnummer:</strong> ${report.reference_number}</p><p><strong>Kategori:</strong> ${CATEGORY_LABELS[category] || category}</p><p><strong>Plats:</strong> ${LOCATION_LABELS[location] || location}</p><p><strong>Beskrivning:</strong><br/>${description}</p><hr/><p><a href="https://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}">Följ statusen på din anmälan</a></p><p>Vi återkommer så snart vi har åtgärdat felet.</p><p>Med vänlig hälsning,<br/>BRF Gulmåran</p>`,
+              html: `<h2>Tack för din felanmälan!</h2><p><strong>Ditt referensnummer:</strong> ${report.reference_number}</p><p><strong>Plats:</strong> ${LOCATION_LABELS[location] || location}</p><p><strong>Beskrivning:</strong><br/>${description}</p><hr/><p><a href="https://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}">Följ statusen på din anmälan</a></p><p>Vi återkommer så snart vi har åtgärdat felet.</p><p>Med vänlig hälsning,<br/>BRF Gulmåran</p>`,
               type: 'user-notification',
             }),
           })

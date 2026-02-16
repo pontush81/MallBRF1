@@ -37,7 +37,8 @@ export type FaultCategory =
   | 'skadedjur'
   | 'ovrigt';
 
-export type FaultLocation = 
+export type FaultLocation =
+  | 'lagenhet'
   | 'trappuppgang'
   | 'tvattstuga'
   | 'kallare'
@@ -45,7 +46,6 @@ export type FaultLocation =
   | 'parkering'
   | 'gard'
   | 'entré'
-  | 'garage'
   | 'ovrigt';
 
 export type FaultStatus = 'new' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
@@ -54,7 +54,7 @@ export interface CreateFaultReportInput {
   apartment_number: string;
   contact_email?: string;
   contact_phone?: string;
-  category: FaultCategory;
+  category?: FaultCategory;
   location: FaultLocation;
   description: string;
   photo_url?: string;
@@ -83,6 +83,7 @@ export const CATEGORY_LABELS: Record<FaultCategory, string> = {
 
 // Location labels in Swedish
 export const LOCATION_LABELS: Record<FaultLocation, string> = {
+  lagenhet: 'I lägenheten',
   trappuppgang: 'Trappuppgång',
   tvattstuga: 'Tvättstuga',
   kallare: 'Källare',
@@ -90,7 +91,6 @@ export const LOCATION_LABELS: Record<FaultLocation, string> = {
   parkering: 'Parkering',
   gard: 'Gård',
   entré: 'Entré',
-  garage: 'Garage',
   ovrigt: 'Övrigt',
 };
 
