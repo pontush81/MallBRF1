@@ -41,6 +41,7 @@ import {
   Visibility as ViewIcon,
   Edit as EditIcon,
   Refresh as RefreshIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -50,6 +51,7 @@ import {
   FaultStatus,
   getAllFaultReports,
   updateFaultReport,
+  deleteFaultReport,
   getFaultReportStats,
   sendStatusUpdateEmail,
   CATEGORY_LABELS,
@@ -77,6 +79,11 @@ const FaultReportsList: React.FC = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<FaultReport | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Edit form state
   const [editStatus, setEditStatus] = useState<FaultStatus>('new');
   const [editNotes, setEditNotes] = useState('');
@@ -167,6 +174,20 @@ const FaultReportsList: React.FC = () => {
   };
   
   
+  const handleDeleteReport = async () => {
+    if (!reportToDelete) return;
+    setDeleting(true);
+    const result = await deleteFaultReport(reportToDelete.id);
+    setDeleting(false);
+    if (result.success) {
+      setDeleteDialogOpen(false);
+      setReportToDelete(null);
+      loadData();
+    } else {
+      setError(result.error || 'Kunde inte ta bort');
+    }
+  };
+
   // Filtered reports
   const filteredReports = statusFilter === 'all' 
     ? reports 
@@ -410,6 +431,11 @@ const FaultReportsList: React.FC = () => {
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title="Radera">
+                      <IconButton size="small" onClick={() => { setReportToDelete(report); setDeleteDialogOpen(true); }} color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
@@ -493,6 +519,35 @@ const FaultReportsList: React.FC = () => {
         )}
       </Dialog>
       
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Radera felanmälan?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Är du säker på att du vill radera felanmälan från {reportToDelete?.apartment_number}?
+            Detta går inte att ångra.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+            Avbryt
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteReport}
+            disabled={deleting}
+          >
+            {deleting ? 'Raderar...' : 'Radera'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Edit Dialog */}
       <Dialog 
         open={editDialogOpen} 
