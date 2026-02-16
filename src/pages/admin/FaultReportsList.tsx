@@ -95,9 +95,9 @@ const FaultReportsList: React.FC = () => {
     setError(null);
     
     try {
-      // Add timeout protection (15 seconds)
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout - försök igen')), 15000)
+      // Add timeout protection (30 seconds, first load can be slow due to cold start)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout - försök igen')), 30000)
       );
       
       const fetchPromise = Promise.all([
