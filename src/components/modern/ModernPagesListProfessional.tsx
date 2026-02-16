@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
+import {
   Box,
   Container,
   TextField,
@@ -11,7 +11,8 @@ import {
   Fade,
   Stack,
   Button,
-  Collapse
+  Collapse,
+  Divider
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -303,38 +304,40 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
             </Typography>
           </Paper>
         ) : (
-          <Stack spacing={{ xs: 2, md: 3 }}>
+          <Stack spacing={{ xs: 0, md: 3 }}>
             {filteredPages.map((page, index) => {
               const summary = getContentSummary(page.content);
               const { icon: PageIcon, color: iconColor, bgColor } = getPageIconAndColor(page);
-              
+
               return (
                 <Fade in={true} timeout={200 + index * 50} key={page.id}>
-                  <Card 
+                  <Box>
+                  {index > 0 && (
+                    <Divider sx={{ display: { xs: 'block', md: 'none' }, mt: 3, mb: 2, borderColor: bastadTheme.colors.sand[300] }} />
+                  )}
+                  <Card
                     elevation={0}
                     onClick={() => toggleCardExpansion(page.id.toString())}
-                    sx={{ 
-                      borderRadius: { xs: bastadTheme.borderRadius.lg, md: bastadTheme.borderRadius.xl },
-                      border: `1px solid ${bastadTheme.colors.sand[300]}`,
+                    sx={{
+                      borderRadius: { xs: 0, md: bastadTheme.borderRadius.xl },
+                      border: { xs: 'none', md: `1px solid ${bastadTheme.colors.sand[300]}` },
                       transition: bastadTheme.transitions.normal,
                       cursor: 'pointer',
-                      backgroundColor: bastadTheme.colors.white,
-                      boxShadow: bastadTheme.shadows.card,
-                      // MOBIL: Touch feedback
+                      backgroundColor: { xs: 'transparent', md: bastadTheme.colors.white },
+                      boxShadow: { xs: 'none', md: bastadTheme.shadows.card },
                       WebkitTapHighlightColor: 'transparent',
                       '&:hover': {
-                        boxShadow: bastadTheme.shadows.cardHover,
-                        borderColor: bastadTheme.colors.terracotta[500],
+                        boxShadow: { xs: 'none', md: bastadTheme.shadows.cardHover },
+                        borderColor: { xs: 'transparent', md: bastadTheme.colors.terracotta[500] },
                       },
                       '&:active': {
                         transform: { xs: 'scale(0.99)', md: 'none' },
                       },
                     }}
                   >
-                    <CardContent sx={{ 
-                      // MOBIL-FÖRST: Tight padding
-                      p: { xs: 2.5, sm: 3, md: 4 },
-                      '&:last-child': { pb: { xs: 2.5, sm: 3, md: 4 } },
+                    <CardContent sx={{
+                      p: { xs: 0, sm: 3, md: 4 },
+                      '&:last-child': { pb: { xs: 0, sm: 3, md: 4 } },
                     }}>
                       {/* Header med ikon och titel */}
                       <Stack 
@@ -467,6 +470,7 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
                       </Box>
                     </CardContent>
                   </Card>
+                  </Box>
                 </Fade>
               );
             })}

@@ -5,6 +5,7 @@ import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Grid from '@mui/material/Grid';
+import Divider from '@mui/material/Divider';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextNew';
 import { bastadTheme } from '../theme/bastadTheme';
@@ -335,19 +336,19 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
     <Box
       id={`feature-${title}`}
       sx={{
-        p: 4,
+        p: { xs: 0, md: 4 },
         height: '100%',
-        background: bastadTheme.colors.white,
-        borderRadius: bastadTheme.borderRadius.xl,
-        boxShadow: bastadTheme.shadows.card,
-        border: `1px solid ${bastadTheme.colors.sand[300]}`,
+        background: { xs: 'transparent', md: bastadTheme.colors.white },
+        borderRadius: { xs: 0, md: bastadTheme.borderRadius.xl },
+        boxShadow: { xs: 'none', md: bastadTheme.shadows.card },
+        border: { xs: 'none', md: `1px solid ${bastadTheme.colors.sand[300]}` },
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
         transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          boxShadow: bastadTheme.shadows.cardHover,
-          transform: 'translateY(-4px)',
-          borderColor: bastadTheme.colors.terracotta[500],
+          boxShadow: { xs: 'none', md: bastadTheme.shadows.cardHover },
+          transform: { xs: 'none', md: 'translateY(-4px)' },
+          borderColor: { xs: 'transparent', md: bastadTheme.colors.terracotta[500] },
         },
       }}
     >
@@ -475,8 +476,8 @@ const Home: React.FC = () => {
       <Box
         component="section"
         sx={{
-          py: { xs: 8, md: 12 },
-          px: 2,
+          py: { xs: 6, md: 12 },
+          px: { xs: 3, md: 2 },
           background: bastadTheme.colors.sand[100],
         }}
       >
@@ -525,11 +526,18 @@ const Home: React.FC = () => {
           </Box>
 
           {/* Feature cards */}
-          <Grid container spacing={4}>
+          <Grid container spacing={{ xs: 0, md: 4 }}>
             {features.map((feature, index) => (
-              <Grid item xs={12} md={4} key={feature.title}>
-                <FeatureCard {...feature} delay={index * 100} />
-              </Grid>
+              <React.Fragment key={feature.title}>
+                {index > 0 && (
+                  <Grid item xs={12} sx={{ display: { xs: 'block', md: 'none' }, py: 0 }}>
+                    <Divider sx={{ borderColor: bastadTheme.colors.sand[300] }} />
+                  </Grid>
+                )}
+                <Grid item xs={12} md={4} sx={{ py: { xs: 2, md: 0 } }}>
+                  <FeatureCard {...feature} delay={index * 100} />
+                </Grid>
+              </React.Fragment>
             ))}
           </Grid>
         </Container>
