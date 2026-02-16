@@ -20,10 +20,10 @@ function getCorsHeaders(origin?: string | null) {
 }
 
 // Locations must match frontend
-const VALID_LOCATIONS = ['lagenhet', 'trappuppgang', 'tvattstuga', 'kallare', 'vind', 'parkering', 'gard', 'entré', 'ovrigt']
+const VALID_LOCATIONS = ['lagenhet', 'gastlagenhet', 'trappuppgang', 'tvattstuga', 'kallare', 'vind', 'parkering', 'gard', 'entré', 'ovrigt']
 
 const LOCATION_LABELS: Record<string, string> = {
-  lagenhet: 'I lägenheten', trappuppgang: 'Trappuppgång', tvattstuga: 'Tvättstuga',
+  lagenhet: 'I lägenheten', gastlagenhet: 'Gästlägenhet', trappuppgang: 'Trappuppgång', tvattstuga: 'Tvättstuga',
   kallare: 'Källare', vind: 'Vind', parkering: 'Parkering', gard: 'Gård',
   entré: 'Entré', ovrigt: 'Övrigt',
 }

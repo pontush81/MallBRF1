@@ -39,6 +39,7 @@ export type FaultCategory =
 
 export type FaultLocation =
   | 'lagenhet'
+  | 'gastlagenhet'
   | 'trappuppgang'
   | 'tvattstuga'
   | 'kallare'
@@ -84,6 +85,7 @@ export const CATEGORY_LABELS: Record<FaultCategory, string> = {
 // Location labels in Swedish
 export const LOCATION_LABELS: Record<FaultLocation, string> = {
   lagenhet: 'I lägenheten',
+  gastlagenhet: 'Gästlägenhet',
   trappuppgang: 'Trappuppgång',
   tvattstuga: 'Tvättstuga',
   kallare: 'Källare',
