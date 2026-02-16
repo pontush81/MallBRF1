@@ -73,7 +73,7 @@ const NotificationSettings: React.FC = () => {
     const timeoutId = setTimeout(() => {
       console.log('⏰ Timeout triggered');
       controller.abort();
-    }, 10000);
+    }, 30000);
     
     try {
       const { data, error } = await supabaseClient
