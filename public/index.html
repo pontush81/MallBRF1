@@ -30,16 +30,11 @@
     
     <!-- Critical CSS for ZERO CLS (Cumulative Layout Shift) -->
     <style>
-      /* CRITICAL: Prevent ALL layout shifts + GPU acceleration */
-      * { 
-        box-sizing: border-box; 
-        margin: 0; 
+      /* CRITICAL: Prevent ALL layout shifts */
+      * {
+        box-sizing: border-box;
+        margin: 0;
         padding: 0;
-        /* Force GPU acceleration for all animations */
-        -webkit-transform: translateZ(0);
-        transform: translateZ(0);
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
       }
       html { 
         -webkit-font-smoothing: antialiased; 
@@ -53,8 +48,7 @@
         height: 100%;
         line-height: 1.5;
         font-display: swap;
-        /* Critical: Optimize LCP with content-visibility */
-        contain: layout style paint;
+        /* Removed contain: layout style paint - it breaks position:fixed children */
       }
       #root { 
         /* Removed min-height: 100vh that was causing dead space */
