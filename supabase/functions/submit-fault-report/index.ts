@@ -20,12 +20,11 @@ function getCorsHeaders(origin?: string | null) {
 }
 
 // Locations must match frontend
-const VALID_LOCATIONS = ['lagenhet', 'gastlagenhet', 'trappuppgang', 'tvattstuga', 'kallare', 'vind', 'parkering', 'gard', 'entré', 'ovrigt']
+const VALID_LOCATIONS = ['lagenhet', 'gastlagenhet', 'trappuppgang', 'tvattstuga', 'kallare', 'parkering', 'ellagarden', 'ovrigt']
 
 const LOCATION_LABELS: Record<string, string> = {
   lagenhet: 'I lägenheten', gastlagenhet: 'Gästlägenhet', trappuppgang: 'Trappuppgång', tvattstuga: 'Tvättstuga',
-  kallare: 'Källare', vind: 'Vind', parkering: 'Parkering', gard: 'Gård',
-  entré: 'Entré', ovrigt: 'Övrigt',
+  kallare: 'Källare', parkering: 'Parkering', ellagarden: 'Ellagården', ovrigt: 'Övrigt',
 }
 
 async function verifyTurnstile(token: string, remoteIp: string): Promise<boolean> {

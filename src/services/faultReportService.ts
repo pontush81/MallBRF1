@@ -43,10 +43,8 @@ export type FaultLocation =
   | 'trappuppgang'
   | 'tvattstuga'
   | 'kallare'
-  | 'vind'
   | 'parkering'
-  | 'gard'
-  | 'entré'
+  | 'ellagarden'
   | 'ovrigt';
 
 export type FaultStatus = 'new' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
@@ -89,10 +87,8 @@ export const LOCATION_LABELS: Record<FaultLocation, string> = {
   trappuppgang: 'Trappuppgång',
   tvattstuga: 'Tvättstuga',
   kallare: 'Källare',
-  vind: 'Vind',
   parkering: 'Parkering',
-  gard: 'Gård',
-  entré: 'Entré',
+  ellagarden: 'Ellagården',
   ovrigt: 'Övrigt',
 };
 

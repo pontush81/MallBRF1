@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Import cache management for automatic Safari iPhone fixes
@@ -67,7 +67,8 @@ import MaintenancePlan from './pages/MaintenancePlan';
 // Import LazyAuthCallback for OAuth redirects
 // Import StandardLoading component
 import { PageLoading } from './components/common/StandardLoading';
-import { Button } from '@mui/material';
+import { Button, Fab, Tooltip } from '@mui/material';
+import { ReportProblem as ReportIcon } from '@mui/icons-material';
 import { initMobileOptimizations } from './utils/mobileOptimizations';
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import { Analytics } from '@vercel/analytics/react';
@@ -138,11 +139,43 @@ const ProtectedRoute = ({ children, adminOnly = false }: { children: React.React
   return <>{children}</>;
 };
 
+// Floating fault report button - visible on all pages except /felanmalan
+const FaultReportFab = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  if (location.pathname.startsWith('/felanmalan') || location.pathname.startsWith('/admin')) {
+    return null;
+  }
+
+  return (
+    <Tooltip title="Felanmälan" placement="left">
+      <Fab
+        size="medium"
+        aria-label="Gör en felanmälan"
+        onClick={() => navigate('/felanmalan')}
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 16, md: 24 },
+          right: { xs: 16, md: 24 },
+          bgcolor: '#c2703a',
+          color: '#fff',
+          '&:hover': { bgcolor: '#a85d2f' },
+          zIndex: 1000,
+        }}
+      >
+        <ReportIcon />
+      </Fab>
+    </Tooltip>
+  );
+};
+
 function AppRoutes() {
   return (
     <Router>
       <ScrollToTop />
       <OfflineIndicator />
+      <FaultReportFab />
       <Routes>
         {/* Root and /pages both show the handbook */}
         <Route path="/" element={<Layout><ModernPublicPages /></Layout>} />

@@ -142,7 +142,7 @@ const FaultReportPage: React.FC = () => {
   if (success && submittedReport) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: bastadTheme.colors.sand[50] }}>
-        <CompactHero subtitle="Rapportera fel i gemensamma utrymmen" />
+        <CompactHero subtitle="Rapportera fel" />
         
         <Container maxWidth="sm" sx={{ py: 4 }}>
           <Paper
@@ -229,7 +229,7 @@ const FaultReportPage: React.FC = () => {
   
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: bastadTheme.colors.sand[50] }}>
-      <CompactHero subtitle="Rapportera fel i gemensamma utrymmen" />
+      <CompactHero subtitle="Rapportera fel" />
       
       <Container maxWidth="sm" sx={{ py: 4 }}>
         <Paper
@@ -249,7 +249,7 @@ const FaultReportPage: React.FC = () => {
           </Box>
           
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Använd detta formulär för att rapportera fel i gemensamma utrymmen. 
+            Använd detta formulär för att rapportera fel.
             Styrelsen får ett meddelande och kommer att åtgärda felet så snart som möjligt.
           </Typography>
           

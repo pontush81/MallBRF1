@@ -299,7 +299,7 @@ const NotificationSettings: React.FC = () => {
                     label="Felanmälningar"
                   />
                   <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
-                    🔧 Skickar e-post till admin när boende rapporterar fel i gemensamma utrymmen
+                    🔧 Skickar e-post till admin när boende rapporterar fel
                   </Typography>
                 </Box>
               </Box>
