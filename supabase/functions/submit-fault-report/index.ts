@@ -198,30 +198,45 @@ serve(async (req) => {
     // Send email notifications (fire-and-forget, don't block response)
     const emailPromises: Promise<void>[] = []
 
-    // Admin notification
+    // Admin notification(s)
     emailPromises.push((async () => {
       try {
         const { data: settings } = await supabase
           .from('notification_settings')
-          .select('email_notifications, fault_report_notifications, admin_email')
+          .select('email_notifications, fault_report_notifications, admin_email, fault_report_emails')
           .limit(1)
           .single()
 
-        if (settings?.email_notifications && settings?.fault_report_notifications && settings?.admin_email) {
-          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              to: settings.admin_email,
-              subject: `Ny felanmälan: ${report.reference_number} - ${LOCATION_LABELS[location] || location}`,
-              text: `En ny felanmälan har inkommit.\n\nReferensnummer: ${report.reference_number}\nLägenhet: ${apartment_number}\nPlats: ${LOCATION_LABELS[location] || location}\nBeskrivning: ${description}\n\nLogga in för att hantera ärendet.`,
-              html: `<h2>Ny felanmälan</h2><p><strong>Referensnummer:</strong> ${report.reference_number}</p><p><strong>Lägenhet:</strong> ${apartment_number}</p><p><strong>Plats:</strong> ${LOCATION_LABELS[location] || location}</p><p><strong>Beskrivning:</strong><br/>${description}</p><p><a href="https://www.gulmaran.com/admin/felanmalningar">Logga in för att hantera ärendet</a></p>`,
-              type: 'user-notification',
-            }),
-          })
+        if (!settings?.email_notifications || !settings?.fault_report_notifications) return
+
+        // Build list of recipients: fault_report_emails array, falling back to admin_email
+        const recipients: string[] = settings.fault_report_emails?.length
+          ? settings.fault_report_emails
+          : settings.admin_email ? [settings.admin_email] : []
+
+        const emailSubject = `Ny felanmälan: ${report.reference_number} - ${LOCATION_LABELS[location] || location}`
+        const emailText = `En ny felanmälan har inkommit.\n\nReferensnummer: ${report.reference_number}\nLägenhet: ${apartment_number}\nPlats: ${LOCATION_LABELS[location] || location}\nBeskrivning: ${description}\n\nLogga in för att hantera ärendet.`
+        const emailHtml = `<h2>Ny felanmälan</h2><p><strong>Referensnummer:</strong> ${report.reference_number}</p><p><strong>Lägenhet:</strong> ${apartment_number}</p><p><strong>Plats:</strong> ${LOCATION_LABELS[location] || location}</p><p><strong>Beskrivning:</strong><br/>${description}</p><p><a href="https://www.gulmaran.com/admin/felanmalningar">Logga in för att hantera ärendet</a></p>`
+
+        for (const recipient of recipients) {
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                to: recipient,
+                subject: emailSubject,
+                text: emailText,
+                html: emailHtml,
+                type: 'user-notification',
+              }),
+            })
+          } catch (sendErr) {
+            console.error(`Failed to send to ${recipient}:`, sendErr)
+          }
         }
       } catch (err) {
         console.error('Admin notification failed:', err)

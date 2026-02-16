@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-
   Switch,
   FormControlLabel,
   TextField,
@@ -13,14 +12,20 @@ import {
   Divider,
   Card,
   CardContent,
-  CardHeader
+  CardHeader,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
 } from '@mui/material';
 import {
   Save as SaveIcon,
   Refresh as RefreshIcon,
   Notifications as NotificationIcon,
   Email as EmailIcon,
-
+  Delete as DeleteIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { StandardLoading } from '../../components/common/StandardLoading';
 import supabaseClient from '../../services/supabaseClient';
@@ -33,6 +38,7 @@ interface NotificationSettingsData {
   system_alerts: boolean;
   fault_report_notifications: boolean;
   admin_email: string;
+  fault_report_emails: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -44,12 +50,14 @@ const NotificationSettings: React.FC = () => {
     maintenance_reminders: true,
     system_alerts: true,
     fault_report_notifications: true,
-    admin_email: ''
+    admin_email: '',
+    fault_report_emails: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [newEmail, setNewEmail] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -91,7 +99,10 @@ const NotificationSettings: React.FC = () => {
 
       if (data) {
         console.log('✅ Settings loaded successfully');
-        setSettings(data);
+        setSettings({
+          ...data,
+          fault_report_emails: data.fault_report_emails || [],
+        });
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -126,6 +137,7 @@ const NotificationSettings: React.FC = () => {
             system_alerts: settings.system_alerts,
             fault_report_notifications: settings.fault_report_notifications,
             admin_email: settings.admin_email,
+            fault_report_emails: settings.fault_report_emails,
             updated_at: new Date().toISOString()
           })
           .eq('id', settings.id)
@@ -141,7 +153,8 @@ const NotificationSettings: React.FC = () => {
             maintenance_reminders: settings.maintenance_reminders,
             system_alerts: settings.system_alerts,
             fault_report_notifications: settings.fault_report_notifications,
-            admin_email: settings.admin_email
+            admin_email: settings.admin_email,
+            fault_report_emails: settings.fault_report_emails,
           })
           .select()
           .single();
@@ -176,6 +189,31 @@ const NotificationSettings: React.FC = () => {
     setSettings(prev => ({
       ...prev,
       [field]: event.target.value
+    }));
+  };
+
+  const handleAddEmail = () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Ogiltig e-postadress.');
+      return;
+    }
+    if (settings.fault_report_emails.includes(email)) {
+      setError('E-postadressen finns redan i listan.');
+      return;
+    }
+    setSettings(prev => ({
+      ...prev,
+      fault_report_emails: [...prev.fault_report_emails, email],
+    }));
+    setNewEmail('');
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    setSettings(prev => ({
+      ...prev,
+      fault_report_emails: prev.fault_report_emails.filter(e => e !== email),
     }));
   };
 
@@ -322,14 +360,64 @@ const NotificationSettings: React.FC = () => {
                   onChange={handleTextChange('admin_email')}
                   fullWidth
                   type="email"
-                  helperText="E-postadress för administrativa meddelanden"
+                  helperText="E-postadress för allmänna administrativa meddelanden"
                 />
-                
+
                 <Divider sx={{ my: 1 }} />
-                
-                <Alert severity="info" sx={{ mb: 2 }}>
+
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Mottagare av felanmälningar
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+                  Dessa e-postadresser får notis när en ny felanmälan skickas in.
+                </Typography>
+
+                {settings.fault_report_emails.length > 0 && (
+                  <List dense disablePadding>
+                    {settings.fault_report_emails.map((email) => (
+                      <ListItem key={email} disableGutters>
+                        <ListItemText primary={email} />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            size="small"
+                            onClick={() => handleRemoveEmail(email)}
+                            aria-label={`Ta bort ${email}`}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    label="Lägg till e-postadress"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddEmail(); } }}
+                    fullWidth
+                    type="email"
+                    size="small"
+                    placeholder="namn@exempel.se"
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleAddEmail}
+                    startIcon={<AddIcon />}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    Lägg till
+                  </Button>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                <Alert severity="info">
                   <Typography variant="body2">
-                    📧 E-post skickas via Resend API. Inga SMTP-inställningar behövs.
+                    E-post skickas via Resend API. Inga SMTP-inställningar behövs.
                   </Typography>
                 </Alert>
               </Box>
