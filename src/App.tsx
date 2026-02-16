@@ -68,7 +68,7 @@ import MaintenancePlan from './pages/MaintenancePlan';
 // Import StandardLoading component
 import { PageLoading } from './components/common/StandardLoading';
 import { Button, Fab, Tooltip } from '@mui/material';
-import { ReportProblem as ReportIcon } from '@mui/icons-material';
+import { Build as ReportIcon } from '@mui/icons-material';
 import { initMobileOptimizations } from './utils/mobileOptimizations';
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import { Analytics } from '@vercel/analytics/react';
@@ -158,9 +158,9 @@ const FaultReportFab = () => {
           position: 'fixed',
           bottom: { xs: 16, md: 24 },
           right: { xs: 16, md: 24 },
-          bgcolor: '#c2703a',
+          bgcolor: '#6b7c8d',
           color: '#fff',
-          '&:hover': { bgcolor: '#a85d2f' },
+          '&:hover': { bgcolor: '#556270' },
           zIndex: 1000,
         }}
       >
