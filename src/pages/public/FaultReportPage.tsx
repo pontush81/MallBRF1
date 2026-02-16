@@ -24,7 +24,6 @@ import {
 import {
   Send as SendIcon,
   CheckCircle as CheckCircleIcon,
-  ReportProblem as ReportIcon,
 } from '@mui/icons-material';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { useNavigate } from 'react-router-dom';
@@ -231,29 +230,14 @@ const FaultReportPage: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: bastadTheme.colors.sand[50] }}>
       <CompactHero subtitle="Rapportera fel" />
       
-      <Container maxWidth="sm" sx={{ py: 4 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 3, sm: 4 },
-            borderRadius: 3,
-            border: `1px solid ${bastadTheme.colors.sand[200]}`,
-          }}
-        >
-          {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-            <ReportIcon sx={{ color: bastadTheme.colors.terracotta[500], fontSize: 28 }} />
-            <Typography variant="h5" fontWeight={600} color={bastadTheme.colors.ocean[900]}>
-              Felanmälan
-            </Typography>
-          </Box>
-          
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Använd detta formulär för att rapportera fel.
-            Styrelsen får ett meddelande och kommer att åtgärda felet så snart som möjligt.
+      <Container maxWidth="sm" sx={{ py: 3, px: { xs: 2, sm: 3 } }}>
+          <Typography variant="h5" fontWeight={600} color={bastadTheme.colors.ocean[900]} sx={{ mb: 1 }}>
+            Felanmälan
           </Typography>
-          
-          <Divider sx={{ mb: 3 }} />
+
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Rapportera fel så åtgärdar styrelsen det så snart som möjligt.
+          </Typography>
           
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -385,7 +369,6 @@ const FaultReportPage: React.FC = () => {
               {isSubmitting ? 'Skickar...' : 'Skicka felanmälan'}
             </Button>
           </form>
-        </Paper>
         
         {/* Info box */}
         <Paper
