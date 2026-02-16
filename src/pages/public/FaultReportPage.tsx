@@ -72,7 +72,7 @@ const FaultReportPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
     
     if (!apartmentNumber) {
-      newErrors.apartmentNumber = 'Välj adress';
+      newErrors.apartmentNumber = 'Välj din adress';
     }
     if (!location) {
       newErrors.location = 'Välj var felet finns';
@@ -264,10 +264,10 @@ const FaultReportPage: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* Apartment Number */}
             <FormControl fullWidth error={!!errors.apartmentNumber} sx={{ mb: 3 }}>
-              <InputLabel>Adress *</InputLabel>
+              <InputLabel>Din adress *</InputLabel>
               <Select
                 value={apartmentNumber}
-                label="Adress *"
+                label="Din adress *"
                 onChange={(e) => setApartmentNumber(e.target.value)}
               >
                 {APARTMENT_NUMBERS.map((num) => (
