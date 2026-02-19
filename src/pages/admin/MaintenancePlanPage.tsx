@@ -1,8 +1,8 @@
 import React from 'react';
-import SimpleMaintenancePlan from '../../components/maintenance/SimpleMaintenancePlan';
+import MaintenancePlanSpreadsheet from '../../components/maintenance/MaintenancePlanSpreadsheet';
 
 const MaintenancePlanPage: React.FC = () => {
-  return <SimpleMaintenancePlan />;
+  return <MaintenancePlanSpreadsheet />;
 };
 
 export default MaintenancePlanPage; 
