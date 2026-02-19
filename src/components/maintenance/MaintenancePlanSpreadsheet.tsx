@@ -296,7 +296,9 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           const cellKey = `${rowIdx},${numCol}`;
 
           if (isNumericField) {
-            if (typeof newVal === 'string' && newVal.startsWith('=') && newVal.length > 1) {
+            // Any string starting with "=" is treated as formula intent — skip if incomplete
+            if (typeof newVal === 'string' && newVal.startsWith('=')) {
+              if (newVal.length <= 1) continue; // Just "=" — keep old value
               // Store formula
               formulaMapRef.current.set(cellKey, newVal);
               formulasChanged = true;
