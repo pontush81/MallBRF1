@@ -141,10 +141,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
         props.className = cls;
       }
 
-      // Locked rows (section, subsection, summary, blank) are readOnly
-      if (planRow.isLocked || planRow.rowType === 'summary' || planRow.rowType === 'section' || planRow.rowType === 'subsection') {
-        props.readOnly = true;
-      }
+      // No rows are readOnly — the entire sheet is editable like Excel
 
       // Total column is always readOnly
       if (col === TOTAL_COL) {
@@ -177,7 +174,6 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
           const planRow = newRows[rowIdx];
           if (!planRow) continue;
-          if (planRow.isLocked || planRow.rowType === 'summary') continue;
 
           const isNumericField =
             numCol >= YEAR_COL_START && numCol <= YEAR_COL_END ||
@@ -218,7 +214,10 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
         if (changed) {
           setIsDirty(true);
-          return recalcSummaryRows(newRows);
+          // Only auto-recalc summaries when item rows are edited
+          // (skip recalc if user manually edited a summary row)
+          const editedSummaryOnly = changes.every(([rowIdx]) => newRows[rowIdx]?.rowType === 'summary');
+          return editedSummaryOnly ? newRows : recalcSummaryRows(newRows);
         }
         return prevRows;
       });

@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
-import ScheduleIcon from '@mui/icons-material/Schedule';
 import CloseIcon from '@mui/icons-material/Close';
 import { PlanRow, YEAR_COLUMNS } from '../../services/maintenancePlanService';
 import {
@@ -86,23 +85,6 @@ function analyzeLagkrav(row: PlanRow): LagkravItem {
   return { row, status, nextYear, budget };
 }
 
-const STATUS_ICON: Record<LagkravStatus, React.ReactElement> = {
-  ok: <CheckCircleIcon fontSize="small" color="success" />,
-  warning: <WarningIcon fontSize="small" color="warning" />,
-  unknown: <ScheduleIcon fontSize="small" color="disabled" />,
-};
-
-const STATUS_LABEL: Record<LagkravStatus, string> = {
-  ok: 'Planerad',
-  warning: 'Behöver åtgärd',
-  unknown: 'Ej schemalagd',
-};
-
-const STATUS_COLOR: Record<LagkravStatus, 'success' | 'warning' | 'default'> = {
-  ok: 'success',
-  warning: 'warning',
-  unknown: 'default',
-};
 
 // ---------------------------------------------------------------------------
 // Year detail: items for a selected year
@@ -137,8 +119,6 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
 
   // Lagkrav
   const lagkravItems = useMemo(() => getLagkravItems(rows).map(analyzeLagkrav), [rows]);
-  const lagkravOk = lagkravItems.filter((i) => i.status === 'ok').length;
-  const lagkravAction = lagkravItems.filter((i) => i.status !== 'ok').length;
 
   // Year detail
   const yearDetailItems = useMemo(
@@ -159,7 +139,7 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
       {/* Total */}
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          {fmtTkr(grandTotal)}
+          {fmtKr(grandTotal)}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           total planerad kostnad 2026–2035
@@ -175,7 +155,6 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
           const year = yc.replace('year_', '');
           const amount = yearlyTotals[yc] || 0;
           const pct = (amount / maxYear) * 100;
-          const isHigh = amount > 200000;
           const isSelected = selectedYear === yc;
 
           return (
@@ -186,10 +165,10 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
                 flex: '1 0 80px',
                 maxWidth: 100,
                 border: '2px solid',
-                borderColor: isSelected ? 'primary.main' : isHigh ? 'warning.main' : 'divider',
+                borderColor: isSelected ? 'primary.main' : 'divider',
                 borderRadius: 1,
                 p: 1,
-                bgcolor: isSelected ? 'primary.50' : isHigh ? 'warning.50' : 'background.paper',
+                bgcolor: isSelected ? 'primary.50' : 'background.paper',
                 textAlign: 'center',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
@@ -204,7 +183,7 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ fontWeight: 700, color: isSelected ? 'primary.main' : isHigh ? 'warning.dark' : 'text.primary' }}
+                sx={{ fontWeight: 700, color: isSelected ? 'primary.main' : 'text.primary' }}
               >
                 {fmtCompact(amount)}
               </Typography>
@@ -221,7 +200,7 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
                   sx={{
                     height: '100%',
                     width: `${pct}%`,
-                    bgcolor: isSelected ? 'primary.main' : isHigh ? 'warning.main' : 'primary.main',
+                    bgcolor: isSelected ? 'primary.main' : 'primary.main',
                     borderRadius: 1,
                   }}
                 />
@@ -329,70 +308,71 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
       </TableContainer>
 
       {/* Lagkrav & obligatoriska kontroller */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-          Lagkrav & obligatoriska kontroller
-        </Typography>
-        <Chip label={`${lagkravOk} planerade`} color="success" size="small" variant="outlined" />
-        {lagkravAction > 0 && (
-          <Chip label={`${lagkravAction} behöver åtgärd`} color="warning" size="small" variant="outlined" />
-        )}
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Lagstadgade åtgärder och kontroller som BRF:en måste utföra.
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+        Lagkrav & obligatoriska kontroller
       </Typography>
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 600, width: 40 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Åtgärd</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Frekvens</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="right">Nästa</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="right">Budget</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Notering</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {lagkravItems.map((item) => (
-              <TableRow key={item.row.id}>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {STATUS_ICON[item.status]}
-                    <Chip
-                      label={STATUS_LABEL[item.status]}
-                      color={STATUS_COLOR[item.status]}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.7rem', height: 22 }}
-                    />
+
+      {lagkravItems.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          Inga lagkravsposter hittades
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {/* Items needing attention */}
+          {lagkravItems.filter(i => i.status !== 'ok').length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {lagkravItems.filter(i => i.status !== 'ok').map((item) => (
+                <Box
+                  key={item.row.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    p: 1.5,
+                    borderRadius: 1,
+                    bgcolor: 'warning.50',
+                    border: '1px solid',
+                    borderColor: 'warning.200',
+                  }}
+                >
+                  <WarningIcon fontSize="small" color="warning" />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {item.row.atgard}
+                    </Typography>
+                    {item.row.utredningspunkter?.trim() && (
+                      <Typography variant="caption" color="text.secondary">
+                        {item.row.utredningspunkter}
+                      </Typography>
+                    )}
                   </Box>
-                </TableCell>
-                <TableCell sx={{ fontWeight: 500 }}>{item.row.atgard}</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }}>
-                  {item.row.tek_livslangd || '–'}
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 500 }}>
-                  {item.nextYear || '–'}
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 500 }}>
-                  {item.budget}
-                </TableCell>
-                <TableCell sx={{ color: 'text.secondary', maxWidth: 200 }}>
-                  {item.row.utredningspunkter || '–'}
-                </TableCell>
-              </TableRow>
-            ))}
-            {lagkravItems.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ color: 'text.secondary', py: 3 }}>
-                  Inga lagkravsposter hittades
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  <Chip label="Behöver åtgärd" color="warning" size="small" variant="outlined" />
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Planned items — simple checklist */}
+          {lagkravItems.filter(i => i.status === 'ok').length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {lagkravItems.filter(i => i.status === 'ok').map((item) => (
+                <Box
+                  key={item.row.id}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.75 }}
+                >
+                  <CheckCircleIcon fontSize="small" color="success" />
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {item.row.atgard}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.nextYear}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };
