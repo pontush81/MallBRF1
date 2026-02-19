@@ -65,7 +65,7 @@ const MaintenancePlanPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState(1); // Default to "Detaljerad plan"
+  const [activeTab, setActiveTab] = useState(0); // Default to "Översikt"
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
