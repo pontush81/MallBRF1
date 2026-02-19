@@ -270,7 +270,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
   const handleAfterChange = useCallback(
     (changes: Handsontable.CellChange[] | null, source: string) => {
-      if (!changes || source === 'loadData') return;
+      if (!changes || source === 'loadData' || source === 'revert') return;
 
       let formulasChanged = false;
 
@@ -278,7 +278,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
         const newRows = prevRows.map(r => ({ ...r }));
         let changed = false;
 
-        for (const [rowIdx, colIdx, , newVal] of changes) {
+        for (const [rowIdx, colIdx, oldVal, newVal] of changes) {
           const numCol = typeof colIdx === 'number' ? colIdx : parseInt(colIdx as string, 10);
           if (isNaN(numCol) || numCol === TOTAL_COL) continue;
 
@@ -298,7 +298,13 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           if (isNumericField) {
             // Any string starting with "=" is treated as formula intent — skip if incomplete
             if (typeof newVal === 'string' && newVal.startsWith('=')) {
-              if (newVal.length <= 1) continue; // Just "=" — keep old value
+              if (newVal.length <= 1) {
+                // Just "=" — revert cell to old value in HotTable
+                setTimeout(() => {
+                  hotRef.current?.hotInstance?.setDataAtCell(rowIdx, numCol, oldVal, 'revert');
+                }, 0);
+                continue;
+              }
               // Store formula
               formulaMapRef.current.set(cellKey, newVal);
               formulasChanged = true;
