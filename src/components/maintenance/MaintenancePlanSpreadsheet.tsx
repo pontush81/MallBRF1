@@ -25,6 +25,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import { HotTable, HotTableClass } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
 import type Handsontable from 'handsontable';
+import { HyperFormula } from 'hyperformula';
 import 'handsontable/dist/handsontable.full.min.css';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -217,9 +218,8 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
     [],
   );
 
-  const handleAfterDeselect = useCallback(() => {
-    setSelectedRow(null);
-  }, []);
+  // NOTE: No afterDeselect — we keep selectedRow so toolbar buttons work
+  // even when clicking outside the table.
 
   // ---------------------------------------------------------------------------
   // Add row
@@ -454,6 +454,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           height="auto"
           undo={true}
           manualColumnResize={true}
+          formulas={{ engine: HyperFormula }}
           contextMenu={{
             items: {
               'row_above': {
@@ -492,7 +493,6 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           }}
           afterChange={handleAfterChange}
           afterSelectionEnd={handleAfterSelectionEnd}
-          afterDeselect={handleAfterDeselect}
           licenseKey="non-commercial-and-evaluation"
           rowHeights={28}
         />

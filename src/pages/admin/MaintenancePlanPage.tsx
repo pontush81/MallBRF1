@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import TableChartIcon from '@mui/icons-material/TableChart';
-import GavelIcon from '@mui/icons-material/Gavel';
 
 import {
   PlanRow,
@@ -26,7 +25,6 @@ import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
 import MaintenancePlanSpreadsheet from '../../components/maintenance/MaintenancePlanSpreadsheet';
 import MaintenancePlanDashboard from '../../components/maintenance/MaintenancePlanDashboard';
-import MaintenancePlanLagkrav from '../../components/maintenance/MaintenancePlanLagkrav';
 
 // ---------------------------------------------------------------------------
 // TabPanel helper
@@ -214,7 +212,6 @@ const MaintenancePlanPage: React.FC = () => {
       <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 0, borderBottom: 1, borderColor: 'divider' }}>
         <Tab icon={<DashboardIcon />} iconPosition="start" label="Översikt" {...a11yProps(0)} />
         <Tab icon={<TableChartIcon />} iconPosition="start" label="Detaljerad plan" {...a11yProps(1)} />
-        <Tab icon={<GavelIcon />} iconPosition="start" label="Lagkrav" {...a11yProps(2)} />
       </Tabs>
 
       {/* Tab Panels */}
@@ -233,10 +230,6 @@ const MaintenancePlanPage: React.FC = () => {
           onSave={handleSave}
           onRestoreVersion={handleRestoreVersion}
         />
-      </TabPanel>
-
-      <TabPanel value={activeTab} index={2}>
-        <MaintenancePlanLagkrav rows={rows} />
       </TabPanel>
 
       {/* Snackbar */}

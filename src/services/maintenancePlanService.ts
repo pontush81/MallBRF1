@@ -62,7 +62,7 @@ export const VISIBLE_COLUMNS = [
 
 // --- REST helper ---
 
-async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 10000) {
+async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 30000) {
   let authToken: string | null = null;
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
