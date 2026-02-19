@@ -24,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import HistoryIcon from '@mui/icons-material/History';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import SaveIcon from '@mui/icons-material/Save';
+import CheckIcon from '@mui/icons-material/Check';
 import { HotTable, HotTableClass } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
 import type Handsontable from 'handsontable';
@@ -400,22 +401,11 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
   // Add row
   // ---------------------------------------------------------------------------
 
-  const handleAddRow = useCallback(() => {
+  const insertRowAt = useCallback((atIndex: number) => {
     setRows(prevRows => {
       const newRows = [...prevRows];
-
-      // Determine insertion index: below selected row, but before summary rows
-      let insertIdx: number;
       const firstSummaryIdx = newRows.findIndex(r => r.rowType === 'summary');
-
-      if (selectedRow !== null && selectedRow >= 0 && selectedRow < newRows.length) {
-        // Insert after selected row, but not beyond summary section
-        const candidateIdx = selectedRow + 1;
-        insertIdx = firstSummaryIdx >= 0 ? Math.min(candidateIdx, firstSummaryIdx) : candidateIdx;
-      } else {
-        // No selection: insert before summary rows
-        insertIdx = firstSummaryIdx >= 0 ? firstSummaryIdx : newRows.length;
-      }
+      const insertIdx = firstSummaryIdx >= 0 ? Math.min(atIndex, firstSummaryIdx) : Math.min(atIndex, newRows.length);
 
       const newRow: PlanRow = {
         id: uuidv4(),
@@ -443,33 +433,42 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
       };
 
       newRows.splice(insertIdx, 0, newRow);
-
-      // Re-index sortIndex
       newRows.forEach((r, i) => { r.sortIndex = i; });
-
       setIsDirty(true);
       return newRows;
     });
-  }, [selectedRow]);
+  }, []);
+
+  const handleAddRow = useCallback(() => {
+    if (selectedRow !== null && selectedRow >= 0) {
+      insertRowAt(selectedRow + 1);
+    } else {
+      insertRowAt(9999); // Will be clamped to before summary rows
+    }
+  }, [selectedRow, insertRowAt]);
 
   // ---------------------------------------------------------------------------
   // Delete row
   // ---------------------------------------------------------------------------
 
-  const handleDeleteRowConfirm = useCallback(() => {
-    if (selectedRow === null) return;
+  const deleteRowAt = useCallback((rowIdx: number) => {
     setRows(prevRows => {
-      const target = prevRows[selectedRow];
-      if (!target || target.isLocked) return prevRows;
+      const target = prevRows[rowIdx];
+      if (!target || target.isLocked || target.rowType === 'summary' || target.rowType === 'section' || target.rowType === 'subsection') return prevRows;
 
-      const newRows = prevRows.filter((_, i) => i !== selectedRow);
+      const newRows = prevRows.filter((_, i) => i !== rowIdx);
       newRows.forEach((r, i) => { r.sortIndex = i; });
       setIsDirty(true);
       return recalcSummaryRows(newRows);
     });
+  }, []);
+
+  const handleDeleteRowConfirm = useCallback(() => {
+    if (selectedRow === null) return;
+    deleteRowAt(selectedRow);
     setDeleteDialogOpen(false);
     setSelectedRow(null);
-  }, [selectedRow]);
+  }, [selectedRow, deleteRowAt]);
 
   const canDeleteSelectedRow = useMemo(() => {
     if (selectedRow === null || selectedRow < 0 || selectedRow >= rows.length) return false;
@@ -675,12 +674,20 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
 
           <Button
             size="small"
-            variant="contained"
-            startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-            disabled={!isDirty || isSaving}
-            onClick={handleSave}
+            variant={isDirty ? 'contained' : 'outlined'}
+            color={isDirty ? 'primary' : 'success'}
+            startIcon={
+              isSaving
+                ? <CircularProgress size={16} color="inherit" />
+                : isDirty
+                  ? <SaveIcon />
+                  : <CheckIcon />
+            }
+            disabled={isSaving}
+            onClick={isDirty ? handleSave : undefined}
+            sx={!isDirty ? { cursor: 'default', pointerEvents: 'none' } : {}}
           >
-            Spara
+            {isSaving ? 'Sparar...' : isDirty ? 'Spara' : 'Sparad'}
           </Button>
         </Toolbar>
       </Paper>
@@ -699,7 +706,42 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
           height="auto"
           undo={true}
           manualColumnResize={true}
-          contextMenu={false}
+          contextMenu={{
+            items: {
+              'row_above': {
+                name: 'Lägg till rad ovanför',
+                callback: (_key: string, selection: Array<{start: {row: number}}>) => {
+                  const row = selection[0]?.start?.row;
+                  if (row !== undefined) insertRowAt(row);
+                },
+              },
+              'row_below': {
+                name: 'Lägg till rad nedanför',
+                callback: (_key: string, selection: Array<{start: {row: number}}>) => {
+                  const row = selection[0]?.start?.row;
+                  if (row !== undefined) insertRowAt(row + 1);
+                },
+              },
+              'separator1': '---------' as any,
+              'remove_row': {
+                name: 'Ta bort rad',
+                callback: (_key: string, selection: Array<{start: {row: number}}>) => {
+                  const row = selection[0]?.start?.row;
+                  if (row !== undefined) deleteRowAt(row);
+                },
+                disabled: () => {
+                  const sel = hotRef.current?.hotInstance?.getSelected();
+                  if (!sel || !sel[0]) return true;
+                  const rowIdx = sel[0][0];
+                  const planRow = rows[rowIdx];
+                  return !planRow || planRow.isLocked || planRow.rowType === 'summary' || planRow.rowType === 'section' || planRow.rowType === 'subsection';
+                },
+              },
+              'separator2': '---------' as any,
+              'undo': { name: 'Ångra' },
+              'redo': { name: 'Gör om' },
+            },
+          }}
           afterChange={handleAfterChange}
           afterSelectionEnd={handleAfterSelectionEnd}
           afterDeselect={handleAfterDeselect}

@@ -60,7 +60,6 @@ import {
 
 // Import AuthCallback for OAuth handling
 import { AuthCallback } from './pages/auth/AuthCallback';
-import MaintenancePlan from './pages/MaintenancePlan';
 
 // Import AuthTest for testing (disabled, uncomment for debugging)
 // import AuthTest from './AuthTest';
@@ -247,10 +246,7 @@ function AppRoutes() {
             <Layout><LazyStadgar /></Layout>
           </Suspense>
         } />
-        <Route path="/maintenance-plan" element={
-          <Layout><MaintenancePlan /></Layout>
-        } />
-        <Route path="/felanmalan" element={
+<Route path="/felanmalan" element={
           <Suspense fallback={<LoadingFallback />}>
             <Layout><LazyFaultReportPage /></Layout>
           </Suspense>

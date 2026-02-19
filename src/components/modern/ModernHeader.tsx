@@ -27,7 +27,7 @@ import {
   AdminPanelSettings as AdminIcon,
   Logout as LogoutIcon,
   Login as LoginIcon,
-  Assignment as MaintenanceIcon,
+
   Gavel as StadgarIcon,
   ReportProblem as FaultIcon,
 } from '@mui/icons-material';
@@ -62,9 +62,7 @@ const ModernHeader: React.FC = memo(() => {
     { label: 'Felanmälan', path: '/felanmalan', icon: <FaultIcon /> },
   ];
 
-  const loggedInItems = isLoggedIn ? [
-    { label: 'Underhållsplan', path: '/maintenance-plan', icon: <MaintenanceIcon /> },
-  ] : [];
+  const loggedInItems: typeof navigationItems = [];
 
   const adminItems = isAdmin ? [
     { label: 'Admin', path: '/admin', icon: <AdminIcon /> },
