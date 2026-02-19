@@ -25,6 +25,8 @@ import { recalcSummaryRows } from '../../components/maintenance/maintenancePlanH
 import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
 import MaintenancePlanSpreadsheet from '../../components/maintenance/MaintenancePlanSpreadsheet';
+import MaintenancePlanDashboard from '../../components/maintenance/MaintenancePlanDashboard';
+import MaintenancePlanLagkrav from '../../components/maintenance/MaintenancePlanLagkrav';
 
 // ---------------------------------------------------------------------------
 // TabPanel helper
@@ -217,7 +219,7 @@ const MaintenancePlanPage: React.FC = () => {
 
       {/* Tab Panels */}
       <TabPanel value={activeTab} index={0}>
-        <Typography>Kommer snart</Typography>
+        <MaintenancePlanDashboard rows={rows} />
       </TabPanel>
 
       <TabPanel value={activeTab} index={1}>
@@ -234,7 +236,7 @@ const MaintenancePlanPage: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={activeTab} index={2}>
-        <Typography>Kommer snart</Typography>
+        <MaintenancePlanLagkrav rows={rows} />
       </TabPanel>
 
       {/* Snackbar */}
