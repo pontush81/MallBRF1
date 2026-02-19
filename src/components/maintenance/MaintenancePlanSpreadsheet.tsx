@@ -433,7 +433,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
             }
             disabled={isSaving}
             onClick={isDirty ? onSave : undefined}
-            sx={!isDirty ? { cursor: 'default', pointerEvents: 'none' } : {}}
+            sx={{ minWidth: 110, ...(!isDirty ? { cursor: 'default', pointerEvents: 'none' } : {}) }}
           >
             {isSaving ? 'Sparar...' : isDirty ? 'Spara' : 'Sparad'}
           </Button>
