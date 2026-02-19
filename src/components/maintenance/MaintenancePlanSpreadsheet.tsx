@@ -441,7 +441,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
           <Button
             size="small"
-            variant={isDirty ? 'contained' : 'outlined'}
+            variant="outlined"
             color={isDirty ? 'primary' : 'success'}
             startIcon={
               isSaving
@@ -450,9 +450,8 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
                   ? <SaveIcon />
                   : <CheckIcon />
             }
-            disabled={isSaving}
-            onClick={isDirty ? onSave : undefined}
-            sx={{ minWidth: 110, ...(!isDirty ? { cursor: 'default', pointerEvents: 'none' } : {}) }}
+            onClick={isDirty && !isSaving ? onSave : undefined}
+            sx={{ minWidth: 110, ...(!isDirty || isSaving ? { cursor: 'default', pointerEvents: 'none' } : {}) }}
           >
             {isSaving ? 'Sparar...' : isDirty ? 'Spara' : 'Sparad'}
           </Button>
