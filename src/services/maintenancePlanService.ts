@@ -35,7 +35,6 @@ export interface PlanRow {
 export interface PlanData {
   columns: string[];
   rows: PlanRow[];
-  formulas?: Record<string, string>; // "row,col" -> formula string
 }
 
 export interface PlanVersion {

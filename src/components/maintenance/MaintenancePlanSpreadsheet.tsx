@@ -25,7 +25,6 @@ import CheckIcon from '@mui/icons-material/Check';
 import { HotTable, HotTableClass } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
 import type Handsontable from 'handsontable';
-import { HyperFormula } from 'hyperformula';
 import 'handsontable/dist/handsontable.full.min.css';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -68,8 +67,6 @@ interface SpreadsheetProps {
   onSave: () => void;
   onRestoreVersion: (versionId: string) => void;
   highlightRowId?: string | null;
-  formulas?: Record<string, string>;
-  onFormulasChange?: (formulas: Record<string, string>) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,88 +83,12 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   onSave,
   onRestoreVersion,
   highlightRowId,
-  formulas: initialFormulas,
-  onFormulasChange,
 }) => {
   const hotRef = useRef<HotTableClass>(null);
 
   // Local state
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [selectionInfo, setSelectionInfo] = useState<{ sum: number; count: number; avg: number } | null>(null);
-
-  // ---------------------------------------------------------------------------
-  // Formula storage: "row,col" -> formula string (e.g. "=SUM(G2:G10)")
-  // ---------------------------------------------------------------------------
-
-  const formulaMapRef = useRef<Map<string, string>>(new Map());
-
-  // Initialize formula map from props (once on mount and on version restore)
-  const loadedVersionRef = useRef<number>(-1);
-  useEffect(() => {
-    if (loadedVersionRef.current === version) return;
-    loadedVersionRef.current = version;
-    formulaMapRef.current.clear();
-    if (initialFormulas) {
-      Object.entries(initialFormulas).forEach(([key, val]) => {
-        formulaMapRef.current.set(key, val);
-      });
-    }
-  }, [version, initialFormulas]);
-
-  /** Evaluate all formulas in the map and return updated rows */
-  const evaluateAllFormulas = useCallback((currentRows: PlanRow[]): PlanRow[] => {
-    if (formulaMapRef.current.size === 0) return currentRows;
-    const data = rowsToData(currentRows);
-    try {
-      const hf = HyperFormula.buildFromArray(data, { licenseKey: 'gpl-v3' });
-      for (const [key, formula] of formulaMapRef.current) {
-        const [r, c] = key.split(',').map(Number);
-        try { hf.setCellContents({ sheet: 0, row: r, col: c }, formula); } catch { /* skip invalid */ }
-      }
-      const newRows = currentRows.map(row => ({ ...row }));
-      for (const [key] of formulaMapRef.current) {
-        const [r, c] = key.split(',').map(Number);
-        const result = hf.getCellValue({ sheet: 0, row: r, col: c });
-        if (typeof result === 'number') {
-          const fieldKey = FIELD_KEYS[c];
-          if (fieldKey && fieldKey !== 'total' && newRows[r]) {
-            (newRows[r] as unknown as Record<string, unknown>)[fieldKey] = result;
-          }
-        }
-      }
-      hf.destroy();
-      return newRows;
-    } catch (e) {
-      console.error('Formula evaluation error:', e);
-      return currentRows;
-    }
-  }, []);
-
-  /** Notify parent of formula map changes */
-  const syncFormulasToParent = useCallback(() => {
-    if (!onFormulasChange) return;
-    const obj: Record<string, string> = {};
-    formulaMapRef.current.forEach((val, key) => { obj[key] = val; });
-    onFormulasChange(obj);
-  }, [onFormulasChange]);
-
-  /** Shift formula map keys when rows are inserted/deleted */
-  const shiftFormulaKeys = useCallback((atIndex: number, delta: number) => {
-    const newMap = new Map<string, string>();
-    for (const [key, val] of formulaMapRef.current) {
-      const [r, c] = key.split(',').map(Number);
-      if (delta > 0) {
-        // Insert: shift rows >= atIndex down
-        newMap.set(r >= atIndex ? `${r + delta},${c}` : key, val);
-      } else {
-        // Delete: remove row at atIndex, shift rows above down
-        if (r === atIndex) continue;
-        newMap.set(r > atIndex ? `${r + delta},${c}` : key, val);
-      }
-    }
-    formulaMapRef.current = newMap;
-    syncFormulasToParent();
-  }, [syncFormulasToParent]);
 
   // Scroll to and highlight a row when highlightRowId changes
   useEffect(() => {
@@ -265,20 +186,18 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   );
 
   // ---------------------------------------------------------------------------
-  // afterChange: sync edits back into rows state + recalc summaries + formulas
+  // afterChange: sync edits back into rows state + recalc summaries
   // ---------------------------------------------------------------------------
 
   const handleAfterChange = useCallback(
     (changes: Handsontable.CellChange[] | null, source: string) => {
-      if (!changes || source === 'loadData' || source === 'revert') return;
-
-      let formulasChanged = false;
+      if (!changes || source === 'loadData') return;
 
       setRows(prevRows => {
         const newRows = prevRows.map(r => ({ ...r }));
         let changed = false;
 
-        for (const [rowIdx, colIdx, oldVal, newVal] of changes) {
+        for (const [rowIdx, colIdx, , newVal] of changes) {
           const numCol = typeof colIdx === 'number' ? colIdx : parseInt(colIdx as string, 10);
           if (isNaN(numCol) || numCol === TOTAL_COL) continue;
 
@@ -293,78 +212,32 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
             numCol === A_PRIS_COL ||
             numCol === ANTAL_COL;
 
-          const cellKey = `${rowIdx},${numCol}`;
-
           if (isNumericField) {
-            // Any string starting with "=" is treated as formula intent — skip if incomplete
-            if (typeof newVal === 'string' && newVal.startsWith('=')) {
-              if (newVal.length <= 1) {
-                // Just "=" — revert cell to old value in HotTable
-                setTimeout(() => {
-                  hotRef.current?.hotInstance?.setDataAtCell(rowIdx, numCol, oldVal, 'revert');
-                }, 0);
-                continue;
-              }
-              // Store formula
-              formulaMapRef.current.set(cellKey, newVal);
-              formulasChanged = true;
-              changed = true;
-              // Value will be set by evaluateAllFormulas below
+            let parsed: number | null = null;
+            if (newVal === null || newVal === '' || newVal === undefined) {
+              parsed = null;
+            } else if (typeof newVal === 'number') {
+              parsed = newVal;
             } else {
-              // Remove formula if cell had one (user overwrote with plain value)
-              if (formulaMapRef.current.has(cellKey)) {
-                formulaMapRef.current.delete(cellKey);
-                formulasChanged = true;
-              }
-              let parsed: number | null = null;
-              if (newVal === null || newVal === '' || newVal === undefined) {
-                parsed = null;
-              } else if (typeof newVal === 'number') {
-                parsed = newVal;
-              } else {
-                const num = parseFloat(String(newVal));
-                parsed = isNaN(num) ? null : num;
-              }
-              (planRow as unknown as Record<string, unknown>)[fieldKey] = parsed;
-              changed = true;
+              const num = parseFloat(String(newVal));
+              parsed = isNaN(num) ? null : num;
             }
+            (planRow as unknown as Record<string, unknown>)[fieldKey] = parsed;
           } else {
             (planRow as unknown as Record<string, unknown>)[fieldKey] = newVal ?? '';
-            changed = true;
           }
+          changed = true;
         }
 
         if (changed) {
           setIsDirty(true);
-          // Evaluate all stored formulas (they may depend on changed cells)
-          const withFormulas = evaluateAllFormulas(newRows);
           const editedSummaryOnly = changes.every(([rowIdx]) => newRows[rowIdx]?.rowType === 'summary');
-          return editedSummaryOnly ? withFormulas : recalcSummaryRows(withFormulas);
+          return editedSummaryOnly ? newRows : recalcSummaryRows(newRows);
         }
         return prevRows;
       });
-
-      if (formulasChanged) syncFormulasToParent();
     },
-    [setRows, setIsDirty, evaluateAllFormulas, syncFormulasToParent],
-  );
-
-  // ---------------------------------------------------------------------------
-  // afterBeginEditing: show formula string when editing a formula cell
-  // ---------------------------------------------------------------------------
-
-  const handleAfterBeginEditing = useCallback(
-    (row: number, col: number) => {
-      const formula = formulaMapRef.current.get(`${row},${col}`);
-      if (formula) {
-        const hot = hotRef.current?.hotInstance;
-        const editor = hot?.getActiveEditor();
-        if (editor) {
-          (editor as any).setValue(formula);
-        }
-      }
-    },
-    [],
+    [setRows, setIsDirty],
   );
 
   // ---------------------------------------------------------------------------
@@ -438,11 +311,10 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
       newRows.splice(insertIdx, 0, newRow);
       newRows.forEach((r, i) => { r.sortIndex = i; });
-      shiftFormulaKeys(insertIdx, 1);
       setIsDirty(true);
       return newRows;
     });
-  }, [setRows, setIsDirty, shiftFormulaKeys]);
+  }, [setRows, setIsDirty]);
 
   const handleAddRow = useCallback(() => {
     if (selectedRow !== null && selectedRow >= 0) {
@@ -463,11 +335,10 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
       const newRows = prevRows.filter((_, i) => i !== rowIdx);
       newRows.forEach((r, i) => { r.sortIndex = i; });
-      shiftFormulaKeys(rowIdx, -1);
       setIsDirty(true);
       return recalcSummaryRows(newRows);
     });
-  }, [setRows, setIsDirty, shiftFormulaKeys]);
+  }, [setRows, setIsDirty]);
 
   const handleDeleteRowConfirm = useCallback(() => {
     if (selectedRow === null) return;
@@ -673,7 +544,6 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           }}
           afterChange={handleAfterChange}
           afterSelectionEnd={handleAfterSelectionEnd}
-          afterBeginEditing={handleAfterBeginEditing}
           fillHandle={true}
           licenseKey="non-commercial-and-evaluation"
           rowHeights={28}
