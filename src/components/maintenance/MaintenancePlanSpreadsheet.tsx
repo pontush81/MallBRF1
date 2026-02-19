@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
   Paper,
   Toolbar,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -15,8 +14,6 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  Snackbar,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -34,187 +31,60 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   PlanRow,
-  PlanData,
   PlanVersion,
-  YEAR_COLUMNS,
-  getLatestPlan,
   getAllVersions,
-  getPlanVersion,
-  savePlanVersion,
 } from '../../services/maintenancePlanService';
-import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
-import { useAuth } from '../../context/AuthContextNew';
+import {
+  COLUMN_HEADERS,
+  COLUMN_WIDTHS,
+  FIELD_KEYS,
+  YEAR_COL_START,
+  YEAR_COL_END,
+  TOTAL_COL,
+  A_PRIS_COL,
+  ANTAL_COL,
+  SPREADSHEET_STYLES,
+  computeRowTotal,
+  recalcSummaryRows,
+  rowsToData,
+  cssClassForRowType,
+} from './maintenancePlanHelpers';
 
 // Register all Handsontable modules
 registerAllModules();
 
 // ---------------------------------------------------------------------------
-// Constants
+// Props
 // ---------------------------------------------------------------------------
 
-const COLUMN_HEADERS = [
-  'Nr', 'Byggdel', 'Åtgärd', 'Tek livslängd', 'a-pris', 'Antal',
-  '2026', '2027', '2028', '2029', '2030',
-  '2031', '2032', '2033', '2034', '2035',
-  'Utredningspunkter', 'Totalt kr inkl moms',
-];
-
-const COLUMN_WIDTHS = [
-  50, 130, 200, 90, 80, 50,
-  90, 90, 90, 90, 90,
-  90, 90, 90, 90, 90,
-  120, 120,
-];
-
-/** Field keys that map each Handsontable column index to a PlanRow property (or 'total'). */
-const FIELD_KEYS: (keyof PlanRow | 'total')[] = [
-  'nr', 'byggdel', 'atgard', 'tek_livslangd', 'a_pris', 'antal',
-  'year_2026', 'year_2027', 'year_2028', 'year_2029', 'year_2030',
-  'year_2031', 'year_2032', 'year_2033', 'year_2034', 'year_2035',
-  'utredningspunkter', 'total',
-];
-
-/** Column indices for year columns (6..15) */
-const YEAR_COL_START = 6;
-const YEAR_COL_END = 15; // inclusive
-const TOTAL_COL = 17; // index of "Totalt kr inkl moms" (0-based = 17)
-const A_PRIS_COL = 4;
-const ANTAL_COL = 5;
-
-// ---------------------------------------------------------------------------
-// Helper: compute row total (sum of year columns)
-// ---------------------------------------------------------------------------
-
-function computeRowTotal(row: PlanRow): number {
-  let sum = 0;
-  for (const yc of YEAR_COLUMNS) {
-    const val = row[yc];
-    if (typeof val === 'number') {
-      sum += val;
-    }
-  }
-  return sum;
+interface SpreadsheetProps {
+  rows: PlanRow[];
+  setRows: React.Dispatch<React.SetStateAction<PlanRow[]>>;
+  version: number;
+  isDirty: boolean;
+  setIsDirty: (dirty: boolean) => void;
+  isSaving: boolean;
+  onSave: () => void;
+  onRestoreVersion: (versionId: string) => void;
 }
-
-// ---------------------------------------------------------------------------
-// Helper: safely set a year column value on a PlanRow
-// ---------------------------------------------------------------------------
-
-function setYearValue(row: PlanRow, yearCol: typeof YEAR_COLUMNS[number], value: number): void {
-  // Use an indexer approach that TypeScript accepts
-  const rec = row as unknown as Record<string, number | null>;
-  rec[yearCol] = value;
-}
-
-// ---------------------------------------------------------------------------
-// Helper: recalculate summary rows in-place
-// ---------------------------------------------------------------------------
-
-function recalcSummaryRows(rows: PlanRow[]): PlanRow[] {
-  const summaRow = rows.find(r => r.rowType === 'summary' && r.byggdel === 'Summa beräknad kostnad');
-  const osakerhetRow = rows.find(r => r.rowType === 'summary' && r.byggdel === 'Osäkerhet');
-  const totaltRow = rows.find(r => r.rowType === 'summary' && r.byggdel === 'Totalt inkl moms');
-
-  if (!summaRow || !osakerhetRow || !totaltRow) return rows;
-
-  // Zero out year values on summary rows
-  for (const yc of YEAR_COLUMNS) {
-    setYearValue(summaRow, yc, 0);
-    setYearValue(osakerhetRow, yc, 0);
-    setYearValue(totaltRow, yc, 0);
-  }
-
-  // Sum all item rows per year
-  for (const r of rows) {
-    if (r.rowType !== 'item') continue;
-    for (const yc of YEAR_COLUMNS) {
-      const val = r[yc];
-      if (typeof val === 'number') {
-        setYearValue(summaRow, yc, ((summaRow[yc] as number) || 0) + val);
-      }
-    }
-  }
-
-  // Osäkerhet = 10% of Summa, rounded
-  for (const yc of YEAR_COLUMNS) {
-    const sumVal = (summaRow[yc] as number) || 0;
-    setYearValue(osakerhetRow, yc, Math.round(sumVal * 0.10));
-  }
-
-  // Totalt = Summa + Osäkerhet
-  for (const yc of YEAR_COLUMNS) {
-    const sumVal = (summaRow[yc] as number) || 0;
-    const osakVal = (osakerhetRow[yc] as number) || 0;
-    setYearValue(totaltRow, yc, sumVal + osakVal);
-  }
-
-  return rows;
-}
-
-// ---------------------------------------------------------------------------
-// Helper: convert rows <-> 2D data array for Handsontable
-// ---------------------------------------------------------------------------
-
-function rowsToData(rows: PlanRow[]): (string | number | null)[][] {
-  return rows.map(row => {
-    const cells: (string | number | null)[] = [];
-    for (const key of FIELD_KEYS) {
-      if (key === 'total') {
-        cells.push(computeRowTotal(row));
-      } else {
-        const val = row[key];
-        if (val === null || val === undefined) {
-          cells.push(null);
-        } else if (typeof val === 'boolean') {
-          cells.push(val ? 1 : 0);
-        } else {
-          cells.push(val as string | number);
-        }
-      }
-    }
-    return cells;
-  });
-}
-
-// ---------------------------------------------------------------------------
-// CSS class name per row type
-// ---------------------------------------------------------------------------
-
-function cssClassForRowType(rowType: string): string {
-  switch (rowType) {
-    case 'section': return 'mp-row-section';
-    case 'subsection': return 'mp-row-subsection';
-    case 'summary': return 'mp-row-summary';
-    case 'blank': return 'mp-row-blank';
-    default: return '';
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Inline style tag (injected once)
-// ---------------------------------------------------------------------------
-
-const SPREADSHEET_STYLES = `
-  .mp-row-section td { background-color: #e3f2fd !important; font-weight: 700 !important; }
-  .mp-row-subsection td { background-color: #f5f5f5 !important; font-weight: 600 !important; }
-  .mp-row-summary td { background-color: #fff3e0 !important; font-weight: 700 !important; border-top: 2px solid #e65100 !important; }
-  .mp-row-blank td { background-color: #fafafa !important; }
-`;
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-const MaintenancePlanSpreadsheet: React.FC = () => {
-  const { currentUser } = useAuth();
+const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
+  rows,
+  setRows,
+  version,
+  isDirty,
+  setIsDirty,
+  isSaving,
+  onSave,
+  onRestoreVersion,
+}) => {
   const hotRef = useRef<HotTableClass>(null);
 
-  // State
-  const [rows, setRows] = useState<PlanRow[]>([]);
-  const [version, setVersion] = useState<number>(0);
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Local state
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
   // Dialogs
@@ -222,52 +92,6 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [versions, setVersions] = useState<Pick<PlanVersion, 'id' | 'version' | 'created_at' | 'created_by' | 'metadata'>[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
-
-  // Snackbar
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  // ---------------------------------------------------------------------------
-  // Load data on mount
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadData() {
-      setIsLoading(true);
-      try {
-        const plan = await getLatestPlan();
-        if (cancelled) return;
-
-        if (plan && plan.plan_data && plan.plan_data.rows.length > 0) {
-          const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
-          setRows(recalculated);
-          setVersion(plan.version);
-        } else {
-          // First time: use seed data
-          const seed = createDefaultPlanData();
-          const recalculated = recalcSummaryRows([...seed.rows]);
-          setRows(recalculated);
-          setVersion(0);
-        }
-      } catch (err) {
-        console.error('Error loading maintenance plan:', err);
-        const seed = createDefaultPlanData();
-        setRows(recalcSummaryRows([...seed.rows]));
-        setVersion(0);
-        setSnackbar({ open: true, message: 'Kunde inte ladda plan, visar standarddata', severity: 'error' });
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    loadData();
-    return () => { cancelled = true; };
-  }, []);
 
   // ---------------------------------------------------------------------------
   // Convert rows -> 2D array for HotTable
@@ -379,7 +203,7 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
         return prevRows;
       });
     },
-    [],
+    [setRows, setIsDirty],
   );
 
   // ---------------------------------------------------------------------------
@@ -437,7 +261,7 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
       setIsDirty(true);
       return newRows;
     });
-  }, []);
+  }, [setRows, setIsDirty]);
 
   const handleAddRow = useCallback(() => {
     if (selectedRow !== null && selectedRow >= 0) {
@@ -461,7 +285,7 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
       setIsDirty(true);
       return recalcSummaryRows(newRows);
     });
-  }, []);
+  }, [setRows, setIsDirty]);
 
   const handleDeleteRowConfirm = useCallback(() => {
     if (selectedRow === null) return;
@@ -475,38 +299,6 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
     const row = rows[selectedRow];
     return row && !row.isLocked && row.rowType !== 'summary' && row.rowType !== 'section' && row.rowType !== 'subsection';
   }, [selectedRow, rows]);
-
-  // ---------------------------------------------------------------------------
-  // Save
-  // ---------------------------------------------------------------------------
-
-  const handleSave = useCallback(async () => {
-    if (!isDirty || isSaving) return;
-    setIsSaving(true);
-    try {
-      const planData: PlanData = {
-        columns: [
-          'nr', 'byggdel', 'atgard', 'tek_livslangd', 'a_pris', 'antal',
-          ...YEAR_COLUMNS,
-          'utredningspunkter',
-        ],
-        rows,
-      };
-      const saved = await savePlanVersion(planData, version, currentUser?.email);
-      if (saved) {
-        setVersion(saved.version);
-        setIsDirty(false);
-        setSnackbar({ open: true, message: `Sparad som version ${saved.version}`, severity: 'success' });
-      } else {
-        setSnackbar({ open: true, message: 'Kunde inte spara', severity: 'error' });
-      }
-    } catch (err) {
-      console.error('Save error:', err);
-      setSnackbar({ open: true, message: 'Fel vid sparning', severity: 'error' });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [isDirty, isSaving, rows, version, currentUser]);
 
   // ---------------------------------------------------------------------------
   // Excel export
@@ -570,68 +362,24 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
       setVersions(v);
     } catch (err) {
       console.error('Error loading versions:', err);
-      setSnackbar({ open: true, message: 'Kunde inte ladda versionshistorik', severity: 'error' });
     } finally {
       setLoadingVersions(false);
     }
   }, []);
 
-  const handleRestoreVersion = useCallback(async (versionId: string) => {
-    try {
-      const plan = await getPlanVersion(versionId);
-      if (plan && plan.plan_data) {
-        const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
-        setRows(recalculated);
-        setVersion(plan.version);
-        setIsDirty(true); // Needs re-save after restore
-        setHistoryDialogOpen(false);
-        setSnackbar({ open: true, message: `Version ${plan.version} återställd (spara för att bekräfta)`, severity: 'info' });
-      }
-    } catch (err) {
-      console.error('Error restoring version:', err);
-      setSnackbar({ open: true, message: 'Kunde inte återställa version', severity: 'error' });
-    }
-  }, []);
-
-  // ---------------------------------------------------------------------------
-  // Snackbar close
-  // ---------------------------------------------------------------------------
-
-  const handleSnackbarClose = useCallback(() => {
-    setSnackbar(prev => ({ ...prev, open: false }));
-  }, []);
+  const handleRestoreVersion = useCallback((versionId: string) => {
+    onRestoreVersion(versionId);
+    setHistoryDialogOpen(false);
+  }, [onRestoreVersion]);
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ p: 2 }}>
+    <Box>
       {/* Inject custom CSS for row types */}
       <style>{SPREADSHEET_STYLES}</style>
-
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Underhållsplan 2026–2035
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="subtitle1" color="text.secondary">
-            Brf Gulmåran &middot; Version {version}
-          </Typography>
-          {isDirty && (
-            <Chip label="Osparade ändringar" color="warning" size="small" />
-          )}
-        </Box>
-      </Box>
 
       {/* Toolbar */}
       <Paper sx={{ mb: 2 }} elevation={1}>
@@ -684,7 +432,7 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
                   : <CheckIcon />
             }
             disabled={isSaving}
-            onClick={isDirty ? handleSave : undefined}
+            onClick={isDirty ? onSave : undefined}
             sx={!isDirty ? { cursor: 'default', pointerEvents: 'none' } : {}}
           >
             {isSaving ? 'Sparar...' : isDirty ? 'Spara' : 'Sparad'}
@@ -815,23 +563,6 @@ const MaintenancePlanSpreadsheet: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
