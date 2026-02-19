@@ -68,6 +68,8 @@ interface SpreadsheetProps {
   onSave: () => void;
   onRestoreVersion: (versionId: string) => void;
   highlightRowId?: string | null;
+  formulas?: Record<string, string>;
+  onFormulasChange?: (formulas: Record<string, string>) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,11 +86,88 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   onSave,
   onRestoreVersion,
   highlightRowId,
+  formulas: initialFormulas,
+  onFormulasChange,
 }) => {
   const hotRef = useRef<HotTableClass>(null);
 
   // Local state
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const [selectionInfo, setSelectionInfo] = useState<{ sum: number; count: number; avg: number } | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // Formula storage: "row,col" -> formula string (e.g. "=SUM(G2:G10)")
+  // ---------------------------------------------------------------------------
+
+  const formulaMapRef = useRef<Map<string, string>>(new Map());
+
+  // Initialize formula map from props (once on mount and on version restore)
+  const loadedVersionRef = useRef<number>(-1);
+  useEffect(() => {
+    if (loadedVersionRef.current === version) return;
+    loadedVersionRef.current = version;
+    formulaMapRef.current.clear();
+    if (initialFormulas) {
+      Object.entries(initialFormulas).forEach(([key, val]) => {
+        formulaMapRef.current.set(key, val);
+      });
+    }
+  }, [version, initialFormulas]);
+
+  /** Evaluate all formulas in the map and return updated rows */
+  const evaluateAllFormulas = useCallback((currentRows: PlanRow[]): PlanRow[] => {
+    if (formulaMapRef.current.size === 0) return currentRows;
+    const data = rowsToData(currentRows);
+    try {
+      const hf = HyperFormula.buildFromArray(data, { licenseKey: 'gpl-v3' });
+      for (const [key, formula] of formulaMapRef.current) {
+        const [r, c] = key.split(',').map(Number);
+        try { hf.setCellContents({ sheet: 0, row: r, col: c }, formula); } catch { /* skip invalid */ }
+      }
+      const newRows = currentRows.map(row => ({ ...row }));
+      for (const [key] of formulaMapRef.current) {
+        const [r, c] = key.split(',').map(Number);
+        const result = hf.getCellValue({ sheet: 0, row: r, col: c });
+        if (typeof result === 'number') {
+          const fieldKey = FIELD_KEYS[c];
+          if (fieldKey && fieldKey !== 'total' && newRows[r]) {
+            (newRows[r] as unknown as Record<string, unknown>)[fieldKey] = result;
+          }
+        }
+      }
+      hf.destroy();
+      return newRows;
+    } catch (e) {
+      console.error('Formula evaluation error:', e);
+      return currentRows;
+    }
+  }, []);
+
+  /** Notify parent of formula map changes */
+  const syncFormulasToParent = useCallback(() => {
+    if (!onFormulasChange) return;
+    const obj: Record<string, string> = {};
+    formulaMapRef.current.forEach((val, key) => { obj[key] = val; });
+    onFormulasChange(obj);
+  }, [onFormulasChange]);
+
+  /** Shift formula map keys when rows are inserted/deleted */
+  const shiftFormulaKeys = useCallback((atIndex: number, delta: number) => {
+    const newMap = new Map<string, string>();
+    for (const [key, val] of formulaMapRef.current) {
+      const [r, c] = key.split(',').map(Number);
+      if (delta > 0) {
+        // Insert: shift rows >= atIndex down
+        newMap.set(r >= atIndex ? `${r + delta},${c}` : key, val);
+      } else {
+        // Delete: remove row at atIndex, shift rows above down
+        if (r === atIndex) continue;
+        newMap.set(r > atIndex ? `${r + delta},${c}` : key, val);
+      }
+    }
+    formulaMapRef.current = newMap;
+    syncFormulasToParent();
+  }, [syncFormulasToParent]);
 
   // Scroll to and highlight a row when highlightRowId changes
   useEffect(() => {
@@ -186,12 +265,14 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   );
 
   // ---------------------------------------------------------------------------
-  // afterChange: sync edits back into rows state + recalc summaries
+  // afterChange: sync edits back into rows state + recalc summaries + formulas
   // ---------------------------------------------------------------------------
 
   const handleAfterChange = useCallback(
     (changes: Handsontable.CellChange[] | null, source: string) => {
       if (!changes || source === 'loadData') return;
+
+      let formulasChanged = false;
 
       setRows(prevRows => {
         const newRows = prevRows.map(r => ({ ...r }));
@@ -199,7 +280,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
         for (const [rowIdx, colIdx, , newVal] of changes) {
           const numCol = typeof colIdx === 'number' ? colIdx : parseInt(colIdx as string, 10);
-          if (isNaN(numCol) || numCol === TOTAL_COL) continue; // skip total col
+          if (isNaN(numCol) || numCol === TOTAL_COL) continue;
 
           const fieldKey = FIELD_KEYS[numCol];
           if (!fieldKey || fieldKey === 'total') continue;
@@ -212,54 +293,70 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
             numCol === A_PRIS_COL ||
             numCol === ANTAL_COL;
 
+          const cellKey = `${rowIdx},${numCol}`;
+
           if (isNumericField) {
-            let parsed: number | null = null;
-            if (newVal === null || newVal === '' || newVal === undefined) {
-              parsed = null;
-            } else if (typeof newVal === 'number') {
-              parsed = newVal;
-            } else if (typeof newVal === 'string' && newVal.startsWith('=')) {
-              // Evaluate formula using HyperFormula
-              try {
-                const currentData = rowsToData(newRows);
-                const hf = HyperFormula.buildFromArray(currentData, { licenseKey: 'gpl-v3' });
-                hf.setCellContents({ sheet: 0, row: rowIdx, col: numCol }, newVal);
-                const result = hf.getCellValue({ sheet: 0, row: rowIdx, col: numCol });
-                hf.destroy();
-                if (typeof result === 'number') {
-                  parsed = result;
-                } else {
-                  // Invalid formula (e.g. just "=") — keep old value
-                  continue;
-                }
-              } catch (e) {
-                console.error('Formula error:', e);
-                continue; // Keep old value on error
-              }
+            if (typeof newVal === 'string' && newVal.startsWith('=') && newVal.length > 1) {
+              // Store formula
+              formulaMapRef.current.set(cellKey, newVal);
+              formulasChanged = true;
+              changed = true;
+              // Value will be set by evaluateAllFormulas below
             } else {
-              const num = parseFloat(String(newVal));
-              parsed = isNaN(num) ? null : num;
+              // Remove formula if cell had one (user overwrote with plain value)
+              if (formulaMapRef.current.has(cellKey)) {
+                formulaMapRef.current.delete(cellKey);
+                formulasChanged = true;
+              }
+              let parsed: number | null = null;
+              if (newVal === null || newVal === '' || newVal === undefined) {
+                parsed = null;
+              } else if (typeof newVal === 'number') {
+                parsed = newVal;
+              } else {
+                const num = parseFloat(String(newVal));
+                parsed = isNaN(num) ? null : num;
+              }
+              (planRow as unknown as Record<string, unknown>)[fieldKey] = parsed;
+              changed = true;
             }
-            const rec = planRow as unknown as Record<string, unknown>;
-            rec[fieldKey] = parsed;
           } else {
-            const rec = planRow as unknown as Record<string, unknown>;
-            rec[fieldKey] = newVal ?? '';
+            (planRow as unknown as Record<string, unknown>)[fieldKey] = newVal ?? '';
+            changed = true;
           }
-          changed = true;
         }
 
         if (changed) {
           setIsDirty(true);
-          // Only auto-recalc summaries when item rows are edited
-          // (skip recalc if user manually edited a summary row)
+          // Evaluate all stored formulas (they may depend on changed cells)
+          const withFormulas = evaluateAllFormulas(newRows);
           const editedSummaryOnly = changes.every(([rowIdx]) => newRows[rowIdx]?.rowType === 'summary');
-          return editedSummaryOnly ? newRows : recalcSummaryRows(newRows);
+          return editedSummaryOnly ? withFormulas : recalcSummaryRows(withFormulas);
         }
         return prevRows;
       });
+
+      if (formulasChanged) syncFormulasToParent();
     },
-    [setRows, setIsDirty],
+    [setRows, setIsDirty, evaluateAllFormulas, syncFormulasToParent],
+  );
+
+  // ---------------------------------------------------------------------------
+  // afterBeginEditing: show formula string when editing a formula cell
+  // ---------------------------------------------------------------------------
+
+  const handleAfterBeginEditing = useCallback(
+    (row: number, col: number) => {
+      const formula = formulaMapRef.current.get(`${row},${col}`);
+      if (formula) {
+        const hot = hotRef.current?.hotInstance;
+        const editor = hot?.getActiveEditor();
+        if (editor) {
+          (editor as any).setValue(formula);
+        }
+      }
+    },
+    [],
   );
 
   // ---------------------------------------------------------------------------
@@ -267,14 +364,34 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   // ---------------------------------------------------------------------------
 
   const handleAfterSelectionEnd = useCallback(
-    (row: number, _col: number, _row2: number, _col2: number) => {
+    (row: number, col: number, row2: number, col2: number) => {
       setSelectedRow(row);
+
+      // Compute sum/count/avg of selected numeric cells for status bar
+      const hot = hotRef.current?.hotInstance;
+      if (!hot) return;
+      const minRow = Math.min(row, row2);
+      const maxRow = Math.max(row, row2);
+      const minCol = Math.min(col, col2);
+      const maxCol = Math.max(col, col2);
+      const isSingleCell = minRow === maxRow && minCol === maxCol;
+      if (isSingleCell) { setSelectionInfo(null); return; }
+
+      let sum = 0;
+      let count = 0;
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          const val = hot.getDataAtCell(r, c);
+          if (typeof val === 'number' && !isNaN(val)) {
+            sum += val;
+            count++;
+          }
+        }
+      }
+      setSelectionInfo(count > 0 ? { sum, count, avg: sum / count } : null);
     },
     [],
   );
-
-  // NOTE: No afterDeselect — we keep selectedRow so toolbar buttons work
-  // even when clicking outside the table.
 
   // ---------------------------------------------------------------------------
   // Add row
@@ -313,10 +430,11 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
       newRows.splice(insertIdx, 0, newRow);
       newRows.forEach((r, i) => { r.sortIndex = i; });
+      shiftFormulaKeys(insertIdx, 1);
       setIsDirty(true);
       return newRows;
     });
-  }, [setRows, setIsDirty]);
+  }, [setRows, setIsDirty, shiftFormulaKeys]);
 
   const handleAddRow = useCallback(() => {
     if (selectedRow !== null && selectedRow >= 0) {
@@ -337,10 +455,11 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
       const newRows = prevRows.filter((_, i) => i !== rowIdx);
       newRows.forEach((r, i) => { r.sortIndex = i; });
+      shiftFormulaKeys(rowIdx, -1);
       setIsDirty(true);
       return recalcSummaryRows(newRows);
     });
-  }, [setRows, setIsDirty]);
+  }, [setRows, setIsDirty, shiftFormulaKeys]);
 
   const handleDeleteRowConfirm = useCallback(() => {
     if (selectedRow === null) return;
@@ -546,10 +665,27 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           }}
           afterChange={handleAfterChange}
           afterSelectionEnd={handleAfterSelectionEnd}
+          afterBeginEditing={handleAfterBeginEditing}
+          fillHandle={true}
           licenseKey="non-commercial-and-evaluation"
           rowHeights={28}
         />
       </Box>
+
+      {/* Status bar — sum/count/avg of selected cells */}
+      {selectionInfo && (
+        <Paper variant="outlined" sx={{ mt: 1, px: 2, py: 0.5, display: 'flex', gap: 3 }}>
+          <Typography variant="caption" color="text.secondary">
+            Summa: <strong>{selectionInfo.sum.toLocaleString('sv-SE')}</strong>
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Antal: <strong>{selectionInfo.count}</strong>
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Medel: <strong>{Math.round(selectionInfo.avg).toLocaleString('sv-SE')}</strong>
+          </Typography>
+        </Paper>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog

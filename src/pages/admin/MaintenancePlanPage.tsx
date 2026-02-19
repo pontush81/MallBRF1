@@ -61,6 +61,7 @@ const MaintenancePlanPage: React.FC = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [formulas, setFormulas] = useState<Record<string, string>>({});
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0); // Default to "Översikt"
@@ -90,6 +91,7 @@ const MaintenancePlanPage: React.FC = () => {
           const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
           setRows(recalculated);
           setVersion(plan.version);
+          if (plan.plan_data.formulas) setFormulas(plan.plan_data.formulas);
         } else {
           // First time: use seed data
           const seed = createDefaultPlanData();
@@ -127,6 +129,7 @@ const MaintenancePlanPage: React.FC = () => {
           'utredningspunkter',
         ],
         rows,
+        formulas: Object.keys(formulas).length > 0 ? formulas : undefined,
       };
       const saved = await savePlanVersion(planData, version, currentUser?.email);
       if (saved) {
@@ -142,7 +145,7 @@ const MaintenancePlanPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [isDirty, isSaving, rows, version, currentUser]);
+  }, [isDirty, isSaving, rows, version, currentUser, formulas]);
 
   // ---------------------------------------------------------------------------
   // Restore version
@@ -243,6 +246,8 @@ const MaintenancePlanPage: React.FC = () => {
           onSave={handleSave}
           onRestoreVersion={handleRestoreVersion}
           highlightRowId={highlightRowId}
+          formulas={formulas}
+          onFormulasChange={setFormulas}
         />
       </TabPanel>
 
