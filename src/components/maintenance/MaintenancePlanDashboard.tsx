@@ -23,6 +23,7 @@ import {
   computeSectionSummaries,
   getTopExpenses,
   getLagkravItems,
+  buildByggdelMap,
 } from './maintenancePlanHelpers';
 
 // ---------------------------------------------------------------------------
@@ -107,13 +108,13 @@ const STATUS_COLOR: Record<LagkravStatus, 'success' | 'warning' | 'default'> = {
 // Year detail: items for a selected year
 // ---------------------------------------------------------------------------
 
-function getItemsForYear(rows: PlanRow[], yearCol: string): { row: PlanRow; amount: number }[] {
-  const items: { row: PlanRow; amount: number }[] = [];
+function getItemsForYear(rows: PlanRow[], yearCol: string, byggdelMap: Map<string, string>): { row: PlanRow; amount: number; byggdel: string }[] {
+  const items: { row: PlanRow; amount: number; byggdel: string }[] = [];
   for (const r of rows) {
     if (r.rowType !== 'item') continue;
     const val = r[yearCol as keyof PlanRow];
     if (typeof val === 'number' && val > 0) {
-      items.push({ row: r, amount: val });
+      items.push({ row: r, amount: val, byggdel: byggdelMap.get(r.id) || '–' });
     }
   }
   items.sort((a, b) => b.amount - a.amount);
@@ -127,6 +128,7 @@ function getItemsForYear(rows: PlanRow[], yearCol: string): { row: PlanRow; amou
 const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ rows }) => {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
+  const byggdelMap = useMemo(() => buildByggdelMap(rows), [rows]);
   const yearlyTotals = useMemo(() => computeYearlyTotals(rows), [rows]);
   const sections = useMemo(() => computeSectionSummaries(rows), [rows]);
   const topExpenses = useMemo(() => getTopExpenses(rows, 5), [rows]);
@@ -140,8 +142,8 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
 
   // Year detail
   const yearDetailItems = useMemo(
-    () => (selectedYear ? getItemsForYear(rows, selectedYear) : []),
-    [rows, selectedYear],
+    () => (selectedYear ? getItemsForYear(rows, selectedYear, byggdelMap) : []),
+    [rows, selectedYear, byggdelMap],
   );
   const yearDetailTotal = useMemo(
     () => yearDetailItems.reduce((sum, i) => sum + i.amount, 0),
@@ -257,7 +259,7 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
                 {yearDetailItems.map((item, i) => (
                   <TableRow key={i}>
                     <TableCell>{item.row.atgard || '–'}</TableCell>
-                    <TableCell>{item.row.byggdel || '–'}</TableCell>
+                    <TableCell>{item.byggdel}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtKr(item.amount)}</TableCell>
                   </TableRow>
                 ))}
@@ -310,7 +312,7 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
             {topExpenses.map((e, i) => (
               <TableRow key={i}>
                 <TableCell>{e.row.atgard || '–'}</TableCell>
-                <TableCell>{e.row.byggdel || '–'}</TableCell>
+                <TableCell>{e.byggdel}</TableCell>
                 <TableCell align="right">{e.year}</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtKr(e.total)}</TableCell>
               </TableRow>

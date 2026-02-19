@@ -185,11 +185,30 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
             numCol === ANTAL_COL;
 
           if (isNumericField) {
-            const parsed = newVal === null || newVal === '' || newVal === undefined
-              ? null
-              : typeof newVal === 'number' ? newVal : parseFloat(String(newVal));
+            let parsed: number | null = null;
+            if (newVal === null || newVal === '' || newVal === undefined) {
+              parsed = null;
+            } else if (typeof newVal === 'number') {
+              parsed = newVal;
+            } else if (typeof newVal === 'string' && newVal.startsWith('=')) {
+              // Evaluate formula using HyperFormula
+              try {
+                const currentData = rowsToData(newRows);
+                const hf = HyperFormula.buildFromArray(currentData, { licenseKey: 'gpl-v3' });
+                hf.setCellContents({ sheet: 0, row: rowIdx, col: numCol }, newVal);
+                const result = hf.getCellValue({ sheet: 0, row: rowIdx, col: numCol });
+                hf.destroy();
+                parsed = typeof result === 'number' ? result : null;
+              } catch (e) {
+                console.error('Formula error:', e);
+                parsed = null;
+              }
+            } else {
+              const num = parseFloat(String(newVal));
+              parsed = isNaN(num) ? null : num;
+            }
             const rec = planRow as unknown as Record<string, unknown>;
-            rec[fieldKey] = parsed !== null && isNaN(parsed) ? null : parsed;
+            rec[fieldKey] = parsed;
           } else {
             const rec = planRow as unknown as Record<string, unknown>;
             rec[fieldKey] = newVal ?? '';
@@ -454,7 +473,6 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           height="auto"
           undo={true}
           manualColumnResize={true}
-          formulas={{ engine: HyperFormula }}
           contextMenu={{
             items: {
               'row_above': {

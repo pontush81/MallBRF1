@@ -171,14 +171,29 @@ export function computeSectionSummaries(rows: PlanRow[]): SectionSummary[] {
   return summaries;
 }
 
+/** Build a map from item row id → effective byggdel (from nearest parent section/subsection) */
+export function buildByggdelMap(rows: PlanRow[]): Map<string, string> {
+  const map = new Map<string, string>();
+  let currentByggdel = '';
+  for (const r of rows) {
+    if (r.rowType === 'section' || r.rowType === 'subsection') {
+      currentByggdel = r.byggdel || currentByggdel;
+    } else if (r.rowType === 'item') {
+      map.set(r.id, r.byggdel || currentByggdel);
+    }
+  }
+  return map;
+}
+
 /** Get the top N most expensive individual line items */
-export function getTopExpenses(rows: PlanRow[], limit = 5): { row: PlanRow; total: number; year: string }[] {
-  const items: { row: PlanRow; total: number; year: string }[] = [];
+export function getTopExpenses(rows: PlanRow[], limit = 5): { row: PlanRow; total: number; year: string; byggdel: string }[] {
+  const byggdelMap = buildByggdelMap(rows);
+  const items: { row: PlanRow; total: number; year: string; byggdel: string }[] = [];
   for (const r of rows) {
     if (r.rowType !== 'item') continue;
     for (const yc of YEAR_COLUMNS) {
       const val = r[yc];
-      if (typeof val === 'number' && val > 0) items.push({ row: r, total: val, year: yc.replace('year_', '') });
+      if (typeof val === 'number' && val > 0) items.push({ row: r, total: val, year: yc.replace('year_', ''), byggdel: byggdelMap.get(r.id) || '–' });
     }
   }
   items.sort((a, b) => b.total - a.total);
