@@ -426,6 +426,47 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   }, [onRestoreVersion]);
 
   // ---------------------------------------------------------------------------
+  // Context menu (memoized to prevent infinite re-render loop)
+  // ---------------------------------------------------------------------------
+
+  const contextMenu = useMemo<Handsontable.GridSettings['contextMenu']>(() => ({
+    items: {
+      'row_above': {
+        name: 'Lägg till rad ovanför',
+        callback: (_key: string, selection: Array<{start: {row: number}}>) => {
+          const row = selection[0]?.start?.row;
+          if (row !== undefined) insertRowAt(row);
+        },
+      },
+      'row_below': {
+        name: 'Lägg till rad nedanför',
+        callback: (_key: string, selection: Array<{start: {row: number}}>) => {
+          const row = selection[0]?.start?.row;
+          if (row !== undefined) insertRowAt(row + 1);
+        },
+      },
+      'separator1': '---------' as any,
+      'remove_row': {
+        name: 'Ta bort rad',
+        callback: (_key: string, selection: Array<{start: {row: number}}>) => {
+          const row = selection[0]?.start?.row;
+          if (row !== undefined) deleteRowAt(row);
+        },
+        disabled: () => {
+          const sel = hotRef.current?.hotInstance?.getSelected();
+          if (!sel || !sel[0]) return true;
+          const rowIdx = sel[0][0];
+          const planRow = rows[rowIdx];
+          return !planRow || planRow.isLocked || planRow.rowType === 'summary' || planRow.rowType === 'section' || planRow.rowType === 'subsection';
+        },
+      },
+      'separator2': '---------' as any,
+      'undo': { name: 'Ångra' },
+      'redo': { name: 'Gör om' },
+    },
+  }), [insertRowAt, deleteRowAt, rows]);
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -506,42 +547,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
           height="auto"
           undo={true}
           manualColumnResize={true}
-          contextMenu={{
-            items: {
-              'row_above': {
-                name: 'Lägg till rad ovanför',
-                callback: (_key: string, selection: Array<{start: {row: number}}>) => {
-                  const row = selection[0]?.start?.row;
-                  if (row !== undefined) insertRowAt(row);
-                },
-              },
-              'row_below': {
-                name: 'Lägg till rad nedanför',
-                callback: (_key: string, selection: Array<{start: {row: number}}>) => {
-                  const row = selection[0]?.start?.row;
-                  if (row !== undefined) insertRowAt(row + 1);
-                },
-              },
-              'separator1': '---------' as any,
-              'remove_row': {
-                name: 'Ta bort rad',
-                callback: (_key: string, selection: Array<{start: {row: number}}>) => {
-                  const row = selection[0]?.start?.row;
-                  if (row !== undefined) deleteRowAt(row);
-                },
-                disabled: () => {
-                  const sel = hotRef.current?.hotInstance?.getSelected();
-                  if (!sel || !sel[0]) return true;
-                  const rowIdx = sel[0][0];
-                  const planRow = rows[rowIdx];
-                  return !planRow || planRow.isLocked || planRow.rowType === 'summary' || planRow.rowType === 'section' || planRow.rowType === 'subsection';
-                },
-              },
-              'separator2': '---------' as any,
-              'undo': { name: 'Ångra' },
-              'redo': { name: 'Gör om' },
-            },
-          }}
+          contextMenu={contextMenu}
           afterChange={handleAfterChange}
           afterSelectionEnd={handleAfterSelectionEnd}
           fillHandle={true}
