@@ -31,6 +31,7 @@ import {
 
 interface MaintenancePlanDashboardProps {
   rows: PlanRow[];
+  onNavigateToRow?: (rowId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ function getItemsForYear(rows: PlanRow[], yearCol: string, byggdelMap: Map<strin
 // Component
 // ---------------------------------------------------------------------------
 
-const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ rows }) => {
+const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ rows, onNavigateToRow }) => {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
   const byggdelMap = useMemo(() => buildByggdelMap(rows), [rows]);
@@ -324,6 +325,7 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
               {lagkravItems.filter(i => i.status !== 'ok').map((item) => (
                 <Box
                   key={item.row.id}
+                  onClick={() => onNavigateToRow?.(item.row.id)}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -333,6 +335,9 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
                     bgcolor: 'warning.50',
                     border: '1px solid',
                     borderColor: 'warning.200',
+                    cursor: onNavigateToRow ? 'pointer' : 'default',
+                    transition: 'all 0.15s',
+                    '&:hover': onNavigateToRow ? { borderColor: 'warning.main', bgcolor: 'warning.100' } : {},
                   }}
                 >
                   <WarningIcon fontSize="small" color="warning" />
@@ -358,7 +363,18 @@ const MaintenancePlanDashboard: React.FC<MaintenancePlanDashboardProps> = ({ row
               {lagkravItems.filter(i => i.status === 'ok').map((item) => (
                 <Box
                   key={item.row.id}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.75 }}
+                  onClick={() => onNavigateToRow?.(item.row.id)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: 1,
+                    cursor: onNavigateToRow ? 'pointer' : 'default',
+                    transition: 'all 0.15s',
+                    '&:hover': onNavigateToRow ? { bgcolor: 'action.hover' } : {},
+                  }}
                 >
                   <CheckCircleIcon fontSize="small" color="success" />
                   <Typography variant="body2" sx={{ flex: 1 }}>

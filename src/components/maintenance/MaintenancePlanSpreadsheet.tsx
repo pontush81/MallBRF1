@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -67,6 +67,7 @@ interface SpreadsheetProps {
   isSaving: boolean;
   onSave: () => void;
   onRestoreVersion: (versionId: string) => void;
+  highlightRowId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,11 +83,27 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   isSaving,
   onSave,
   onRestoreVersion,
+  highlightRowId,
 }) => {
   const hotRef = useRef<HotTableClass>(null);
 
   // Local state
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
+
+  // Scroll to and highlight a row when highlightRowId changes
+  useEffect(() => {
+    if (!highlightRowId) return;
+    const rowIdx = rows.findIndex(r => r.id === highlightRowId);
+    if (rowIdx < 0) return;
+    // Small delay to let HotTable render after tab switch
+    const timer = setTimeout(() => {
+      const hot = hotRef.current?.hotInstance;
+      if (!hot) return;
+      hot.selectRows(rowIdx);
+      hot.scrollViewportTo(rowIdx, 0);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [highlightRowId, rows]);
 
   // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -126,7 +143,21 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Cell-level readOnly for locked rows
+  // Section index per row (for alternating section backgrounds)
+  // ---------------------------------------------------------------------------
+
+  const sectionIndexMap = useMemo(() => {
+    const map: number[] = [];
+    let sectionIdx = -1;
+    for (const r of rows) {
+      if (r.rowType === 'section') sectionIdx++;
+      map.push(sectionIdx);
+    }
+    return map;
+  }, [rows]);
+
+  // ---------------------------------------------------------------------------
+  // Cell-level styling
   // ---------------------------------------------------------------------------
 
   const cellCallback = useCallback(
@@ -137,8 +168,9 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
       // Apply CSS class for entire row
       const cls = cssClassForRowType(planRow.rowType);
-      if (cls) {
-        props.className = cls;
+      const sectionCls = (planRow.rowType === 'item' || planRow.rowType === 'subsection') && sectionIndexMap[row] % 2 === 1 ? 'mp-section-odd' : '';
+      if (cls || sectionCls) {
+        props.className = [cls, sectionCls].filter(Boolean).join(' ');
       }
 
       // No rows are readOnly — the entire sheet is editable like Excel
@@ -150,7 +182,7 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
 
       return props;
     },
-    [rows],
+    [rows, sectionIndexMap],
   );
 
   // ---------------------------------------------------------------------------
@@ -194,10 +226,15 @@ const MaintenancePlanSpreadsheet: React.FC<SpreadsheetProps> = ({
                 hf.setCellContents({ sheet: 0, row: rowIdx, col: numCol }, newVal);
                 const result = hf.getCellValue({ sheet: 0, row: rowIdx, col: numCol });
                 hf.destroy();
-                parsed = typeof result === 'number' ? result : null;
+                if (typeof result === 'number') {
+                  parsed = result;
+                } else {
+                  // Invalid formula (e.g. just "=") — keep old value
+                  continue;
+                }
               } catch (e) {
                 console.error('Formula error:', e);
-                parsed = null;
+                continue; // Keep old value on error
               }
             } else {
               const num = parseFloat(String(newVal));

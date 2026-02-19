@@ -35,10 +35,11 @@ export const ANTAL_COL = 5;
 
 /** Inline style tag (injected once) */
 export const SPREADSHEET_STYLES = `
-  .mp-row-section td { background-color: #e3f2fd !important; font-weight: 700 !important; }
+  .mp-row-section td { background-color: #e3f2fd !important; font-weight: 700 !important; border-top: 3px solid #90caf9 !important; }
   .mp-row-subsection td { background-color: #f5f5f5 !important; font-weight: 600 !important; }
   .mp-row-summary td { background-color: #fff3e0 !important; font-weight: 700 !important; border-top: 2px solid #e65100 !important; }
   .mp-row-blank td { background-color: #fafafa !important; }
+  .mp-section-odd td { background-color: #f8fafc !important; }
 `;
 
 // ---------------------------------------------------------------------------

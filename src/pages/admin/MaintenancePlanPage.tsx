@@ -64,6 +64,7 @@ const MaintenancePlanPage: React.FC = () => {
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0); // Default to "Översikt"
+  const [highlightRowId, setHighlightRowId] = useState<string | null>(null);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
@@ -180,6 +181,18 @@ const MaintenancePlanPage: React.FC = () => {
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Navigate from dashboard to spreadsheet row
+  // ---------------------------------------------------------------------------
+
+  const handleNavigateToRow = useCallback((rowId: string) => {
+    setHighlightRowId(null); // Reset first so re-clicking same row works
+    setTimeout(() => {
+      setHighlightRowId(rowId);
+      setActiveTab(1); // Switch to "Detaljerad plan"
+    }, 0);
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -216,7 +229,7 @@ const MaintenancePlanPage: React.FC = () => {
 
       {/* Tab Panels */}
       <TabPanel value={activeTab} index={0}>
-        <MaintenancePlanDashboard rows={rows} />
+        <MaintenancePlanDashboard rows={rows} onNavigateToRow={handleNavigateToRow} />
       </TabPanel>
 
       <TabPanel value={activeTab} index={1}>
@@ -229,6 +242,7 @@ const MaintenancePlanPage: React.FC = () => {
           isSaving={isSaving}
           onSave={handleSave}
           onRestoreVersion={handleRestoreVersion}
+          highlightRowId={highlightRowId}
         />
       </TabPanel>
 
