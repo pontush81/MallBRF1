@@ -295,7 +295,7 @@ const REGULATORY_INFO_URLS: { keywords: string[]; url: string }[] = [
   },
   {
     keywords: ['brandskydd', 'sba'],
-    url: 'https://www.msb.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/systematiskt-brandskyddsarbete/',
+    url: 'https://www.mcf.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/stod-till-kommunal-raddningstjanst/brandskydd-och-forebyggande/ansvar-sba-och-skriftlig-redogorelse/',
   },
   {
     keywords: ['taksäkerhet', 'taksäkerhetsbesiktning'],
@@ -303,7 +303,7 @@ const REGULATORY_INFO_URLS: { keywords: string[]; url: string }[] = [
   },
   {
     keywords: ['legionella'],
-    url: 'https://www.folkhalsomyndigheten.se/livsvillkor-levnadsvanor/miljohalsa-och-halsoskydd/inomhusmiljo-allmanna-lokaler-och-platser/legionella/',
+    url: 'https://www.folkhalsomyndigheten.se/regler-och-tillsyn/tillsynsvagledning-och-stod/halsoskydd-vagledning-och-tillsyn/vagledning-om-smitta-fran-objekt-och-djur/tillsynsvagledning-om-legionella/fragor-och-svar-om-legionella/',
   },
   {
     keywords: ['elrevision', 'elsäkerhet', 'elbesiktning'],
@@ -319,7 +319,7 @@ const REGULATORY_INFO_URLS: { keywords: string[]; url: string }[] = [
   },
   {
     keywords: ['sotning', 'skorsten'],
-    url: 'https://www.msb.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/sotning-och-brandskyddskontroll/',
+    url: 'https://www.mcf.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/sotning-och-brandskyddskontroll/',
   },
 ];
 

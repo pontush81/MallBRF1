@@ -159,7 +159,7 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 4.1 Brandskydd ---
     row({ rowType: 'subsection', nr: '4.1', byggdel: 'Brandskydd', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Systematiskt brandskyddsarbete (SBA)', tek_livslangd: 'Årligen', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'LSO 2 kap. 2§ – dokumenterad genomgång av brandskydd, utrymningsvägar, släckutrustning', info_url: 'https://www.msb.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/systematiskt-brandskyddsarbete/' }),
+    row({ rowType: 'item', atgard: 'Systematiskt brandskyddsarbete (SBA)', tek_livslangd: 'Årligen', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'LSO 2 kap. 2§ – dokumenterad genomgång av brandskydd, utrymningsvägar, släckutrustning', info_url: 'https://www.mcf.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/stod-till-kommunal-raddningstjanst/brandskydd-och-forebyggande/ansvar-sba-och-skriftlig-redogorelse/' }),
     row({ rowType: 'item', atgard: 'Brandvarnare – byte/kontroll', tek_livslangd: '10 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Gemensamma utrymmen. Lgh-innehavare ansvarar för egna.' }),
 
     // --- 4.2 Energideklaration ---
@@ -176,7 +176,7 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 4.5 Egenkontroll vatten ---
     row({ rowType: 'subsection', nr: '4.5', byggdel: 'Egenkontroll vatten', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Legionellakontroll (temperatur)', tek_livslangd: 'Löpande', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Miljöbalken egenkontroll – VV ≥60°C i beredare, ≥50°C vid tappställe', info_url: 'https://www.folkhalsomyndigheten.se/livsvillkor-levnadsvanor/miljohalsa-och-halsoskydd/inomhusmiljo-allmanna-lokaler-och-platser/legionella/' }),
+    row({ rowType: 'item', atgard: 'Legionellakontroll (temperatur)', tek_livslangd: 'Löpande', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Miljöbalken egenkontroll – VV ≥60°C i beredare, ≥50°C vid tappställe', info_url: 'https://www.folkhalsomyndigheten.se/regler-och-tillsyn/tillsynsvagledning-och-stod/halsoskydd-vagledning-och-tillsyn/vagledning-om-smitta-fran-objekt-och-djur/tillsynsvagledning-om-legionella/fragor-och-svar-om-legionella/' }),
 
     // --- 4.6 Elrevision ---
     row({ rowType: 'subsection', nr: '4.6', byggdel: 'Elrevision', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
