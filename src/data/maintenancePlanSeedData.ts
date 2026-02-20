@@ -53,8 +53,7 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 1.1.1 Fönster ---
     row({ rowType: 'subsection', nr: '1.1.1', byggdel: 'Fönster', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Byte takfönster', tek_livslangd: '25 år', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Byte takfönster lägenhet E F G', a_pris: 27500, antal: 12, year_2028: 330000, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', atgard: 'Byte takfönster lägenhet E F G', tek_livslangd: '25 år', a_pris: 27500, antal: 12, year_2028: 330000, sortIndex: nextIdx(), indentLevel: 2 }),
     row({ rowType: 'item', atgard: 'Övriga fönster', year_2028: 250000, year_2029: 250000, sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 1.1.2 Dörrar ---
@@ -158,22 +157,34 @@ export function createDefaultPlanData(): PlanData {
     // =========================================================================
     row({ rowType: 'section', nr: '4', byggdel: 'Säkerhet & myndighetskrav', isLocked: true, sortIndex: nextIdx() }),
 
-    // --- 4.1 OVK ---
-    row({ rowType: 'subsection', nr: '4.1', byggdel: 'OVK', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Obligatorisk ventilationskontroll', tek_livslangd: 'Lagkrav', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Nästa: se 3.2' }),
+    // --- 4.1 Brandskydd ---
+    row({ rowType: 'subsection', nr: '4.1', byggdel: 'Brandskydd', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
+    row({ rowType: 'item', atgard: 'Systematiskt brandskyddsarbete (SBA)', tek_livslangd: 'Årligen', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'LSO 2 kap. 2§ – dokumenterad genomgång av brandskydd, utrymningsvägar, släckutrustning', info_url: 'https://www.msb.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/systematiskt-brandskyddsarbete/' }),
+    row({ rowType: 'item', atgard: 'Brandvarnare – byte/kontroll', tek_livslangd: '10 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Gemensamma utrymmen. Lgh-innehavare ansvarar för egna.' }),
 
     // --- 4.2 Energideklaration ---
     row({ rowType: 'subsection', nr: '4.2', byggdel: 'Energideklaration', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Energideklaration (lagkrav)', tek_livslangd: 'Var 10:e år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera giltighetstid' }),
+    row({ rowType: 'item', atgard: 'Energideklaration', tek_livslangd: 'Var 10:e år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Lag (2006:985) – certifierad energiexpert, registreras hos Boverket', info_url: 'https://www.boverket.se/sv/energideklaration/' }),
 
     // --- 4.3 Radon ---
     row({ rowType: 'subsection', nr: '4.3', byggdel: 'Radonmätning', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Radonmätning', tek_livslangd: 'Var 10:e år (rek.)', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Senaste mätning?' }),
+    row({ rowType: 'item', atgard: 'Radonmätning', tek_livslangd: 'Var 10:e år (rek.)', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Strålskyddslagen – gränsvärde 200 Bq/m³, mätning okt–apr minst 2 mån', info_url: 'https://www.stralsakerhetsmyndigheten.se/omraden/radon/' }),
 
-    // --- 4.4 Brandskydd ---
-    row({ rowType: 'subsection', nr: '4.4', byggdel: 'Brandskydd', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Brandskyddsgenomgång (SBA)', tek_livslangd: 'Årligen', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Brandvarnare – byte/kontroll', tek_livslangd: '10 år', sortIndex: nextIdx(), indentLevel: 2 }),
+    // --- 4.4 Taksäkerhet ---
+    row({ rowType: 'subsection', nr: '4.4', byggdel: 'Taksäkerhet', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
+    row({ rowType: 'item', atgard: 'Taksäkerhetsbesiktning', tek_livslangd: 'Var 5:e år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'PBL 8 kap. 4§ – takstegar, gångbryggor, snörasskydd, förankringspunkter', info_url: 'https://www.boverket.se/sv/PBL-kunskapsbanken/regler-om-byggande/boverkets-byggregler/sakerhet-vid-anvandning/taksakerhet/' }),
+
+    // --- 4.5 Egenkontroll vatten ---
+    row({ rowType: 'subsection', nr: '4.5', byggdel: 'Egenkontroll vatten', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
+    row({ rowType: 'item', atgard: 'Legionellakontroll (temperatur)', tek_livslangd: 'Löpande', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Miljöbalken egenkontroll – VV ≥60°C i beredare, ≥50°C vid tappställe', info_url: 'https://www.folkhalsomyndigheten.se/livsvillkor-levnadsvanor/miljohalsa-och-halsoskydd/inomhusmiljo-allmanna-lokaler-och-platser/legionella/' }),
+
+    // --- 4.6 Elrevision ---
+    row({ rowType: 'subsection', nr: '4.6', byggdel: 'Elrevision', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
+    row({ rowType: 'item', atgard: 'Elrevision gemensamma anläggningar', tek_livslangd: 'Var 3–5 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Elsäkerhetslagen (2016:732) – dokumenterad kontroll av elanläggning', info_url: 'https://www.elsakerhetsverket.se/om-oss/lag-och-ratt/vad-innebar-de-nya-starkstromsforeskrifterna/' }),
+
+    // --- 4.7 OVK ---
+    row({ rowType: 'subsection', nr: '4.7', byggdel: 'OVK', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
+    row({ rowType: 'item', atgard: 'Obligatorisk ventilationskontroll', tek_livslangd: 'Var 6:e år (FT/S)', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Plan- och byggförordningen 5 kap. – certifierad kontrollant, protokoll till kommunen', info_url: 'https://www.boverket.se/sv/byggande/halsa-och-inomhusmiljo/ventilation/ovk/' }),
 
     // Empty rows for future use
     row({ rowType: 'blank', sortIndex: nextIdx() }),

@@ -37,6 +37,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AddIcon from '@mui/icons-material/Add';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -217,7 +218,13 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   // Local state
   // ---------------------------------------------------------------------------
 
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (r.rowType === 'section') ids.add(r.id);
+    }
+    return ids;
+  });
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ rowId: string; yearCol: string } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -357,11 +364,25 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   const commitEditText = useCallback(() => {
     if (!editingText) return;
     const { rowId, field } = editingText;
-    setRows(prevRows =>
-      prevRows.map(r =>
-        r.id === rowId ? { ...r, [field]: editTextValue.trim() } : r,
-      ),
-    );
+
+    let newValue: string | number | null = editTextValue.trim();
+
+    // Handle numeric fields
+    if (field === 'a_pris' || field === 'antal') {
+      if (newValue === '') {
+        newValue = null;
+      } else {
+        const parsed = parseFloat(String(newValue).replace(/\s/g, '').replace(',', '.'));
+        newValue = !isNaN(parsed) ? Math.round(parsed) : null;
+      }
+    }
+
+    setRows(prevRows => {
+      const newRows = prevRows.map(r =>
+        r.id === rowId ? { ...r, [field]: newValue } : r,
+      );
+      return (field === 'a_pris' || field === 'antal') ? recalcSummaryRows(newRows) : newRows;
+    });
     setIsDirty(true);
     setEditingText(null);
     setEditTextValue('');
@@ -764,18 +785,55 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                 onClick={e => e.stopPropagation()}
               />
             ) : (
-              <Typography
-                variant="body2"
-                fontWeight={500}
-                sx={item.atgard ? { '&:hover': { color: 'primary.main' } } : { color: 'text.disabled', fontStyle: 'italic' }}
-              >
-                {item.atgard || 'Namnge åtgärd...'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight={500}
+                  sx={item.atgard ? { '&:hover': { color: 'primary.main' } } : { color: 'text.disabled', fontStyle: 'italic' }}
+                >
+                  {item.atgard || 'Namnge åtgärd...'}
+                </Typography>
+                {item.info_url && (
+                  <Tooltip title="Mer information">
+                    <IconButton
+                      size="small"
+                      component="a"
+                      href={item.info_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                      sx={{ p: 0.25, opacity: 0.5, '&:hover': { opacity: 1, color: 'primary.main' } }}
+                    >
+                      <OpenInNewIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             )}
-            {parentByggdel && !(editingText?.rowId === item.id && editingText.field === 'atgard') && (
-              <Typography variant="caption" color="text.secondary">
-                {parentByggdel}
-              </Typography>
+            {!(editingText?.rowId === item.id && editingText.field === 'atgard') && (
+              editingText?.rowId === item.id && editingText.field === 'byggdel' ? (
+                <TextField
+                  size="small"
+                  variant="standard"
+                  value={editTextValue}
+                  onChange={e => setEditTextValue(e.target.value)}
+                  onBlur={commitEditText}
+                  onKeyDown={handleEditTextKeyDown}
+                  autoFocus
+                  placeholder="Byggdel..."
+                  onClick={e => e.stopPropagation()}
+                  sx={{ '& input': { fontSize: '0.75rem' } }}
+                />
+              ) : (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  onClick={(e) => { e.stopPropagation(); startEditText(item.id, 'byggdel', item.byggdel); }}
+                  sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                >
+                  {parentByggdel || 'Byggdel...'}
+                </Typography>
+              )
             )}
           </TableCell>
 
@@ -924,50 +982,165 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                   {YEAR_COLUMNS.map(yc => renderYearBox(item, yc))}
                 </Box>
 
-                {/* Meta info */}
+                {/* Meta info – all fields editable */}
                 <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
+                  {/* Tek livslängd */}
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Tek livslängd
-                    </Typography>
-                    <Typography variant="body2">
-                      {item.tek_livslangd || '\u2013'}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">Tek livslängd</Typography>
+                    {editingText?.rowId === item.id && editingText.field === 'tek_livslangd' ? (
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        value={editTextValue}
+                        onChange={e => setEditTextValue(e.target.value)}
+                        onBlur={commitEditText}
+                        onKeyDown={handleEditTextKeyDown}
+                        autoFocus
+                        placeholder="t.ex. 15 år"
+                        sx={{ '& input': { fontSize: '0.875rem' }, minWidth: 80 }}
+                      />
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        onClick={() => startEditText(item.id, 'tek_livslangd', item.tek_livslangd)}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: item.tek_livslangd ? undefined : 'text.disabled' }}
+                      >
+                        {item.tek_livslangd || '\u2013'}
+                      </Typography>
+                    )}
                   </Box>
+                  {/* a-pris */}
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      a-pris
-                    </Typography>
-                    <Typography variant="body2">
-                      {item.a_pris !== null ? fmtKr(item.a_pris) : '\u2013'}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">a-pris</Typography>
+                    {editingText?.rowId === item.id && editingText.field === 'a_pris' ? (
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        value={editTextValue}
+                        onChange={e => setEditTextValue(e.target.value)}
+                        onBlur={commitEditText}
+                        onKeyDown={handleEditTextKeyDown}
+                        autoFocus
+                        placeholder="0"
+                        sx={{ '& input': { fontSize: '0.875rem' }, minWidth: 80 }}
+                      />
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        onClick={() => startEditText(item.id, 'a_pris', item.a_pris !== null ? String(item.a_pris) : '')}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: item.a_pris !== null ? undefined : 'text.disabled' }}
+                      >
+                        {item.a_pris !== null ? fmtKr(item.a_pris) : '\u2013'}
+                      </Typography>
+                    )}
                   </Box>
+                  {/* Antal */}
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Antal
-                    </Typography>
-                    <Typography variant="body2">
-                      {item.antal !== null ? item.antal : '\u2013'}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">Antal</Typography>
+                    {editingText?.rowId === item.id && editingText.field === 'antal' ? (
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        value={editTextValue}
+                        onChange={e => setEditTextValue(e.target.value)}
+                        onBlur={commitEditText}
+                        onKeyDown={handleEditTextKeyDown}
+                        autoFocus
+                        placeholder="0"
+                        sx={{ '& input': { fontSize: '0.875rem' }, minWidth: 50 }}
+                      />
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        onClick={() => startEditText(item.id, 'antal', item.antal !== null ? String(item.antal) : '')}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: item.antal !== null ? undefined : 'text.disabled' }}
+                      >
+                        {item.antal !== null ? item.antal : '\u2013'}
+                      </Typography>
+                    )}
                   </Box>
+                  {/* Totalt – read-only (computed) */}
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Totalt
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">Totalt</Typography>
                     <Typography variant="body2" fontWeight={600}>
                       {fmtKr(total || null)}
                     </Typography>
                   </Box>
-                  {item.utredningspunkter && (
-                    <Box sx={{ flexBasis: '100%' }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Utredningspunkter
+                  {/* Kommentar (utredningspunkter) – always visible */}
+                  <Box sx={{ flexBasis: '100%' }}>
+                    <Typography variant="caption" color="text.secondary">Kommentar</Typography>
+                    {editingText?.rowId === item.id && editingText.field === 'utredningspunkter' ? (
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        value={editTextValue}
+                        onChange={e => setEditTextValue(e.target.value)}
+                        onBlur={commitEditText}
+                        onKeyDown={handleEditTextKeyDown}
+                        autoFocus
+                        fullWidth
+                        placeholder="Lägg till kommentar..."
+                        sx={{ '& input': { fontSize: '0.875rem' } }}
+                      />
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        onClick={() => startEditText(item.id, 'utredningspunkter', item.utredningspunkter)}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: item.utredningspunkter ? undefined : 'text.disabled', fontStyle: item.utredningspunkter ? undefined : 'italic' }}
+                      >
+                        {item.utredningspunkter || 'Lägg till kommentar...'}
                       </Typography>
-                      <Typography variant="body2">
-                        {item.utredningspunkter}
+                    )}
+                  </Box>
+                  {/* Info-länk – editable URL */}
+                  <Box sx={{ flexBasis: '100%' }}>
+                    <Typography variant="caption" color="text.secondary">Mer information</Typography>
+                    {editingText?.rowId === item.id && editingText.field === 'info_url' ? (
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        value={editTextValue}
+                        onChange={e => setEditTextValue(e.target.value)}
+                        onBlur={commitEditText}
+                        onKeyDown={handleEditTextKeyDown}
+                        autoFocus
+                        fullWidth
+                        placeholder="https://..."
+                        sx={{ '& input': { fontSize: '0.875rem' } }}
+                      />
+                    ) : item.info_url ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography
+                          variant="body2"
+                          component="a"
+                          href={item.info_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                          {(() => { try { return new URL(item.info_url).hostname; } catch { return item.info_url; } })()}
+                        </Typography>
+                        <OpenInNewIcon sx={{ fontSize: 14, color: 'primary.main', opacity: 0.7 }} />
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          onClick={() => startEditText(item.id, 'info_url', item.info_url || '')}
+                          sx={{ cursor: 'pointer', ml: 1, '&:hover': { color: 'primary.main' } }}
+                        >
+                          redigera
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        onClick={() => startEditText(item.id, 'info_url', '')}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: 'text.disabled', fontStyle: 'italic' }}
+                      >
+                        Lägg till länk...
                       </Typography>
-                    </Box>
-                  )}
+                    )}
+                  </Box>
                 </Box>
               </Box>
             </Collapse>

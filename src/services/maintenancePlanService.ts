@@ -28,6 +28,7 @@ export interface PlanRow {
   year_2034: number | null;
   year_2035: number | null;
   utredningspunkter: string;
+  info_url?: string;
   sortIndex: number;
   indentLevel: number;
   isLocked: boolean;
