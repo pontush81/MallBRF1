@@ -295,6 +295,15 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
     const parsed = editValue.trim() === '' ? null : parseFloat(editValue.replace(/\s/g, '').replace(',', '.'));
     const numVal = parsed !== null && !isNaN(parsed) ? Math.round(parsed) : null;
 
+    // Only update if value actually changed
+    const currentRow = rows.find(r => r.id === rowId);
+    const currentVal = currentRow ? (currentRow as unknown as Record<string, number | null>)[yearCol] : undefined;
+    if (currentVal === numVal || (currentVal == null && numVal == null)) {
+      setEditingCell(null);
+      setEditValue('');
+      return;
+    }
+
     setRows(prevRows => {
       const newRows = prevRows.map(r => {
         if (r.id !== rowId) return r;
@@ -308,7 +317,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
 
     setEditingCell(null);
     setEditValue('');
-  }, [editingCell, editValue, setRows, setIsDirty]);
+  }, [editingCell, editValue, rows, setRows, setIsDirty]);
 
   // ---------------------------------------------------------------------------
   // Inline edit: cancel
@@ -377,6 +386,15 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
       }
     }
 
+    // Only update if value actually changed
+    const currentRow = rows.find(r => r.id === rowId);
+    const currentVal = currentRow ? (currentRow as unknown as Record<string, unknown>)[field] : undefined;
+    if (currentVal === newValue || (currentVal == null && newValue == null) || (currentVal === '' && newValue === '')) {
+      setEditingText(null);
+      setEditTextValue('');
+      return;
+    }
+
     setRows(prevRows => {
       const newRows = prevRows.map(r =>
         r.id === rowId ? { ...r, [field]: newValue } : r,
@@ -386,7 +404,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
     setIsDirty(true);
     setEditingText(null);
     setEditTextValue('');
-  }, [editingText, editTextValue, setRows, setIsDirty]);
+  }, [editingText, editTextValue, rows, setRows, setIsDirty]);
 
   const cancelEditText = useCallback(() => {
     setEditingText(null);
@@ -415,17 +433,26 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   const commitOsakerhet = useCallback(() => {
     const parsed = parseInt(osakerhetValue, 10);
     const pct = !isNaN(parsed) && parsed >= 0 && parsed <= 100 ? parsed : 0;
+    const newAtgard = pct > 0 ? `${pct}%` : '0%';
+
+    // Only update if value actually changed
+    const currentRow = rows.find(r => r.rowType === 'summary' && r.byggdel === 'Osäkerhet');
+    if (currentRow?.atgard === newAtgard) {
+      setEditingOsakerhet(false);
+      return;
+    }
+
     setRows(prevRows => {
       const newRows = prevRows.map(r =>
         r.rowType === 'summary' && r.byggdel === 'Osäkerhet'
-          ? { ...r, atgard: pct > 0 ? `${pct}%` : '0%' }
+          ? { ...r, atgard: newAtgard }
           : r,
       );
       setIsDirty(true);
       return recalcSummaryRows(newRows);
     });
     setEditingOsakerhet(false);
-  }, [osakerhetValue, setRows, setIsDirty]);
+  }, [osakerhetValue, rows, setRows, setIsDirty]);
 
   const handleOsakerhetKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
