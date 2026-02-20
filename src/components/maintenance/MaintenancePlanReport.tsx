@@ -31,6 +31,8 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import HistoryIcon from '@mui/icons-material/History';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckIcon from '@mui/icons-material/Check';
@@ -53,6 +55,10 @@ import {
   computeRowTotal,
   recalcSummaryRows,
   buildByggdelMap,
+  buildExportRows,
+  exportDataToTsv,
+  exportDataToCsv,
+  applyExcelFormulas,
 } from './maintenancePlanHelpers';
 
 // ---------------------------------------------------------------------------
@@ -69,25 +75,32 @@ interface ReportProps {
   onSave: () => void;
   onRestoreVersion: (versionId: string) => void;
   onOpenImport: () => void;
+  onNotify?: (message: string, severity?: 'success' | 'error' | 'info') => void;
 }
 
 // ---------------------------------------------------------------------------
 // Status helpers
 // ---------------------------------------------------------------------------
 
-const STATUS_OPTIONS: { value: PlanRowStatus; label: string; color: 'default' | 'primary' | 'success' | 'warning' }[] = [
-  { value: 'planned', label: '\u2013', color: 'default' },
-  { value: 'in_progress', label: 'P\u00e5g\u00e5r', color: 'primary' },
-  { value: 'completed', label: 'Utf\u00f6rd', color: 'success' },
-  { value: 'postponed', label: 'Uppskjuten', color: 'warning' },
+type ChipColor = 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
+
+const STATUS_OPTIONS: { value: PlanRowStatus; label: string; color: ChipColor; variant: 'filled' | 'outlined' }[] = [
+  { value: 'planned', label: '\u2013', color: 'default', variant: 'outlined' },
+  { value: 'in_progress', label: 'Pågår', color: 'warning', variant: 'filled' },
+  { value: 'completed', label: 'Utförd', color: 'success', variant: 'filled' },
+  { value: 'postponed', label: 'Försenad', color: 'error', variant: 'filled' },
 ];
 
 function statusLabel(status: PlanRowStatus): string {
   return STATUS_OPTIONS.find(s => s.value === status)?.label ?? '\u2013';
 }
 
-function statusColor(status: PlanRowStatus): 'default' | 'primary' | 'success' | 'warning' {
+function statusColor(status: PlanRowStatus): ChipColor {
   return STATUS_OPTIONS.find(s => s.value === status)?.color ?? 'default';
+}
+
+function statusVariant(status: PlanRowStatus): 'filled' | 'outlined' {
+  return STATUS_OPTIONS.find(s => s.value === status)?.variant ?? 'outlined';
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +211,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   onSave,
   onRestoreVersion,
   onOpenImport,
+  onNotify,
 }) => {
   // ---------------------------------------------------------------------------
   // Local state
@@ -211,6 +225,8 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   const [versions, setVersions] = useState<Pick<PlanVersion, 'id' | 'version' | 'created_at' | 'created_by' | 'metadata'>[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [editingText, setEditingText] = useState<{ rowId: string; field: string } | null>(null);
+  const [editingOsakerhet, setEditingOsakerhet] = useState(false);
+  const [osakerhetValue, setOsakerhetValue] = useState('');
   const [editTextValue, setEditTextValue] = useState('');
 
   // ---------------------------------------------------------------------------
@@ -362,6 +378,40 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
       else if (e.key === 'Escape') { e.preventDefault(); cancelEditText(); }
     },
     [commitEditText, cancelEditText],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Osäkerhet percentage editing
+  // ---------------------------------------------------------------------------
+
+  const startEditOsakerhet = useCallback(() => {
+    const osakerhetRow = rows.find(r => r.rowType === 'summary' && r.byggdel === 'Osäkerhet');
+    const pctMatch = osakerhetRow?.atgard.match(/(\d+)/);
+    setOsakerhetValue(pctMatch ? pctMatch[1] : '10');
+    setEditingOsakerhet(true);
+  }, [rows]);
+
+  const commitOsakerhet = useCallback(() => {
+    const parsed = parseInt(osakerhetValue, 10);
+    const pct = !isNaN(parsed) && parsed >= 0 && parsed <= 100 ? parsed : 0;
+    setRows(prevRows => {
+      const newRows = prevRows.map(r =>
+        r.rowType === 'summary' && r.byggdel === 'Osäkerhet'
+          ? { ...r, atgard: pct > 0 ? `${pct}%` : '0%' }
+          : r,
+      );
+      setIsDirty(true);
+      return recalcSummaryRows(newRows);
+    });
+    setEditingOsakerhet(false);
+  }, [osakerhetValue, setRows, setIsDirty]);
+
+  const handleOsakerhetKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitOsakerhet(); }
+      else if (e.key === 'Escape') { e.preventDefault(); setEditingOsakerhet(false); }
+    },
+    [commitOsakerhet],
   );
 
   // ---------------------------------------------------------------------------
@@ -533,10 +583,43 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     ws['!cols'] = COLUMN_WIDTHS.map(w => ({ wch: Math.round(w / 7) }));
+    applyExcelFormulas(ws, rows, 4); // header row is at 0-indexed row 4
     XLSX.utils.book_append_sheet(wb, ws, 'Underh\u00e5llsplan');
 
     const today = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `underhallsplan-gulmaran-${today}.xlsx`);
+  }, [rows]);
+
+  // ---------------------------------------------------------------------------
+  // Copy to clipboard (TSV – for Google Sheets paste)
+  // ---------------------------------------------------------------------------
+
+  const handleCopyToClipboard = useCallback(async () => {
+    const data = buildExportRows(rows);
+    const tsv = exportDataToTsv(data);
+    try {
+      await navigator.clipboard.writeText(tsv);
+      onNotify?.('Kopierat! Klistra in i Google Sheets med Ctrl+V', 'success');
+    } catch {
+      onNotify?.('Kunde inte kopiera till urklipp', 'error');
+    }
+  }, [rows, onNotify]);
+
+  // ---------------------------------------------------------------------------
+  // CSV export (download file for Google Sheets import)
+  // ---------------------------------------------------------------------------
+
+  const handleExportCsv = useCallback(() => {
+    const data = buildExportRows(rows);
+    const csv = exportDataToCsv(data);
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM for Swedish chars
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    a.download = `underhallsplan-gulmaran-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }, [rows]);
 
   // ---------------------------------------------------------------------------
@@ -696,19 +779,38 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
             )}
           </TableCell>
 
-          {/* Years with costs */}
-          <TableCell sx={{ width: 80, textAlign: 'center' }}>
+          {/* Years with costs — hidden on mobile (visible in expanded view) */}
+          <TableCell sx={{ width: 120, textAlign: 'center', display: { xs: 'none', sm: 'table-cell' } }}>
             {(() => {
-              const years = YEAR_COLUMNS
+              const yearData = YEAR_COLUMNS
                 .filter(yc => { const v = item[yc]; return typeof v === 'number' && v > 0; })
-                .map(yc => yc.replace('year_', ''));
-              if (years.length === 0) return <Typography variant="body2">{'\u2013'}</Typography>;
+                .map(yc => ({ year: yc.replace('year_', ''), amount: item[yc] as number }));
+              if (yearData.length === 0) return <Typography variant="body2" color="text.disabled">{'\u2013'}</Typography>;
+
+              // Build year span label
+              const years = yearData.map(d => d.year);
+              const isConsecutive = years.length > 1 && years.every((y, i) =>
+                i === 0 || parseInt(y) === parseInt(years[i - 1]) + 1,
+              );
+              const yearLabel = years.length === 1
+                ? years[0]
+                : isConsecutive
+                  ? `${years[0]}\u2013${years[years.length - 1]}`
+                  : years.join(', ');
+
+              // Build per-year breakdown for multi-year items
+              const allSame = yearData.length > 1 && yearData.every(d => d.amount === yearData[0].amount);
+
               return (
                 <>
-                  <Typography variant="body2">{years[0]}</Typography>
-                  {years.length > 1 && (
-                    <Typography variant="caption" color="primary.main">
-                      +{years.length - 1} år
+                  <Typography variant="body2" fontWeight={500} noWrap>
+                    {yearLabel}
+                  </Typography>
+                  {yearData.length > 1 && (
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {allSame
+                        ? `${yearData.length} \u00d7 ${fmtKr(yearData[0].amount)}`
+                        : yearData.map(d => fmtKr(d.amount)).join(' + ')}
                     </Typography>
                   )}
                 </>
@@ -717,14 +819,14 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
           </TableCell>
 
           {/* Amount (total) */}
-          <TableCell sx={{ width: 100, textAlign: 'right' }}>
-            <Typography variant="body2" fontWeight={500}>
+          <TableCell sx={{ width: { xs: 70, sm: 100 }, textAlign: 'right' }}>
+            <Typography variant="body2" fontWeight={500} noWrap>
               {fmtKr(total || null)}
             </Typography>
           </TableCell>
 
-          {/* Status */}
-          <TableCell sx={{ width: 130 }}>
+          {/* Status — hidden on mobile (visible in expanded view) */}
+          <TableCell sx={{ width: 130, display: { xs: 'none', sm: 'table-cell' } }}>
             <Select
               value={item.status || 'planned'}
               onChange={e => handleStatusChange(item.id, e.target.value as PlanRowStatus)}
@@ -737,8 +839,8 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                   label={statusLabel(value as PlanRowStatus)}
                   color={statusColor(value as PlanRowStatus)}
                   size="small"
-                  variant="outlined"
-                  sx={{ height: 24 }}
+                  variant={statusVariant(value as PlanRowStatus)}
+                  sx={{ height: 26, fontWeight: 600, fontSize: '0.75rem' }}
                 />
               )}
             >
@@ -748,16 +850,16 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                     label={opt.label}
                     color={opt.color}
                     size="small"
-                    variant="outlined"
-                    sx={{ height: 24 }}
+                    variant={opt.variant}
+                    sx={{ height: 26, fontWeight: 600, fontSize: '0.75rem' }}
                   />
                 </MenuItem>
               ))}
             </Select>
           </TableCell>
 
-          {/* Delete */}
-          <TableCell sx={{ width: 40, px: 0 }}>
+          {/* Delete — hidden on mobile (available in expanded view) */}
+          <TableCell sx={{ width: 40, px: 0, display: { xs: 'none', sm: 'table-cell' } }}>
             <IconButton
               size="small"
               onClick={(e) => { e.stopPropagation(); handleDeleteRow(item.id); }}
@@ -772,14 +874,58 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
         <TableRow>
           <TableCell colSpan={6} sx={{ py: 0, px: 0, borderBottom: isExpanded ? undefined : 'none' }}>
             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-              <Box sx={{ px: 3, py: 2, bgcolor: '#fafafa' }}>
+              <Box sx={{ px: { xs: 1.5, sm: 3 }, py: 2, bgcolor: '#fafafa' }}>
+                {/* Mobile-only: status + delete row */}
+                <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Typography variant="caption" color="text.secondary">Status:</Typography>
+                  <Select
+                    value={item.status || 'planned'}
+                    onChange={e => handleStatusChange(item.id, e.target.value as PlanRowStatus)}
+                    variant="standard"
+                    disableUnderline
+                    size="small"
+                    sx={{ fontSize: '0.8125rem' }}
+                    renderValue={(value) => (
+                      <Chip
+                        label={statusLabel(value as PlanRowStatus)}
+                        color={statusColor(value as PlanRowStatus)}
+                        size="small"
+                        variant={statusVariant(value as PlanRowStatus)}
+                        sx={{ height: 26, fontWeight: 600, fontSize: '0.75rem' }}
+                      />
+                    )}
+                  >
+                    {STATUS_OPTIONS.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        <Chip
+                          label={opt.label}
+                          color={opt.color}
+                          size="small"
+                          variant={opt.variant}
+                          sx={{ height: 26, fontWeight: 600, fontSize: '0.75rem' }}
+                        />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <Box sx={{ flexGrow: 1 }} />
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteOutlineIcon />}
+                    onClick={() => handleDeleteRow(item.id)}
+                    sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  >
+                    Ta bort
+                  </Button>
+                </Box>
+
                 {/* Year boxes */}
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                   {YEAR_COLUMNS.map(yc => renderYearBox(item, yc))}
                 </Box>
 
                 {/* Meta info */}
-                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
                       Tek livslängd
@@ -851,32 +997,63 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
     <Box>
       {/* Toolbar */}
       <Paper sx={{ mb: 2 }} elevation={1}>
-        <Toolbar variant="dense" sx={{ gap: 1 }}>
-          <Button
-            size="small"
-            startIcon={<FileDownloadIcon />}
-            onClick={onOpenImport}
-          >
-            Importera Excel
-          </Button>
+        <Toolbar variant="dense" sx={{ gap: 0.5, flexWrap: 'wrap', py: { xs: 0.5, sm: 0 } }}>
+          <Tooltip title="Importera Excel">
+            <Button
+              size="small"
+              startIcon={<FileDownloadIcon />}
+              onClick={onOpenImport}
+              sx={{ minWidth: { xs: 'auto', sm: 64 }, '& .MuiButton-startIcon': { mx: { xs: 0, sm: undefined } } }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Importera</Box>
+            </Button>
+          </Tooltip>
 
-          <Button
-            size="small"
-            startIcon={<FileUploadIcon />}
-            onClick={handleExportExcel}
-          >
-            Exportera Excel
-          </Button>
+          <Tooltip title="Exportera Excel">
+            <Button
+              size="small"
+              startIcon={<FileUploadIcon />}
+              onClick={handleExportExcel}
+              sx={{ minWidth: { xs: 'auto', sm: 64 }, '& .MuiButton-startIcon': { mx: { xs: 0, sm: undefined } } }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Excel</Box>
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="Exportera CSV (för Google Sheets)">
+            <Button
+              size="small"
+              startIcon={<TableChartIcon />}
+              onClick={handleExportCsv}
+              sx={{ minWidth: { xs: 'auto', sm: 64 }, '& .MuiButton-startIcon': { mx: { xs: 0, sm: undefined } } }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>CSV</Box>
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="Kopiera till urklipp (Google Sheets)">
+            <Button
+              size="small"
+              startIcon={<ContentCopyIcon />}
+              onClick={handleCopyToClipboard}
+              sx={{ minWidth: { xs: 'auto', sm: 64 }, '& .MuiButton-startIcon': { mx: { xs: 0, sm: undefined } } }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Kopiera</Box>
+            </Button>
+          </Tooltip>
 
           <Box sx={{ flexGrow: 1 }} />
 
-          <Button
-            size="small"
-            startIcon={<HistoryIcon />}
-            onClick={handleOpenHistory}
-          >
-            Historik
-          </Button>
+          <Tooltip title="Versionshistorik">
+            <Button
+              size="small"
+              startIcon={<HistoryIcon />}
+              onClick={handleOpenHistory}
+              sx={{ minWidth: { xs: 'auto', sm: 64 }, '& .MuiButton-startIcon': { mx: { xs: 0, sm: undefined } } }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Historik</Box>
+            </Button>
+          </Tooltip>
 
           <Button
             size="small"
@@ -891,7 +1068,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
             }
             onClick={isDirty && !isSaving ? onSave : undefined}
             sx={{
-              minWidth: 110,
+              minWidth: { xs: 'auto', sm: 110 },
               ...(!isDirty || isSaving ? { cursor: 'default', pointerEvents: 'none' } : {}),
             }}
           >
@@ -914,7 +1091,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                px: 2,
+                px: { xs: 1, sm: 2 },
                 py: 1.5,
                 bgcolor: '#e3f2fd',
                 cursor: 'pointer',
@@ -925,11 +1102,11 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                 transition: 'background-color 0.15s',
               }}
             >
-              <IconButton size="small" sx={{ mr: 1 }}>
+              <IconButton size="small" sx={{ mr: 0.5 }}>
                 {isCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
               </IconButton>
-              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Typography variant="subtitle1" fontWeight={700}>
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                <Typography variant="subtitle1" fontWeight={700} sx={{ flexShrink: 0 }}>
                   {section.sectionRow.nr && `${section.sectionRow.nr}. `}
                 </Typography>
                 {editingText?.rowId === sectionId && editingText.field === 'byggdel' ? (
@@ -949,6 +1126,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                   <Typography
                     variant="subtitle1"
                     fontWeight={700}
+                    noWrap
                     onClick={(e) => { e.stopPropagation(); startEditText(sectionId, 'byggdel', section.sectionRow.byggdel); }}
                     sx={section.sectionRow.byggdel
                       ? { '&:hover': { color: 'primary.main' }, cursor: 'text' }
@@ -959,14 +1137,14 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                 )}
               </Box>
               <Tooltip title="Sektionens totalkostnad">
-                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mr: 1 }}>
+                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" noWrap sx={{ mr: 0.5, flexShrink: 0 }}>
                   {fmtTkr(sectionTotal)}
                 </Typography>
               </Tooltip>
               <IconButton
                 size="small"
                 onClick={(e) => { e.stopPropagation(); handleDeleteSection(sectionId); }}
-                sx={{ opacity: 0.3, '&:hover': { opacity: 1, color: 'error.main' } }}
+                sx={{ opacity: 0.3, '&:hover': { opacity: 1, color: 'error.main' }, flexShrink: 0 }}
               >
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
@@ -984,31 +1162,33 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
 
                 {/* Subsections */}
                 {section.subsections.map(sub => (
-                  <Box key={sub.subsectionRow.id}>
+                  <Box key={sub.subsectionRow.id} sx={{ mt: 0.5 }}>
                     {/* Subsection header */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        px: 3,
+                        px: { xs: 1.5, sm: 3 },
                         py: 1,
-                        bgcolor: '#f5f5f5',
+                        bgcolor: '#eceff1',
                         borderTop: '1px solid',
                         borderColor: 'divider',
+                        borderLeft: '3px solid',
+                        borderLeftColor: 'primary.light',
                       }}
                     >
-                      <Typography variant="body2" fontWeight={600} color="text.secondary">
+                      <Typography variant="body2" fontWeight={700} color="text.primary">
                         {sub.subsectionRow.byggdel}
                       </Typography>
                     </Box>
 
                     {/* Subsection items */}
-                    <Box sx={{ px: 1 }}>
+                    <Box sx={{ pl: { xs: 0.5, sm: 2 }, pr: { xs: 0, sm: 1 } }}>
                       {renderItemsTable(sub.items)}
                     </Box>
 
                     {/* Add item to this subsection */}
-                    <Box sx={{ px: 3, py: 0.5 }}>
+                    <Box sx={{ pl: { xs: 2, sm: 4 }, py: 0.5 }}>
                       <Button
                         size="small"
                         startIcon={<AddIcon />}
@@ -1026,6 +1206,18 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
         );
       })}
 
+      {/* Add section button — above summary */}
+      <Box sx={{ mb: 3, mt: 1, textAlign: 'center' }}>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={handleAddSection}
+          sx={{ textTransform: 'none', color: 'text.secondary' }}
+        >
+          Lägg till sektion
+        </Button>
+      </Box>
+
       {/* Summary rows */}
       {summaryRows.length > 0 && (
         <Paper sx={{ mb: 2 }} elevation={1}>
@@ -1033,6 +1225,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
             <TableBody>
               {summaryRows.map(summaryRow => {
                 const total = computeRowTotal(summaryRow);
+                const isOsakerhet = summaryRow.byggdel === 'Osäkerhet';
                 return (
                   <TableRow
                     key={summaryRow.id}
@@ -1046,20 +1239,43 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                       },
                     }}
                   >
-                    <TableCell sx={{ width: 40 }} />
+                    <TableCell sx={{ width: 40, display: { xs: 'none', sm: 'table-cell' } }} />
                     <TableCell>
-                      <Typography variant="body2" fontWeight={700}>
-                        {summaryRow.byggdel}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" fontWeight={700}>
+                          {summaryRow.byggdel}
+                        </Typography>
+                        {isOsakerhet && (
+                          editingOsakerhet ? (
+                            <TextField
+                              size="small"
+                              variant="standard"
+                              value={osakerhetValue}
+                              onChange={e => setOsakerhetValue(e.target.value)}
+                              onBlur={commitOsakerhet}
+                              onKeyDown={handleOsakerhetKeyDown}
+                              autoFocus
+                              inputProps={{ style: { textAlign: 'center', width: 30, fontSize: '0.875rem', fontWeight: 700 } }}
+                              InputProps={{ endAdornment: <Typography variant="body2" fontWeight={700}>%</Typography> }}
+                            />
+                          ) : (
+                            <Chip
+                              label={summaryRow.atgard || '10%'}
+                              size="small"
+                              variant="outlined"
+                              onClick={startEditOsakerhet}
+                              sx={{ cursor: 'pointer', fontWeight: 700, '&:hover': { borderColor: 'primary.main' } }}
+                            />
+                          )
+                        )}
+                      </Box>
                     </TableCell>
-                    <TableCell sx={{ width: 70 }} />
-                    <TableCell sx={{ width: 100, textAlign: 'right' }}>
-                      <Typography variant="body2" fontWeight={700}>
+                    <TableCell sx={{ width: { xs: 70, sm: 100 }, textAlign: 'right' }}>
+                      <Typography variant="body2" fontWeight={700} noWrap>
                         {fmtKr(total || null)}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ width: 130 }} />
-                    <TableCell sx={{ width: 40 }} />
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }} />
                   </TableRow>
                 );
               })}
@@ -1067,13 +1283,13 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
           </Table>
 
           {/* Expanded summary: show per-year breakdown */}
-          <Box sx={{ px: 3, py: 2, bgcolor: '#fff8e1' }}>
+          <Box sx={{ px: { xs: 1.5, sm: 3 }, py: 2, bgcolor: '#fff8e1' }}>
             <Typography variant="caption" color="text.secondary" gutterBottom display="block">
               Kostnad per år
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               {YEAR_COLUMNS.map(yc => {
-                const totaltRow = summaryRows.find(r => r.byggdel === 'Totalt inkl moms');
+                const totaltRow = summaryRows.find(r => r.byggdel === 'Totalt inkl osäkerhet');
                 const val = totaltRow ? (totaltRow[yc] as number | null) : null;
                 return (
                   <Box
@@ -1101,18 +1317,6 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
           </Box>
         </Paper>
       )}
-
-      {/* Add section button */}
-      <Box sx={{ mb: 2, textAlign: 'center' }}>
-        <Button
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={handleAddSection}
-          sx={{ textTransform: 'none', color: 'text.secondary' }}
-        >
-          Lägg till sektion
-        </Button>
-      </Box>
 
       {/* Version History Dialog */}
       <Dialog

@@ -185,7 +185,7 @@ export function createDefaultPlanData(): PlanData {
     // =========================================================================
     row({ rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true, sortIndex: 200 }),
     row({ rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true, sortIndex: 201 }),
-    row({ rowType: 'summary', byggdel: 'Totalt inkl moms', isLocked: true, sortIndex: 202 }),
+    row({ rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true, sortIndex: 202 }),
   ];
 
   return {

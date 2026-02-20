@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -6,7 +6,12 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  IconButton,
+  Collapse,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import WarningIcon from '@mui/icons-material/Warning';
 
 import {
   PlanRow,
@@ -16,7 +21,7 @@ import {
   getPlanVersion,
   savePlanVersion,
 } from '../../services/maintenancePlanService';
-import { recalcSummaryRows } from '../../components/maintenance/maintenancePlanHelpers';
+import { recalcSummaryRows, getLagkravItems } from '../../components/maintenance/maintenancePlanHelpers';
 import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
 import MaintenancePlanSummary from '../../components/maintenance/MaintenancePlanSummary';
@@ -40,6 +45,9 @@ const MaintenancePlanPage: React.FC = () => {
   // Import dialog
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
+  // Lagkrav
+  const [lagkravExpanded, setLagkravExpanded] = useState(false);
+
   // Snackbar
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
     open: false,
@@ -54,19 +62,28 @@ const MaintenancePlanPage: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
 
-    /** Migrate section numbering: 3-6 → 1-4 (one-time for old data) */
-    function migrateNumbering(rows: PlanRow[]): PlanRow[] {
-      const firstSection = rows.find(r => r.rowType === 'section');
-      if (!firstSection || firstSection.nr !== '3') return rows; // Already migrated or different structure
-      const map: Record<string, string> = { '3': '1', '4': '2', '5': '3', '6': '4' };
+    /** Migrate old data on load */
+    function migrateRows(rows: PlanRow[]): PlanRow[] {
       return rows.map(r => {
-        if (r.rowType !== 'section' && r.rowType !== 'subsection') return r;
-        for (const [old, nw] of Object.entries(map)) {
-          if (r.nr === old || r.nr.startsWith(old + '.')) {
-            return { ...r, nr: nw + r.nr.slice(old.length) };
+        let updated = r;
+        // Migrate section numbering: 3-6 → 1-4
+        if (r.rowType === 'section' || r.rowType === 'subsection') {
+          const map: Record<string, string> = { '3': '1', '4': '2', '5': '3', '6': '4' };
+          const firstSection = rows.find(row => row.rowType === 'section');
+          if (firstSection?.nr === '3') {
+            for (const [old, nw] of Object.entries(map)) {
+              if (r.nr === old || r.nr.startsWith(old + '.')) {
+                updated = { ...updated, nr: nw + r.nr.slice(old.length) };
+                break;
+              }
+            }
           }
         }
-        return r;
+        // Rename "Totalt inkl moms" → "Totalt inkl osäkerhet"
+        if (r.rowType === 'summary' && r.byggdel === 'Totalt inkl moms') {
+          updated = { ...updated, byggdel: 'Totalt inkl osäkerhet' };
+        }
+        return updated;
       });
     }
 
@@ -77,7 +94,7 @@ const MaintenancePlanPage: React.FC = () => {
         if (cancelled) return;
 
         if (plan && plan.plan_data && plan.plan_data.rows.length > 0) {
-          let migrated = migrateNumbering([...plan.plan_data.rows]);
+          let migrated = migrateRows([...plan.plan_data.rows]);
           const recalculated = recalcSummaryRows(migrated);
           // Migrate: add status field to rows from older versions
           for (const r of recalculated) {
@@ -129,7 +146,7 @@ const MaintenancePlanPage: React.FC = () => {
       if (saved) {
         setVersion(saved.version);
         setIsDirty(false);
-        setSnackbar({ open: true, message: `Sparad som version ${saved.version}`, severity: 'success' });
+        setSnackbar({ open: true, message: `Sparad v${saved.version}`, severity: 'success' });
       } else {
         setSnackbar({ open: true, message: 'Kunde inte spara', severity: 'error' });
       }
@@ -140,6 +157,25 @@ const MaintenancePlanPage: React.FC = () => {
       setIsSaving(false);
     }
   }, [isDirty, isSaving, rows, version, currentUser]);
+
+  // ---------------------------------------------------------------------------
+  // Auto-save (debounced 2s after last change)
+  // ---------------------------------------------------------------------------
+
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!isDirty || isSaving || isLoading) return;
+
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      handleSave();
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [isDirty, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // Restore version
@@ -170,6 +206,10 @@ const MaintenancePlanPage: React.FC = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   }, []);
 
+  const handleNotify = useCallback((message: string, severity: 'success' | 'error' | 'info' = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
   // ---------------------------------------------------------------------------
   // Import from Excel
   // ---------------------------------------------------------------------------
@@ -186,6 +226,20 @@ const MaintenancePlanPage: React.FC = () => {
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Lagkrav warnings (items without budget)
+  // ---------------------------------------------------------------------------
+
+  const lagkravWarnings = useMemo(() => {
+    return getLagkravItems(rows).filter((r) => {
+      const hasCost = YEAR_COLUMNS.some((yc) => {
+        const val = r[yc];
+        return typeof val === 'number' && val > 0;
+      });
+      return !hasCost;
+    });
+  }, [rows]);
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -198,13 +252,13 @@ const MaintenancePlanPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: { xs: 1, sm: 2 } }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Underhållsplan 2026–2035
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="subtitle1" color="text.secondary">
             Brf Gulmåran &middot; Version {version}
           </Typography>
@@ -228,7 +282,64 @@ const MaintenancePlanPage: React.FC = () => {
         onSave={handleSave}
         onRestoreVersion={handleRestoreVersion}
         onOpenImport={() => setImportDialogOpen(true)}
+        onNotify={handleNotify}
       />
+
+      {/* Lagkrav warnings — bottom of page */}
+      {lagkravWarnings.length > 0 && (
+        <Box sx={{ mt: 3 }}>
+          <Box
+            onClick={() => setLagkravExpanded((prev) => !prev)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              py: 0.5,
+            }}
+          >
+            <IconButton size="small" sx={{ p: 0 }}>
+              {lagkravExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
+            <WarningIcon fontSize="small" color="warning" />
+            <Typography variant="body2" color="text.secondary">
+              {lagkravWarnings.length} lagkrav behöver åtgärd
+            </Typography>
+          </Box>
+          <Collapse in={lagkravExpanded}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+              {lagkravWarnings.map((item) => (
+                <Box
+                  key={item.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    p: 1.5,
+                    borderRadius: 1,
+                    bgcolor: 'warning.50',
+                    border: '1px solid',
+                    borderColor: 'warning.200',
+                  }}
+                >
+                  <WarningIcon fontSize="small" color="warning" />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {item.atgard}
+                    </Typography>
+                    {item.utredningspunkter?.trim() && (
+                      <Typography variant="caption" color="text.secondary">
+                        {item.utredningspunkter}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Chip label="Behöver åtgärd" color="warning" size="small" variant="outlined" />
+                </Box>
+              ))}
+            </Box>
+          </Collapse>
+        </Box>
+      )}
 
       {/* Excel Import Dialog */}
       <ExcelImportDialog

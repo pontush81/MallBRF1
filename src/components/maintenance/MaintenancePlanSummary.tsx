@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Box,
-  Chip,
   Typography,
   Table,
   TableBody,
@@ -14,12 +13,10 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
 import { PlanRow, YEAR_COLUMNS } from '../../services/maintenancePlanService';
 import {
   computeYearlyTotals,
-  getLagkravItems,
   buildByggdelMap,
 } from './maintenancePlanHelpers';
 
@@ -29,7 +26,6 @@ import {
 
 interface MaintenancePlanSummaryProps {
   rows: PlanRow[];
-  onNavigateToRow?: (rowId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,39 +40,6 @@ function fmtKr(amount: number): string {
 function fmtCompact(amount: number): string {
   if (!amount) return '–';
   return (amount / 1000).toFixed(0) + 'k';
-}
-
-// ---------------------------------------------------------------------------
-// Lagkrav helpers
-// ---------------------------------------------------------------------------
-
-type LagkravStatus = 'ok' | 'warning' | 'unknown';
-
-interface LagkravItem {
-  row: PlanRow;
-  status: LagkravStatus;
-  nextYear: string | null;
-  budget: string;
-}
-
-function analyzeLagkrav(row: PlanRow): LagkravItem {
-  const costs: { year: string; amount: number }[] = [];
-  for (const yc of YEAR_COLUMNS) {
-    const val = row[yc];
-    if (typeof val === 'number' && val > 0) {
-      costs.push({ year: yc.replace('year_', ''), amount: val });
-    }
-  }
-
-  const hasCost = costs.length > 0;
-  const hasNote = !!row.utredningspunkter?.trim();
-  const status: LagkravStatus = hasCost ? 'ok' : hasNote ? 'warning' : 'unknown';
-  const nextYear = hasCost ? costs[0].year : null;
-  const budget = hasCost
-    ? costs.map((c) => `${c.amount.toLocaleString('sv-SE')} kr (${c.year})`).join(', ')
-    : '–';
-
-  return { row, status, nextYear, budget };
 }
 
 // ---------------------------------------------------------------------------
@@ -104,21 +67,32 @@ function getItemsForYear(
 // Component
 // ---------------------------------------------------------------------------
 
-const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, onNavigateToRow }) => {
+const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
-  const [lagkravExpanded, setLagkravExpanded] = useState(false);
 
   const byggdelMap = useMemo(() => buildByggdelMap(rows), [rows]);
   const yearlyTotals = useMemo(() => computeYearlyTotals(rows), [rows]);
   const grandTotal = useMemo(() => Object.values(yearlyTotals).reduce((a, b) => a + b, 0), [yearlyTotals]);
+  const totalInklOsakerhet = useMemo(() => {
+    const totaltRow = rows.find(r => r.rowType === 'summary' && (r.byggdel === 'Totalt inkl osäkerhet' || r.byggdel === 'Totalt inkl moms'));
+    if (!totaltRow) return grandTotal;
+    let sum = 0;
+    for (const yc of YEAR_COLUMNS) {
+      const val = totaltRow[yc];
+      if (typeof val === 'number') sum += val;
+    }
+    return sum || grandTotal;
+  }, [rows, grandTotal]);
   const maxYear = useMemo(() => Math.max(...Object.values(yearlyTotals), 1), [yearlyTotals]);
-
-  // Lagkrav — only warning/unknown items
-  const lagkravWarnings = useMemo(
-    () => getLagkravItems(rows).map(analyzeLagkrav).filter((i) => i.status !== 'ok'),
-    [rows],
-  );
+  const peakYearCol = useMemo(() => {
+    let peak = '';
+    let peakVal = 0;
+    for (const [yc, val] of Object.entries(yearlyTotals)) {
+      if (val > peakVal) { peakVal = val; peak = yc; }
+    }
+    return peak;
+  }, [yearlyTotals]);
 
   // Year detail
   const yearDetailItems = useMemo(
@@ -139,17 +113,22 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
       {/* Grand total + collapse toggle — always visible */}
       <Box
         onClick={() => setIsCollapsed((prev) => !prev)}
-        sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 1, mb: isCollapsed ? 0 : 3 }}
+        sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 1, mb: isCollapsed ? 0 : 3, flexWrap: 'wrap' }}
       >
         <IconButton size="small" sx={{ p: 0 }}>
           {isCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
         </IconButton>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          {fmtKr(grandTotal)}
+        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+          {fmtKr(totalInklOsakerhet)}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          total planerad kostnad 2026–2035
-        </Typography>
+        <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+            2026–2035
+          </Typography>
+          <Typography variant="caption" color="text.disabled">
+            exkl. osäkerhet: {fmtKr(grandTotal)}
+          </Typography>
+        </Box>
       </Box>
 
       {/* Collapsible content */}
@@ -164,19 +143,20 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
             const amount = yearlyTotals[yc] || 0;
             const pct = (amount / maxYear) * 100;
             const isSelected = selectedYear === yc;
+            const isPeak = yc === peakYearCol && amount > 0;
 
             return (
               <Box
                 key={yc}
                 onClick={() => handleYearClick(yc)}
                 sx={{
-                  flex: '1 0 80px',
-                  maxWidth: 100,
+                  flex: { xs: '1 0 55px', sm: '1 0 80px' },
+                  maxWidth: { xs: 70, sm: 100 },
                   border: '2px solid',
-                  borderColor: isSelected ? 'primary.main' : 'divider',
+                  borderColor: isSelected ? 'primary.main' : isPeak ? 'warning.main' : 'divider',
                   borderRadius: 1,
                   p: 1,
-                  bgcolor: isSelected ? 'primary.50' : 'background.paper',
+                  bgcolor: isSelected ? 'primary.50' : isPeak ? 'warning.50' : 'background.paper',
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
@@ -186,19 +166,19 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
                   },
                 }}
               >
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color={isPeak ? 'warning.dark' : 'text.secondary'} display="block" fontWeight={isPeak ? 700 : 400}>
                   {year}
                 </Typography>
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: 700, color: isSelected ? 'primary.main' : 'text.primary' }}
+                  sx={{ fontWeight: 700, color: isSelected ? 'primary.main' : isPeak ? 'warning.dark' : 'text.primary' }}
                 >
                   {fmtCompact(amount)}
                 </Typography>
                 <Box
                   sx={{
                     mt: 0.5,
-                    height: 3,
+                    height: 4,
                     borderRadius: 1,
                     bgcolor: 'grey.200',
                     overflow: 'hidden',
@@ -208,7 +188,7 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
                     sx={{
                       height: '100%',
                       width: `${pct}%`,
-                      bgcolor: 'primary.main',
+                      bgcolor: isPeak ? 'warning.main' : 'primary.main',
                       borderRadius: 1,
                     }}
                   />
@@ -238,7 +218,7 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600 }}>Åtgärd</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Byggdel</TableCell>
+                    <TableCell sx={{ fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}>Byggdel</TableCell>
                     <TableCell sx={{ fontWeight: 600 }} align="right">Belopp</TableCell>
                   </TableRow>
                 </TableHead>
@@ -246,7 +226,7 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
                   {yearDetailItems.map((item, i) => (
                     <TableRow key={i}>
                       <TableCell>{item.row.atgard || '–'}</TableCell>
-                      <TableCell>{item.byggdel}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{item.byggdel}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtKr(item.amount)}</TableCell>
                     </TableRow>
                   ))}
@@ -259,65 +239,6 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
         {!selectedYear && <Box sx={{ mb: 3 }} />}
       </Collapse>
 
-      {/* Lagkrav warnings — compact, collapsed by default, below everything */}
-      {lagkravWarnings.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Box
-            onClick={() => setLagkravExpanded((prev) => !prev)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              cursor: 'pointer',
-              py: 0.5,
-            }}
-          >
-            <IconButton size="small" sx={{ p: 0 }}>
-              {lagkravExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-            </IconButton>
-            <WarningIcon fontSize="small" color="warning" />
-            <Typography variant="body2" color="text.secondary">
-              {lagkravWarnings.length} lagkrav behöver åtgärd
-            </Typography>
-          </Box>
-          <Collapse in={lagkravExpanded}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
-              {lagkravWarnings.map((item) => (
-                <Box
-                  key={item.row.id}
-                  onClick={() => onNavigateToRow?.(item.row.id)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    p: 1.5,
-                    borderRadius: 1,
-                    bgcolor: 'warning.50',
-                    border: '1px solid',
-                    borderColor: 'warning.200',
-                    cursor: onNavigateToRow ? 'pointer' : 'default',
-                    transition: 'all 0.15s',
-                    '&:hover': onNavigateToRow ? { borderColor: 'warning.main', bgcolor: 'warning.100' } : {},
-                  }}
-                >
-                  <WarningIcon fontSize="small" color="warning" />
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {item.row.atgard}
-                    </Typography>
-                    {item.row.utredningspunkter?.trim() && (
-                      <Typography variant="caption" color="text.secondary">
-                        {item.row.utredningspunkter}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Chip label="Behöver åtgärd" color="warning" size="small" variant="outlined" />
-                </Box>
-              ))}
-            </Box>
-          </Collapse>
-        </Box>
-      )}
     </Box>
   );
 };
