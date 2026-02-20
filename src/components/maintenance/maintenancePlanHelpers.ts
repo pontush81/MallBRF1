@@ -275,6 +275,75 @@ export function getLagkravItems(rows: PlanRow[]): PlanRow[] {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// Auto-enrich: map known regulatory items to official info URLs
+// ---------------------------------------------------------------------------
+
+/** Known regulatory keywords → official info URLs */
+const REGULATORY_INFO_URLS: { keywords: string[]; url: string }[] = [
+  {
+    keywords: ['ovk', 'ventilationskontroll'],
+    url: 'https://www.boverket.se/sv/byggande/halsa-och-inomhusmiljo/ventilation/ovk/',
+  },
+  {
+    keywords: ['energideklaration'],
+    url: 'https://www.boverket.se/sv/energideklaration/',
+  },
+  {
+    keywords: ['radon'],
+    url: 'https://www.stralsakerhetsmyndigheten.se/omraden/radon/',
+  },
+  {
+    keywords: ['brandskydd', 'sba'],
+    url: 'https://www.msb.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/systematiskt-brandskyddsarbete/',
+  },
+  {
+    keywords: ['taksäkerhet', 'taksäkerhetsbesiktning'],
+    url: 'https://www.boverket.se/sv/PBL-kunskapsbanken/regler-om-byggande/boverkets-byggregler/sakerhet-vid-anvandning/taksakerhet/',
+  },
+  {
+    keywords: ['legionella'],
+    url: 'https://www.folkhalsomyndigheten.se/livsvillkor-levnadsvanor/miljohalsa-och-halsoskydd/inomhusmiljo-allmanna-lokaler-och-platser/legionella/',
+  },
+  {
+    keywords: ['elrevision', 'elsäkerhet', 'elbesiktning'],
+    url: 'https://www.elsakerhetsverket.se/om-oss/lag-och-ratt/vad-innebar-de-nya-starkstromsforeskrifterna/',
+  },
+  {
+    keywords: ['hissbesiktning', 'hiss'],
+    url: 'https://www.boverket.se/sv/byggande/halsa-och-inomhusmiljo/hissar/',
+  },
+  {
+    keywords: ['lekplats'],
+    url: 'https://www.boverket.se/sv/byggande/tillganglighet--bostadsutformning/tillganglighet-pa-allman-plats/lekplatser/',
+  },
+  {
+    keywords: ['sotning', 'skorsten'],
+    url: 'https://www.msb.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/sotning-och-brandskyddskontroll/',
+  },
+];
+
+/**
+ * Enrich rows with info_url for known regulatory items.
+ * Only adds URL if the row doesn't already have one set.
+ * Mutates rows in-place for efficiency.
+ */
+export function enrichWithInfoUrls(rows: PlanRow[]): PlanRow[] {
+  for (const r of rows) {
+    if (r.rowType !== 'item') continue;
+    if (r.info_url) continue; // don't overwrite manually set URLs
+
+    const text = `${r.atgard} ${r.byggdel} ${r.tek_livslangd}`.toLowerCase();
+    for (const entry of REGULATORY_INFO_URLS) {
+      if (entry.keywords.some(kw => text.includes(kw))) {
+        r.info_url = entry.url;
+        break;
+      }
+    }
+  }
+  return rows;
+}
+
 /** Compute total cost per year across all item rows */
 export function computeYearlyTotals(rows: PlanRow[]): Record<string, number> {
   const totals: Record<string, number> = {};

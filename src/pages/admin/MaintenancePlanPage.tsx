@@ -21,7 +21,7 @@ import {
   getPlanVersion,
   savePlanVersion,
 } from '../../services/maintenancePlanService';
-import { recalcSummaryRows, getLagkravItems } from '../../components/maintenance/maintenancePlanHelpers';
+import { recalcSummaryRows, getLagkravItems, enrichWithInfoUrls } from '../../components/maintenance/maintenancePlanHelpers';
 import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
 import MaintenancePlanSummary from '../../components/maintenance/MaintenancePlanSummary';
@@ -100,12 +100,14 @@ const MaintenancePlanPage: React.FC = () => {
           for (const r of recalculated) {
             if (!r.status) r.status = 'planned';
           }
+          enrichWithInfoUrls(recalculated);
           setRows(recalculated);
           setVersion(plan.version);
         } else {
           // First time: use seed data
           const seed = createDefaultPlanData();
           const recalculated = recalcSummaryRows([...seed.rows]);
+          enrichWithInfoUrls(recalculated);
           setRows(recalculated);
           setVersion(0);
         }
@@ -114,6 +116,7 @@ const MaintenancePlanPage: React.FC = () => {
         const seed = createDefaultPlanData();
         const fallbackRows = recalcSummaryRows([...seed.rows]);
         for (const r of fallbackRows) { if (!r.status) r.status = 'planned'; }
+        enrichWithInfoUrls(fallbackRows);
         setRows(fallbackRows);
         setVersion(0);
         setSnackbar({ open: true, message: 'Kunde inte ladda plan, visar standarddata', severity: 'error' });
@@ -187,6 +190,7 @@ const MaintenancePlanPage: React.FC = () => {
       if (plan && plan.plan_data) {
         const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
         for (const r of recalculated) { if (!r.status) r.status = 'planned'; }
+        enrichWithInfoUrls(recalculated);
         setRows(recalculated);
         setVersion(plan.version);
         setIsDirty(true); // Needs re-save after restore
@@ -216,6 +220,7 @@ const MaintenancePlanPage: React.FC = () => {
 
   const handleImportRows = useCallback((importedRows: PlanRow[]) => {
     const recalculated = recalcSummaryRows([...importedRows]);
+    enrichWithInfoUrls(recalculated);
     setRows(recalculated);
     setIsDirty(true);
     setSnackbar({
