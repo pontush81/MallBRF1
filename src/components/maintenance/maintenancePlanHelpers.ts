@@ -111,12 +111,12 @@ export function buildByggdelMap(rows: PlanRow[]): Map<string, string> {
 
 /** Get legally required items (section 6 + items with lagkrav indicators) */
 export function getLagkravItems(rows: PlanRow[]): PlanRow[] {
-  let inSection6 = false;
+  let inLagkravSection = false;
   const result: PlanRow[] = [];
   for (const r of rows) {
-    if (r.rowType === 'section') inSection6 = r.nr === '6';
+    if (r.rowType === 'section') inLagkravSection = r.nr === '4' || r.nr === '6';
     if (r.rowType === 'item') {
-      const isLegal = inSection6 ||
+      const isLegal = inLagkravSection ||
         r.tek_livslangd.toLowerCase().includes('lagkrav') ||
         r.atgard.toLowerCase().includes('ovk') ||
         r.atgard.toLowerCase().includes('obligatorisk') ||

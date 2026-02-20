@@ -6,6 +6,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // --- Types ---
 
 export type RowType = 'section' | 'subsection' | 'item' | 'blank' | 'summary';
+export type PlanRowStatus = 'planned' | 'in_progress' | 'completed' | 'postponed';
 
 export interface PlanRow {
   id: string;
@@ -30,6 +31,7 @@ export interface PlanRow {
   sortIndex: number;
   indentLevel: number;
   isLocked: boolean;
+  status: PlanRowStatus;
 }
 
 export interface PlanData {

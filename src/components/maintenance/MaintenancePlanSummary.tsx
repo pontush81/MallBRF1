@@ -105,8 +105,9 @@ function getItemsForYear(
 // ---------------------------------------------------------------------------
 
 const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, onNavigateToRow }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [lagkravExpanded, setLagkravExpanded] = useState(false);
 
   const byggdelMap = useMemo(() => buildByggdelMap(rows), [rows]);
   const yearlyTotals = useMemo(() => computeYearlyTotals(rows), [rows]);
@@ -256,14 +257,31 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
         </Collapse>
 
         {!selectedYear && <Box sx={{ mb: 3 }} />}
+      </Collapse>
 
-        {/* Lagkrav warnings — only warning/unknown items */}
-        {lagkravWarnings.length > 0 && (
-          <>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
-              Lagkrav & obligatoriska kontroller
+      {/* Lagkrav warnings — compact, collapsed by default, below everything */}
+      {lagkravWarnings.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Box
+            onClick={() => setLagkravExpanded((prev) => !prev)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              py: 0.5,
+            }}
+          >
+            <IconButton size="small" sx={{ p: 0 }}>
+              {lagkravExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
+            <WarningIcon fontSize="small" color="warning" />
+            <Typography variant="body2" color="text.secondary">
+              {lagkravWarnings.length} lagkrav behöver åtgärd
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          </Box>
+          <Collapse in={lagkravExpanded}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
               {lagkravWarnings.map((item) => (
                 <Box
                   key={item.row.id}
@@ -297,9 +315,9 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows, o
                 </Box>
               ))}
             </Box>
-          </>
-        )}
-      </Collapse>
+          </Collapse>
+        </Box>
+      )}
     </Box>
   );
 };

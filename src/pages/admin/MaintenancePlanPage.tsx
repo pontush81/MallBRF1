@@ -54,6 +54,22 @@ const MaintenancePlanPage: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
 
+    /** Migrate section numbering: 3-6 → 1-4 (one-time for old data) */
+    function migrateNumbering(rows: PlanRow[]): PlanRow[] {
+      const firstSection = rows.find(r => r.rowType === 'section');
+      if (!firstSection || firstSection.nr !== '3') return rows; // Already migrated or different structure
+      const map: Record<string, string> = { '3': '1', '4': '2', '5': '3', '6': '4' };
+      return rows.map(r => {
+        if (r.rowType !== 'section' && r.rowType !== 'subsection') return r;
+        for (const [old, nw] of Object.entries(map)) {
+          if (r.nr === old || r.nr.startsWith(old + '.')) {
+            return { ...r, nr: nw + r.nr.slice(old.length) };
+          }
+        }
+        return r;
+      });
+    }
+
     async function loadData() {
       setIsLoading(true);
       try {
@@ -61,7 +77,8 @@ const MaintenancePlanPage: React.FC = () => {
         if (cancelled) return;
 
         if (plan && plan.plan_data && plan.plan_data.rows.length > 0) {
-          const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
+          let migrated = migrateNumbering([...plan.plan_data.rows]);
+          const recalculated = recalcSummaryRows(migrated);
           // Migrate: add status field to rows from older versions
           for (const r of recalculated) {
             if (!r.status) r.status = 'planned';
