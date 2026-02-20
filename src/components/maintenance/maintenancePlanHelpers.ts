@@ -319,19 +319,19 @@ const REGULATORY_INFO_URLS: { keywords: string[]; url: string }[] = [
   },
   {
     keywords: ['sotning', 'skorsten'],
-    url: 'https://www.mcf.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/brandskydd/sotning-och-brandskyddskontroll/',
+    url: 'https://www.mcf.se/sv/amnesomraden/skydd-mot-olyckor-och-farliga-amnen/stod-till-kommunal-raddningstjanst/brandskydd-och-forebyggande/sotning-och-brandskyddskontroll/',
   },
 ];
 
 /**
  * Enrich rows with info_url for known regulatory items.
- * Only adds URL if the row doesn't already have one set.
+ * Always updates to the latest known URL for matching keywords,
+ * ensuring stale/broken URLs in saved data get corrected on load.
  * Mutates rows in-place for efficiency.
  */
 export function enrichWithInfoUrls(rows: PlanRow[]): PlanRow[] {
   for (const r of rows) {
     if (r.rowType !== 'item') continue;
-    if (r.info_url) continue; // don't overwrite manually set URLs
 
     const text = `${r.atgard} ${r.byggdel} ${r.tek_livslangd}`.toLowerCase();
     for (const entry of REGULATORY_INFO_URLS) {
