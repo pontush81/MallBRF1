@@ -1,7 +1,7 @@
 import { PlanRow, YEAR_COLUMNS } from '../../services/maintenancePlanService';
 
 // ---------------------------------------------------------------------------
-// Constants (extracted from MaintenancePlanSpreadsheet)
+// Constants
 // ---------------------------------------------------------------------------
 
 export const COLUMN_HEADERS = [
@@ -18,7 +18,7 @@ export const COLUMN_WIDTHS = [
   120, 120,
 ];
 
-/** Field keys that map each Handsontable column index to a PlanRow property (or 'total'). */
+/** Field keys that map each column index to a PlanRow property (or 'total'). Used by Excel export. */
 export const FIELD_KEYS: (keyof PlanRow | 'total')[] = [
   'nr', 'byggdel', 'atgard', 'tek_livslangd', 'a_pris', 'antal',
   'year_2026', 'year_2027', 'year_2028', 'year_2029', 'year_2030',
@@ -26,24 +26,8 @@ export const FIELD_KEYS: (keyof PlanRow | 'total')[] = [
   'utredningspunkter', 'total',
 ];
 
-/** Column indices for year columns (6..15) */
-export const YEAR_COL_START = 6;
-export const YEAR_COL_END = 15; // inclusive
-export const TOTAL_COL = 17; // index of "Totalt kr inkl moms" (0-based = 17)
-export const A_PRIS_COL = 4;
-export const ANTAL_COL = 5;
-
-/** Inline style tag (injected once) */
-export const SPREADSHEET_STYLES = `
-  .mp-row-section td { background-color: #e3f2fd !important; font-weight: 700 !important; border-top: 3px solid #90caf9 !important; }
-  .mp-row-subsection td { background-color: #f5f5f5 !important; font-weight: 600 !important; }
-  .mp-row-summary td { background-color: #fff3e0 !important; font-weight: 700 !important; border-top: 2px solid #e65100 !important; }
-  .mp-row-blank td { background-color: #fafafa !important; }
-  .mp-section-odd td { background-color: #f8fafc !important; }
-`;
-
 // ---------------------------------------------------------------------------
-// Pure helper functions (extracted from MaintenancePlanSpreadsheet)
+// Pure helper functions
 // ---------------------------------------------------------------------------
 
 /** Compute row total (sum of year columns) */
@@ -79,9 +63,10 @@ export function recalcSummaryRows(rows: PlanRow[]): PlanRow[] {
     setYearValue(totaltRow, yc, 0);
   }
 
-  // Sum all item rows per year
+  // Sum all active item rows per year (skip completed)
   for (const r of rows) {
     if (r.rowType !== 'item') continue;
+    if (r.status === 'completed') continue;
     for (const yc of YEAR_COLUMNS) {
       const val = r[yc];
       if (typeof val === 'number') {
@@ -106,71 +91,9 @@ export function recalcSummaryRows(rows: PlanRow[]): PlanRow[] {
   return rows;
 }
 
-/** Convert rows to 2D data array for Handsontable */
-export function rowsToData(rows: PlanRow[]): (string | number | null)[][] {
-  return rows.map(row => {
-    const cells: (string | number | null)[] = [];
-    for (const key of FIELD_KEYS) {
-      if (key === 'total') {
-        cells.push(computeRowTotal(row));
-      } else {
-        const val = row[key];
-        if (val === null || val === undefined) {
-          cells.push(null);
-        } else if (typeof val === 'boolean') {
-          cells.push(val ? 1 : 0);
-        } else {
-          cells.push(val as string | number);
-        }
-      }
-    }
-    return cells;
-  });
-}
-
-/** CSS class name per row type */
-export function cssClassForRowType(rowType: string): string {
-  switch (rowType) {
-    case 'section': return 'mp-row-section';
-    case 'subsection': return 'mp-row-subsection';
-    case 'summary': return 'mp-row-summary';
-    case 'blank': return 'mp-row-blank';
-    default: return '';
-  }
-}
-
 // ---------------------------------------------------------------------------
-// New helper functions for Dashboard and Lagkrav tabs
+// Dashboard helper functions
 // ---------------------------------------------------------------------------
-
-export interface SectionSummary {
-  nr: string;
-  name: string;
-  totalPerYear: Record<string, number>;
-  grandTotal: number;
-  itemCount: number;
-}
-
-/** Group items by their parent section and compute subtotals per year */
-export function computeSectionSummaries(rows: PlanRow[]): SectionSummary[] {
-  const summaries: SectionSummary[] = [];
-  let currentSection: SectionSummary | null = null;
-  for (const r of rows) {
-    if (r.rowType === 'section') {
-      if (currentSection) summaries.push(currentSection);
-      currentSection = { nr: r.nr, name: r.byggdel, totalPerYear: {}, grandTotal: 0, itemCount: 0 };
-      for (const yc of YEAR_COLUMNS) currentSection.totalPerYear[yc] = 0;
-    } else if (r.rowType === 'item' && currentSection) {
-      currentSection.itemCount++;
-      for (const yc of YEAR_COLUMNS) {
-        const val = r[yc];
-        if (typeof val === 'number') { currentSection.totalPerYear[yc] += val; currentSection.grandTotal += val; }
-      }
-    }
-  }
-  if (currentSection) summaries.push(currentSection);
-  return summaries;
-}
 
 /** Build a map from item row id → effective byggdel (from nearest parent section/subsection) */
 export function buildByggdelMap(rows: PlanRow[]): Map<string, string> {
@@ -184,21 +107,6 @@ export function buildByggdelMap(rows: PlanRow[]): Map<string, string> {
     }
   }
   return map;
-}
-
-/** Get the top N most expensive individual line items */
-export function getTopExpenses(rows: PlanRow[], limit = 5): { row: PlanRow; total: number; year: string; byggdel: string }[] {
-  const byggdelMap = buildByggdelMap(rows);
-  const items: { row: PlanRow; total: number; year: string; byggdel: string }[] = [];
-  for (const r of rows) {
-    if (r.rowType !== 'item') continue;
-    for (const yc of YEAR_COLUMNS) {
-      const val = r[yc];
-      if (typeof val === 'number' && val > 0) items.push({ row: r, total: val, year: yc.replace('year_', ''), byggdel: byggdelMap.get(r.id) || '–' });
-    }
-  }
-  items.sort((a, b) => b.total - a.total);
-  return items.slice(0, limit);
 }
 
 /** Get legally required items (section 6 + items with lagkrav indicators) */
@@ -227,6 +135,7 @@ export function computeYearlyTotals(rows: PlanRow[]): Record<string, number> {
   for (const yc of YEAR_COLUMNS) totals[yc] = 0;
   for (const r of rows) {
     if (r.rowType !== 'item') continue;
+    if (r.status === 'completed') continue;
     for (const yc of YEAR_COLUMNS) {
       const val = r[yc]; if (typeof val === 'number') totals[yc] += val;
     }
