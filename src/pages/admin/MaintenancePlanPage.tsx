@@ -3,14 +3,10 @@ import {
   Box,
   Typography,
   Chip,
-  Tabs,
-  Tab,
   Snackbar,
   Alert,
   CircularProgress,
 } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import TableChartIcon from '@mui/icons-material/TableChart';
 
 import {
   PlanRow,
@@ -23,30 +19,9 @@ import {
 import { recalcSummaryRows } from '../../components/maintenance/maintenancePlanHelpers';
 import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
-import MaintenancePlanSpreadsheet from '../../components/maintenance/MaintenancePlanSpreadsheet';
-import MaintenancePlanDashboard from '../../components/maintenance/MaintenancePlanDashboard';
-
-// ---------------------------------------------------------------------------
-// TabPanel helper
-// ---------------------------------------------------------------------------
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div role="tabpanel" hidden={value !== index} id={`mp-tabpanel-${index}`} aria-labelledby={`mp-tab-${index}`}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return { id: `mp-tab-${index}`, 'aria-controls': `mp-tabpanel-${index}` };
-}
+import MaintenancePlanSummary from '../../components/maintenance/MaintenancePlanSummary';
+import MaintenancePlanReport from '../../components/maintenance/MaintenancePlanReport';
+import ExcelImportDialog from '../../components/maintenance/ExcelImportDialog';
 
 // ---------------------------------------------------------------------------
 // Page component
@@ -62,9 +37,8 @@ const MaintenancePlanPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState(0); // Default to "Översikt"
-  const [highlightRowId, setHighlightRowId] = useState<string | null>(null);
+  // Import dialog
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
@@ -88,6 +62,10 @@ const MaintenancePlanPage: React.FC = () => {
 
         if (plan && plan.plan_data && plan.plan_data.rows.length > 0) {
           const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
+          // Migrate: add status field to rows from older versions
+          for (const r of recalculated) {
+            if (!r.status) r.status = 'planned';
+          }
           setRows(recalculated);
           setVersion(plan.version);
         } else {
@@ -100,7 +78,9 @@ const MaintenancePlanPage: React.FC = () => {
       } catch (err) {
         console.error('Error loading maintenance plan:', err);
         const seed = createDefaultPlanData();
-        setRows(recalcSummaryRows([...seed.rows]));
+        const fallbackRows = recalcSummaryRows([...seed.rows]);
+        for (const r of fallbackRows) { if (!r.status) r.status = 'planned'; }
+        setRows(fallbackRows);
         setVersion(0);
         setSnackbar({ open: true, message: 'Kunde inte ladda plan, visar standarddata', severity: 'error' });
       } finally {
@@ -153,6 +133,7 @@ const MaintenancePlanPage: React.FC = () => {
       const plan = await getPlanVersion(versionId);
       if (plan && plan.plan_data) {
         const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
+        for (const r of recalculated) { if (!r.status) r.status = 'planned'; }
         setRows(recalculated);
         setVersion(plan.version);
         setIsDirty(true); // Needs re-save after restore
@@ -173,23 +154,18 @@ const MaintenancePlanPage: React.FC = () => {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Tab change
+  // Import from Excel
   // ---------------------------------------------------------------------------
 
-  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  }, []);
-
-  // ---------------------------------------------------------------------------
-  // Navigate from dashboard to spreadsheet row
-  // ---------------------------------------------------------------------------
-
-  const handleNavigateToRow = useCallback((rowId: string) => {
-    setHighlightRowId(null); // Reset first so re-clicking same row works
-    setTimeout(() => {
-      setHighlightRowId(rowId);
-      setActiveTab(1); // Switch to "Detaljerad plan"
-    }, 0);
+  const handleImportRows = useCallback((importedRows: PlanRow[]) => {
+    const recalculated = recalcSummaryRows([...importedRows]);
+    setRows(recalculated);
+    setIsDirty(true);
+    setSnackbar({
+      open: true,
+      message: `${importedRows.filter(r => r.rowType === 'item').length} poster importerade — spara för att bekräfta`,
+      severity: 'info',
+    });
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -221,30 +197,28 @@ const MaintenancePlanPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 0, borderBottom: 1, borderColor: 'divider' }}>
-        <Tab icon={<DashboardIcon />} iconPosition="start" label="Översikt" {...a11yProps(0)} />
-        <Tab icon={<TableChartIcon />} iconPosition="start" label="Detaljerad plan" {...a11yProps(1)} />
-      </Tabs>
+      {/* Summary (collapsible) */}
+      <MaintenancePlanSummary rows={rows} />
 
-      {/* Tab Panels */}
-      <TabPanel value={activeTab} index={0}>
-        <MaintenancePlanDashboard rows={rows} onNavigateToRow={handleNavigateToRow} />
-      </TabPanel>
+      {/* Report (section list + toolbar) */}
+      <MaintenancePlanReport
+        rows={rows}
+        setRows={setRows}
+        version={version}
+        isDirty={isDirty}
+        setIsDirty={setIsDirty}
+        isSaving={isSaving}
+        onSave={handleSave}
+        onRestoreVersion={handleRestoreVersion}
+        onOpenImport={() => setImportDialogOpen(true)}
+      />
 
-      <TabPanel value={activeTab} index={1}>
-        <MaintenancePlanSpreadsheet
-          rows={rows}
-          setRows={setRows}
-          version={version}
-          isDirty={isDirty}
-          setIsDirty={setIsDirty}
-          isSaving={isSaving}
-          onSave={handleSave}
-          onRestoreVersion={handleRestoreVersion}
-          highlightRowId={highlightRowId}
-        />
-      </TabPanel>
+      {/* Excel Import Dialog */}
+      <ExcelImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={handleImportRows}
+      />
 
       {/* Snackbar */}
       <Snackbar
