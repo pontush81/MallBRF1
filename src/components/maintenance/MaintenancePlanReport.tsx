@@ -1280,6 +1280,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
             onClick={isDirty && !isSaving ? onSave : undefined}
             sx={{
               minWidth: { xs: 'auto', sm: 110 },
+              outline: 'none',
               ...(!isDirty || isSaving ? { cursor: 'default', pointerEvents: 'none' } : {}),
             }}
           >
