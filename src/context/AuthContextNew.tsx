@@ -1,5 +1,5 @@
 // New AuthContext using pure Supabase (replaces Firebase)
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { 
   AuthUser, 
   getCurrentUser, 
@@ -33,6 +33,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBoard, setIsBoard] = useState(false);
   const [loading, setLoading] = useState(true);
+  const currentUserRef = useRef<AuthUser | null>(null);
+
+  // Helper: update auth state only if data actually changed
+  const updateUser = (user: AuthUser) => {
+    const prev = currentUserRef.current;
+    if (prev && prev.id === user.id && prev.role === user.role && prev.email === user.email) {
+      console.log('ℹ️ Skipping redundant auth update for:', user.email);
+      return; // no state change needed
+    }
+    console.log('🔄 Auth state updating:', user.email, 'role:', user.role);
+    currentUserRef.current = user;
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+    setIsAdmin(user.role === 'admin');
+    setIsBoard(user.role === 'board');
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem('isLoggedIn', 'true');
+  };
 
   // Initialize auth state
   useEffect(() => {
@@ -44,29 +62,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Check if there's already a user logged in
         const user = await getCurrentUser();
         if (user) {
-          setCurrentUser(user);
-          setIsLoggedIn(true);
-          setIsAdmin(user.role === 'admin');
-          setIsBoard(user.role === 'board');
-
-          // Save to localStorage for persistence
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          localStorage.setItem('isLoggedIn', 'true');
+          updateUser(user);
         }
 
         // Listen for auth state changes
+        // CRITICAL: use updateUser() to skip redundant updates that would
+        // interrupt React 18 Suspense/lazy loading with unnecessary re-renders
         unsubscribe = onAuthStateChange((user) => {
           console.log('Auth state changed:', user?.email || 'logged out');
-          
-          if (user) {
-            setCurrentUser(user);
-            setIsLoggedIn(true);
-            setIsAdmin(user.role === 'admin');
-            setIsBoard(user.role === 'board');
 
-            // Save to localStorage
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            localStorage.setItem('isLoggedIn', 'true');
+          if (user) {
+            updateUser(user);
           } else {
             clearUserData();
           }
@@ -105,6 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const clearUserData = () => {
+    currentUserRef.current = null;
     setCurrentUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
@@ -115,18 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (user: AuthUser) => {
     console.log('Login called for:', user.email);
-    
-    // CRITICAL: Update state in batch to ensure consistent updates
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-    setIsAdmin(user.role === 'admin');
-    setIsBoard(user.role === 'board');
-
-    // Save to localStorage
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    localStorage.setItem('isLoggedIn', 'true');
-
-    // CRITICAL: Force a re-render to ensure all components see the new state
+    updateUser(user);
     console.log('✅ Auth state updated for:', user.email, '| Role:', user.role);
   };
 

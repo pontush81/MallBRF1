@@ -66,7 +66,7 @@ import { AuthCallback } from './pages/auth/AuthCallback';
 // Import LazyAuthCallback for OAuth redirects
 // Import StandardLoading component
 import { PageLoading } from './components/common/StandardLoading';
-import { Box, Button, CircularProgress, Fab, Tooltip } from '@mui/material';
+import { Button, Fab, Tooltip } from '@mui/material';
 import { Build as ReportIcon } from '@mui/icons-material';
 import { initMobileOptimizations } from './utils/mobileOptimizations';
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
@@ -120,9 +120,9 @@ const LoadingFallback = () => {
 
 // Simple loading fallback for admin routes (no nested Layout)
 const AdminLoadingFallback = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-    <CircularProgress />
-  </Box>
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+    <PageLoading message="Laddar..." />
+  </div>
 );
 
 // Protected route component
