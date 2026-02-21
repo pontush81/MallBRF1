@@ -131,6 +131,7 @@ export function createDefaultPlanData(): PlanData {
     row({ rowType: 'subsection', nr: '3.1', byggdel: 'El installationer', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
     row({ rowType: 'item', byggdel: 'Elinstallationer', atgard: 'Översyn (timer, jordfelsbrytare)', sortIndex: nextIdx(), indentLevel: 2 }),
     row({ rowType: 'item', byggdel: 'Elcentral', atgard: 'Besiktning/byte', tek_livslangd: '30–40 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera ålder' }),
+    row({ rowType: 'item', byggdel: 'Elstammar/stigarledningar', atgard: 'Besiktning/byte', tek_livslangd: '40–50 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Originalinstallation 1986 – kablage i väggar, stigarledningar. Brandrisk vid ålder. Bör inspekteras snarast.' }),
     row({ rowType: 'item', byggdel: 'Utomhusbelysning', atgard: 'Byte', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 3.2 Ventilation ---
