@@ -26,7 +26,7 @@ function row(
     sortIndex: 0,
     indentLevel: 0,
     isLocked: false,
-    status: 'planned',
+    status: '',
     ...overrides,
   };
 }

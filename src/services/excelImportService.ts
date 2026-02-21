@@ -246,7 +246,7 @@ function createSummaryRow(sortIndex: number): PlanRow {
     sortIndex,
     indentLevel: 0,
     isLocked: true,
-    status: 'planned',
+    status: '',
   };
 }
 
@@ -393,7 +393,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ImportResult {
       sortIndex,
       indentLevel: indent,
       isLocked: rowType === 'section' || rowType === 'subsection' || rowType === 'summary',
-      status: 'planned',
+      status: '',
     };
 
     rows.push(planRow);
