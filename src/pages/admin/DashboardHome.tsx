@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../../context/AuthContextNew';
 import { modernTheme } from '../../theme/modernTheme';
 
 interface QuickActionCard {
@@ -30,6 +31,7 @@ interface QuickActionCard {
   icon: React.ReactElement;
   path: string;
   color: string;
+  allowedRoles?: string[];
 }
 
 const DashboardHome: React.FC = () => {
@@ -41,21 +43,24 @@ const DashboardHome: React.FC = () => {
       description: 'Skapa och redigera webbsidors innehåll',
       icon: <ArticleIcon />,
       path: '/admin/pages',
-      color: modernTheme.colors.primary[500]
+      color: modernTheme.colors.primary[500],
+      allowedRoles: ['admin']
     },
     {
       title: 'Bokningar',
       description: 'Visa och hantera alla bokningar',
       icon: <EventIcon />,
       path: '/booking',
-      color: modernTheme.colors.secondary[500]
+      color: modernTheme.colors.secondary[500],
+      allowedRoles: ['admin']
     },
     {
       title: 'Användare',
       description: 'Hantera användarkonton och behörigheter',
       icon: <PeopleIcon />,
       path: '/admin/users',
-      color: modernTheme.colors.success[500]
+      color: modernTheme.colors.success[500],
+      allowedRoles: ['admin']
     },
     {
       title: 'Underhållsplan',
@@ -70,21 +75,24 @@ const DashboardHome: React.FC = () => {
       description: 'Konfigurera systemmeddelanden',
       icon: <NotificationIcon />,
       path: '/admin/notifications',
-      color: modernTheme.colors.error[500]
+      color: modernTheme.colors.error[500],
+      allowedRoles: ['admin']
     },
     {
       title: 'Data Retention',
       description: 'Hantera automatisk dataradering enligt GDPR',
       icon: <SettingsIcon />,
       path: '/admin/data-retention',
-      color: modernTheme.colors.primary[600]
+      color: modernTheme.colors.primary[600],
+      allowedRoles: ['admin']
     },
     {
       title: 'HSB-rapport',
       description: 'Skapa och redigera HSB-rapporter med anpassade data',
       icon: <ReportIcon />,
       path: '/admin/hsb-report',
-      color: modernTheme.colors.secondary[600]
+      color: modernTheme.colors.secondary[600],
+      allowedRoles: ['admin']
     },
     {
       title: 'Felanmälningar',
@@ -94,6 +102,14 @@ const DashboardHome: React.FC = () => {
       color: modernTheme.colors.error[500]
     }
   ];
+
+  const { currentUser } = useAuth();
+  const userRole = currentUser?.role || 'user';
+
+  const visibleActions = quickActions.filter(action => {
+    if (!action.allowedRoles) return true;
+    return action.allowedRoles.includes(userRole);
+  });
 
   const handleCardClick = (path: string) => {
     navigate(path);
@@ -122,7 +138,9 @@ const DashboardHome: React.FC = () => {
             mx: 'auto'
           }}
         >
-          Hantera ditt innehåll och bokningar från en central plats
+          {userRole === 'board'
+            ? 'Styrelsevy — underhållsplan och felanmälningar'
+            : 'Hantera ditt innehåll och bokningar från en central plats'}
         </Typography>
       </Box>
 
@@ -140,7 +158,7 @@ const DashboardHome: React.FC = () => {
         </Typography>
         
         <Grid container spacing={3}>
-          {quickActions.map((action, index) => (
+          {visibleActions.map((action, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card 
                 sx={{ 
@@ -208,54 +226,56 @@ const DashboardHome: React.FC = () => {
       </Box>
 
       {/* Quick Create Actions */}
-      <Box sx={{ textAlign: 'center' }}>
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            fontWeight: modernTheme.typography.fontWeight.semibold,
-            color: modernTheme.colors.gray[800],
-            mb: modernTheme.spacing[4]
-          }}
-        >
-          Snabbåtgärder
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/admin/pages/new')}
+      {userRole === 'admin' && (
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography
+            variant="h5"
             sx={{
-              backgroundColor: modernTheme.colors.primary[500],
-              '&:hover': { backgroundColor: modernTheme.colors.primary[600] },
-              borderRadius: modernTheme.borderRadius.lg,
-              px: modernTheme.spacing[4],
-              py: modernTheme.spacing[2]
+              fontWeight: modernTheme.typography.fontWeight.semibold,
+              color: modernTheme.colors.gray[800],
+              mb: modernTheme.spacing[4]
             }}
           >
-            Skapa Ny Sida
-          </Button>
-          
-          <Button
-            variant="outlined"
-            startIcon={<ListIcon />}
-            onClick={() => navigate('/booking')}
-            sx={{
-              borderColor: modernTheme.colors.secondary[500],
-              color: modernTheme.colors.secondary[500],
-              '&:hover': { 
-                borderColor: modernTheme.colors.secondary[600],
-                backgroundColor: `${modernTheme.colors.secondary[500]}10`
-              },
-              borderRadius: modernTheme.borderRadius.lg,
-              px: modernTheme.spacing[4],
-              py: modernTheme.spacing[2]
-            }}
-          >
-            Visa Alla Bokningar
-          </Button>
+            Snabbåtgärder
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/admin/pages/new')}
+              sx={{
+                backgroundColor: modernTheme.colors.primary[500],
+                '&:hover': { backgroundColor: modernTheme.colors.primary[600] },
+                borderRadius: modernTheme.borderRadius.lg,
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2]
+              }}
+            >
+              Skapa Ny Sida
+            </Button>
+
+            <Button
+              variant="outlined"
+              startIcon={<ListIcon />}
+              onClick={() => navigate('/booking')}
+              sx={{
+                borderColor: modernTheme.colors.secondary[500],
+                color: modernTheme.colors.secondary[500],
+                '&:hover': {
+                  borderColor: modernTheme.colors.secondary[600],
+                  backgroundColor: `${modernTheme.colors.secondary[500]}10`
+                },
+                borderRadius: modernTheme.borderRadius.lg,
+                px: modernTheme.spacing[4],
+                py: modernTheme.spacing[2]
+              }}
+            >
+              Visa Alla Bokningar
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 };
