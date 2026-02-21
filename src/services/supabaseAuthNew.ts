@@ -293,8 +293,8 @@ export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
         const userProfile = await getUserProfile(session.user.id);
         callback(userProfile);
       } catch (error) {
-        console.error('Error getting user profile on auth state change:', error);
-        callback(null);
+        console.warn('getUserProfile failed in onAuthStateChange, keeping existing auth state:', error);
+        // Don't call callback(null) — localStorage user is still valid
       }
     } else if (event === 'SIGNED_OUT') {
       callback(null);
