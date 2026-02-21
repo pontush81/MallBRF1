@@ -439,3 +439,45 @@ export function computeYearlyTotals(rows: PlanRow[]): Record<string, number> {
   }
   return totals;
 }
+
+// ---------------------------------------------------------------------------
+// Year-by-year view helpers
+// ---------------------------------------------------------------------------
+
+export interface YearGroup {
+  yearCol: typeof YEAR_COLUMNS[number];
+  year: string;
+  items: { row: PlanRow; amount: number; byggdel: string }[];
+  total: number;
+}
+
+/** Group all item rows by the years they have costs in. Returns one entry per year column, sorted chronologically. */
+export function groupItemsByYear(rows: PlanRow[]): YearGroup[] {
+  const byggdelMap = buildByggdelMap(rows);
+
+  return YEAR_COLUMNS.map(yc => {
+    const items: { row: PlanRow; amount: number; byggdel: string }[] = [];
+
+    for (const r of rows) {
+      if (r.rowType !== 'item') continue;
+      if (r.status === 'completed') continue;
+      const val = r[yc];
+      if (typeof val === 'number' && val > 0) {
+        items.push({
+          row: r,
+          amount: val,
+          byggdel: r.byggdel || byggdelMap.get(r.id) || '–',
+        });
+      }
+    }
+
+    items.sort((a, b) => b.amount - a.amount);
+
+    return {
+      yearCol: yc,
+      year: yc.replace('year_', ''),
+      items,
+      total: items.reduce((sum, i) => sum + i.amount, 0),
+    };
+  });
+}

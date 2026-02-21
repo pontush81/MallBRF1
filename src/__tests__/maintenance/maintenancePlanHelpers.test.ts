@@ -6,6 +6,7 @@ import {
   buildByggdelMap,
   getLagkravItems,
   computeYearlyTotals,
+  groupItemsByYear,
   COLUMN_HEADERS,
   COLUMN_WIDTHS,
   FIELD_KEYS,
@@ -719,5 +720,82 @@ describe('computeYearlyTotals vs recalcSummaryRows consistency', () => {
     for (const yc of YEAR_COLUMNS) {
       expect(summa[yc]).toBe(yearlyTotals[yc]);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// groupItemsByYear
+// ---------------------------------------------------------------------------
+
+describe('groupItemsByYear', () => {
+  it('groups items by the years they have costs in', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'sec1', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
+      makeRow({ id: 'sub1', rowType: 'subsection', byggdel: 'Fasader' }),
+      makeRow({ id: 'a', atgard: 'Plåtarbeten', byggdel: 'Ventilationsintag', year_2026: 88000 }),
+      makeRow({ id: 'b', atgard: 'Målning', byggdel: 'Sophus', year_2028: 25000 }),
+      makeRow({ id: 'sec2', rowType: 'section', nr: '2', byggdel: 'Invändigt' }),
+      makeRow({ id: 'sub2', rowType: 'subsection', byggdel: 'Tvättstuga' }),
+      makeRow({ id: 'c', atgard: 'Byte maskiner', byggdel: 'Tvättstuga', year_2026: 60000, year_2028: 60000 }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = groupItemsByYear(rows);
+
+    const y2026 = result.find(y => y.yearCol === 'year_2026');
+    expect(y2026).toBeDefined();
+    expect(y2026!.items).toHaveLength(2);
+    expect(y2026!.total).toBe(148000);
+
+    const y2028 = result.find(y => y.yearCol === 'year_2028');
+    expect(y2028).toBeDefined();
+    expect(y2028!.items).toHaveLength(2);
+    expect(y2028!.total).toBe(85000);
+
+    const y2027 = result.find(y => y.yearCol === 'year_2027');
+    expect(y2027).toBeDefined();
+    expect(y2027!.items).toHaveLength(0);
+    expect(y2027!.total).toBe(0);
+  });
+
+  it('sorts items within each year by amount descending', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'a', atgard: 'Liten', byggdel: 'A', year_2026: 10000 }),
+      makeRow({ id: 'b', atgard: 'Stor', byggdel: 'B', year_2026: 90000 }),
+      makeRow({ id: 'c', atgard: 'Mellan', byggdel: 'C', year_2026: 50000 }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = groupItemsByYear(rows);
+    const y2026 = result.find(y => y.yearCol === 'year_2026')!;
+    expect(y2026.items[0].row.id).toBe('b');
+    expect(y2026.items[1].row.id).toBe('c');
+    expect(y2026.items[2].row.id).toBe('a');
+  });
+
+  it('excludes completed items', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'a', atgard: 'Klar', year_2026: 50000, status: 'completed' }),
+      makeRow({ id: 'b', atgard: 'Pågår', year_2026: 30000, status: 'planned' }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = groupItemsByYear(rows);
+    const y2026 = result.find(y => y.yearCol === 'year_2026')!;
+    expect(y2026.items).toHaveLength(1);
+    expect(y2026.items[0].row.id).toBe('b');
+  });
+
+  it('includes byggdel from byggdelMap', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'sec', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
+      makeRow({ id: 'sub', rowType: 'subsection', byggdel: 'Fasader' }),
+      makeRow({ id: 'a', atgard: 'Arbete', byggdel: '', year_2026: 10000 }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = groupItemsByYear(rows);
+    const y2026 = result.find(y => y.yearCol === 'year_2026')!;
+    expect(y2026.items[0].byggdel).toBe('Fasader');
   });
 });
