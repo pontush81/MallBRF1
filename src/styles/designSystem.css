@@ -76,14 +76,6 @@
 }
 
 /* Global Styles */
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
 body {
   font-family: var(--font-family-primary);
   background-color: var(--color-neutral-background);
@@ -145,23 +137,9 @@ p:last-child {
   border-radius: var(--border-radius-base);
 }
 
-/* Utility Classes */
-.gulmaran-card-hover {
-  transition: var(--transition-normal);
-}
-
-.gulmaran-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.gulmaran-button-hover {
-  transition: var(--transition-fast);
-}
-
-.gulmaran-button-hover:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+/* MUI buttons handle focus via ripple — prevent oversized outline */
+.MuiButtonBase-root:focus-visible {
+  outline: none;
 }
 
 /* Animation keyframes */
@@ -194,15 +172,6 @@ p:last-child {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* Utility animation classes */
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.slide-in {
-  animation: slideIn 0.3s ease-out;
 }
 
 /* Responsive utilities */
