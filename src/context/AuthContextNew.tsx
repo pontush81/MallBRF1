@@ -11,6 +11,7 @@ interface AuthContextType {
   currentUser: AuthUser | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
+  isBoard: boolean;
   loading: boolean;
   login: (user: AuthUser) => void;
   logout: () => Promise<void>;
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBoard, setIsBoard] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Initialize auth state
@@ -45,7 +47,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setCurrentUser(user);
           setIsLoggedIn(true);
           setIsAdmin(user.role === 'admin');
-          
+          setIsBoard(user.role === 'board');
+
           // Save to localStorage for persistence
           localStorage.setItem('currentUser', JSON.stringify(user));
           localStorage.setItem('isLoggedIn', 'true');
@@ -59,7 +62,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCurrentUser(user);
             setIsLoggedIn(true);
             setIsAdmin(user.role === 'admin');
-            
+            setIsBoard(user.role === 'board');
+
             // Save to localStorage
             localStorage.setItem('currentUser', JSON.stringify(user));
             localStorage.setItem('isLoggedIn', 'true');
@@ -104,6 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCurrentUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
+    setIsBoard(false);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isLoggedIn');
   };
@@ -115,11 +120,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCurrentUser(user);
     setIsLoggedIn(true);
     setIsAdmin(user.role === 'admin');
-    
+    setIsBoard(user.role === 'board');
+
     // Save to localStorage
     localStorage.setItem('currentUser', JSON.stringify(user));
     localStorage.setItem('isLoggedIn', 'true');
-    
+
     // CRITICAL: Force a re-render to ensure all components see the new state
     console.log('✅ Auth state updated for:', user.email, '| Role:', user.role);
   };
@@ -145,6 +151,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentUser,
     isLoggedIn,
     isAdmin,
+    isBoard,
     loading,
     login,
     logout
