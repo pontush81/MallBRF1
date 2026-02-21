@@ -95,6 +95,87 @@ export function recalcSummaryRows(rows: PlanRow[]): PlanRow[] {
 }
 
 // ---------------------------------------------------------------------------
+// Normalization & validation
+// ---------------------------------------------------------------------------
+
+interface NormalizeOpts {
+  /** Normalise whitespace around /. Default true. Set false for utredningspunkter. */
+  normalizeSlash?: boolean;
+}
+
+/** Normalise a single text field value (trim, capitalise, fix separators). */
+export function normalizeRowText(value: string, opts?: NormalizeOpts): string {
+  let v = value.trim();
+  if (!v) return v;
+
+  // Capitalise first character
+  v = v.charAt(0).toUpperCase() + v.slice(1);
+
+  // Ensure spaces around &: "Besiktning&status" → "Besiktning & status"
+  v = v.replace(/\s*&\s*/g, ' & ');
+
+  // Collapse spaces around /: "Byte / service" → "Byte/service"
+  // Skipped for utredningspunkter which may contain kr/m², dates etc.
+  if (opts?.normalizeSlash !== false) {
+    v = v.replace(/\s*\/\s*/g, '/');
+  }
+
+  // Collapse multiple spaces
+  v = v.replace(/\s{2,}/g, ' ');
+
+  return v;
+}
+
+export type ValidationContext = 'edit' | 'save' | 'export';
+export type ValidationSeverity = 'warning' | 'error';
+
+export interface RowValidation {
+  rowId: string;
+  field: string;
+  severity: ValidationSeverity;
+  message: string;
+}
+
+/** Validate a single plan row. Context controls severity: edit → warning, save/export → error. */
+export function validatePlanRow(
+  row: PlanRow,
+  context: ValidationContext,
+): RowValidation[] {
+  const issues: RowValidation[] = [];
+  const severity: ValidationSeverity = context === 'edit' ? 'warning' : 'error';
+
+  if (row.rowType !== 'item') return issues;
+
+  if (!row.byggdel.trim()) {
+    issues.push({ rowId: row.id, field: 'byggdel', severity, message: 'Byggdel saknas' });
+  }
+
+  if (!row.atgard.trim()) {
+    issues.push({ rowId: row.id, field: 'atgard', severity, message: 'Åtgärd saknas' });
+  }
+
+  return issues;
+}
+
+/** Validate all rows. Returns flat list of issues. */
+export function validatePlanData(
+  rows: PlanRow[],
+  context: ValidationContext,
+): RowValidation[] {
+  return rows.flatMap(r => validatePlanRow(r, context));
+}
+
+/** Normalise byggdel, atgard and utredningspunkter on all rows. */
+export function normalizeRows(rows: PlanRow[]): PlanRow[] {
+  return rows.map(r => ({
+    ...r,
+    byggdel: normalizeRowText(r.byggdel ?? ''),
+    atgard: normalizeRowText(r.atgard ?? ''),
+    utredningspunkter: normalizeRowText(r.utredningspunkter ?? '', { normalizeSlash: false }),
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard helper functions
 // ---------------------------------------------------------------------------
 

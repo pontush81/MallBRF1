@@ -60,6 +60,10 @@ import {
   exportDataToTsv,
   exportDataToCsv,
   applyExcelFormulas,
+  normalizeRowText,
+  validatePlanRow,
+  validatePlanData,
+  RowValidation,
 } from './maintenancePlanHelpers';
 
 // ---------------------------------------------------------------------------
@@ -235,6 +239,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   const [editingOsakerhet, setEditingOsakerhet] = useState(false);
   const [osakerhetValue, setOsakerhetValue] = useState('');
   const [editTextValue, setEditTextValue] = useState('');
+  const [validationMap, setValidationMap] = useState<Record<string, RowValidation[]>>({});
 
   // ---------------------------------------------------------------------------
   // Grouped data
@@ -386,6 +391,15 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
       }
     }
 
+    // Normalise text fields
+    if (typeof newValue === 'string') {
+      if (field === 'byggdel' || field === 'atgard') {
+        newValue = normalizeRowText(newValue);
+      } else if (field === 'utredningspunkter') {
+        newValue = normalizeRowText(newValue, { normalizeSlash: false });
+      }
+    }
+
     // Only update if value actually changed
     const currentRow = rows.find(r => r.id === rowId);
     const currentVal = currentRow ? (currentRow as unknown as Record<string, unknown>)[field] : undefined;
@@ -399,6 +413,19 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
       const newRows = prevRows.map(r =>
         r.id === rowId ? { ...r, [field]: newValue } : r,
       );
+
+      // Validate the changed row and update validationMap
+      const updatedRow = newRows.find(r => r.id === rowId);
+      if (updatedRow) {
+        const issues = validatePlanRow(updatedRow, 'edit');
+        setValidationMap(prev => {
+          const next = { ...prev };
+          if (issues.length > 0) next[rowId] = issues;
+          else delete next[rowId];
+          return next;
+        });
+      }
+
       return (field === 'a_pris' || field === 'antal') ? recalcSummaryRows(newRows) : newRows;
     });
     setIsDirty(true);
@@ -601,6 +628,14 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   // ---------------------------------------------------------------------------
 
   const handleExportExcel = useCallback(() => {
+    // Validate before export — block on errors
+    const issues = validatePlanData(rows, 'export');
+    const blocking = issues.filter(i => i.severity === 'error');
+    if (blocking.length > 0) {
+      onNotify?.(`${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan export.`, 'error');
+      return;
+    }
+
     const wb = XLSX.utils.book_new();
     const wsData: (string | number | null)[][] = [];
 
@@ -643,6 +678,12 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   // ---------------------------------------------------------------------------
 
   const handleCopyToClipboard = useCallback(async () => {
+    const issues = validatePlanData(rows, 'export');
+    const blocking = issues.filter(i => i.severity === 'error');
+    if (blocking.length > 0) {
+      onNotify?.(`${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan export.`, 'error');
+      return;
+    }
     const data = buildExportRows(rows);
     const tsv = exportDataToTsv(data);
     try {
@@ -658,6 +699,12 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   // ---------------------------------------------------------------------------
 
   const handleExportCsv = useCallback(() => {
+    const issues = validatePlanData(rows, 'export');
+    const blocking = issues.filter(i => i.severity === 'error');
+    if (blocking.length > 0) {
+      onNotify?.(`${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan export.`, 'error');
+      return;
+    }
     const data = buildExportRows(rows);
     const csv = exportDataToCsv(data);
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM for Swedish chars
@@ -770,11 +817,19 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
     );
   };
 
+  /** Get combined validation tooltip text for a row */
+  const getValidationTooltip = (rowId: string): string => {
+    const issues = validationMap[rowId];
+    if (!issues?.length) return '';
+    return issues.map(i => i.message).join(', ');
+  };
+
   /** Render a single item row (collapsed) */
   const renderItemRow = (item: PlanRow) => {
     const isExpanded = expandedItems.has(item.id);
     const total = computeRowTotal(item);
     const parentByggdel = byggdelMap.get(item.id) || '';
+    const validationTooltip = getValidationTooltip(item.id);
 
     return (
       <React.Fragment key={item.id}>
@@ -795,7 +850,10 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
           {/* Atgard + byggdel caption (click to edit) */}
           <TableCell
             onClick={(e) => { e.stopPropagation(); if (!editingText) startEditText(item.id, 'atgard', item.atgard); }}
-            sx={{ cursor: 'pointer' }}
+            sx={{
+              cursor: 'pointer',
+              ...(validationMap[item.id]?.length ? { borderLeft: '3px solid #f9a825' } : {}),
+            }}
           >
             {editingText?.rowId === item.id && editingText.field === 'atgard' ? (
               <TextField
@@ -852,14 +910,16 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                   sx={{ '& input': { fontSize: '0.75rem' } }}
                 />
               ) : (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  onClick={(e) => { e.stopPropagation(); startEditText(item.id, 'byggdel', item.byggdel); }}
-                  sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                >
-                  {parentByggdel || 'Byggdel...'}
-                </Typography>
+                <Tooltip title={validationTooltip} arrow disableHoverListener={!validationTooltip}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    onClick={(e) => { e.stopPropagation(); startEditText(item.id, 'byggdel', item.byggdel); }}
+                    sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                  >
+                    {parentByggdel || 'Byggdel...'}
+                  </Typography>
+                </Tooltip>
               )
             )}
           </TableCell>

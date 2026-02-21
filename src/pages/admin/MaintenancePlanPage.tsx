@@ -21,7 +21,7 @@ import {
   getPlanVersion,
   savePlanVersion,
 } from '../../services/maintenancePlanService';
-import { recalcSummaryRows, getLagkravItems, enrichWithInfoUrls } from '../../components/maintenance/maintenancePlanHelpers';
+import { recalcSummaryRows, getLagkravItems, enrichWithInfoUrls, normalizeRows, validatePlanData } from '../../components/maintenance/maintenancePlanHelpers';
 import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
 import MaintenancePlanSummary from '../../components/maintenance/MaintenancePlanSummary';
@@ -133,8 +133,8 @@ const MaintenancePlanPage: React.FC = () => {
   // Save
   // ---------------------------------------------------------------------------
 
-  const handleSave = useCallback(async () => {
-    if (!isDirty || isSaving) return;
+  /** Internal save — normalises rows, persists to Supabase */
+  const doSave = useCallback(async (rowsToSave: PlanRow[]) => {
     setIsSaving(true);
     try {
       const planData: PlanData = {
@@ -143,7 +143,7 @@ const MaintenancePlanPage: React.FC = () => {
           ...YEAR_COLUMNS,
           'utredningspunkter',
         ],
-        rows,
+        rows: rowsToSave,
       };
       const saved = await savePlanVersion(planData, version, currentUser?.email);
       if (saved) {
@@ -159,7 +159,32 @@ const MaintenancePlanPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [isDirty, isSaving, rows, version, currentUser]);
+  }, [version, currentUser]);
+
+  /** Auto-save: normalise rows, save always (no validation blocking) */
+  const handleAutoSave = useCallback(async () => {
+    if (!isDirty || isSaving) return;
+    await doSave(normalizeRows(rows));
+  }, [isDirty, isSaving, rows, doSave]);
+
+  /** Manual save: normalise + validate, block on errors */
+  const handleManualSave = useCallback(async () => {
+    if (!isDirty || isSaving) return;
+    const normalized = normalizeRows(rows);
+
+    const issues = validatePlanData(normalized, 'save');
+    const blocking = issues.filter(i => i.severity === 'error');
+    if (blocking.length > 0) {
+      setSnackbar({
+        open: true,
+        message: `${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan sparning.`,
+        severity: 'error',
+      });
+      return;
+    }
+
+    await doSave(normalized);
+  }, [isDirty, isSaving, rows, doSave]);
 
   // ---------------------------------------------------------------------------
   // Auto-save (debounced 2s after last change)
@@ -172,7 +197,7 @@ const MaintenancePlanPage: React.FC = () => {
 
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
-      handleSave();
+      handleAutoSave();
     }, 2000);
 
     return () => {
@@ -284,7 +309,7 @@ const MaintenancePlanPage: React.FC = () => {
         isDirty={isDirty}
         setIsDirty={setIsDirty}
         isSaving={isSaving}
-        onSave={handleSave}
+        onSave={handleManualSave}
         onRestoreVersion={handleRestoreVersion}
         onOpenImport={() => setImportDialogOpen(true)}
         onNotify={handleNotify}

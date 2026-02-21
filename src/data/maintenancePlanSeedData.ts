@@ -53,37 +53,37 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 1.1.1 Fönster ---
     row({ rowType: 'subsection', nr: '1.1.1', byggdel: 'Fönster', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Byte takfönster lägenhet E F G', tek_livslangd: '25 år', a_pris: 27500, antal: 12, year_2028: 330000, sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Övriga fönster', year_2028: 250000, year_2029: 250000, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Takfönster', atgard: 'Byte', tek_livslangd: '25 år', a_pris: 27500, antal: 12, year_2028: 330000, sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Lgh E/F/G' }),
+    row({ rowType: 'item', byggdel: 'Fönster (övriga)', atgard: 'Byte', year_2028: 250000, year_2029: 250000, sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 1.1.2 Dörrar ---
     row({ rowType: 'subsection', nr: '1.1.2', byggdel: 'Dörrar', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Lägenhetsdörr bottenvån', tek_livslangd: '30 år', a_pris: 25000, antal: 4, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Lägenhetsdörrar (bottenvån)', atgard: 'Byte', tek_livslangd: '30 år', a_pris: 25000, antal: 4, sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 1.1.3 Balkonger ---
     row({ rowType: 'subsection', nr: '1.1.3', byggdel: 'Balkonger', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Lagning', year_2026: 60000, year_2027: 125000, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Balkonger', atgard: 'Lagning', year_2026: 60000, year_2027: 125000, sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 1.2 Tak ---
     row({ rowType: 'subsection', nr: '1.2', byggdel: 'Yttertak', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Målning plåt (ev ingår i takfönster)', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Takbesiktning / statusbedömning', tek_livslangd: '30–50 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera skick' }),
+    row({ rowType: 'item', byggdel: 'Takplåt', atgard: 'Målning', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Ev ingår i takfönsterbyte' }),
+    row({ rowType: 'item', byggdel: 'Yttertak', atgard: 'Besiktning & statusbedömning', tek_livslangd: '30–50 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera skick' }),
 
     // --- 1.3 Takavvattning ---
     row({ rowType: 'subsection', nr: '1.3', byggdel: 'Takavvattning', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Rensning stuprännor', year_2026: 10000, year_2029: 12000, sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Byte hängrännor/stuprör', tek_livslangd: '30 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Bedöm skick' }),
+    row({ rowType: 'item', byggdel: 'Takavvattning', atgard: 'Rensning', year_2026: 10000, year_2029: 12000, sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Stuprännor' }),
+    row({ rowType: 'item', byggdel: 'Takavvattning', atgard: 'Byte', tek_livslangd: '30 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Hängrännor/stuprör. Bedöm skick' }),
 
     // --- 1.4 Gård & mark ---
     row({ rowType: 'subsection', nr: '1.4', byggdel: 'Gård & mark', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
     row({ rowType: 'item', byggdel: 'Grind/Dörrar', atgard: 'Byte låssystem', tek_livslangd: '15 år', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Avrining Tinas lägenhet', year_2026: 12000, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Avrinning', atgard: 'Åtgärd', year_2026: 12000, sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Berör lgh Tina' }),
     row({ rowType: 'item', byggdel: 'Staket framsida', atgard: 'Byte', year_2032: 150000, sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 1.5 Mark/grund/dränering ---
     row({ rowType: 'subsection', nr: '1.5', byggdel: 'Mark & dränering', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Dräneringsbesiktning', tek_livslangd: '40–60 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Utreda skick, prioritera' }),
-    row({ rowType: 'item', atgard: 'Markarbeten / ytskikt gård', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Dränering', atgard: 'Besiktning', tek_livslangd: '40–60 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Utreda skick, prioritera' }),
+    row({ rowType: 'item', byggdel: 'Markyta gård', atgard: 'Underhåll', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // =========================================================================
     // SECTION 2: Invändigt (gemensamma utrymmen)
@@ -92,19 +92,19 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 2.1 Källare ---
     row({ rowType: 'subsection', nr: '2.1', byggdel: 'Källare', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Översyn fuktsäkerhet', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera regelbundet' }),
+    row({ rowType: 'item', byggdel: 'Källare', atgard: 'Översyn fuktsäkerhet', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera regelbundet' }),
 
     // --- 2.1.1 Tvättstuga ---
     row({ rowType: 'subsection', nr: '2.1.1', byggdel: 'Tvättstuga', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Byte maskiner', tek_livslangd: '8–12 år', antal: 10, year_2026: 60000, year_2028: 60000, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Tvättmaskiner', atgard: 'Byte', tek_livslangd: '8–12 år', antal: 10, year_2026: 60000, year_2028: 60000, sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 2.1.2 Gästlägenhet ---
     row({ rowType: 'subsection', nr: '2.1.2', byggdel: 'Gästlägenhet', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Iordningställande', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Gästlägenhet', atgard: 'Iordningställande', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 2.2 Trapphus ---
     row({ rowType: 'subsection', nr: '2.2', byggdel: 'Trapphus', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Målning trapphus', tek_livslangd: '10–15 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Bedöm behov' }),
+    row({ rowType: 'item', byggdel: 'Trapphus', atgard: 'Målning', tek_livslangd: '10–15 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Bedöm behov' }),
 
     // --- 2.3 Loftgång ---
     row({ rowType: 'subsection', nr: '2.3', byggdel: 'Loftgång', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
@@ -114,7 +114,7 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 2.4 Förråd ---
     row({ rowType: 'subsection', nr: '2.4', byggdel: 'Förråd', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Översyn/underhåll', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Förråd', atgard: 'Översyn', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 2.5 Vind ---
     row({ rowType: 'subsection', nr: '2.5', byggdel: 'Vind', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
@@ -129,28 +129,27 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 3.1 El installationer ---
     row({ rowType: 'subsection', nr: '3.1', byggdel: 'El installationer', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Översyn timer, jordfelsbrytare, byte av utebelysning', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Elcentral – besiktning/byte', tek_livslangd: '30–40 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera ålder' }),
-    row({ rowType: 'item', atgard: 'Utomhusbelysning', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Elinstallationer', atgard: 'Översyn (timer, jordfelsbrytare)', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Elcentral', atgard: 'Besiktning/byte', tek_livslangd: '30–40 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera ålder' }),
+    row({ rowType: 'item', byggdel: 'Utomhusbelysning', atgard: 'Byte', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 3.2 Ventilation ---
     row({ rowType: 'subsection', nr: '3.2', byggdel: 'Ventilation', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'OVK (obligatorisk ventilationskontroll)', tek_livslangd: 'Var 6:e år (FT) / 9:e år (S)', year_2029: 20000, sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Fläktar – byte/service', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Ventilationskanaler – rensning', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Fläktar', atgard: 'Byte/service', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Ventilationskanaler', atgard: 'Rensning', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 3.3 Värmesystem ---
     row({ rowType: 'subsection', nr: '3.3', byggdel: 'Värmesystem', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Uppgradering värmesystem', year_2030: 150000, sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Fjärrvärmeväxlare/panna – byte', tek_livslangd: '20–25 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera ålder' }),
-    row({ rowType: 'item', atgard: 'Cirkulationspumpar', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Termostater/styrsystem', tek_livslangd: '15 år', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Värmesystem', atgard: 'Uppgradering', year_2030: 150000, sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Fjärrvärmeväxlare', atgard: 'Byte', tek_livslangd: '20–25 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Kontrollera ålder' }),
+    row({ rowType: 'item', byggdel: 'Cirkulationspumpar', atgard: 'Byte', tek_livslangd: '15–20 år', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Styrsystem', atgard: 'Uppgradering/byte', tek_livslangd: '15 år', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // --- 3.4 VA system ---
     row({ rowType: 'subsection', nr: '3.4', byggdel: 'VA system', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Stammar – relining/byte', tek_livslangd: '40–60 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Filma/inspektera stammar' }),
-    row({ rowType: 'item', atgard: 'Avloppsspolning (återkommande)', tek_livslangd: 'Var 5–10:e år', sortIndex: nextIdx(), indentLevel: 2 }),
-    row({ rowType: 'item', atgard: 'Vattenledningar – översyn', tek_livslangd: '40–60 år', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Stammar', atgard: 'Relining/byte', tek_livslangd: '40–60 år', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Filma/inspektera stammar' }),
+    row({ rowType: 'item', byggdel: 'Avlopp', atgard: 'Spolning', tek_livslangd: 'Var 5–10:e år', sortIndex: nextIdx(), indentLevel: 2 }),
+    row({ rowType: 'item', byggdel: 'Vattenledningar', atgard: 'Översyn', tek_livslangd: '40–60 år', sortIndex: nextIdx(), indentLevel: 2 }),
 
     // =========================================================================
     // SECTION 4: Säkerhet & myndighetskrav
@@ -184,7 +183,7 @@ export function createDefaultPlanData(): PlanData {
 
     // --- 4.7 OVK ---
     row({ rowType: 'subsection', nr: '4.7', byggdel: 'OVK', isLocked: true, sortIndex: nextIdx(), indentLevel: 1 }),
-    row({ rowType: 'item', atgard: 'Obligatorisk ventilationskontroll', tek_livslangd: 'Var 6:e år (FT/S)', sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Plan- och byggförordningen 5 kap. – certifierad kontrollant, protokoll till kommunen', info_url: 'https://www.boverket.se/sv/byggande/halsa-och-inomhusmiljo/ventilation/ovk/' }),
+    row({ rowType: 'item', atgard: 'Obligatorisk ventilationskontroll', tek_livslangd: 'Var 6:e år (FT/S)', year_2029: 20000, sortIndex: nextIdx(), indentLevel: 2, utredningspunkter: 'Plan- och byggförordningen 5 kap. – certifierad kontrollant, protokoll till kommunen', info_url: 'https://www.boverket.se/sv/byggande/halsa-och-inomhusmiljo/ventilation/ovk/' }),
 
     // Empty rows for future use
     row({ rowType: 'blank', sortIndex: nextIdx() }),
