@@ -4,7 +4,48 @@
  * Public form - no authentication required for submissions
  */
 
-import { supabaseClient } from './supabaseClient';
+import { safeGetSession } from './supabaseClient';
+
+const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+const SUPABASE_ANON_KEY_LOCAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
+
+async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 10000) {
+  let authToken: string | null = null;
+  try {
+    const { data: { session } } = await safeGetSession();
+    if (session?.access_token) {
+      authToken = session.access_token;
+    }
+  } catch { /* fall through to anon key */ }
+
+  if (!authToken) authToken = SUPABASE_ANON_KEY_LOCAL;
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY_LOCAL,
+      'Authorization': `Bearer ${authToken}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : method === 'PATCH' ? 'return=representation' : 'return=minimal',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(timeout),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error: ${response.status} - ${errorText}`);
+  }
+
+  if (method === 'DELETE') return null;
+
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    const text = await response.text();
+    return text.trim() ? JSON.parse(text) : null;
+  }
+  return null;
+}
 
 // Types
 export interface FaultReport {
@@ -169,23 +210,12 @@ export async function getAllFaultReports(
   statusFilter?: FaultStatus
 ): Promise<{ success: boolean; data?: FaultReport[]; error?: string }> {
   try {
-    let query = supabaseClient
-      .from('fault_reports')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
+    let endpoint = 'fault_reports?select=*&order=created_at.desc';
     if (statusFilter) {
-      query = query.eq('status', statusFilter);
+      endpoint += `&status=eq.${statusFilter}`;
     }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('Get fault reports error:', error);
-      return { success: false, error: 'Kunde inte hämta felanmälningar.' };
-    }
-    
-    return { success: true, data: data as FaultReport[] };
+    const data = await directRestCall('GET', endpoint);
+    return { success: true, data: (Array.isArray(data) ? data : []) as FaultReport[] };
   } catch (err) {
     console.error('Get fault reports exception:', err);
     return { success: false, error: 'Ett oväntat fel uppstod.' };
@@ -199,18 +229,11 @@ export async function getFaultReportById(
   id: string
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   try {
-    const { data, error } = await supabaseClient
-      .from('fault_reports')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) {
-      console.error('Get fault report error:', error);
-      return { success: false, error: 'Kunde inte hämta felanmälan.' };
+    const data = await directRestCall('GET', `fault_reports?id=eq.${id}&select=*`);
+    if (Array.isArray(data) && data.length > 0) {
+      return { success: true, data: data[0] as FaultReport };
     }
-    
-    return { success: true, data: data as FaultReport };
+    return { success: false, error: 'Kunde inte hämta felanmälan.' };
   } catch (err) {
     console.error('Get fault report exception:', err);
     return { success: false, error: 'Ett oväntat fel uppstod.' };
@@ -226,25 +249,17 @@ export async function updateFaultReport(
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   try {
     const updateData: Record<string, unknown> = { ...input };
-    
+
     // If status is being set to resolved, add resolved_at timestamp
     if (input.status === 'resolved' && !input.resolved_by) {
       updateData.resolved_at = new Date().toISOString();
     }
-    
-    const { data, error } = await supabaseClient
-      .from('fault_reports')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Update fault report error:', error);
-      return { success: false, error: 'Kunde inte uppdatera felanmälan.' };
+
+    const data = await directRestCall('PATCH', `fault_reports?id=eq.${id}&select=*`, updateData);
+    if (Array.isArray(data) && data.length > 0) {
+      return { success: true, data: data[0] as FaultReport };
     }
-    
-    return { success: true, data: data as FaultReport };
+    return { success: false, error: 'Kunde inte uppdatera felanmälan.' };
   } catch (err) {
     console.error('Update fault report exception:', err);
     return { success: false, error: 'Ett oväntat fel uppstod.' };
@@ -258,20 +273,11 @@ export async function deleteFaultReport(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabaseClient
-      .from('fault_reports')
-      .delete()
-      .eq('id', id);
-    
-    if (error) {
-      console.error('Delete fault report error:', error);
-      return { success: false, error: 'Kunde inte ta bort felanmälan.' };
-    }
-    
+    await directRestCall('DELETE', `fault_reports?id=eq.${id}`);
     return { success: true };
   } catch (err) {
     console.error('Delete fault report exception:', err);
-    return { success: false, error: 'Ett oväntat fel uppstod.' };
+    return { success: false, error: 'Kunde inte ta bort felanmälan.' };
   }
 }
 
@@ -289,16 +295,8 @@ export async function getFaultReportStats(): Promise<{
   error?: string;
 }> {
   try {
-    const { data, error } = await supabaseClient
-      .from('fault_reports')
-      .select('status, category, created_at');
-    
-    if (error) {
-      console.error('Get fault report stats error:', error);
-      return { success: false, error: 'Kunde inte hämta statistik.' };
-    }
-    
-    const reports = data as Pick<FaultReport, 'status' | 'category' | 'created_at'>[];
+    const data = await directRestCall('GET', 'fault_reports?select=status,category,created_at');
+    const reports = (Array.isArray(data) ? data : []) as Pick<FaultReport, 'status' | 'category' | 'created_at'>[];
     
     // Count by status
     const byStatus: Record<FaultStatus, number> = {
@@ -356,31 +354,15 @@ export async function getFaultReportStats(): Promise<{
 export async function getFaultReportByReference(
   referenceNumber: string
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (cold start)
-  
   try {
-    const { data, error } = await supabaseClient
-      .from('fault_reports')
-      .select('id, reference_number, apartment_number, category, location, description, status, created_at, updated_at, resolved_at')
-      .eq('reference_number', referenceNumber.toUpperCase())
-      .abortSignal(controller.signal)
-      .single();
-    
-    clearTimeout(timeoutId);
-    
-    if (error) {
-      console.error('Get fault report by reference error:', error);
-      return { success: false, error: 'Kunde inte hitta felanmälan med det referensnumret.' };
+    const ref = encodeURIComponent(referenceNumber.toUpperCase());
+    const data = await directRestCall('GET', `fault_reports?reference_number=eq.${ref}&select=id,reference_number,apartment_number,category,location,description,status,created_at,updated_at,resolved_at`, undefined, 30000);
+    if (Array.isArray(data) && data.length > 0) {
+      return { success: true, data: data[0] as FaultReport };
     }
-    
-    return { success: true, data: data as FaultReport };
+    return { success: false, error: 'Kunde inte hitta felanmälan med det referensnumret.' };
   } catch (err: any) {
-    clearTimeout(timeoutId);
     console.error('Get fault report by reference exception:', err);
-    if (err.name === 'AbortError') {
-      return { success: false, error: 'Anslutningen tog för lång tid. Försök igen.' };
-    }
     return { success: false, error: 'Ett oväntat fel uppstod.' };
   }
 }
@@ -394,22 +376,10 @@ async function getNotificationSettings(): Promise<{
   admin_email: string;
 } | null> {
   try {
-    const { data, error } = await supabaseClient
-      .from('notification_settings')
-      .select('email_notifications, fault_report_notifications, admin_email')
-      .limit(1);
-    
-    if (error) {
-      console.error('Get notification settings error:', error);
-      return null;
-    }
-    
-    // Return first row if exists, otherwise null
-    if (data && data.length > 0) {
+    const data = await directRestCall('GET', 'notification_settings?select=email_notifications,fault_report_notifications,admin_email&limit=1');
+    if (Array.isArray(data) && data.length > 0) {
       return data[0];
     }
-    
-    console.log('No notification settings found in database');
     return null;
   } catch (err) {
     console.error('Get notification settings exception:', err);

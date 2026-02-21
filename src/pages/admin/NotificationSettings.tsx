@@ -28,7 +28,41 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { StandardLoading } from '../../components/common/StandardLoading';
-import supabaseClient from '../../services/supabaseClient';
+import { safeGetSession } from '../../services/supabaseClient';
+
+const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
+
+async function restCall(method: string, endpoint: string, body?: any) {
+  let authToken: string | null = null;
+  try {
+    const { data: { session } } = await safeGetSession();
+    if (session?.access_token) authToken = session.access_token;
+  } catch { /* fall through */ }
+  if (!authToken) authToken = SUPABASE_ANON_KEY;
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${authToken}`,
+      'Content-Type': 'application/json',
+      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`${response.status} - ${text}`);
+  }
+  const ct = response.headers.get('content-type');
+  if (ct?.includes('application/json')) {
+    const t = await response.text();
+    return t.trim() ? JSON.parse(t) : null;
+  }
+  return null;
+}
 
 interface NotificationSettingsData {
   id?: string;
@@ -64,53 +98,19 @@ const NotificationSettings: React.FC = () => {
   }, []);
 
   const loadSettings = async () => {
-    console.log('🔄 Loading notification settings...');
     setLoading(true);
     setError(null);
-    
-    // Use AbortController for proper timeout handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Timeout triggered');
-      controller.abort();
-    }, 30000);
-    
+
     try {
-      const { data, error } = await supabaseClient
-        .from('notification_settings')
-        .select('*')
-        .abortSignal(controller.signal)
-        .single();
-      
-      clearTimeout(timeoutId);
-
-      if (error) {
-        console.log('❌ Supabase error:', error.code, error.message);
-        // If table doesn't exist, show helpful message
-        if (error.code === '42P01') {
-          setError('Notifikationstabellen behöver skapas i databasen. Kontakta administratör för att köra migrationen.');
-          return;
-        }
-        // If no rows returned, that's fine - use defaults
-        if (error.code !== 'PGRST116') {
-          throw error;
-        }
-      }
-
-      if (data) {
-        console.log('✅ Settings loaded successfully');
+      const data = await restCall('GET', 'notification_settings?select=*&limit=1');
+      if (Array.isArray(data) && data.length > 0) {
         setSettings({
-          ...data,
-          fault_report_emails: data.fault_report_emails || [],
+          ...data[0],
+          fault_report_emails: data[0].fault_report_emails || [],
         });
       }
     } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        setError('Laddningen tog för lång tid. Klicka Uppdatera för att försöka igen.');
-      } else {
-        setError('Kunde inte ladda notifikationsinställningar: ' + err.message);
-      }
+      setError('Kunde inte ladda notifikationsinställningar: ' + err.message);
       console.error('Error loading notification settings:', err);
     } finally {
       setLoading(false);
@@ -121,57 +121,34 @@ const NotificationSettings: React.FC = () => {
     try {
       setSaving(true);
       setError(null);
-      
-      console.log('💾 Sparar notifikationsinställningar:', settings);
-      
-      // Use update if we have an ID, otherwise insert
-      let result;
+
+      const payload = {
+        email_notifications: settings.email_notifications,
+        booking_confirmations: settings.booking_confirmations,
+        maintenance_reminders: settings.maintenance_reminders,
+        system_alerts: settings.system_alerts,
+        fault_report_notifications: settings.fault_report_notifications,
+        admin_email: settings.admin_email,
+        fault_report_emails: settings.fault_report_emails,
+      };
+
+      let data;
       if (settings.id) {
-        // Update existing row
-        result = await supabaseClient
-          .from('notification_settings')
-          .update({
-            email_notifications: settings.email_notifications,
-            booking_confirmations: settings.booking_confirmations,
-            maintenance_reminders: settings.maintenance_reminders,
-            system_alerts: settings.system_alerts,
-            fault_report_notifications: settings.fault_report_notifications,
-            admin_email: settings.admin_email,
-            fault_report_emails: settings.fault_report_emails,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', settings.id)
-          .select()
-          .single();
+        data = await restCall('PATCH', `notification_settings?id=eq.${settings.id}&select=*`, {
+          ...payload,
+          updated_at: new Date().toISOString(),
+        });
       } else {
-        // Insert new row
-        result = await supabaseClient
-          .from('notification_settings')
-          .insert({
-            email_notifications: settings.email_notifications,
-            booking_confirmations: settings.booking_confirmations,
-            maintenance_reminders: settings.maintenance_reminders,
-            system_alerts: settings.system_alerts,
-            fault_report_notifications: settings.fault_report_notifications,
-            admin_email: settings.admin_email,
-            fault_report_emails: settings.fault_report_emails,
-          })
-          .select()
-          .single();
-      }
-      
-      const { data, error } = result;
-
-      if (error) {
-        console.error('❌ Databasfel:', error);
-        throw error;
+        data = await restCall('POST', 'notification_settings?select=*', payload);
       }
 
-      setSettings(data);
-      console.log('✅ Inställningar sparade:', data);
-      setSuccess(`✅ Sparade! Admin e-post: ${data.admin_email || settings.admin_email}`);
+      const row = Array.isArray(data) && data.length > 0 ? data[0] : data;
+      if (row) {
+        setSettings(row);
+        setSuccess(`Sparade! Admin e-post: ${row.admin_email || settings.admin_email}`);
+      }
     } catch (err: any) {
-      console.error('❌ Sparfel:', err);
+      console.error('Save error:', err);
       setError('Kunde inte spara inställningar: ' + err.message);
     } finally {
       setSaving(false);
