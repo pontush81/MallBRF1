@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
+  Button,
   Typography,
   Collapse,
   IconButton,
@@ -18,6 +19,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import AddIcon from '@mui/icons-material/Add';
+import { v4 as uuidv4 } from 'uuid';
+import AddActionDialog from './AddActionDialog';
 
 import { PlanRow, PlanRowStatus, YEAR_COLUMNS } from '../../services/maintenancePlanService';
 import {
@@ -91,6 +95,10 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ rowId: string; yearCol: string } | null>(null);
   const [editValue, setEditValue] = useState('');
+
+  // Add action dialog
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDialogYear, setAddDialogYear] = useState<string>('');
 
   // ---------------------------------------------------------------------------
   // Derived data
@@ -220,6 +228,58 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
     },
     [setRows, setIsDirty],
   );
+
+  // ---------------------------------------------------------------------------
+  // Add action dialog handlers
+  // ---------------------------------------------------------------------------
+
+  const handleOpenAddDialog = useCallback((yearCol: string) => {
+    setAddDialogYear(yearCol);
+    setAddDialogOpen(true);
+  }, []);
+
+  const handleAddAction = useCallback((parentRowId: string, fields: Partial<PlanRow>, yearCol: string) => {
+    const newId = uuidv4();
+    setRows(prevRows => {
+      const parentIndex = prevRows.findIndex(r => r.id === parentRowId);
+      if (parentIndex === -1) return prevRows;
+
+      // Insert after last child of this subsection
+      let insertIndex = parentIndex + 1;
+      while (
+        insertIndex < prevRows.length &&
+        prevRows[insertIndex].rowType !== 'subsection' &&
+        prevRows[insertIndex].rowType !== 'section' &&
+        prevRows[insertIndex].rowType !== 'summary'
+      ) {
+        insertIndex++;
+      }
+
+      const newRow: PlanRow = {
+        id: newId,
+        rowType: 'item',
+        nr: '',
+        byggdel: '',
+        atgard: '',
+        tek_livslangd: '',
+        a_pris: null,
+        antal: null,
+        year_2026: null, year_2027: null, year_2028: null, year_2029: null, year_2030: null,
+        year_2031: null, year_2032: null, year_2033: null, year_2034: null, year_2035: null,
+        utredningspunkter: '',
+        sortIndex: 0,
+        indentLevel: 2,
+        isLocked: false,
+        status: '',
+        ...fields,
+      };
+
+      const newRows = [...prevRows];
+      newRows.splice(insertIndex, 0, newRow);
+      setIsDirty(true);
+      return recalcSummaryRows(newRows);
+    });
+  }, [setRows, setIsDirty]);
 
   // ---------------------------------------------------------------------------
   // Render: year box in expanded item detail
@@ -471,7 +531,7 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
       <Box key={yg.yearCol} sx={{ mb: 1 }}>
         {/* Year header row */}
         <Box
-          onClick={() => !isEmpty && toggleYear(yg.yearCol)}
+          onClick={() => toggleYear(yg.yearCol)}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -479,19 +539,17 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
             py: 1.5,
             bgcolor: isExpanded ? '#e3f2fd' : 'background.paper',
             borderRadius: isExpanded ? '4px 4px 0 0' : 1,
-            cursor: isEmpty ? 'default' : 'pointer',
+            cursor: 'pointer',
             border: '1px solid',
             borderColor: isExpanded ? 'primary.light' : 'divider',
             borderBottom: isExpanded ? 'none' : undefined,
-            '&:hover': isEmpty ? {} : { bgcolor: isExpanded ? '#bbdefb' : 'action.hover' },
+            '&:hover': { bgcolor: isExpanded ? '#bbdefb' : 'action.hover' },
             transition: 'background-color 0.15s',
           }}
         >
           {/* Expand icon */}
-          <IconButton size="small" sx={{ mr: 1 }} disabled={isEmpty}>
-            {isEmpty ? (
-              <ChevronRightIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-            ) : isExpanded ? (
+          <IconButton size="small" sx={{ mr: 1 }}>
+            {isExpanded ? (
               <ExpandLessIcon fontSize="small" />
             ) : (
               <ExpandMoreIcon fontSize="small" />
@@ -568,11 +626,39 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
               overflow: 'hidden',
             }}
           >
-            <Table size="small">
-              <TableBody>
-                {yg.items.map(item => renderItemRow(item, yg.yearCol))}
-              </TableBody>
-            </Table>
+            {isEmpty ? (
+              <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Inga planerade åtgärder detta år.
+                </Typography>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={(e) => { e.stopPropagation(); handleOpenAddDialog(yg.yearCol); }}
+                  sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+                >
+                  Lägg till
+                </Button>
+              </Box>
+            ) : (
+              <>
+                <Table size="small">
+                  <TableBody>
+                    {yg.items.map(item => renderItemRow(item, yg.yearCol))}
+                  </TableBody>
+                </Table>
+                <Box sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={(e) => { e.stopPropagation(); handleOpenAddDialog(yg.yearCol); }}
+                    sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.8125rem' }}
+                  >
+                    Lägg till åtgärd i {yg.year}
+                  </Button>
+                </Box>
+              </>
+            )}
           </Box>
         </Collapse>
       </Box>
@@ -586,6 +672,14 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
   return (
     <Box>
       {yearGroups.map(yg => renderYearAccordion(yg))}
+
+      <AddActionDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        onAdd={handleAddAction}
+        rows={rows}
+        targetYear={addDialogYear}
+      />
     </Box>
   );
 };
