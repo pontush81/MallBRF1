@@ -75,14 +75,10 @@ html {
   height: 100%; /* Allow full height */
 }
 
-/* Modern focus states */
-*:focus {
+/* Modern focus states - only show for keyboard navigation */
+*:focus-visible {
   outline: 2px solid #0ea5e9;
   outline-offset: 2px;
-}
-
-*:focus:not(:focus-visible) {
-  outline: none;
 }
 
 /* Smooth transitions for specific elements (excluding calendar components) */
