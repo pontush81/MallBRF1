@@ -81,6 +81,11 @@ html {
   outline-offset: 2px;
 }
 
+/* MUI buttons handle focus indication via ripple - prevent double outline */
+.MuiButtonBase-root:focus-visible {
+  outline: none;
+}
+
 /* Smooth transitions for specific elements (excluding calendar components) */
 :not(.MuiPickersDay-root):not(.MuiDateCalendar-root):not(.MuiPickersCalendarHeader-root) {
   transition: color 150ms ease-in-out, background-color 150ms ease-in-out, border-color 150ms ease-in-out;
