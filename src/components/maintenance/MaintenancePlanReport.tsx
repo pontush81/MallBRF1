@@ -1314,7 +1314,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
               }}
             >
               <IconButton size="small" sx={{ mr: 0.5 }}>
-                {isCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+                {isCollapsed ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </IconButton>
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
                 <Typography variant="subtitle1" fontWeight={700} sx={{ flexShrink: 0 }}>
