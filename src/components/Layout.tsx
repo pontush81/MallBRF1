@@ -3,7 +3,7 @@ import { Container, Box } from '@mui/material';
 import ModernHeader from './modern/ModernHeader';
 import Footer from './Footer';
 import { useLocation } from 'react-router-dom';
-import { modernTheme } from '../theme/modernTheme';
+import { bastadTheme } from '../theme/bastadTheme';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +13,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
   // Get current location to check if we're on the login page
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAdminPage = location.pathname.startsWith('/admin');
   
 
 
@@ -20,7 +21,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
     <Box sx={{ 
       // Only use minHeight for auth pages that need centering
       minHeight: isAuthPage ? '100vh' : 'auto',
-      background: modernTheme.colors.white, // Clean white background instead of gray
+      background: bastadTheme.colors.white, // Clean white background instead of gray
       display: 'flex',
       flexDirection: 'column',
       overflow: 'auto', // CRITICAL: Allow scrolling
@@ -33,8 +34,8 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1,
-          paddingTop: isAuthPage ? 0 : '64px', // Match exact header height (64px)
-          paddingBottom: isAuthPage ? modernTheme.spacing[4] : '0px', // Remove bottom padding for regular pages
+          paddingTop: isAuthPage ? 0 : isAdminPage ? '96px' : '64px', // Extra space for admin pages
+          paddingBottom: isAuthPage ? bastadTheme.spacing[4] : '0px', // Remove bottom padding for regular pages
           // REMOVED: minHeight constraint that was preventing scrolling
           overflow: 'auto', // CRITICAL: Allow scrolling
           width: '100%', // Ensure full width
@@ -44,7 +45,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
         <Container 
           maxWidth="lg" 
           sx={{ 
-            px: { xs: modernTheme.spacing[2], sm: modernTheme.spacing[3], md: modernTheme.spacing[4] },
+            px: { xs: bastadTheme.spacing[2], sm: bastadTheme.spacing[3], md: bastadTheme.spacing[4] },
             py: 0, // Remove vertical padding from top
             pb: 0, // Removed bottom padding - footer handles its own spacing
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },

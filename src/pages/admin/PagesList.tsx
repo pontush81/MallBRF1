@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Box, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Typography,
+  Box,
   Button,
   IconButton,
   Chip,
@@ -13,15 +13,26 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
-  Grid,
-  Stack
+  Stack,
+  TextField,
+  InputAdornment,
+  ToggleButtonGroup,
+  ToggleButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Tooltip
 } from '@mui/material';
-import { 
-  Edit as EditIcon, 
-  Delete as DeleteIcon, 
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
   Add as AddIcon,
   Article as ArticleIcon,
-  CalendarToday as CalendarIcon,
+  Search as SearchIcon,
   // Icons for page types
   Info as InfoIcon,
   SportsEsports as SportsEsportsIcon,
@@ -45,8 +56,7 @@ import { sv } from 'date-fns/locale';
 
 import { Page } from '../../types/Page';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
-import { ModernCard } from '../../components/common/ModernCard';
-import { modernTheme } from '../../theme/modernTheme';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 const PagesList: React.FC = () => {
   const [pages, setPages] = useState<Page[]>([]);
@@ -56,7 +66,9 @@ const PagesList: React.FC = () => {
   const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'unpublished'>('all');
+
   const navigate = useNavigate();
 
   // Icon mapping (same as in PageEditor)
@@ -104,6 +116,42 @@ const PagesList: React.FC = () => {
     // Default icon and color
     return iconMapping.info;
   };
+
+  // Strip markdown syntax for plain-text preview
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/#{1,6}\s+/g, '')       // headers
+      .replace(/\*\*(.+?)\*\*/g, '$1') // bold
+      .replace(/\*(.+?)\*/g, '$1')     // italic
+      .replace(/__(.+?)__/g, '$1')     // bold alt
+      .replace(/_(.+?)_/g, '$1')       // italic alt
+      .replace(/~~(.+?)~~/g, '$1')     // strikethrough
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // images
+      .replace(/`{1,3}[^`]*`{1,3}/g, '')     // inline/block code
+      .replace(/^\s*[-*+]\s+/gm, '')          // list markers
+      .replace(/^\s*\d+\.\s+/gm, '')          // ordered list markers
+      .replace(/>\s+/g, '')                    // blockquotes
+      .replace(/\|/g, ' ')                     // table pipes
+      .replace(/---+/g, '')                    // horizontal rules
+      .replace(/\n{2,}/g, ' ')                 // collapse newlines
+      .replace(/\n/g, ' ')                     // remaining newlines
+      .trim();
+  };
+
+  // Filtered pages based on search and status
+  const filteredPages = useMemo(() => {
+    return pages.filter((page) => {
+      const matchesSearch = searchQuery === '' ||
+        page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (page.content && page.content.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'published' && page.isPublished) ||
+        (statusFilter === 'unpublished' && !page.isPublished);
+      return matchesSearch && matchesStatus;
+    });
+  }, [pages, searchQuery, statusFilter]);
 
   // Debug logging
   console.log('🔍 Admin PagesList render:', {
@@ -158,17 +206,19 @@ const PagesList: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!pageToDelete) return;
 
+    const id = pageToDelete.id;
+    setDeleteDialogOpen(false);
+    setPageToDelete(null);
+
     try {
-      await pageServiceSupabase.deletePage(pageToDelete.id);
+      await pageServiceSupabase.deletePage(id);
       setSnackbarMessage('Sidan har raderats');
       setSnackbarOpen(true);
-      fetchPages(); // Uppdatera listan
-    } catch (err) {
-      setSnackbarMessage('Ett fel uppstod vid radering av sidan');
+      fetchPages();
+    } catch (err: any) {
+      console.error('❌ Delete failed in PagesList:', err);
+      setSnackbarMessage(err?.message || 'Ett fel uppstod vid radering av sidan');
       setSnackbarOpen(true);
-    } finally {
-      setDeleteDialogOpen(false);
-      setPageToDelete(null);
     }
   };
 
@@ -180,18 +230,16 @@ const PagesList: React.FC = () => {
         alignItems: 'center', 
         minHeight: '400px' 
       }}>
-        <CircularProgress size={60} sx={{ color: modernTheme.colors.primary[500] }} />
+        <CircularProgress size={60} sx={{ color: bastadTheme.colors.ocean[500] }} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <ModernCard>
-        <Alert severity="error" sx={{ borderRadius: modernTheme.borderRadius.lg }}>
-          {error}
-        </Alert>
-      </ModernCard>
+      <Alert severity="error" sx={{ borderRadius: bastadTheme.borderRadius.lg }}>
+        {error}
+      </Alert>
     );
   }
 
@@ -202,22 +250,22 @@ const PagesList: React.FC = () => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        mb: modernTheme.spacing[6]
+        mb: bastadTheme.spacing[6]
       }}>
         <Box>
           <Typography 
             variant="h4" 
             sx={{ 
-              fontWeight: modernTheme.typography.fontWeight.bold,
-              color: modernTheme.colors.gray[900],
-              mb: modernTheme.spacing[1]
+              fontWeight: bastadTheme.typography.fontWeight.bold,
+              color: bastadTheme.colors.ocean[900],
+              mb: bastadTheme.spacing[1]
             }}
           >
             Hantera Sidor
           </Typography>
           <Typography 
             variant="body1" 
-            sx={{ color: modernTheme.colors.gray[600] }}
+            sx={{ color: bastadTheme.colors.ocean[600] }}
           >
             Skapa, redigera och hantera dina webbsidor
           </Typography>
@@ -230,9 +278,9 @@ const PagesList: React.FC = () => {
                   fetchPages();
                 }}
                 sx={{
-                  borderRadius: modernTheme.borderRadius.xl,
-                  px: modernTheme.spacing[3],
-                  py: modernTheme.spacing[2],
+                  borderRadius: bastadTheme.borderRadius.xl,
+                  px: bastadTheme.spacing[3],
+                  py: bastadTheme.spacing[2],
                 }}
               >
                 Uppdatera
@@ -242,14 +290,14 @@ const PagesList: React.FC = () => {
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/admin/pages/new')}
                 sx={{
-                  background: modernTheme.gradients.accent,
-                  borderRadius: modernTheme.borderRadius.xl,
-                  px: modernTheme.spacing[4],
-                  py: modernTheme.spacing[2],
-                  boxShadow: modernTheme.shadows.lg,
+                  background: bastadTheme.gradients.ctaButton,
+                  borderRadius: bastadTheme.borderRadius.xl,
+                  px: bastadTheme.spacing[4],
+                  py: bastadTheme.spacing[2],
+                  boxShadow: bastadTheme.shadows.lg,
                   '&:hover': {
                     transform: 'translateY(-2px)',
-                    boxShadow: modernTheme.shadows.xl,
+                    boxShadow: bastadTheme.shadows.xl,
                   }
                 }}
               >
@@ -258,180 +306,222 @@ const PagesList: React.FC = () => {
             </Stack>
       </Box>
 
-      {/* Grid med sidor */}
-      <Grid container spacing={3}>
-        {pages.map((page) => (
-          <Grid item xs={12} sm={6} lg={4} key={page.id}>
-            <ModernCard hover onClick={() => navigate(`/admin/pages/edit/${page.id}`)}>
-              <Box>
-                {/* Header med ikon och status */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start',
-                  mb: modernTheme.spacing[3]
-                }}>
-                  <Box sx={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: modernTheme.borderRadius.xl,
-                    background: getPageIconAndColor(page).color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: modernTheme.spacing[2]
-                  }}>
-                    {(() => {
-                      const PageIcon = getPageIconAndColor(page).icon;
-                      return <PageIcon sx={{ color: 'white', fontSize: '24px' }} />;
-                    })()}
-                  </Box>
-                  <Chip
-                    label={page.isPublished ? 'Publicerad' : 'Ej publicerad'}
-                    color={page.isPublished ? 'success' : 'default'}
-                    size="small"
-                    sx={{ 
-                      borderRadius: modernTheme.borderRadius.lg,
-                      fontWeight: modernTheme.typography.fontWeight.medium
+      {/* Search and filter toolbar */}
+      <Box sx={{
+        display: 'flex',
+        gap: 2,
+        mb: bastadTheme.spacing[4],
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <TextField
+          size="small"
+          placeholder="Sök sidor..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: bastadTheme.colors.ocean[400], fontSize: 20 }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            flex: 1,
+            minWidth: 200,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: bastadTheme.borderRadius.lg,
+            },
+          }}
+        />
+        <ToggleButtonGroup
+          value={statusFilter}
+          exclusive
+          onChange={(_, val) => { if (val) setStatusFilter(val); }}
+          size="small"
+          sx={{
+            '& .MuiToggleButton-root': {
+              borderRadius: bastadTheme.borderRadius.lg,
+              px: 2,
+              textTransform: 'none',
+              fontWeight: bastadTheme.typography.fontWeight.medium,
+              '&.Mui-selected': {
+                backgroundColor: bastadTheme.colors.ocean[50],
+                color: bastadTheme.colors.ocean[700],
+                borderColor: bastadTheme.colors.ocean[300],
+              },
+            },
+          }}
+        >
+          <ToggleButton value="all">Alla ({pages.length})</ToggleButton>
+          <ToggleButton value="published">Publicerade ({pages.filter(p => p.isPublished).length})</ToggleButton>
+          <ToggleButton value="unpublished">Ej publicerade ({pages.filter(p => !p.isPublished).length})</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {/* Table */}
+      {filteredPages.length > 0 && (
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{
+            borderRadius: bastadTheme.borderRadius.xl,
+            border: `1px solid ${bastadTheme.colors.sand[200]}`,
+          }}
+        >
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: bastadTheme.colors.sand[50] }}>
+                <TableCell sx={{ fontWeight: bastadTheme.typography.fontWeight.semibold, color: bastadTheme.colors.ocean[700], width: 44, px: 1.5 }} />
+                <TableCell sx={{ fontWeight: bastadTheme.typography.fontWeight.semibold, color: bastadTheme.colors.ocean[700] }}>Titel</TableCell>
+                <TableCell sx={{ fontWeight: bastadTheme.typography.fontWeight.semibold, color: bastadTheme.colors.ocean[700] }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: bastadTheme.typography.fontWeight.semibold, color: bastadTheme.colors.ocean[700] }}>Uppdaterad</TableCell>
+                <TableCell sx={{ fontWeight: bastadTheme.typography.fontWeight.semibold, color: bastadTheme.colors.ocean[700], width: 100 }} align="right">Åtgärder</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredPages.map((page) => {
+                const { icon: PageIcon, color: iconColor } = getPageIconAndColor(page);
+                return (
+                  <TableRow
+                    key={page.id}
+                    hover
+                    onClick={() => navigate(`/admin/pages/edit/${page.id}`)}
+                    sx={{
+                      cursor: 'pointer',
+                      '&:last-child td': { borderBottom: 0 },
                     }}
-                  />
-                </Box>
+                  >
+                    <TableCell sx={{ px: 1.5 }}>
+                      <Box sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: bastadTheme.borderRadius.lg,
+                        backgroundColor: iconColor,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <PageIcon sx={{ color: 'white', fontSize: 18 }} />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: bastadTheme.typography.fontWeight.semibold,
+                          color: bastadTheme.colors.ocean[900],
+                        }}
+                      >
+                        {page.title}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: bastadTheme.colors.ocean[500],
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          maxWidth: 400,
+                        }}
+                      >
+                        {page.content ? stripMarkdown(page.content).substring(0, 80) : 'Inget innehåll'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={page.isPublished ? 'Publicerad' : 'Ej publicerad'}
+                        color={page.isPublished ? 'success' : 'default'}
+                        size="small"
+                        sx={{
+                          borderRadius: bastadTheme.borderRadius.lg,
+                          fontWeight: bastadTheme.typography.fontWeight.medium,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ color: bastadTheme.colors.ocean[600] }}>
+                        {page.updatedAt ? format(new Date(page.updatedAt), 'dd MMM yyyy', { locale: sv }) : '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Redigera">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/pages/edit/${page.id}`);
+                          }}
+                          sx={{
+                            color: bastadTheme.colors.ocean[600],
+                            '&:hover': { backgroundColor: bastadTheme.colors.ocean[50] },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Radera">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(page);
+                          }}
+                          sx={{
+                            color: bastadTheme.colors.error,
+                            '&:hover': { backgroundColor: '#fef2f2' },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-                {/* Titel */}
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: modernTheme.typography.fontWeight.semibold,
-                    color: modernTheme.colors.gray[900],
-                    mb: modernTheme.spacing[2],
-                    lineHeight: modernTheme.typography.lineHeight.tight
-                  }}
-                >
-                  {page.title}
-                </Typography>
-
-                {/* Content preview */}
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: modernTheme.colors.gray[600],
-                    mb: modernTheme.spacing[3],
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    lineHeight: 1.4
-                  }}
-                >
-                  {page.content ? page.content.substring(0, 120) + '...' : 'Ingen innehåll'}
-                </Typography>
-
-                {/* Footer med datum och actions */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  pt: modernTheme.spacing[3],
-                  borderTop: `1px solid ${modernTheme.colors.gray[200]}`
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CalendarIcon sx={{ 
-                      fontSize: '16px', 
-                      color: modernTheme.colors.gray[500] 
-                    }} />
-                    <Typography 
-                      variant="caption" 
-                      sx={{ color: modernTheme.colors.gray[500] }}
-                    >
-                      {page.updatedAt ? format(new Date(page.updatedAt), 'dd MMM yyyy', { locale: sv }) : 'Okänt datum'}
-                    </Typography>
-                  </Box>
-
-                  <Stack direction="row" spacing={1}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/admin/pages/edit/${page.id}`);
-                      }}
-                      sx={{ 
-                        color: modernTheme.colors.primary[600],
-                        '&:hover': { 
-                          backgroundColor: modernTheme.colors.primary[50] 
-                        }
-                      }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(page);
-                      }}
-                      sx={{ 
-                        color: modernTheme.colors.error[600],
-                        '&:hover': { 
-                          backgroundColor: modernTheme.colors.error[50] 
-                        }
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Stack>
-                </Box>
-              </Box>
-            </ModernCard>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Tom-tillstånd */}
+      {/* Empty state — no pages at all */}
       {!loading && pages.length === 0 && (
-        <ModernCard>
-          <Box sx={{ 
-            textAlign: 'center', 
-            py: modernTheme.spacing[8] 
-          }}>
-            <ArticleIcon sx={{ 
-              fontSize: '72px', 
-              color: modernTheme.colors.gray[400],
-              mb: modernTheme.spacing[3]
-            }} />
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: modernTheme.colors.gray[600],
-                mb: modernTheme.spacing[2]
-              }}
-            >
-              Inga sidor hittades
-            </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: modernTheme.colors.gray[500],
-                mb: modernTheme.spacing[4]
-              }}
-            >
-              Kom igång genom att skapa din första sida
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/admin/pages/new')}
-              sx={{
-                background: modernTheme.gradients.accent,
-                borderRadius: modernTheme.borderRadius.xl,
-                px: modernTheme.spacing[4],
-                py: modernTheme.spacing[2],
-              }}
-            >
-              Skapa Första Sidan
-            </Button>
-          </Box>
-        </ModernCard>
+        <Box sx={{ textAlign: 'center', py: bastadTheme.spacing[8] }}>
+          <ArticleIcon sx={{ fontSize: '72px', color: bastadTheme.colors.ocean[400], mb: bastadTheme.spacing[3] }} />
+          <Typography variant="h6" sx={{ color: bastadTheme.colors.ocean[600], mb: bastadTheme.spacing[2] }}>
+            Inga sidor hittades
+          </Typography>
+          <Typography variant="body2" sx={{ color: bastadTheme.colors.ocean[500], mb: bastadTheme.spacing[4] }}>
+            Kom igång genom att skapa din första sida
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/admin/pages/new')}
+            sx={{
+              background: bastadTheme.gradients.ctaButton,
+              borderRadius: bastadTheme.borderRadius.xl,
+              px: bastadTheme.spacing[4],
+              py: bastadTheme.spacing[2],
+            }}
+          >
+            Skapa Första Sidan
+          </Button>
+        </Box>
+      )}
+
+      {/* Empty state — filter/search has no matches */}
+      {!loading && pages.length > 0 && filteredPages.length === 0 && (
+        <Box sx={{ textAlign: 'center', py: bastadTheme.spacing[8] }}>
+          <SearchIcon sx={{ fontSize: '48px', color: bastadTheme.colors.ocean[300], mb: bastadTheme.spacing[2] }} />
+          <Typography variant="h6" sx={{ color: bastadTheme.colors.ocean[600], mb: bastadTheme.spacing[1] }}>
+            Inga sidor matchar
+          </Typography>
+          <Typography variant="body2" sx={{ color: bastadTheme.colors.ocean[500] }}>
+            Prova att ändra sökning eller filter
+          </Typography>
+        </Box>
       )}
 
       {/* Dialogs och notifications */}
@@ -440,19 +530,19 @@ const PagesList: React.FC = () => {
         onClose={handleDeleteCancel}
         PaperProps={{
           sx: {
-            borderRadius: modernTheme.borderRadius['2xl'],
-            boxShadow: modernTheme.shadows.xl,
+            borderRadius: bastadTheme.borderRadius['2xl'],
+            boxShadow: bastadTheme.shadows.xl,
           }
         }}
       >
         <DialogTitle sx={{ 
-          fontWeight: modernTheme.typography.fontWeight.semibold,
-          color: modernTheme.colors.gray[900]
+          fontWeight: bastadTheme.typography.fontWeight.semibold,
+          color: bastadTheme.colors.ocean[900]
         }}>
           Bekräfta radering
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: modernTheme.colors.gray[600] }}>
+          <DialogContentText sx={{ color: bastadTheme.colors.ocean[600] }}>
             Är du säker på att du vill radera sidan "{pageToDelete?.title}"? 
             Den här åtgärden kan inte ångras.
           </DialogContentText>
@@ -461,8 +551,8 @@ const PagesList: React.FC = () => {
           <Button 
             onClick={handleDeleteCancel}
             sx={{ 
-              borderRadius: modernTheme.borderRadius.lg,
-              color: modernTheme.colors.gray[600] 
+              borderRadius: bastadTheme.borderRadius.lg,
+              color: bastadTheme.colors.ocean[600] 
             }}
           >
             Avbryt
@@ -472,8 +562,8 @@ const PagesList: React.FC = () => {
             variant="contained"
             color="error"
             sx={{ 
-              borderRadius: modernTheme.borderRadius.lg,
-              boxShadow: modernTheme.shadows.md 
+              borderRadius: bastadTheme.borderRadius.lg,
+              boxShadow: bastadTheme.shadows.md 
             }}
           >
             Radera
@@ -491,8 +581,8 @@ const PagesList: React.FC = () => {
           onClose={() => setSnackbarOpen(false)} 
           severity="success"
           sx={{ 
-            borderRadius: modernTheme.borderRadius.lg,
-            boxShadow: modernTheme.shadows.lg
+            borderRadius: bastadTheme.borderRadius.lg,
+            boxShadow: bastadTheme.shadows.lg
           }}
         >
           {snackbarMessage}

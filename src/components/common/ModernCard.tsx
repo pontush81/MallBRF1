@@ -1,7 +1,7 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import { Card, CardContent, Typography, Box } from '@mui/material';
-import { modernTheme } from '../../theme/modernTheme';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 interface ModernCardProps {
   children: React.ReactNode;
@@ -18,19 +18,19 @@ const StyledCard = styled(Card, {
   shouldForwardProp: (prop) => prop !== 'gradient' && prop !== 'hover',
 })<{ gradient?: boolean; hover?: boolean }>(
   ({ theme, gradient, hover }) => ({
-    borderRadius: modernTheme.borderRadius['2xl'],
+    borderRadius: bastadTheme.borderRadius['2xl'],
     background: gradient 
-      ? modernTheme.gradients.card 
-      : modernTheme.colors.white,
-    boxShadow: modernTheme.shadows.md,
-    border: `1px solid ${modernTheme.colors.gray[200]}`,
-    transition: modernTheme.transitions.normal,
+      ? bastadTheme.gradients.cardHover 
+      : bastadTheme.colors.white,
+    boxShadow: bastadTheme.shadows.md,
+    border: `1px solid ${bastadTheme.colors.sand[200]}`,
+    transition: bastadTheme.transitions.normal,
     cursor: hover ? 'pointer' : 'default',
     
     '&:hover': hover ? {
       transform: 'translateY(-4px)',
-      boxShadow: modernTheme.shadows.xl,
-      borderColor: modernTheme.colors.primary[300],
+      boxShadow: bastadTheme.shadows.xl,
+      borderColor: bastadTheme.colors.ocean[300],
     } : {},
 
     // Glass morphism effect
@@ -43,10 +43,10 @@ const StyledCard = styled(Card, {
     // Dark mode support
     '&.dark': {
       background: gradient 
-        ? modernTheme.gradients.darkCard 
-        : modernTheme.colors.gray[800],
-      border: `1px solid ${modernTheme.colors.gray[700]}`,
-      color: modernTheme.colors.white,
+        ? 'linear-gradient(145deg, #243b53 0%, #334e68 100%)' 
+        : bastadTheme.colors.ocean[800],
+      border: `1px solid ${bastadTheme.colors.ocean[700]}`,
+      color: bastadTheme.colors.white,
     },
   })
 );
@@ -54,43 +54,43 @@ const StyledCard = styled(Card, {
 const CardHeader = styled(Box)({
   display: 'flex',
   alignItems: 'center',
-  gap: modernTheme.spacing[3],
-  marginBottom: modernTheme.spacing[4],
+  gap: bastadTheme.spacing[3],
+  marginBottom: bastadTheme.spacing[4],
 });
 
 const IconWrapper = styled(Box)<{ color?: string }>(({ color }) => ({
   width: '48px',
   height: '48px',
-  borderRadius: modernTheme.borderRadius.xl,
-  background: color || modernTheme.gradients.accent,
+  borderRadius: bastadTheme.borderRadius.xl,
+  background: color || bastadTheme.gradients.ctaButton,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: modernTheme.colors.white,
+  color: bastadTheme.colors.white,
   fontSize: '24px',
-  boxShadow: modernTheme.shadows.md,
+  boxShadow: bastadTheme.shadows.md,
 }));
 
 const TitleText = styled(Typography)({
-  fontFamily: modernTheme.typography.fontFamily.primary,
-  fontSize: modernTheme.typography.fontSize['2xl'],
-  fontWeight: modernTheme.typography.fontWeight.semibold,
-  color: modernTheme.colors.gray[900],
-  lineHeight: modernTheme.typography.lineHeight.tight,
+  fontFamily: bastadTheme.typography.fontFamily.body,
+  fontSize: bastadTheme.typography.fontSize['2xl'],
+  fontWeight: bastadTheme.typography.fontWeight.semibold,
+  color: bastadTheme.colors.ocean[900],
+  lineHeight: bastadTheme.typography.lineHeight.tight,
 });
 
 const SubtitleText = styled(Typography)({
-  fontFamily: modernTheme.typography.fontFamily.primary,
-  fontSize: modernTheme.typography.fontSize.sm,
-  fontWeight: modernTheme.typography.fontWeight.normal,
-  color: modernTheme.colors.gray[600],
-  lineHeight: modernTheme.typography.lineHeight.normal,
+  fontFamily: bastadTheme.typography.fontFamily.body,
+  fontSize: bastadTheme.typography.fontSize.sm,
+  fontWeight: bastadTheme.typography.fontWeight.normal,
+  color: bastadTheme.colors.ocean[600],
+  lineHeight: bastadTheme.typography.lineHeight.normal,
 });
 
 const ContentWrapper = styled(CardContent)({
-  padding: modernTheme.spacing[6],
+  padding: bastadTheme.spacing[6],
   '&:last-child': {
-    paddingBottom: modernTheme.spacing[6],
+    paddingBottom: bastadTheme.spacing[6],
   },
 });
 
@@ -160,9 +160,9 @@ export const StatsCard: React.FC<{
 }> = ({ title, value, subtitle, trend, icon }) => {
   const getTrendColor = () => {
     switch (trend) {
-      case 'up': return modernTheme.colors.success[500];
-      case 'down': return modernTheme.colors.error[500];
-      default: return modernTheme.colors.gray[500];
+      case 'up': return bastadTheme.colors.success;
+      case 'down': return bastadTheme.colors.error;
+      default: return bastadTheme.colors.ocean[500];
     }
   };
 
@@ -172,28 +172,28 @@ export const StatsCard: React.FC<{
         {icon && (
           <IconWrapper sx={{ 
             margin: '0 auto',
-            marginBottom: modernTheme.spacing[3],
-            background: modernTheme.gradients.accent,
+            marginBottom: bastadTheme.spacing[3],
+            background: bastadTheme.gradients.ctaButton,
           }}>
             {icon}
           </IconWrapper>
         )}
         <Typography
           sx={{
-            fontSize: modernTheme.typography.fontSize['3xl'],
-            fontWeight: modernTheme.typography.fontWeight.bold,
-            color: modernTheme.colors.gray[900],
-            marginBottom: modernTheme.spacing[1],
+            fontSize: bastadTheme.typography.fontSize['3xl'],
+            fontWeight: bastadTheme.typography.fontWeight.bold,
+            color: bastadTheme.colors.ocean[900],
+            marginBottom: bastadTheme.spacing[1],
           }}
         >
           {value}
         </Typography>
         <Typography
           sx={{
-            fontSize: modernTheme.typography.fontSize.lg,
-            fontWeight: modernTheme.typography.fontWeight.medium,
-            color: modernTheme.colors.gray[700],
-            marginBottom: modernTheme.spacing[1],
+            fontSize: bastadTheme.typography.fontSize.lg,
+            fontWeight: bastadTheme.typography.fontWeight.medium,
+            color: bastadTheme.colors.ocean[700],
+            marginBottom: bastadTheme.spacing[1],
           }}
         >
           {title}
@@ -201,9 +201,9 @@ export const StatsCard: React.FC<{
         {subtitle && (
           <Typography
             sx={{
-              fontSize: modernTheme.typography.fontSize.sm,
+              fontSize: bastadTheme.typography.fontSize.sm,
               color: getTrendColor(),
-              fontWeight: modernTheme.typography.fontWeight.medium,
+              fontWeight: bastadTheme.typography.fontWeight.medium,
             }}
           >
             {subtitle}

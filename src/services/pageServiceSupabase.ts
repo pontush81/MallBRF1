@@ -490,24 +490,51 @@ const pageServiceSupabase = {
     // Check authentication and admin permissions from localStorage
     const currentUserData = localStorage.getItem('currentUser');
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    
+
     if (!isLoggedIn || !currentUserData) {
       throw new Error('Du måste vara inloggad för att ta bort sidor.');
     }
-    
+
     const parsedUser = JSON.parse(currentUserData);
     console.log('🔐 Current user:', parsedUser.email, 'Role:', parsedUser.role);
-    
+
     if (parsedUser.role !== 'admin') {
       throw new Error('Du måste vara admin för att ta bort sidor.');
     }
 
     try {
-      console.log('✅ Admin authentication verified, calling admin Edge Function...');
-      
-      // Call the admin Edge Function (bypasses RLS with service role)
+      console.log('🗑️ Deleting page:', id);
+
+      // Use direct REST API call (same pattern as getAllPages — avoids Supabase SDK hanging)
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
+
+      // Get auth token for RLS
+      const { data: { session } } = await safeGetSession(2000);
+      const authToken = session?.access_token || SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/pages?id=eq.${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          }
+        }
+      );
+
+      if (response.ok) {
+        console.log('✅ Page deleted successfully via REST API');
+        await logUserAccess('pages', 'DELETE', id, 'admin_delete_page');
+        return;
+      }
+
+      // If RLS blocked (403/401), fall back to Edge Function
+      console.warn('⚠️ REST delete failed:', response.status, '- trying Edge Function...');
+
+      const edgeResponse = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -520,17 +547,20 @@ const pageServiceSupabase = {
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Admin function failed:', errorData);
-        throw new Error(errorData.error || 'Kunde inte ta bort sidan');
+      if (!edgeResponse.ok) {
+        const errorText = await edgeResponse.text();
+        console.error('❌ Edge Function response:', edgeResponse.status, errorText);
+        let errorMsg = 'Kunde inte ta bort sidan';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMsg = errorData.error || errorMsg;
+        } catch { /* not JSON */ }
+        throw new Error(errorMsg);
       }
-      
-      // Log the page deletion
+
       await logUserAccess('pages', 'DELETE', id, 'admin_delete_page');
-      
-      console.log('✅ Page deleted successfully via admin function');
-      
+      console.log('✅ Page deleted successfully via Edge Function');
+
     } catch (error) {
       console.error('❌ Error deleting page:', error);
       throw error;

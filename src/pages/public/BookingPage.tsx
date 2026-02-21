@@ -52,7 +52,7 @@ import { useAuth } from '../../context/AuthContextNew';
 // toast removed - using Dialog for confirmation instead
 import BookingStatus from '../../components/booking/BookingStatus';
 import { Booking } from '../../types/Booking';
-import { modernTheme } from '../../theme/modernTheme';
+import { bastadTheme } from '../../theme/bastadTheme';
 import { adminUtils } from '../../utils/adminUtils';
 import { MinimalLoading, ButtonLoading } from '../../components/common/StandardLoading';
 
@@ -60,43 +60,43 @@ import { MinimalLoading, ButtonLoading } from '../../components/common/StandardL
 // ModernHeroSection removed - not currently used
 
 const ModernCard = styled(Paper)(({ theme }) => ({
-  borderRadius: modernTheme.borderRadius.xl,
-  background: modernTheme.colors.white,
-  border: `1px solid ${modernTheme.colors.gray[200]}`,
-  boxShadow: modernTheme.shadows.md,
-  padding: modernTheme.spacing[4], // Reduced from spacing[6] to spacing[4] (32px)
-  transition: modernTheme.transitions.normal,
+  borderRadius: bastadTheme.borderRadius.xl,
+  background: bastadTheme.colors.white,
+  border: `1px solid ${bastadTheme.colors.sand[200]}`,
+  boxShadow: bastadTheme.shadows.md,
+  padding: bastadTheme.spacing[4], // Reduced from spacing[6] to spacing[4] (32px)
+  transition: bastadTheme.transitions.normal,
   '&:hover': {
-    boxShadow: modernTheme.shadows.lg,
+    boxShadow: bastadTheme.shadows.lg,
   },
 }));
 
 const ModernButton = styled(Button)(({ theme }) => ({
-  borderRadius: modernTheme.borderRadius.lg,
+  borderRadius: bastadTheme.borderRadius.lg,
   textTransform: 'none',
-  fontWeight: modernTheme.typography.fontWeight.semibold,
-  padding: `${modernTheme.spacing[3]} ${modernTheme.spacing[6]}`,
-  boxShadow: modernTheme.shadows.sm,
-  transition: modernTheme.transitions.normal,
+  fontWeight: bastadTheme.typography.fontWeight.semibold,
+  padding: `${bastadTheme.spacing[3]} ${bastadTheme.spacing[6]}`,
+  boxShadow: bastadTheme.shadows.sm,
+  transition: bastadTheme.transitions.normal,
   '&:hover': {
-    boxShadow: modernTheme.shadows.md,
+    boxShadow: bastadTheme.shadows.md,
     transform: 'translateY(-1px)',
   },
 }));
 
 const ModernTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
-    borderRadius: modernTheme.borderRadius.lg,
-    backgroundColor: modernTheme.colors.white,
-    transition: modernTheme.transitions.normal,
+    borderRadius: bastadTheme.borderRadius.lg,
+    backgroundColor: bastadTheme.colors.white,
+    transition: bastadTheme.transitions.normal,
     minHeight: { xs: '56px', sm: '48px' }, // Better touch targets on mobile
     '&:hover': {
-      boxShadow: modernTheme.shadows.sm,
+      boxShadow: bastadTheme.shadows.sm,
     },
     '&.Mui-focused': {
-      boxShadow: modernTheme.shadows.md,
+      boxShadow: bastadTheme.shadows.md,
       '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: modernTheme.colors.secondary[500],
+        borderColor: bastadTheme.colors.twilight[500],
         borderWidth: '2px',
       },
     },
@@ -683,10 +683,10 @@ const BookingPage: React.FC = () => {
           mx: { xs: -0.5, sm: 0 }, // Slightly negative margin on mobile
           px: { xs: 1, sm: 6 }, // Minimal padding on mobile, more on desktop
           py: { xs: 2, sm: 4 },
-          backgroundColor: { xs: 'transparent', sm: modernTheme.colors.white },
-          borderRadius: { xs: 0, sm: modernTheme.borderRadius.xl },
-          border: { xs: 'none', sm: `1px solid ${modernTheme.colors.gray[200]}` },
-          boxShadow: { xs: 'none', sm: modernTheme.shadows.md },
+          backgroundColor: { xs: 'transparent', sm: bastadTheme.colors.white },
+          borderRadius: { xs: 0, sm: bastadTheme.borderRadius.xl },
+          border: { xs: 'none', sm: `1px solid ${bastadTheme.colors.sand[200]}` },
+          boxShadow: { xs: 'none', sm: bastadTheme.shadows.md },
         }}
       >
         <Grid container spacing={{ xs: 2, sm: 3 }}>
@@ -1726,7 +1726,7 @@ const BookingPage: React.FC = () => {
           sx={{ 
             px: { xs: 1, sm: 3, md: 4 }, // Better padding on mobile for more space
             maxWidth: { xs: '100%', sm: '100%', md: '1200px' },
-            pb: modernTheme.spacing[8], // Bottom padding moved from ModernPageContainer
+            pb: bastadTheme.spacing[8], // Bottom padding moved from ModernPageContainer
             pt: 0 // Remove any top padding to bring content closer to hero
           }}
         >
@@ -1796,7 +1796,7 @@ const BookingPage: React.FC = () => {
             </MenuItem>
           </Menu>
 
-          <ModernCard sx={{ marginBottom: modernTheme.spacing[6], mt: 2 }}>
+          <ModernCard sx={{ marginBottom: bastadTheme.spacing[6], mt: 2 }}>
 
           {renderPriceList()}
           {renderCheckInOutInfo()}

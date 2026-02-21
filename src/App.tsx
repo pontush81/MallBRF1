@@ -283,9 +283,11 @@ function AppRoutes() {
         {/* Protected routes */}
         <Route path="/admin" element={
           <ProtectedRoute allowedRoles={['admin', 'board']}>
-            <Suspense fallback={<AdminLoadingFallback />}>
-              <LazyDashboard />
-            </Suspense>
+            <Layout>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <LazyDashboard />
+              </Suspense>
+            </Layout>
           </ProtectedRoute>
         }>
           <Route index element={
