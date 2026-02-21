@@ -38,7 +38,7 @@ import { bastadTheme } from '../../theme/bastadTheme';
 const ModernHeader: React.FC = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, isLoggedIn, isAdmin, logout } = useAuth();
+  const { currentUser, isLoggedIn, isAdmin, isBoard, logout } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -64,7 +64,7 @@ const ModernHeader: React.FC = memo(() => {
 
   const loggedInItems: typeof navigationItems = [];
 
-  const adminItems = isAdmin ? [
+  const adminItems = (isAdmin || isBoard) ? [
     { label: 'Admin', path: '/admin', icon: <AdminIcon /> },
   ] : [];
 
@@ -360,9 +360,9 @@ const ModernHeader: React.FC = memo(() => {
                 >
                   {currentUser.email || 'Användare'}
                 </Typography>
-                {isAdmin && (
+                {(isAdmin || isBoard) && (
                   <Chip
-                    label="Admin"
+                    label={isAdmin ? 'Admin' : 'Styrelse'}
                     size="small"
                     sx={{
                       backgroundColor: bastadTheme.colors.terracotta[500],
@@ -592,9 +592,9 @@ const ModernHeader: React.FC = memo(() => {
                       >
                         {currentUser.email}
                       </Typography>
-                      {isAdmin && (
+                      {(isAdmin || isBoard) && (
                         <Chip
-                          label="Administratör"
+                          label={isAdmin ? 'Administratör' : 'Styrelsemedlem'}
                           size="small"
                           sx={{
                             backgroundColor: bastadTheme.colors.terracotta[500],
