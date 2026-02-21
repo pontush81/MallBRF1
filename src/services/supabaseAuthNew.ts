@@ -2,12 +2,13 @@
 // Modern implementation following Supabase best practices
 import supabase from './supabaseClient';
 import { auditLogger, logLogin, logLogout } from './auditLogger';
+import { UserRole } from '../types/User';
 
 export interface AuthUser {
   id: string;
   email: string;
   name?: string;
-  role: 'user' | 'admin';
+  role: UserRole;
   isActive: boolean;
 }
 
@@ -244,7 +245,7 @@ async function getUserProfile(userId: string): Promise<AuthUser> {
     id: data.id,
     email: data.email,
     name: data.name,
-    role: data.role as 'user' | 'admin',
+    role: data.role as UserRole,
     isActive: data.isactive
   };
 }
@@ -277,7 +278,7 @@ async function createUserProfile(userId: string, email: string, name: string): P
     id: data.id,
     email: data.email,
     name: data.name,
-    role: data.role as 'user' | 'admin',
+    role: data.role as UserRole,
     isActive: data.isactive
   };
 }
@@ -492,7 +493,7 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
           id: profileData.id,
           email: profileData.email,
           name: profileData.name,
-          role: profileData.role as 'user' | 'admin',
+          role: profileData.role as UserRole,
           isActive: profileData.isactive
         };
         
@@ -546,7 +547,7 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
               id: existingByEmail.id,
               email: existingByEmail.email,
               name: existingByEmail.name,
-              role: existingByEmail.role as 'user' | 'admin',
+              role: existingByEmail.role as UserRole,
               isActive: existingByEmail.isactive
             };
           }
@@ -572,7 +573,7 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
             id: migrationResult.id,
             email: migrationResult.email,
             name: migrationResult.name,
-            role: migrationResult.role as 'user' | 'admin',
+            role: migrationResult.role as UserRole,
             isActive: migrationResult.isactive
           };
           
@@ -645,7 +646,7 @@ async function createUserProfileFromOAuth(oauthUser: any): Promise<AuthUser> {
             id: existingUser.id,
             email: existingUser.email,
             name: existingUser.name,
-            role: existingUser.role as 'user' | 'admin',
+            role: existingUser.role as UserRole,
             isActive: existingUser.isactive
           };
         }
@@ -663,7 +664,7 @@ async function createUserProfileFromOAuth(oauthUser: any): Promise<AuthUser> {
     id: data.id,
     email: data.email,
     name: data.name,
-    role: data.role as 'user' | 'admin',
+    role: data.role as UserRole,
     isActive: data.isactive
   };
   

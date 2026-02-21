@@ -1,8 +1,10 @@
+export type UserRole = 'user' | 'board' | 'admin';
+
 export interface User {
   id: string;
   email: string;
   name?: string;
-  role: 'user' | 'admin';
+  role: UserRole;
   isActive?: boolean;
   pendingApproval?: boolean;
   createdAt?: string;
@@ -13,6 +15,6 @@ export interface UserFormData {
   email: string;
   name?: string;
   password?: string;
-  role: 'user' | 'admin';
+  role: UserRole;
   isActive: boolean;
-} 
+}
