@@ -98,7 +98,7 @@ const MaintenancePlanPage: React.FC = () => {
           const recalculated = recalcSummaryRows(migrated);
           // Migrate: add status field to rows from older versions
           for (const r of recalculated) {
-            if (!r.status) r.status = 'planned';
+            if (r.status === undefined || r.status === null) r.status = '';
           }
           enrichWithInfoUrls(recalculated);
           setRows(recalculated);
@@ -115,7 +115,7 @@ const MaintenancePlanPage: React.FC = () => {
         console.error('Error loading maintenance plan:', err);
         const seed = createDefaultPlanData();
         const fallbackRows = recalcSummaryRows([...seed.rows]);
-        for (const r of fallbackRows) { if (!r.status) r.status = 'planned'; }
+        for (const r of fallbackRows) { if (r.status === undefined || r.status === null) r.status = ''; }
         enrichWithInfoUrls(fallbackRows);
         setRows(fallbackRows);
         setVersion(0);
@@ -214,7 +214,7 @@ const MaintenancePlanPage: React.FC = () => {
       const plan = await getPlanVersion(versionId);
       if (plan && plan.plan_data) {
         const recalculated = recalcSummaryRows([...plan.plan_data.rows]);
-        for (const r of recalculated) { if (!r.status) r.status = 'planned'; }
+        for (const r of recalculated) { if (r.status === undefined || r.status === null) r.status = ''; }
         enrichWithInfoUrls(recalculated);
         setRows(recalculated);
         setVersion(plan.version);

@@ -172,7 +172,7 @@ export function normalizeRows(rows: PlanRow[]): PlanRow[] {
     byggdel: normalizeRowText(r.byggdel ?? ''),
     atgard: normalizeRowText(r.atgard ?? ''),
     utredningspunkter: normalizeRowText(r.utredningspunkter ?? '', { normalizeSlash: false }),
-    status: r.status === 'planned' ? '' : r.status,
+    status: r.status ?? '',
   }));
 }
 
