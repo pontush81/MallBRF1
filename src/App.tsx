@@ -119,22 +119,26 @@ const LoadingFallback = () => {
 };
 
 // Protected route component
-const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
-  const { isLoggedIn, isAdmin, loading } = useAuth();
-  
-  // Show loading while auth state is being determined
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
+  const { isLoggedIn, currentUser, loading } = useAuth();
+
   if (loading) {
     return <LoadingFallback />;
   }
-  
+
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
-  
-  if (adminOnly && !isAdmin) {
+
+  if (allowedRoles && currentUser && !allowedRoles.includes(currentUser.role)) {
+    // Board members who try admin-only pages → redirect to admin home
+    if (currentUser.role === 'board') {
+      return <Navigate to="/admin" replace />;
+    }
+    // Regular users → redirect to public pages
     return <Navigate to="/pages" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -271,7 +275,7 @@ function AppRoutes() {
         
         {/* Protected routes */}
         <Route path="/admin" element={
-          <ProtectedRoute adminOnly>
+          <ProtectedRoute allowedRoles={['admin', 'board']}>
             <Suspense fallback={<LoadingFallback />}>
               <LazyDashboard />
             </Suspense>
@@ -283,31 +287,41 @@ function AppRoutes() {
             </Suspense>
           } />
           <Route path="pages" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyPagesList />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyPagesList />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="pages/new" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyPageEditor />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyPageEditor />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="pages/edit/:id" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyPageEditor />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyPageEditor />
+              </Suspense>
+            </ProtectedRoute>
           } />
 
           <Route path="users" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyUsersList />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyUsersList />
+              </Suspense>
+            </ProtectedRoute>
           } />
 
           <Route path="notifications" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyNotificationSettings />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyNotificationSettings />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="maintenance" element={
             <Suspense fallback={<LoadingFallback />}>
@@ -315,14 +329,18 @@ function AppRoutes() {
             </Suspense>
           } />
           <Route path="data-retention" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyDataRetentionManager />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyDataRetentionManager />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="hsb-report" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyHSBReportEditor />
-            </Suspense>
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyHSBReportEditor />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="felanmalningar" element={
             <Suspense fallback={<LoadingFallback />}>
