@@ -15,15 +15,13 @@ import {
   Build as MaintenanceIcon,
   Settings as SettingsIcon,
   Notifications as NotificationIcon,
-  Add as AddIcon,
-  List as ListIcon,
   Assessment as ReportIcon,
   ReportProblem as FaultIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContextNew';
-import { modernTheme } from '../../theme/modernTheme';
+import { bastadTheme } from '../../theme/bastadTheme';
 
 interface QuickActionCard {
   title: string;
@@ -43,7 +41,7 @@ const DashboardHome: React.FC = () => {
       description: 'Skapa och redigera webbsidors innehåll',
       icon: <ArticleIcon />,
       path: '/admin/pages',
-      color: modernTheme.colors.primary[500],
+      color: bastadTheme.colors.ocean[500],
       allowedRoles: ['admin']
     },
     {
@@ -51,7 +49,7 @@ const DashboardHome: React.FC = () => {
       description: 'Visa och hantera alla bokningar',
       icon: <EventIcon />,
       path: '/booking',
-      color: modernTheme.colors.secondary[500],
+      color: bastadTheme.colors.twilight[500],
       allowedRoles: ['admin']
     },
     {
@@ -59,7 +57,7 @@ const DashboardHome: React.FC = () => {
       description: 'Hantera användarkonton och behörigheter',
       icon: <PeopleIcon />,
       path: '/admin/users',
-      color: modernTheme.colors.success[500],
+      color: bastadTheme.colors.success,
       allowedRoles: ['admin']
     },
     {
@@ -67,7 +65,7 @@ const DashboardHome: React.FC = () => {
       description: 'Planera och följa upp underhållsarbeten',
       icon: <MaintenanceIcon />,
       path: '/admin/maintenance',
-      color: modernTheme.colors.warning[500]
+      color: bastadTheme.colors.warning
     },
 
     {
@@ -75,7 +73,7 @@ const DashboardHome: React.FC = () => {
       description: 'Konfigurera systemmeddelanden',
       icon: <NotificationIcon />,
       path: '/admin/notifications',
-      color: modernTheme.colors.error[500],
+      color: bastadTheme.colors.error,
       allowedRoles: ['admin']
     },
     {
@@ -83,7 +81,7 @@ const DashboardHome: React.FC = () => {
       description: 'Hantera automatisk dataradering enligt GDPR',
       icon: <SettingsIcon />,
       path: '/admin/data-retention',
-      color: modernTheme.colors.primary[600],
+      color: bastadTheme.colors.ocean[600],
       allowedRoles: ['admin']
     },
     {
@@ -91,7 +89,7 @@ const DashboardHome: React.FC = () => {
       description: 'Skapa och redigera HSB-rapporter med anpassade data',
       icon: <ReportIcon />,
       path: '/admin/hsb-report',
-      color: modernTheme.colors.secondary[600],
+      color: bastadTheme.colors.twilight[600],
       allowedRoles: ['admin']
     },
     {
@@ -99,7 +97,7 @@ const DashboardHome: React.FC = () => {
       description: 'Hantera felanmälningar från boende',
       icon: <FaultIcon />,
       path: '/admin/felanmalningar',
-      color: modernTheme.colors.error[500]
+      color: bastadTheme.colors.error
     }
   ];
 
@@ -118,54 +116,43 @@ const DashboardHome: React.FC = () => {
   return (
     <Box>
       {/* Welcome Header */}
-      <Box sx={{ mb: modernTheme.spacing[6], textAlign: 'center' }}>
+      <Box sx={{ mb: bastadTheme.spacing[6], textAlign: 'center' }}>
         <Typography 
           variant="h3" 
           sx={{ 
-            fontWeight: modernTheme.typography.fontWeight.bold,
-            color: modernTheme.colors.gray[800],
-            mb: modernTheme.spacing[2]
+            fontWeight: bastadTheme.typography.fontWeight.bold,
+            color: bastadTheme.colors.ocean[800],
+            mb: bastadTheme.spacing[2]
           }}
         >
           Välkommen till Admin-panelen
         </Typography>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            color: modernTheme.colors.gray[600],
-            fontWeight: modernTheme.typography.fontWeight.normal,
-            maxWidth: '600px',
-            mx: 'auto'
-          }}
-        >
-          {userRole === 'board'
-            ? 'Styrelsevy — underhållsplan och felanmälningar'
-            : 'Hantera ditt innehåll och bokningar från en central plats'}
-        </Typography>
+        {userRole === 'board' && (
+          <Typography
+            variant="h6"
+            sx={{
+              color: bastadTheme.colors.ocean[600],
+              fontWeight: bastadTheme.typography.fontWeight.normal,
+              maxWidth: '600px',
+              mx: 'auto'
+            }}
+          >
+            Styrelsevy — underhållsplan och felanmälningar
+          </Typography>
+        )}
       </Box>
 
       {/* Quick Actions Grid */}
-      <Box sx={{ mb: modernTheme.spacing[6] }}>
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            fontWeight: modernTheme.typography.fontWeight.semibold,
-            color: modernTheme.colors.gray[800],
-            mb: modernTheme.spacing[4]
-          }}
-        >
-          Snabbåtkomst
-        </Typography>
-        
+      <Box sx={{ mb: bastadTheme.spacing[6] }}>
         <Grid container spacing={3}>
           {visibleActions.map((action, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card 
                 sx={{ 
                   height: '100%',
-                  borderRadius: modernTheme.borderRadius.lg,
+                  borderRadius: bastadTheme.borderRadius.lg,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  border: `1px solid ${modernTheme.colors.gray[200]}`,
+                  border: `1px solid ${bastadTheme.colors.sand[200]}`,
                   transition: 'all 0.2s ease-in-out',
                   '&:hover': {
                     transform: 'translateY(-2px)',
@@ -178,7 +165,7 @@ const DashboardHome: React.FC = () => {
                   onClick={() => handleCardClick(action.path)}
                   sx={{ height: '100%', p: 0 }}
                 >
-                  <CardContent sx={{ p: modernTheme.spacing[4], textAlign: 'center' }}>
+                  <CardContent sx={{ p: bastadTheme.spacing[4], textAlign: 'center' }}>
                     <Box
                       sx={{
                         width: 60,
@@ -189,7 +176,7 @@ const DashboardHome: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         mx: 'auto',
-                        mb: modernTheme.spacing[3]
+                        mb: bastadTheme.spacing[3]
                       }}
                     >
                       {React.cloneElement(action.icon, {
@@ -200,9 +187,9 @@ const DashboardHome: React.FC = () => {
                     <Typography 
                       variant="h6" 
                       sx={{ 
-                        fontWeight: modernTheme.typography.fontWeight.semibold,
-                        color: modernTheme.colors.gray[800],
-                        mb: modernTheme.spacing[2]
+                        fontWeight: bastadTheme.typography.fontWeight.semibold,
+                        color: bastadTheme.colors.ocean[800],
+                        mb: bastadTheme.spacing[2]
                       }}
                     >
                       {action.title}
@@ -211,7 +198,7 @@ const DashboardHome: React.FC = () => {
                     <Typography 
                       variant="body2" 
                       sx={{ 
-                        color: modernTheme.colors.gray[600],
+                        color: bastadTheme.colors.ocean[600],
                         lineHeight: 1.5
                       }}
                     >
@@ -224,58 +211,6 @@ const DashboardHome: React.FC = () => {
           ))}
         </Grid>
       </Box>
-
-      {/* Quick Create Actions */}
-      {userRole === 'admin' && (
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: modernTheme.typography.fontWeight.semibold,
-              color: modernTheme.colors.gray[800],
-              mb: modernTheme.spacing[4]
-            }}
-          >
-            Snabbåtgärder
-          </Typography>
-
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/admin/pages/new')}
-              sx={{
-                backgroundColor: modernTheme.colors.primary[500],
-                '&:hover': { backgroundColor: modernTheme.colors.primary[600] },
-                borderRadius: modernTheme.borderRadius.lg,
-                px: modernTheme.spacing[4],
-                py: modernTheme.spacing[2]
-              }}
-            >
-              Skapa Ny Sida
-            </Button>
-
-            <Button
-              variant="outlined"
-              startIcon={<ListIcon />}
-              onClick={() => navigate('/booking')}
-              sx={{
-                borderColor: modernTheme.colors.secondary[500],
-                color: modernTheme.colors.secondary[500],
-                '&:hover': {
-                  borderColor: modernTheme.colors.secondary[600],
-                  backgroundColor: `${modernTheme.colors.secondary[500]}10`
-                },
-                borderRadius: modernTheme.borderRadius.lg,
-                px: modernTheme.spacing[4],
-                py: modernTheme.spacing[2]
-              }}
-            >
-              Visa Alla Bokningar
-            </Button>
-          </Box>
-        </Box>
-      )}
     </Box>
   );
 };
