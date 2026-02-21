@@ -47,7 +47,6 @@ export const LazyHSBReportEditor = lazy(() => import('./HSBReportEditor'));
 export const LazyLayout = lazy(() => import('./Layout'));
 export const LazyLogo = lazy(() => import('./Logo'));
 export const LazyStyledMarkdown = lazy(() => import('./StyledMarkdown'));
-export const LazyThemeDesignSelector = lazy(() => import('./ThemeDesignSelector'));
 
 // Modern Components
 export const LazyModernHeader = lazy(() => import('./modern/ModernHeader'));
