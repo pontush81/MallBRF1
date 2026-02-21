@@ -194,7 +194,6 @@ const stadgarSections: StadgarSection[] = [
       'Upplåtelse i andra hand kräver skriftligt samtycke från styrelsen.',
       'I ansökan ska du ange skälet till upplåtelsen, vilken tid den ska pågå och till vem lägenheten ska upplåtas.',
       'Tillstånd ges om du har skäl för upplåtelsen och föreningen inte har befogad anledning att neka.',
-      'Styrelsens beslut kan överklagas till hyresnämnden.',
     ],
     icon: <VpnKeyIcon />,
     color: bastadTheme.colors.seagreen[500],

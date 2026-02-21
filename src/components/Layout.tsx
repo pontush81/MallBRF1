@@ -21,7 +21,7 @@ const Layout: React.FC<LayoutProps> = memo(({ children }) => {
     <Box sx={{ 
       // Only use minHeight for auth pages that need centering
       minHeight: isAuthPage ? '100vh' : 'auto',
-      background: bastadTheme.colors.white, // Clean white background instead of gray
+      background: bastadTheme.colors.sand[50],
       display: 'flex',
       flexDirection: 'column',
       overflow: 'auto', // CRITICAL: Allow scrolling
