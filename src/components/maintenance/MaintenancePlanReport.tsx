@@ -1096,56 +1096,6 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                       </Typography>
                     )}
                   </Box>
-                  {/* a-pris */}
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">a-pris</Typography>
-                    {editingText?.rowId === item.id && editingText.field === 'a_pris' ? (
-                      <TextField
-                        size="small"
-                        variant="standard"
-                        value={editTextValue}
-                        onChange={e => setEditTextValue(e.target.value)}
-                        onBlur={commitEditText}
-                        onKeyDown={handleEditTextKeyDown}
-                        autoFocus
-                        placeholder="0"
-                        sx={{ '& input': { fontSize: '0.875rem' }, minWidth: 80 }}
-                      />
-                    ) : (
-                      <Typography
-                        variant="body2"
-                        onClick={() => startEditText(item.id, 'a_pris', item.a_pris !== null ? String(item.a_pris) : '')}
-                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: item.a_pris !== null ? undefined : 'text.disabled' }}
-                      >
-                        {item.a_pris !== null ? fmtKr(item.a_pris) : '\u2013'}
-                      </Typography>
-                    )}
-                  </Box>
-                  {/* Antal */}
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">Antal</Typography>
-                    {editingText?.rowId === item.id && editingText.field === 'antal' ? (
-                      <TextField
-                        size="small"
-                        variant="standard"
-                        value={editTextValue}
-                        onChange={e => setEditTextValue(e.target.value)}
-                        onBlur={commitEditText}
-                        onKeyDown={handleEditTextKeyDown}
-                        autoFocus
-                        placeholder="0"
-                        sx={{ '& input': { fontSize: '0.875rem' }, minWidth: 50 }}
-                      />
-                    ) : (
-                      <Typography
-                        variant="body2"
-                        onClick={() => startEditText(item.id, 'antal', item.antal !== null ? String(item.antal) : '')}
-                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, color: item.antal !== null ? undefined : 'text.disabled' }}
-                      >
-                        {item.antal !== null ? item.antal : '\u2013'}
-                      </Typography>
-                    )}
-                  </Box>
                   {/* Totalt – read-only (computed) */}
                   <Box>
                     <Typography variant="caption" color="text.secondary">Totalt</Typography>
