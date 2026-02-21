@@ -256,11 +256,11 @@ const PageEditor: React.FC = () => {
           throw new Error('Kunde inte uppdatera sidan');
         }
         
-        setSnackbarMessage('✅ Sidan har uppdaterats! Återgår till listan...');
+        setSnackbarMessage('Sidan har uppdaterats! Återgår till listan...');
       } else {
         // Skapa ny sida
         result = await pageServiceSupabase.createPage(pageData);
-        setSnackbarMessage('✅ Sidan har skapats! Återgår till listan...');
+        setSnackbarMessage('Sidan har skapats! Återgår till listan...');
       }
       
       // Visa meddelandet omedelbart
