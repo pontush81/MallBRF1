@@ -243,6 +243,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   const [editingOsakerhet, setEditingOsakerhet] = useState(false);
   const [osakerhetValue, setOsakerhetValue] = useState('');
   const [editTextValue, setEditTextValue] = useState('');
+  const [fillAllValue, setFillAllValue] = useState('');
   const [validationMap, setValidationMap] = useState<Record<string, RowValidation[]>>({});
 
   // ---------------------------------------------------------------------------
@@ -741,6 +742,38 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   );
 
   // ---------------------------------------------------------------------------
+  // Fill empty years with a uniform value
+  // ---------------------------------------------------------------------------
+
+  const handleFillEmptyYears = useCallback(
+    (rowId: string) => {
+      const parsed = fillAllValue.trim() === ''
+        ? null
+        : parseFloat(fillAllValue.replace(/\s/g, '').replace(',', '.'));
+      const numVal = parsed !== null && !isNaN(parsed) ? Math.round(parsed) : null;
+      if (numVal === null) return;
+
+      setRows(prevRows => {
+        const newRows = prevRows.map(r => {
+          if (r.id !== rowId) return r;
+          const updated = { ...r };
+          for (const yc of YEAR_COLUMNS) {
+            const current = updated[yc] as number | null;
+            if (current === null || current === undefined || current === 0) {
+              (updated as unknown as Record<string, number | null>)[yc] = numVal;
+            }
+          }
+          return updated;
+        });
+        setIsDirty(true);
+        return recalcSummaryRows(newRows);
+      });
+      setFillAllValue('');
+    },
+    [fillAllValue, setRows, setIsDirty],
+  );
+
+  // ---------------------------------------------------------------------------
   // Render helpers
   // ---------------------------------------------------------------------------
 
@@ -1062,9 +1095,41 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                 </Box>
 
                 {/* Year boxes */}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
                   {YEAR_COLUMNS.map(yc => renderYearBox(item, yc))}
                 </Box>
+
+                {/* Fill empty years */}
+                {YEAR_COLUMNS.some(yc => {
+                  const v = item[yc] as number | null;
+                  return v === null || v === undefined || v === 0;
+                }) && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <TextField
+                      size="small"
+                      placeholder="Belopp"
+                      value={fillAllValue}
+                      onChange={e => setFillAllValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleFillEmptyYears(item.id);
+                        }
+                      }}
+                      inputProps={{ style: { fontSize: '0.8125rem' } }}
+                      sx={{ width: 120 }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleFillEmptyYears(item.id)}
+                      disabled={fillAllValue.trim() === ''}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+                    >
+                      Fyll tomma år
+                    </Button>
+                  </Box>
+                )}
 
                 {/* Meta info – all fields editable */}
                 <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>

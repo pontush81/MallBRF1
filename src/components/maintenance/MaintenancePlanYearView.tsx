@@ -516,7 +516,7 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
                   {/* Tek livslangd */}
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      Tek livsl\u00e4ngd
+                      Tek livslängd
                     </Typography>
                     <Typography variant="body2">
                       {item.row.tek_livslangd || '\u2013'}
