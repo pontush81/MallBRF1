@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Box, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
+import {
+  Typography,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TableRow,
   Chip,
   Alert,
   CircularProgress,
-
-
+  Select,
+  MenuItem,
   Button,
   IconButton,
   Tooltip,
@@ -27,13 +27,14 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { UserRole } from '../../types/User';
 // import supabaseClient from '../../services/supabaseClient'; // Not currently used
 
 interface User {
   id: string;
   email: string;
   name: string;
-  role: 'user' | 'admin';
+  role: UserRole;
   isactive: boolean;
   createdat: string;
   lastlogin?: string;
@@ -112,7 +113,7 @@ const UsersList: React.FC = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: 'user' | 'admin') => {
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       console.log('🚀 Updating user role via direct REST API...');
       
@@ -206,13 +207,16 @@ const UsersList: React.FC = () => {
                       <TableCell>{user.name || 'Ej angivet'}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={user.role === 'admin' ? 'Administratör' : 'Användare'}
-                          color={user.role === 'admin' ? 'primary' : 'default'}
+                        <Select
+                          value={user.role}
+                          onChange={(e) => updateUserRole(user.id, e.target.value as UserRole)}
                           size="small"
-                          onClick={() => updateUserRole(user.id, user.role === 'admin' ? 'user' : 'admin')}
-                          sx={{ cursor: 'pointer' }}
-                        />
+                          sx={{ minWidth: 140 }}
+                        >
+                          <MenuItem value="user">Användare</MenuItem>
+                          <MenuItem value="board">Styrelsemedlem</MenuItem>
+                          <MenuItem value="admin">Administratör</MenuItem>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <Chip
