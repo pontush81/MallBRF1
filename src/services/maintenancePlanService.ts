@@ -1,7 +1,4 @@
-import { safeGetSession, supabaseClient } from './supabaseClient';
-
-const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
+import { authenticatedRestCall } from './supabaseClient';
 
 // --- Types ---
 
@@ -63,82 +60,7 @@ export const VISIBLE_COLUMNS = [
   'utredningspunkter'
 ] as const;
 
-// --- REST helper ---
-
-async function getAuthToken(): Promise<string | null> {
-  try {
-    const { data: { session } } = await safeGetSession();
-    if (session?.access_token) {
-      return session.access_token;
-    }
-  } catch (error) {
-    console.error('Failed to get session:', error);
-  }
-  return null;
-}
-
-async function refreshAuthToken(): Promise<string | null> {
-  try {
-    const { data: { session }, error } = await supabaseClient.auth.refreshSession();
-    if (error) {
-      console.error('Failed to refresh session:', error);
-      return null;
-    }
-    return session?.access_token ?? null;
-  } catch (error) {
-    console.error('Failed to refresh session:', error);
-    return null;
-  }
-}
-
-async function doFetch(method: string, endpoint: string, authToken: string, body?: any, timeout: number = 30000) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
-    method,
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : 'return=minimal'
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(timeout)
-  });
-  return response;
-}
-
-async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 30000) {
-  let authToken = await getAuthToken();
-
-  if (!authToken && method !== 'GET') {
-    throw new Error('Authentication required for write operations');
-  }
-  if (!authToken) {
-    authToken = SUPABASE_ANON_KEY;
-  }
-
-  let response = await doFetch(method, endpoint, authToken, body, timeout);
-
-  // On 401, try refreshing the token and retry once
-  if (response.status === 401) {
-    const newToken = await refreshAuthToken();
-    if (newToken) {
-      authToken = newToken;
-      response = await doFetch(method, endpoint, authToken, body, timeout);
-    }
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API error: ${response.status} - ${errorText}`);
-  }
-
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
-    const text = await response.text();
-    return text.trim() ? JSON.parse(text) : {};
-  }
-  return {};
-}
+// --- REST helper (uses shared authenticatedRestCall) ---
 
 // --- API functions ---
 
@@ -149,7 +71,7 @@ export async function getLatestPlan(): Promise<PlanVersion | null> {
     params.append('order', 'version.desc');
     params.append('limit', '1');
 
-    const data = await directRestCall('GET', `maintenance_plan_versions?${params.toString()}`);
+    const data = await authenticatedRestCall('GET', `maintenance_plan_versions?${params.toString()}`, undefined, { timeout: 30000 });
     if (Array.isArray(data) && data.length > 0) {
       return data[0];
     }
@@ -166,7 +88,7 @@ export async function getAllVersions(): Promise<Pick<PlanVersion, 'id' | 'versio
     params.append('select', 'id,version,created_at,created_by,metadata');
     params.append('order', 'version.desc');
 
-    const data = await directRestCall('GET', `maintenance_plan_versions?${params.toString()}`);
+    const data = await authenticatedRestCall('GET', `maintenance_plan_versions?${params.toString()}`, undefined, { timeout: 30000 });
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('Error fetching versions:', error);
@@ -180,7 +102,7 @@ export async function getPlanVersion(versionId: string): Promise<PlanVersion | n
     params.append('select', '*');
     params.append('id', `eq.${versionId}`);
 
-    const data = await directRestCall('GET', `maintenance_plan_versions?${params.toString()}`);
+    const data = await authenticatedRestCall('GET', `maintenance_plan_versions?${params.toString()}`, undefined, { timeout: 30000 });
     if (Array.isArray(data) && data.length > 0) {
       return data[0];
     }
@@ -208,7 +130,7 @@ export async function savePlanVersion(
       created_by: userId || null
     };
 
-    const data = await directRestCall('POST', 'maintenance_plan_versions', body);
+    const data = await authenticatedRestCall('POST', 'maintenance_plan_versions', body, { timeout: 30000 });
     if (Array.isArray(data) && data.length > 0) {
       return data[0];
     }

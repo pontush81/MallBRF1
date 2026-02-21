@@ -28,41 +28,7 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { StandardLoading } from '../../components/common/StandardLoading';
-import { safeGetSession } from '../../services/supabaseClient';
-
-const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
-
-async function restCall(method: string, endpoint: string, body?: any) {
-  let authToken: string | null = null;
-  try {
-    const { data: { session } } = await safeGetSession();
-    if (session?.access_token) authToken = session.access_token;
-  } catch { /* fall through */ }
-  if (!authToken) authToken = SUPABASE_ANON_KEY;
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
-    method,
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json',
-      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`${response.status} - ${text}`);
-  }
-  const ct = response.headers.get('content-type');
-  if (ct?.includes('application/json')) {
-    const t = await response.text();
-    return t.trim() ? JSON.parse(t) : null;
-  }
-  return null;
-}
+import { authenticatedRestCall } from '../../services/supabaseClient';
 
 interface NotificationSettingsData {
   id?: string;
@@ -102,7 +68,7 @@ const NotificationSettings: React.FC = () => {
     setError(null);
 
     try {
-      const data = await restCall('GET', 'notification_settings?select=*&limit=1');
+      const data = await authenticatedRestCall('GET', 'notification_settings?select=*&limit=1');
       if (Array.isArray(data) && data.length > 0) {
         setSettings({
           ...data[0],
@@ -134,12 +100,12 @@ const NotificationSettings: React.FC = () => {
 
       let data;
       if (settings.id) {
-        data = await restCall('PATCH', `notification_settings?id=eq.${settings.id}&select=*`, {
+        data = await authenticatedRestCall('PATCH', `notification_settings?id=eq.${settings.id}&select=*`, {
           ...payload,
           updated_at: new Date().toISOString(),
         });
       } else {
-        data = await restCall('POST', 'notification_settings?select=*', payload);
+        data = await authenticatedRestCall('POST', 'notification_settings?select=*', payload);
       }
 
       const row = Array.isArray(data) && data.length > 0 ? data[0] : data;

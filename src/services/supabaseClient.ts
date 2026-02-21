@@ -29,10 +29,28 @@ export const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABAS
 // The hanging SDK connection test was causing production issues
 
 /**
+ * Check if a JWT token is expired.
+ * Decodes the payload and checks the `exp` claim against current time with a 30s buffer.
+ */
+function isTokenExpired(jwt: string): boolean {
+  try {
+    const parts = jwt.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp) return true;
+    // expired if current time is within 30s of expiry
+    return Date.now() >= (payload.exp - 30) * 1000;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Safe wrapper around supabaseClient.auth.getSession() with timeout protection.
  * Supabase v2 uses navigator.locks internally which can hang indefinitely
  * during auth initialization or lock contention.
  * On timeout, falls back to reading the token directly from localStorage.
+ * If the localStorage token is expired, attempts a refresh before giving up.
  */
 export async function safeGetSession(timeoutMs: number = 1000) {
   try {
@@ -49,12 +67,104 @@ export async function safeGetSession(timeoutMs: number = 1000) {
         const parsed = JSON.parse(raw);
         const token = parsed?.access_token || parsed?.currentSession?.access_token;
         if (token) {
-          return { data: { session: { access_token: token } } } as any;
+          // Check if token is expired before returning it
+          if (!isTokenExpired(token)) {
+            return { data: { session: { access_token: token } } } as any;
+          }
+          // Token expired — try to refresh with 3s timeout
+          try {
+            const refreshPromise = supabaseClient.auth.refreshSession();
+            const refreshTimeout = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('refreshSession timeout')), 3000)
+            );
+            const { data: { session: refreshedSession } } = await Promise.race([refreshPromise, refreshTimeout]) as any;
+            if (refreshedSession?.access_token) {
+              return { data: { session: refreshedSession } } as any;
+            }
+          } catch { /* refresh failed */ }
         }
       }
     } catch { /* ignore parse errors */ }
     return { data: { session: null } } as Awaited<ReturnType<typeof supabaseClient.auth.getSession>>;
   }
+}
+
+/**
+ * Centralized authenticated REST call to Supabase.
+ * Handles auth token retrieval, expiry checking, and 401 retry with refresh.
+ */
+export async function authenticatedRestCall(
+  method: string,
+  endpoint: string,
+  body?: any,
+  options?: { timeout?: number; requireAuth?: boolean }
+): Promise<any> {
+  const timeout = options?.timeout ?? 10000;
+  const requireAuth = options?.requireAuth ?? (method !== 'GET');
+
+  // 1. Get auth token
+  let authToken: string | null = null;
+  try {
+    const { data: { session } } = await safeGetSession();
+    if (session?.access_token) {
+      authToken = session.access_token;
+    }
+  } catch { /* fall through to anon key */ }
+
+  // 2. Check auth requirements
+  if (!authToken && requireAuth) {
+    throw new Error('Authentication required for this operation');
+  }
+  if (!authToken) {
+    authToken = SUPABASE_ANON_KEY;
+  }
+
+  // 3. Make the request
+  const preferHeader = (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal';
+
+  const doFetch = (token: string) =>
+    fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+      method,
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Prefer': preferHeader,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(timeout),
+    });
+
+  let response = await doFetch(authToken);
+
+  // 4. On 401, try refresh and retry once
+  if (response.status === 401) {
+    try {
+      const refreshPromise = supabaseClient.auth.refreshSession();
+      const refreshTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('refreshSession timeout')), 3000)
+      );
+      const { data: { session: refreshedSession } } = await Promise.race([refreshPromise, refreshTimeout]) as any;
+      if (refreshedSession?.access_token) {
+        response = await doFetch(refreshedSession.access_token);
+      }
+    } catch { /* refresh failed, use original response */ }
+  }
+
+  // 5. Handle response
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error: ${response.status} - ${errorText}`);
+  }
+
+  if (method === 'DELETE') return null;
+
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    const text = await response.text();
+    return text.trim() ? JSON.parse(text) : null;
+  }
+  return null;
 }
 
 // Cache for authenticated client to avoid creating multiple instances

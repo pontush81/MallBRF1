@@ -1,89 +1,4 @@
-import { executeWithRLS, safeGetSession } from './supabaseClient';
-
-// Direct REST API helper to bypass hanging Supabase SDK
-const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
-
-async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 5000) {
-  console.log(`🌐 Making ${method} request to:`, `${SUPABASE_URL}/rest/v1/${endpoint}`);
-  console.log('📤 Request body:', body);
-  
-  // Get user session token for RLS authentication using existing client
-  let authToken = null;
-  try {
-    const { data: { session } } = await safeGetSession();
-    
-    if (session?.access_token) {
-      authToken = session.access_token;
-      console.log('🔐 Using user session token for RLS authentication');
-    } else {
-      console.log('⚠️ No user session found - user may not be authenticated');
-    }
-  } catch (error) {
-    console.log('⚠️ Failed to get session:', error);
-  }
-
-  // CRITICAL: For write operations (POST/PATCH/DELETE), require authentication
-  if (!authToken && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) {
-    throw new Error('Authentication required: No valid user session found for RLS-protected write operation');
-  }
-  
-  // For GET operations without auth token, use anon key (some tables allow public read)
-  if (!authToken && method === 'GET') {
-    console.log('ℹ️ No user session for GET request - using anon key (public read)');
-    authToken = SUPABASE_ANON_KEY;
-  }
-  
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
-      method,
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${authToken}`, // Only use real user token, never anon key
-        'Content-Type': 'application/json',
-        'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal'
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(timeout)
-    });
-
-    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
-    console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ API Error response body:', errorText);
-      throw new Error(`Direct REST API error: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    if (method === 'DELETE') {
-      return null;
-    }
-
-    // Check if response has content before parsing JSON
-    const contentType = response.headers.get('content-type');
-    console.log('📋 Content-Type:', contentType);
-    
-    if (contentType && contentType.includes('application/json')) {
-      const text = await response.text();
-      console.log('📄 Response text:', text);
-      
-      if (text.trim()) {
-        const parsed = JSON.parse(text);
-        console.log('✅ Parsed JSON response:', parsed);
-        return parsed;
-      }
-    }
-
-    // Return empty object if no JSON content
-    console.log('⚠️ No JSON content, returning empty object');
-    return {};
-    
-  } catch (error) {
-    console.error('❌ Error in directRestCall:', error);
-    throw error;
-  }
-}
+import { executeWithRLS, authenticatedRestCall } from './supabaseClient';
 
 export interface MaintenanceTask {
   id: string;
@@ -186,7 +101,7 @@ export const getMaintenanceTasksByYear = async (year: number): Promise<Maintenan
     params.append('order', 'category.asc');
     
     const endpoint = `maintenance_tasks?${params.toString()}`;
-    const data = await directRestCall('GET', endpoint);
+    const data = await authenticatedRestCall('GET', endpoint);
     
     console.log(`✅ Found ${data?.length || 0} maintenance tasks for year ${year} via direct API (FAST!)`);
     return data || [];
@@ -207,7 +122,7 @@ export const getAllMaintenanceTasks = async (): Promise<MaintenanceTask[]> => {
     params.append('order', 'year.asc,category.asc');
     
     const endpoint = `maintenance_tasks?${params.toString()}`;
-    const data = await directRestCall('GET', endpoint);
+    const data = await authenticatedRestCall('GET', endpoint);
     
     console.log(`✅ Found ${data?.length || 0} maintenance tasks via direct API (FAST!)`);
     return data || [];
@@ -235,7 +150,7 @@ export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promi
     if (isExistingTask) {
       // Update existing task
       const endpoint = `maintenance_tasks?id=eq.${task.id}`;
-      const data = await directRestCall('PATCH', endpoint, taskData);
+      const data = await authenticatedRestCall('PATCH', endpoint, taskData);
       
       if (Array.isArray(data) && data.length > 0) {
         console.log('✅ Task updated via direct API (FAST!):', data[0]);
@@ -253,7 +168,7 @@ export const saveMaintenanceTask = async (task: Partial<MaintenanceTask>): Promi
       console.log('🆕 Creating new task without ID, letting Supabase generate it');
       
       const endpoint = 'maintenance_tasks';
-      const data = await directRestCall('POST', endpoint, newTaskData);
+      const data = await authenticatedRestCall('POST', endpoint, newTaskData);
       
       console.log('🔍 API Response for new task:', data, 'Type:', typeof data, 'IsArray:', Array.isArray(data));
       
@@ -307,7 +222,7 @@ export const getMajorProjects = async (): Promise<MajorProject[]> => {
     params.append('order', 'estimated_year.asc');
     
     const endpoint = `major_projects?${params.toString()}`;
-    const data = await directRestCall('GET', endpoint);
+    const data = await authenticatedRestCall('GET', endpoint);
     
     console.log(`✅ Found ${data?.length || 0} major projects via direct API (FAST!)`);
     return data || [];
@@ -335,7 +250,7 @@ export const saveMajorProject = async (project: Partial<MajorProject>): Promise<
     if (isExistingProject) {
       // Update existing project
       const endpoint = `major_projects?id=eq.${project.id}`;
-      const data = await directRestCall('PATCH', endpoint, projectData);
+      const data = await authenticatedRestCall('PATCH', endpoint, projectData);
       
       if (Array.isArray(data) && data.length > 0) {
         console.log('✅ Project updated via direct API (FAST!):', data[0]);
@@ -352,7 +267,7 @@ export const saveMajorProject = async (project: Partial<MajorProject>): Promise<
       console.log('🆕 Creating new project without ID, letting Supabase generate it');
       
       const endpoint = 'major_projects';
-      const data = await directRestCall('POST', endpoint, newProjectData);
+      const data = await authenticatedRestCall('POST', endpoint, newProjectData);
       
       console.log('🔍 API Response for new project:', data, 'Type:', typeof data, 'IsArray:', Array.isArray(data));
       
@@ -377,7 +292,7 @@ export const deleteMajorProject = async (projectId: string): Promise<boolean> =>
     console.log('🚀 Deleting major project via direct REST API...', projectId);
     
     const endpoint = `major_projects?id=eq.${projectId}`;
-    await directRestCall('DELETE', endpoint);
+    await authenticatedRestCall('DELETE', endpoint);
     
     console.log('✅ Project deleted via direct API (FAST!):', projectId);
     return true;
@@ -413,7 +328,7 @@ export const deleteMaintenanceTask = async (taskId: string): Promise<boolean> =>
     console.log('🚀 Deleting maintenance task via direct REST API...', taskId);
     
     const endpoint = `maintenance_tasks?id=eq.${taskId}`;
-    await directRestCall('DELETE', endpoint);
+    await authenticatedRestCall('DELETE', endpoint);
     
     console.log('✅ Task deleted via direct API (FAST!):', taskId);
     return true;
@@ -475,7 +390,7 @@ export const getUsers = async (): Promise<User[]> => {
     params.append('select', 'id,email,name');
     
     const endpoint = `users?${params.toString()}`;
-    const data = await directRestCall('GET', endpoint);
+    const data = await authenticatedRestCall('GET', endpoint);
     
     if (!data || data.length === 0) {
       console.log('⚠️ No users found, using mock data');

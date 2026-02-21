@@ -1,4 +1,4 @@
-import supabaseClient, { safeGetSession } from './supabaseClient';
+import supabaseClient, { authenticatedRestCall } from './supabaseClient';
 import { Page } from '../types/Page';
 import { logUserAccess } from './auditLog';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -138,50 +138,14 @@ const pageServiceSupabase = {
   // Hämta alla sidor (för admin)
   getAllPages: async (): Promise<Page[]> => {
     try {
-      console.log('🚀 Fetching all pages via direct REST API...');
-      
-      const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      
-      // Try to get authenticated session for admin access
-      let authToken = SUPABASE_ANON_KEY;
-      try {
-        const { data: sessionData } = await safeGetSession();
-        if (sessionData?.session?.access_token) {
-          authToken = sessionData.session.access_token;
-          console.log('🔐 Using authenticated session for admin access');
-        }
-      } catch (authErr) {
-        console.log('ℹ️ Using anon key (no auth session)');
-      }
-      
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/pages?select=*&order=createdat.asc`, {
-        method: 'GET',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        signal: AbortSignal.timeout(10000) // 10s timeout för admin
-      });
+      console.log('🚀 Fetching all pages via authenticatedRestCall...');
 
-      console.log('📡 getAllPages API Response status:', response.status, response.statusText);
+      const data = await authenticatedRestCall('GET', 'pages?select=*&order=createdat.asc', undefined, { timeout: 10000 });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ getAllPages API Response error:', errorText);
-        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
-      }
+      const pages = (Array.isArray(data) ? data : []).map(transformPageFromDB);
+      console.log(`✅ Found ${pages.length} total pages`);
 
-      const data = await response.json();
-      console.log('📊 getAllPages Raw API data:', data);
-      console.log('📊 getAllPages Data type:', typeof data, 'Is array:', Array.isArray(data));
-      
-      const pages = data?.map(transformPageFromDB) || [];
-      console.log('🔄 getAllPages Transformed pages:', pages.length);
-      
-      console.log(`✅ Found ${pages.length} total pages via direct API (FAST!)`);
-      
-      // Log admin access to all pages (skip if fails, don't block response)
+      // Log admin access (skip if fails, don't block response)
       setTimeout(async () => {
         try {
           await logUserAccess('pages', 'SELECT', undefined, `admin_get_all_pages_${pages.length}_results`);
@@ -189,10 +153,10 @@ const pageServiceSupabase = {
           console.log('ℹ️ Audit logging skipped (non-critical)');
         }
       }, 0);
-      
+
       return pages;
     } catch (error) {
-      console.error('❌ Error in getAllPages via direct API:', error);
+      console.error('❌ Error in getAllPages:', error);
       throw error;
     }
   },
@@ -201,56 +165,22 @@ const pageServiceSupabase = {
   getPageById: async (id: string): Promise<Page | null> => {
     try {
       console.log(`🔍 Fetching page by ID: ${id}`);
-      
-      const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      
-      // Try to get authenticated session for admin access to unpublished pages
-      let authToken = SUPABASE_ANON_KEY;
-      try {
-        const { data: sessionData } = await safeGetSession();
-        if (sessionData?.session?.access_token) {
-          authToken = sessionData.session.access_token;
-          console.log('🔐 Using authenticated session for page fetch');
-        }
-      } catch (authErr) {
-        console.log('ℹ️ Using anon key (no auth session)');
-      }
-      
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/pages?id=eq.${id}&select=*`, {
-        method: 'GET',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        signal: AbortSignal.timeout(10000) // Ökat timeout för editor
-      });
 
-      console.log(`📡 getPageById API Response status for ID ${id}:`, response.status, response.statusText);
+      const data = await authenticatedRestCall('GET', `pages?id=eq.${id}&select=*`, undefined, { timeout: 10000 });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ getPageById API Response error for ID ${id}:`, errorText);
-        throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log(`📊 getPageById Raw API data for ID ${id}:`, data);
-      
-      if (!data || data.length === 0) {
+      if (!Array.isArray(data) || data.length === 0) {
         console.log(`⚠️ Page not found: ${id}`);
         return null;
       }
 
       const page = transformPageFromDB(data[0]);
-      console.log(`🔄 getPageById Transformed page for ID ${id}:`, page);
-      
+
       // Determine if this is admin access or public access
       const currentUserData = localStorage.getItem('currentUser');
       const isAdmin = currentUserData ? JSON.parse(currentUserData).role === 'admin' : false;
-      
-      console.log(`✅ Found page via direct API (FAST!): ${page.title}`);
-      
+
+      console.log(`✅ Found page: ${page.title}`);
+
       // Log access (skip if fails, don't block response)
       setTimeout(async () => {
         try {
@@ -261,7 +191,7 @@ const pageServiceSupabase = {
           console.log('⚠️ Audit logging skipped (non-critical)');
         }
       }, 0);
-      
+
       return page;
     } catch (error) {
       console.error('Error in getPageById:', error);

@@ -4,48 +4,7 @@
  * Public form - no authentication required for submissions
  */
 
-import { safeGetSession } from './supabaseClient';
-
-const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
-const SUPABASE_ANON_KEY_LOCAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
-
-async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 10000) {
-  let authToken: string | null = null;
-  try {
-    const { data: { session } } = await safeGetSession();
-    if (session?.access_token) {
-      authToken = session.access_token;
-    }
-  } catch { /* fall through to anon key */ }
-
-  if (!authToken) authToken = SUPABASE_ANON_KEY_LOCAL;
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
-    method,
-    headers: {
-      'apikey': SUPABASE_ANON_KEY_LOCAL,
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : method === 'PATCH' ? 'return=representation' : 'return=minimal',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(timeout),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API error: ${response.status} - ${errorText}`);
-  }
-
-  if (method === 'DELETE') return null;
-
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
-    const text = await response.text();
-    return text.trim() ? JSON.parse(text) : null;
-  }
-  return null;
-}
+import { authenticatedRestCall } from './supabaseClient';
 
 // Types
 export interface FaultReport {
@@ -214,7 +173,7 @@ export async function getAllFaultReports(
     if (statusFilter) {
       endpoint += `&status=eq.${statusFilter}`;
     }
-    const data = await directRestCall('GET', endpoint);
+    const data = await authenticatedRestCall('GET', endpoint);
     return { success: true, data: (Array.isArray(data) ? data : []) as FaultReport[] };
   } catch (err) {
     console.error('Get fault reports exception:', err);
@@ -229,7 +188,7 @@ export async function getFaultReportById(
   id: string
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   try {
-    const data = await directRestCall('GET', `fault_reports?id=eq.${id}&select=*`);
+    const data = await authenticatedRestCall('GET', `fault_reports?id=eq.${id}&select=*`);
     if (Array.isArray(data) && data.length > 0) {
       return { success: true, data: data[0] as FaultReport };
     }
@@ -255,7 +214,7 @@ export async function updateFaultReport(
       updateData.resolved_at = new Date().toISOString();
     }
 
-    const data = await directRestCall('PATCH', `fault_reports?id=eq.${id}&select=*`, updateData);
+    const data = await authenticatedRestCall('PATCH', `fault_reports?id=eq.${id}&select=*`, updateData);
     if (Array.isArray(data) && data.length > 0) {
       return { success: true, data: data[0] as FaultReport };
     }
@@ -273,7 +232,7 @@ export async function deleteFaultReport(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await directRestCall('DELETE', `fault_reports?id=eq.${id}`);
+    await authenticatedRestCall('DELETE', `fault_reports?id=eq.${id}`);
     return { success: true };
   } catch (err) {
     console.error('Delete fault report exception:', err);
@@ -295,7 +254,7 @@ export async function getFaultReportStats(): Promise<{
   error?: string;
 }> {
   try {
-    const data = await directRestCall('GET', 'fault_reports?select=status,category,created_at');
+    const data = await authenticatedRestCall('GET', 'fault_reports?select=status,category,created_at');
     const reports = (Array.isArray(data) ? data : []) as Pick<FaultReport, 'status' | 'category' | 'created_at'>[];
     
     // Count by status
@@ -356,7 +315,7 @@ export async function getFaultReportByReference(
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   try {
     const ref = encodeURIComponent(referenceNumber.toUpperCase());
-    const data = await directRestCall('GET', `fault_reports?reference_number=eq.${ref}&select=id,reference_number,apartment_number,category,location,description,status,created_at,updated_at,resolved_at`, undefined, 30000);
+    const data = await authenticatedRestCall('GET', `fault_reports?reference_number=eq.${ref}&select=id,reference_number,apartment_number,category,location,description,status,created_at,updated_at,resolved_at`, undefined, { timeout: 30000 });
     if (Array.isArray(data) && data.length > 0) {
       return { success: true, data: data[0] as FaultReport };
     }
@@ -376,7 +335,7 @@ async function getNotificationSettings(): Promise<{
   admin_email: string;
 } | null> {
   try {
-    const data = await directRestCall('GET', 'notification_settings?select=email_notifications,fault_report_notifications,admin_email&limit=1');
+    const data = await authenticatedRestCall('GET', 'notification_settings?select=email_notifications,fault_report_notifications,admin_email&limit=1');
     if (Array.isArray(data) && data.length > 0) {
       return data[0];
     }
