@@ -1,4 +1,4 @@
-import supabaseClient from './supabaseClient';
+import supabaseClient, { safeGetSession } from './supabaseClient';
 import { Page } from '../types/Page';
 import { logUserAccess } from './auditLog';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -145,7 +145,7 @@ const pageServiceSupabase = {
       // Try to get authenticated session for admin access
       let authToken = SUPABASE_ANON_KEY;
       try {
-        const { data: sessionData } = await supabaseClient.auth.getSession();
+        const { data: sessionData } = await safeGetSession();
         if (sessionData?.session?.access_token) {
           authToken = sessionData.session.access_token;
           console.log('🔐 Using authenticated session for admin access');
@@ -207,7 +207,7 @@ const pageServiceSupabase = {
       // Try to get authenticated session for admin access to unpublished pages
       let authToken = SUPABASE_ANON_KEY;
       try {
-        const { data: sessionData } = await supabaseClient.auth.getSession();
+        const { data: sessionData } = await safeGetSession();
         if (sessionData?.session?.access_token) {
           authToken = sessionData.session.access_token;
           console.log('🔐 Using authenticated session for page fetch');

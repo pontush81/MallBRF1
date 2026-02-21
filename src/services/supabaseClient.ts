@@ -28,6 +28,35 @@ export const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABAS
 // Connection test disabled - all critical functions now use direct API
 // The hanging SDK connection test was causing production issues
 
+/**
+ * Safe wrapper around supabaseClient.auth.getSession() with timeout protection.
+ * Supabase v2 uses navigator.locks internally which can hang indefinitely
+ * during auth initialization or lock contention.
+ * On timeout, falls back to reading the token directly from localStorage.
+ */
+export async function safeGetSession(timeoutMs: number = 1000) {
+  try {
+    const sessionPromise = supabaseClient.auth.getSession();
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('getSession timeout')), timeoutMs)
+    );
+    return await Promise.race([sessionPromise, timeoutPromise]);
+  } catch {
+    // Fast fallback: read token directly from localStorage (same key the SDK uses)
+    try {
+      const raw = localStorage.getItem('mallbrf-supabase-auth');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const token = parsed?.access_token || parsed?.currentSession?.access_token;
+        if (token) {
+          return { data: { session: { access_token: token } } } as any;
+        }
+      }
+    } catch { /* ignore parse errors */ }
+    return { data: { session: null } } as Awaited<ReturnType<typeof supabaseClient.auth.getSession>>;
+  }
+}
+
 // Cache for authenticated client to avoid creating multiple instances
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let authenticatedClientCache: SupabaseClient | null = null;
@@ -36,35 +65,13 @@ let cachedTokenForClient: string | null = null;
 
 // Helper function to get authenticated Supabase client using native Supabase auth
 export async function getAuthenticatedSupabaseClient(): Promise<SupabaseClient> {
-  try {
-    // Add timeout to prevent hanging in production (same issue as OAuth/pages)
-    const sessionPromise = supabaseClient.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Auth session timeout after 5 seconds')), 5000)
-    );
-    
-    const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-    const { data: { session } } = result;
-    
-    if (session?.access_token) {
-      console.log('✅ Using authenticated Supabase client with valid session');
-      return supabaseClient; // The main client already has the session
-    }
+  const { data: { session } } = await safeGetSession();
 
-    // Fallback to anon client if no session available
-    console.log('⚠️ No active session, using anon client');
-    return supabaseClient;
-
-  } catch (error) {
-    console.error('Error getting authenticated client:', error);
-    
-    // If timeout, return anon client as fallback
-    if (error.message?.includes('timeout')) {
-      console.log('⚠️ Auth session timeout, using anon client as fallback');
-    }
-    
+  if (session?.access_token) {
     return supabaseClient;
   }
+
+  return supabaseClient;
 }
 
 // Helper function for public database operations (no auth required)

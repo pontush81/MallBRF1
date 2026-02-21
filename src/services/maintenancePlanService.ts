@@ -1,4 +1,4 @@
-import { supabaseClient } from './supabaseClient';
+import { safeGetSession } from './supabaseClient';
 
 const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
@@ -68,7 +68,7 @@ export const VISIBLE_COLUMNS = [
 async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 30000) {
   let authToken: string | null = null;
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const { data: { session } } = await safeGetSession();
     if (session?.access_token) {
       authToken = session.access_token;
     }

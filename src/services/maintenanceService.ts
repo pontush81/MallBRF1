@@ -1,4 +1,4 @@
-import { executeWithRLS, supabaseClient } from './supabaseClient';
+import { executeWithRLS, safeGetSession } from './supabaseClient';
 
 // Direct REST API helper to bypass hanging Supabase SDK
 const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
@@ -11,8 +11,7 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
   // Get user session token for RLS authentication using existing client
   let authToken = null;
   try {
-    // CRITICAL: Always use the SDK to get session (Perplexity recommendation)
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const { data: { session } } = await safeGetSession();
     
     if (session?.access_token) {
       authToken = session.access_token;

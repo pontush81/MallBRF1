@@ -9,7 +9,7 @@
  * GDPR Compliance: All logs include legal basis for data processing
  */
 
-import supabase from './supabaseClient';
+import supabase, { safeGetSession } from './supabaseClient';
 
 // Direct REST API helper for audit logging (non-critical, can fail gracefully)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -405,7 +405,7 @@ export class AuditLogger {
    */
   private async getSessionId(): Promise<string | undefined> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       return session?.access_token?.slice(-8); // Last 8 chars as session identifier
     } catch {
       return undefined;
