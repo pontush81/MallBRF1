@@ -114,9 +114,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Route: POST /admin-pages (create page)
+    // Route: POST /admin-pages (create page OR delete via action field)
     if (method === 'POST') {
-      const requestBody: Omit<UpdatePageRequest, 'id'> & { pageData: UpdatePageRequest['pageData'] & { createdat?: string } } = await req.json();
+      const requestBody: any = await req.json();
+
+      // POST with action: 'delete' — workaround for CDNs stripping DELETE body
+      if (requestBody.action === 'delete') {
+        const pageId = requestBody.id;
+        if (!pageId) {
+          return new Response(JSON.stringify({ error: 'Page ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        console.log('🗑️ Admin: Deleting page (via POST action):', pageId);
+        console.log('👤 User:', requestBody.userEmail, 'Role:', requestBody.userRole);
+
+        if (!requestBody.userEmail || requestBody.userRole !== 'admin') {
+          return new Response(JSON.stringify({ error: 'Admin access required' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const { error } = await supabase
+          .from('pages')
+          .delete()
+          .eq('id', pageId);
+
+        if (error) {
+          console.error('❌ Error deleting page:', error);
+          return new Response(JSON.stringify({ error: 'Failed to delete page', details: error.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.log('✅ Page deleted successfully');
+        return new Response(JSON.stringify({ message: 'Page deleted successfully' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       console.log('➕ Admin: Creating new page');
       console.log('👤 User:', requestBody.userEmail, 'Role:', requestBody.userRole);
 

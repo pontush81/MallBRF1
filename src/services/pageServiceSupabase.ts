@@ -508,13 +508,15 @@ const pageServiceSupabase = {
       // Use Edge Function directly — RLS blocks direct deletes silently (returns 200 but 0 rows)
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
 
+      // Use POST with action field — DELETE + body gets stripped by some CDNs/proxies
       const edgeResponse = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
+          action: 'delete',
           id,
           userEmail: parsedUser.email,
           userRole: parsedUser.role
