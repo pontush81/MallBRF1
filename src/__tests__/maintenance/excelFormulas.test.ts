@@ -1,11 +1,8 @@
 import * as XLSX from 'xlsx';
 import { PlanRow } from '../../services/maintenancePlanService';
 import {
-  applyExcelFormulas,
-  buildExportRows,
+  exportToExcelBuffer,
   COLUMN_HEADERS,
-  COLUMN_WIDTHS,
-  computeRowTotal,
 } from '../../components/maintenance/maintenancePlanHelpers';
 
 // ---------------------------------------------------------------------------
@@ -36,46 +33,34 @@ function makeRow(overrides: Partial<PlanRow> = {}): PlanRow {
     sortIndex: 1,
     indentLevel: 2,
     isLocked: false,
-    status: 'planned',
+    status: '',
     ...overrides,
   };
 }
 
 /**
- * Build a worksheet from rows using the same approach as the actual export,
- * with 4 title rows + 1 header row before data.
+ * Export rows via exportToExcelBuffer, then read back with xlsx for verification.
+ * Returns the worksheet and the xlsx library for cell address encoding.
  */
-function buildWorksheet(rows: PlanRow[]): XLSX.WorkSheet {
-  const wsData: (string | number | null)[][] = [];
-  wsData.push(['Underhållsplan']);
-  wsData.push(['Brf Test']);
-  wsData.push(['Exporterad']);
-  wsData.push([]);
-  wsData.push(COLUMN_HEADERS);
-
-  const exportData = buildExportRows(rows);
-  // Skip header from buildExportRows (we already added COLUMN_HEADERS)
-  for (let i = 1; i < exportData.length; i++) {
-    wsData.push(exportData[i]);
-  }
-
-  return XLSX.utils.aoa_to_sheet(wsData);
+async function exportAndRead(rows: PlanRow[]): Promise<XLSX.WorkSheet> {
+  const buffer = await exportToExcelBuffer(rows);
+  const wb = XLSX.read(buffer, { type: 'array' });
+  return wb.Sheets['Underhållsplan'];
 }
 
 // ============================================================================
 // Total column formulas (column R)
 // ============================================================================
 
-describe('applyExcelFormulas – total column (R)', () => {
-  test('every data row gets a SUM formula in the total column', () => {
+describe('exportToExcelBuffer – total column (R)', () => {
+  test('every data row gets a SUM formula in the total column', async () => {
     const rows = [
       makeRow({ id: 'a', atgard: 'A', year_2026: 100, year_2028: 200 }),
       makeRow({ id: 'b', atgard: 'B', year_2027: 300 }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
-    // Data starts at row 5 (0-indexed), so Excel rows 6 and 7
+    // Data starts at Excel row 6 (0-indexed row 5)
     // Total column = R = column index 17
     const cellA = ws[XLSX.utils.encode_cell({ r: 5, c: 17 })];
     expect(cellA.f).toBe('SUM(G6:P6)');
@@ -84,25 +69,23 @@ describe('applyExcelFormulas – total column (R)', () => {
     expect(cellB.f).toBe('SUM(G7:P7)');
   });
 
-  test('section rows also get total formula', () => {
+  test('section rows also get total formula', async () => {
     const rows = [
       makeRow({ rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
       makeRow({ atgard: 'Byte', year_2026: 100 }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const sectionCell = ws[XLSX.utils.encode_cell({ r: 5, c: 17 })];
     expect(sectionCell.f).toBe('SUM(G6:P6)');
   });
 
-  test('summary rows get total formula', () => {
+  test('summary rows get total formula', async () => {
     const rows = [
       makeRow({ atgard: 'Byte', year_2026: 100 }),
       makeRow({ rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const summaCell = ws[XLSX.utils.encode_cell({ r: 6, c: 17 })];
     expect(summaCell.f).toBe('SUM(G7:P7)');
@@ -113,8 +96,8 @@ describe('applyExcelFormulas – total column (R)', () => {
 // Summa row formulas
 // ============================================================================
 
-describe('applyExcelFormulas – Summa beräknad kostnad', () => {
-  test('Summa row gets SUM formula across data rows for each year column', () => {
+describe('exportToExcelBuffer – Summa beräknad kostnad', () => {
+  test('Summa row gets SUM formula across data rows for each year column', async () => {
     const rows = [
       makeRow({ id: 'sec', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
       makeRow({ id: 'a', atgard: 'A', year_2026: 100 }),
@@ -123,12 +106,9 @@ describe('applyExcelFormulas – Summa beräknad kostnad', () => {
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
-    // Summa is at sheet row 8 (0-indexed), data rows 5-7
-    // firstDataSheetRow=5, lastNonSummarySheetRow=7 (item 'b')
-    // Excel: G6:G8
+    // Summa is at Excel row 9 (0-indexed row 8), data rows 6-8
     const summaG = ws[XLSX.utils.encode_cell({ r: 8, c: 6 })]; // year_2026
     expect(summaG.f).toBe('SUM(G6:G8)');
 
@@ -136,15 +116,14 @@ describe('applyExcelFormulas – Summa beräknad kostnad', () => {
     expect(summaH.f).toBe('SUM(H6:H8)');
   });
 
-  test('Summa formula covers all year columns G through P', () => {
+  test('Summa formula covers all year columns G through P', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const yearCols = ['G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
     for (const col of yearCols) {
@@ -158,46 +137,41 @@ describe('applyExcelFormulas – Summa beräknad kostnad', () => {
 // Osäkerhet row formulas
 // ============================================================================
 
-describe('applyExcelFormulas – Osäkerhet', () => {
-  test('Osäkerhet row gets ROUND(Summa*0.1,0) formula', () => {
+describe('exportToExcelBuffer – Osäkerhet', () => {
+  test('Osäkerhet row gets ROUND(Summa*0.1,0) formula', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
-    // Summa at sheet row 6, Osäkerhet at sheet row 7
-    // Excel: Summa=row 7, Osäkerhet=row 8
     const osakG = ws[XLSX.utils.encode_cell({ r: 7, c: 6 })];
     expect(osakG.f).toBe('ROUND(G7*0.1,0)');
   });
 
-  test('Osäkerhet uses correct percentage from atgard field', () => {
+  test('Osäkerhet uses correct percentage from atgard field', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '15%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const osakG = ws[XLSX.utils.encode_cell({ r: 7, c: 6 })];
     expect(osakG.f).toBe('ROUND(G7*0.15,0)');
   });
 
-  test('Osäkerhet defaults to 0 when no percentage found', () => {
+  test('Osäkerhet defaults to 0 when no percentage found', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const osakG = ws[XLSX.utils.encode_cell({ r: 7, c: 6 })];
     expect(osakG.f).toBe('ROUND(G7*0,0)');
@@ -208,31 +182,28 @@ describe('applyExcelFormulas – Osäkerhet', () => {
 // Totalt row formulas
 // ============================================================================
 
-describe('applyExcelFormulas – Totalt inkl osäkerhet', () => {
-  test('Totalt row gets Summa+Osäkerhet formula', () => {
+describe('exportToExcelBuffer – Totalt inkl osäkerhet', () => {
+  test('Totalt row gets Summa+Osäkerhet formula', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
-    // Summa at Excel row 7, Osäkerhet at row 8, Totalt at row 9
     const totaltG = ws[XLSX.utils.encode_cell({ r: 8, c: 6 })];
     expect(totaltG.f).toBe('G7+G8');
   });
 
-  test('Totalt formula works for all year columns', () => {
+  test('Totalt formula works for all year columns', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const yearCols = ['G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
     for (let i = 0; i < yearCols.length; i++) {
@@ -241,15 +212,14 @@ describe('applyExcelFormulas – Totalt inkl osäkerhet', () => {
     }
   });
 
-  test('recognizes "Totalt inkl moms" as totalt row', () => {
+  test('recognizes "Totalt inkl moms" as totalt row', async () => {
     const rows = [
       makeRow({ id: 'a', year_2026: 100 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl moms', isLocked: true }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
     const totaltG = ws[XLSX.utils.encode_cell({ r: 8, c: 6 })];
     expect(totaltG.f).toBe('G7+G8');
@@ -260,16 +230,14 @@ describe('applyExcelFormulas – Totalt inkl osäkerhet', () => {
 // No summary rows – graceful handling
 // ============================================================================
 
-describe('applyExcelFormulas – no summary rows', () => {
-  test('works when no summary rows exist (only total column formulas)', () => {
+describe('exportToExcelBuffer – no summary rows', () => {
+  test('works when no summary rows exist (only total column formulas)', async () => {
     const rows = [
       makeRow({ id: 'a', atgard: 'A', year_2026: 100 }),
       makeRow({ id: 'b', atgard: 'B', year_2026: 200 }),
     ];
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    const ws = await exportAndRead(rows);
 
-    // Total column should still have formulas
     const cellA = ws[XLSX.utils.encode_cell({ r: 5, c: 17 })];
     expect(cellA.f).toBe('SUM(G6:P6)');
   });
@@ -279,8 +247,8 @@ describe('applyExcelFormulas – no summary rows', () => {
 // Full integration: export with formulas, read back, verify
 // ============================================================================
 
-describe('applyExcelFormulas – full integration', () => {
-  test('all formula types present on worksheet before write', () => {
+describe('exportToExcelBuffer – full integration', () => {
+  test('all formula types present in exported workbook', async () => {
     const rows = [
       makeRow({ id: 'sec', rowType: 'section', nr: '1', byggdel: 'Utvändigt', isLocked: true }),
       makeRow({ id: 'a', atgard: 'Byte', year_2026: 100000, year_2028: 200000 }),
@@ -289,28 +257,26 @@ describe('applyExcelFormulas – full integration', () => {
       makeRow({ id: 'osak', rowType: 'summary', byggdel: 'Osäkerhet', atgard: '10%', isLocked: true }),
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
+    const ws = await exportAndRead(rows);
 
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
-
-    // Total column for item 'Byte' (sheet row 6, Excel row 7)
+    // Total column for item 'Byte' (Excel row 7, 0-indexed row 6)
     const totalCell = ws[XLSX.utils.encode_cell({ r: 6, c: 17 })];
     expect(totalCell.f).toBe('SUM(G7:P7)');
 
-    // Summa row (sheet row 8, Excel row 9) year_2026 column
+    // Summa row (Excel row 9, 0-indexed row 8) year_2026 column
     const summaCell = ws[XLSX.utils.encode_cell({ r: 8, c: 6 })];
     expect(summaCell.f).toBe('SUM(G6:G8)');
 
-    // Osäkerhet row (sheet row 9, Excel row 10) year_2026 column
+    // Osäkerhet row (Excel row 10, 0-indexed row 9) year_2026 column
     const osakCell = ws[XLSX.utils.encode_cell({ r: 9, c: 6 })];
     expect(osakCell.f).toBe('ROUND(G9*0.1,0)');
 
-    // Totalt row (sheet row 10, Excel row 11) year_2026 column
+    // Totalt row (Excel row 11, 0-indexed row 10) year_2026 column
     const totaltCell = ws[XLSX.utils.encode_cell({ r: 10, c: 6 })];
     expect(totaltCell.f).toBe('G9+G10');
   });
 
-  test('worksheet can be written to xlsx without errors', () => {
+  test('exported workbook can be written without errors', async () => {
     const rows = [
       makeRow({ id: 'a', atgard: 'Byte', year_2026: 100000 }),
       makeRow({ id: 'summa', rowType: 'summary', byggdel: 'Summa beräknad kostnad', isLocked: true }),
@@ -318,11 +284,33 @@ describe('applyExcelFormulas – full integration', () => {
       makeRow({ id: 'totalt', rowType: 'summary', byggdel: 'Totalt inkl osäkerhet', isLocked: true }),
     ];
 
-    const ws = buildWorksheet(rows);
-    applyExcelFormulas(ws, rows, 4);
+    // Should not throw
+    const buffer = await exportToExcelBuffer(rows);
+    expect(buffer).toBeDefined();
+    expect(buffer.byteLength).toBeGreaterThan(0);
+  });
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Plan');
-    expect(() => XLSX.write(wb, { type: 'array', bookType: 'xlsx' })).not.toThrow();
+  test('exported workbook has correct sheet name', async () => {
+    const rows = [makeRow({ atgard: 'Test' })];
+    const buffer = await exportToExcelBuffer(rows);
+    const wb = XLSX.read(buffer, { type: 'array' });
+    expect(wb.SheetNames).toContain('Underhållsplan');
+  });
+
+  test('exported sheet has title rows before header', async () => {
+    const rows = [makeRow({ atgard: 'Test' })];
+    const ws = await exportAndRead(rows);
+    expect(ws['A1']?.v).toBe('Underhållsplan 2026\u20132035');
+    expect(ws['A2']?.v).toBe('Brf Gulm\u00e5ran');
+    expect(String(ws['A3']?.v)).toMatch(/Exporterad: \d{4}-\d{2}-\d{2}/);
+  });
+
+  test('exported sheet has correct column headers at row 5', async () => {
+    const rows = [makeRow({ atgard: 'Test' })];
+    const ws = await exportAndRead(rows);
+    for (let i = 0; i < COLUMN_HEADERS.length; i++) {
+      const addr = XLSX.utils.encode_cell({ r: 4, c: i });
+      expect(String(ws[addr]?.v)).toBe(String(COLUMN_HEADERS[i]));
+    }
   });
 });

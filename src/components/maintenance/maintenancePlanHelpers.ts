@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { PlanRow, YEAR_COLUMNS } from '../../services/maintenancePlanService';
 
 // ---------------------------------------------------------------------------
@@ -243,94 +243,215 @@ export function exportDataToCsv(data: (string | number | null)[][]): string {
   ).join('\n');
 }
 
+/** Convert 1-based column index to Excel letter (1=A, 7=G, 18=R). */
+function colLetter(c: number): string {
+  return String.fromCharCode(64 + c);
+}
+
 /**
- * Apply Excel formulas to a worksheet for summary rows and totals.
- * - "Totalt kr inkl moms" column: =SUM(year columns) for each data row
- * - "Summa beräknad kostnad" row: =SUM(item cells) per year column
- * - "Osäkerhet" row: =Summa cell * percentage per year column
- * - "Totalt inkl osäkerhet" row: =Summa + Osäkerhet per year column
- *
- * @param ws The worksheet (mutated in-place)
- * @param rows The PlanRow data used to generate the sheet
- * @param headerRowOffset 0-indexed row of the column headers in the sheet (data starts at headerRowOffset+1)
+ * Build a formatted Excel workbook and return it as an ArrayBuffer.
+ * Includes: bold headers, section/subsection styling, number formatting,
+ * live formulas, freeze panes, and auto-filter.
  */
-export function applyExcelFormulas(
-  ws: XLSX.WorkSheet,
-  rows: PlanRow[],
-  headerRowOffset: number,
-): void {
-  const YEAR_COL_START = 6;  // Column G (0-indexed)
-  const YEAR_COL_END = 15;   // Column P (0-indexed)
-  const TOTAL_COL = 17;      // Column R (0-indexed)
+export async function exportToExcelBuffer(rows: PlanRow[]): Promise<ArrayBuffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'MallBRF1';
+  wb.created = new Date();
 
-  const dataStartRow = headerRowOffset + 1; // 0-indexed row of first data row
+  const ws = wb.addWorksheet('Underhållsplan', {
+    views: [{ state: 'frozen' as const, ySplit: 5 }],
+  });
 
-  // Find row indices (0-indexed in sheet) for summary rows
-  let summaSheetRow = -1;
-  let osakSheetRow = -1;
-  let totaltSheetRow = -1;
+  const TOTAL_COLS = COLUMN_HEADERS.length; // 18
+  const YEAR_COL_START = 7;  // Column G (1-indexed)
+  const YEAR_COL_END = 16;   // Column P (1-indexed)
+  const TOTAL_COL = 18;      // Column R (1-indexed)
 
-  // Track which sheet rows are "item-like" (have costs that should be summed)
-  // We include all non-summary rows in the SUM range since sections/subsections have no values
-  let firstDataSheetRow = dataStartRow;
-  let lastNonSummarySheetRow = dataStartRow;
+  // Column widths (ExcelJS uses character widths)
+  for (let i = 0; i < COLUMN_WIDTHS.length; i++) {
+    ws.getColumn(i + 1).width = Math.round(COLUMN_WIDTHS[i] / 7);
+  }
+
+  // -----------------------------------------------------------------------
+  // Title section (rows 1-4)
+  // -----------------------------------------------------------------------
+  ws.mergeCells(1, 1, 1, TOTAL_COLS);
+  const titleCell = ws.getCell(1, 1);
+  titleCell.value = 'Underhållsplan 2026\u20132035';
+  titleCell.font = { bold: true, size: 16, color: { argb: 'FF1565C0' } };
+  titleCell.alignment = { vertical: 'middle' };
+  ws.getRow(1).height = 30;
+
+  ws.mergeCells(2, 1, 2, TOTAL_COLS);
+  const brfCell = ws.getCell(2, 1);
+  brfCell.value = 'Brf Gulm\u00e5ran';
+  brfCell.font = { italic: true, size: 12, color: { argb: 'FF546E7A' } };
+
+  ws.mergeCells(3, 1, 3, TOTAL_COLS);
+  const dateCell = ws.getCell(3, 1);
+  dateCell.value = `Exporterad: ${new Date().toISOString().slice(0, 10)}`;
+  dateCell.font = { size: 10, color: { argb: 'FF90A4AE' } };
+
+  // Row 4: blank spacer
+
+  // -----------------------------------------------------------------------
+  // Column headers (row 5)
+  // -----------------------------------------------------------------------
+  const headerRow = ws.getRow(5);
+  for (let c = 0; c < COLUMN_HEADERS.length; c++) {
+    headerRow.getCell(c + 1).value = COLUMN_HEADERS[c];
+  }
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  headerRow.height = 28;
+  for (let c = 1; c <= TOTAL_COLS; c++) {
+    const cell = headerRow.getCell(c);
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } };
+    cell.border = { bottom: { style: 'medium', color: { argb: 'FF0D47A1' } } };
+  }
+
+  // -----------------------------------------------------------------------
+  // Data rows (row 6+)
+  // -----------------------------------------------------------------------
+  const DATA_START_ROW = 6;
+
+  // Reusable fill styles
+  const sectionFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF455A64' } };
+  const subsectionFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCFD8DC' } };
+  const summaFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
+  const totaltFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+  const altRowFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+  const thinBorder: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFE0E0E0' } };
+
+  let summaExcelRow = -1;
+  let osakExcelRow = -1;
+  let totaltExcelRow = -1;
+  const firstDataExcelRow = DATA_START_ROW;
+  let lastNonSummaryExcelRow = DATA_START_ROW;
+  let itemIndex = 0;
 
   for (let i = 0; i < rows.length; i++) {
-    const sheetRow = dataStartRow + i;
     const r = rows[i];
+    const excelRow = DATA_START_ROW + i;
 
-    if (r.rowType === 'summary') {
-      if (r.byggdel === 'Summa beräknad kostnad') summaSheetRow = sheetRow;
-      else if (r.byggdel === 'Osäkerhet') osakSheetRow = sheetRow;
-      else if (r.byggdel === 'Totalt inkl osäkerhet' || r.byggdel === 'Totalt inkl moms') totaltSheetRow = sheetRow;
-    } else if (r.rowType !== 'blank') {
-      lastNonSummarySheetRow = sheetRow;
+    // Build cell values
+    const wsRow = ws.getRow(excelRow);
+    for (let ci = 0; ci < FIELD_KEYS.length; ci++) {
+      const key = FIELD_KEYS[ci];
+      const cell = wsRow.getCell(ci + 1);
+
+      if (key === 'total') {
+        // Formula: =SUM(G{row}:P{row})
+        cell.value = { formula: `SUM(G${excelRow}:P${excelRow})`, result: 0 } as ExcelJS.CellFormulaValue;
+      } else {
+        const val = r[key];
+        if (val !== null && val !== undefined && typeof val !== 'boolean') {
+          cell.value = val as string | number;
+        }
+      }
     }
-  }
 
-  // 1. Total column (R) for each data row: =SUM(G{n}:P{n})
-  for (let i = 0; i < rows.length; i++) {
-    const sheetRow = dataStartRow + i;
-    const excelRow = sheetRow + 1; // Excel is 1-indexed
-    const addr = XLSX.utils.encode_cell({ r: sheetRow, c: TOTAL_COL });
-    const firstYearCol = XLSX.utils.encode_col(YEAR_COL_START);
-    const lastYearCol = XLSX.utils.encode_col(YEAR_COL_END);
-    ws[addr] = { f: `SUM(${firstYearCol}${excelRow}:${lastYearCol}${excelRow})`, t: 'n' };
-  }
-
-  // 2. Summa row: =SUM(col{first}:col{lastNonSummary}) per year column
-  if (summaSheetRow >= 0) {
-    const excelFirst = firstDataSheetRow + 1;
-    const excelLast = lastNonSummarySheetRow + 1;
+    // Number formatting for currency/count columns
     for (let c = YEAR_COL_START; c <= YEAR_COL_END; c++) {
-      const col = XLSX.utils.encode_col(c);
-      const addr = XLSX.utils.encode_cell({ r: summaSheetRow, c });
-      ws[addr] = { f: `SUM(${col}${excelFirst}:${col}${excelLast})`, t: 'n' };
+      wsRow.getCell(c).numFmt = '#,##0';
+    }
+    wsRow.getCell(5).numFmt = '#,##0'; // a-pris
+    wsRow.getCell(6).numFmt = '#,##0'; // antal
+    wsRow.getCell(TOTAL_COL).numFmt = '#,##0';
+
+    // Grid borders on all cells
+    for (let c = 1; c <= TOTAL_COLS; c++) {
+      wsRow.getCell(c).border = { bottom: thinBorder, right: thinBorder };
+    }
+
+    // Row-type-specific styling
+    if (r.rowType === 'section') {
+      wsRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      for (let c = 1; c <= TOTAL_COLS; c++) wsRow.getCell(c).fill = sectionFill;
+      wsRow.height = 24;
+    } else if (r.rowType === 'subsection') {
+      wsRow.font = { bold: true, size: 10 };
+      for (let c = 1; c <= TOTAL_COLS; c++) wsRow.getCell(c).fill = subsectionFill;
+      wsRow.getCell(1).border = {
+        left: { style: 'medium', color: { argb: 'FF1565C0' } },
+        bottom: thinBorder, right: thinBorder,
+      };
+    } else if (r.rowType === 'summary') {
+      wsRow.font = { bold: true };
+      if (r.byggdel === 'Summa beräknad kostnad') {
+        summaExcelRow = excelRow;
+        for (let c = 1; c <= TOTAL_COLS; c++) {
+          wsRow.getCell(c).fill = summaFill;
+          wsRow.getCell(c).border = {
+            top: { style: 'medium', color: { argb: 'FF90A4AE' } },
+            bottom: thinBorder, right: thinBorder,
+          };
+        }
+      } else if (r.byggdel === 'Osäkerhet') {
+        osakExcelRow = excelRow;
+        wsRow.font = { italic: true };
+      } else if (r.byggdel === 'Totalt inkl osäkerhet' || r.byggdel === 'Totalt inkl moms') {
+        totaltExcelRow = excelRow;
+        wsRow.font = { bold: true };
+        for (let c = 1; c <= TOTAL_COLS; c++) {
+          wsRow.getCell(c).fill = totaltFill;
+          wsRow.getCell(c).border = {
+            top: { style: 'thin', color: { argb: 'FF90A4AE' } },
+            bottom: { style: 'medium', color: { argb: 'FF1565C0' } },
+            right: thinBorder,
+          };
+        }
+      }
+    } else if (r.rowType === 'item') {
+      if (itemIndex % 2 === 1) {
+        for (let c = 1; c <= TOTAL_COLS; c++) wsRow.getCell(c).fill = altRowFill;
+      }
+      itemIndex++;
+    }
+
+    // Track non-summary rows for Summa formula range
+    if (r.rowType !== 'summary' && r.rowType !== 'blank') {
+      lastNonSummaryExcelRow = excelRow;
     }
   }
 
-  // 3. Osäkerhet row: =SummaCell * percentage
-  if (osakSheetRow >= 0 && summaSheetRow >= 0) {
+  // -----------------------------------------------------------------------
+  // Summary formulas (overwrite value cells with formulas)
+  // -----------------------------------------------------------------------
+  if (summaExcelRow > 0) {
+    for (let c = YEAR_COL_START; c <= YEAR_COL_END; c++) {
+      const col = colLetter(c);
+      ws.getRow(summaExcelRow).getCell(c).value = {
+        formula: `SUM(${col}${firstDataExcelRow}:${col}${lastNonSummaryExcelRow})`, result: 0,
+      } as ExcelJS.CellFormulaValue;
+    }
+  }
+
+  if (osakExcelRow > 0 && summaExcelRow > 0) {
     const pctMatch = rows.find(r => r.rowType === 'summary' && r.byggdel === 'Osäkerhet')?.atgard.match(/(\d+)/);
     const pctValue = pctMatch ? parseInt(pctMatch[1], 10) / 100 : 0;
-    const summaExcelRow = summaSheetRow + 1;
     for (let c = YEAR_COL_START; c <= YEAR_COL_END; c++) {
-      const col = XLSX.utils.encode_col(c);
-      const addr = XLSX.utils.encode_cell({ r: osakSheetRow, c });
-      ws[addr] = { f: `ROUND(${col}${summaExcelRow}*${pctValue},0)`, t: 'n' };
+      const col = colLetter(c);
+      ws.getRow(osakExcelRow).getCell(c).value = {
+        formula: `ROUND(${col}${summaExcelRow}*${pctValue},0)`, result: 0,
+      } as ExcelJS.CellFormulaValue;
     }
   }
 
-  // 4. Totalt row: =Summa + Osäkerhet
-  if (totaltSheetRow >= 0 && summaSheetRow >= 0 && osakSheetRow >= 0) {
-    const summaExcelRow = summaSheetRow + 1;
-    const osakExcelRow = osakSheetRow + 1;
+  if (totaltExcelRow > 0 && summaExcelRow > 0 && osakExcelRow > 0) {
     for (let c = YEAR_COL_START; c <= YEAR_COL_END; c++) {
-      const col = XLSX.utils.encode_col(c);
-      const addr = XLSX.utils.encode_cell({ r: totaltSheetRow, c });
-      ws[addr] = { f: `${col}${summaExcelRow}+${col}${osakExcelRow}`, t: 'n' };
+      const col = colLetter(c);
+      ws.getRow(totaltExcelRow).getCell(c).value = {
+        formula: `${col}${summaExcelRow}+${col}${osakExcelRow}`, result: 0,
+      } as ExcelJS.CellFormulaValue;
     }
   }
+
+  // Auto-filter on header row
+  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: TOTAL_COLS } };
+
+  const buffer = await wb.xlsx.writeBuffer();
+  return buffer as ArrayBuffer;
 }
 
 // ---------------------------------------------------------------------------

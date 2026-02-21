@@ -338,7 +338,7 @@ describe('parseExcelFile – row classification', () => {
     expect(item!.isLocked).toBe(false);
   });
 
-  test('all imported rows get status "planned"', () => {
+  test('all imported rows get empty status', () => {
     const header = ['Nr', 'Byggdel', 'Åtgärd', 2026];
     const rows = [
       ['1', 'Utvändigt', '', null],
@@ -347,7 +347,7 @@ describe('parseExcelFile – row classification', () => {
     const buf = makeExcelBuffer([header, ...rows]);
     const result = parseExcelFile(buf);
     for (const r of result.rows) {
-      expect(r.status).toBe('planned');
+      expect(r.status).toBe('');
     }
   });
 });

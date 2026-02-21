@@ -97,9 +97,9 @@ describe('Seed data – structure', () => {
     }
   });
 
-  test('all rows have status "planned"', () => {
+  test('all rows have status "" (empty string)', () => {
     for (const r of rows) {
-      expect(r.status).toBe('planned');
+      expect(r.status).toBe('');
     }
   });
 
@@ -139,16 +139,16 @@ describe('Seed data – specific values', () => {
     expect(balkonger!.year_2027).toBe(125000);
   });
 
-  test('Byte takfönster E F G has correct a_pris and antal', () => {
-    const takfonster = rows.find(r => r.atgard === 'Byte takfönster lägenhet E F G');
+  test('Takfönster Byte has correct a_pris and antal', () => {
+    const takfonster = rows.find(r => r.byggdel === 'Takfönster' && r.atgard === 'Byte');
     expect(takfonster).toBeDefined();
     expect(takfonster!.a_pris).toBe(27500);
     expect(takfonster!.antal).toBe(12);
     expect(takfonster!.year_2028).toBe(330000);
   });
 
-  test('Övriga fönster has costs in 2028 and 2029', () => {
-    const item = rows.find(r => r.atgard === 'Övriga fönster');
+  test('Fönster (övriga) Byte has costs in 2028 and 2029', () => {
+    const item = rows.find(r => r.byggdel === 'Fönster (övriga)' && r.atgard === 'Byte');
     expect(item).toBeDefined();
     expect(item!.year_2028).toBe(250000);
     expect(item!.year_2029).toBe(250000);
@@ -166,15 +166,15 @@ describe('Seed data – specific values', () => {
     expect(item!.year_2031).toBe(250000);
   });
 
-  test('Rensning stuprännor has costs in 2026 and 2029', () => {
-    const item = rows.find(r => r.atgard === 'Rensning stuprännor');
+  test('Takavvattning Rensning has costs in 2026 and 2029', () => {
+    const item = rows.find(r => r.byggdel === 'Takavvattning' && r.atgard === 'Rensning');
     expect(item).toBeDefined();
     expect(item!.year_2026).toBe(10000);
     expect(item!.year_2029).toBe(12000);
   });
 
-  test('Avrining Tinas lägenhet has cost in 2026', () => {
-    const item = rows.find(r => r.atgard === 'Avrining Tinas lägenhet');
+  test('Avrinning Åtgärd has cost in 2026', () => {
+    const item = rows.find(r => r.byggdel === 'Avrinning' && r.atgard === 'Åtgärd');
     expect(item).toBeDefined();
     expect(item!.year_2026).toBe(12000);
   });
@@ -185,22 +185,22 @@ describe('Seed data – specific values', () => {
     expect(item!.year_2032).toBe(150000);
   });
 
-  test('Tvättstuga byte maskiner has costs in 2026 and 2028', () => {
-    const item = rows.find(r => r.atgard === 'Byte maskiner');
+  test('Tvättmaskiner Byte has costs in 2026 and 2028', () => {
+    const item = rows.find(r => r.byggdel === 'Tvättmaskiner' && r.atgard === 'Byte');
     expect(item).toBeDefined();
     expect(item!.year_2026).toBe(60000);
     expect(item!.year_2028).toBe(60000);
     expect(item!.antal).toBe(10);
   });
 
-  test('OVK has cost in 2029', () => {
-    const item = rows.find(r => r.atgard === 'OVK (obligatorisk ventilationskontroll)');
+  test('Obligatorisk ventilationskontroll has cost in 2029', () => {
+    const item = rows.find(r => r.atgard === 'Obligatorisk ventilationskontroll');
     expect(item).toBeDefined();
     expect(item!.year_2029).toBe(20000);
   });
 
-  test('Uppgradering värmesystem has cost in 2030', () => {
-    const item = rows.find(r => r.atgard === 'Uppgradering värmesystem');
+  test('Värmesystem Uppgradering has cost in 2030', () => {
+    const item = rows.find(r => r.byggdel === 'Värmesystem' && r.atgard === 'Uppgradering');
     expect(item).toBeDefined();
     expect(item!.year_2030).toBe(150000);
   });
@@ -355,11 +355,11 @@ describe('Seed data – lagkrav detection', () => {
     expect(atgarder.some(a => a.includes('brandskydd') || a.includes('sba'))).toBe(true);
   });
 
-  test('also finds OVK item in section 3 (via keyword)', () => {
+  test('finds OVK item in section 4 (Obligatorisk ventilationskontroll)', () => {
     const { rows } = createDefaultPlanData();
     const lagkrav = getLagkravItems(rows);
-    // The OVK item in section 3.2 has "OVK (obligatorisk ventilationskontroll)" in atgard
-    const ovkItems = lagkrav.filter(r => r.atgard.toLowerCase().includes('ovk'));
+    // The OVK item in section 4.7 has "Obligatorisk ventilationskontroll" in atgard
+    const ovkItems = lagkrav.filter(r => r.atgard.toLowerCase().includes('ventilationskontroll'));
     expect(ovkItems.length).toBeGreaterThanOrEqual(1);
   });
 });

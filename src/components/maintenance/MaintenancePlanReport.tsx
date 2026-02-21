@@ -39,7 +39,6 @@ import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AddIcon from '@mui/icons-material/Add';
-import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -51,18 +50,15 @@ import {
 } from '../../services/maintenancePlanService';
 import {
   COLUMN_HEADERS,
-  COLUMN_WIDTHS,
-  FIELD_KEYS,
   computeRowTotal,
   recalcSummaryRows,
   buildByggdelMap,
   buildExportRows,
   exportDataToTsv,
   exportDataToCsv,
-  applyExcelFormulas,
+  exportToExcelBuffer,
   normalizeRowText,
   validatePlanRow,
-  validatePlanData,
   RowValidation,
 } from './maintenancePlanHelpers';
 
@@ -230,6 +226,13 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
     }
     return ids;
   });
+  const [collapsedSubsections, setCollapsedSubsections] = useState<Set<string>>(() => {
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (r.rowType === 'subsection') ids.add(r.id);
+    }
+    return ids;
+  });
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ rowId: string; yearCol: string } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -260,6 +263,22 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
         next.delete(sectionId);
       } else {
         next.add(sectionId);
+      }
+      return next;
+    });
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Subsection collapse toggle
+  // ---------------------------------------------------------------------------
+
+  const toggleSubsection = useCallback((subsectionId: string) => {
+    setCollapsedSubsections(prev => {
+      const next = new Set(prev);
+      if (next.has(subsectionId)) {
+        next.delete(subsectionId);
+      } else {
+        next.add(subsectionId);
       }
       return next;
     });
@@ -628,64 +647,44 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   // Excel export (same logic as existing spreadsheet)
   // ---------------------------------------------------------------------------
 
-  const handleExportExcel = useCallback(() => {
-    // Validate before export — block on errors
-    const issues = validatePlanData(rows, 'export');
-    const blocking = issues.filter(i => i.severity === 'error');
-    if (blocking.length > 0) {
-      onNotify?.(`${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan export.`, 'error');
-      return;
+  const handleExportExcel = useCallback(async () => {
+    // Filter out empty WIP items (no byggdel and no atgard) instead of blocking export
+    const exportRows = rows.filter(r => {
+      if (r.rowType !== 'item') return true; // keep sections, subsections, summaries
+      return r.byggdel.trim() !== '' || r.atgard.trim() !== '';
+    });
+
+    const skipped = rows.length - exportRows.length;
+    if (skipped > 0) {
+      onNotify?.(`${skipped} tomma rad(er) hoppades \u00f6ver i exporten.`, 'info');
     }
 
-    const wb = XLSX.utils.book_new();
-    const wsData: (string | number | null)[][] = [];
-
-    wsData.push(['Underh\u00e5llsplan 2026\u20132035']);
-    wsData.push(['Brf Gulm\u00e5ran']);
-    wsData.push([`Exporterad: ${new Date().toISOString().slice(0, 10)}`]);
-    wsData.push([]);
-    wsData.push(COLUMN_HEADERS);
-
-    for (const row of rows) {
-      const cells: (string | number | null)[] = [];
-      for (const key of FIELD_KEYS) {
-        if (key === 'total') {
-          cells.push(computeRowTotal(row));
-        } else {
-          const val = row[key];
-          if (val === null || val === undefined) {
-            cells.push(null);
-          } else if (typeof val === 'boolean') {
-            cells.push(null);
-          } else {
-            cells.push(val as string | number);
-          }
-        }
-      }
-      wsData.push(cells);
+    try {
+      const buffer = await exportToExcelBuffer(exportRows);
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `underhallsplan-gulmaran-${today}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      onNotify?.('Excel-export misslyckades.', 'error');
     }
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = COLUMN_WIDTHS.map(w => ({ wch: Math.round(w / 7) }));
-    applyExcelFormulas(ws, rows, 4); // header row is at 0-indexed row 4
-    XLSX.utils.book_append_sheet(wb, ws, 'Underh\u00e5llsplan');
-
-    const today = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `underhallsplan-gulmaran-${today}.xlsx`);
-  }, [rows]);
+  }, [rows, onNotify]);
 
   // ---------------------------------------------------------------------------
   // Copy to clipboard (TSV – for Google Sheets paste)
   // ---------------------------------------------------------------------------
 
   const handleCopyToClipboard = useCallback(async () => {
-    const issues = validatePlanData(rows, 'export');
-    const blocking = issues.filter(i => i.severity === 'error');
-    if (blocking.length > 0) {
-      onNotify?.(`${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan export.`, 'error');
-      return;
-    }
-    const data = buildExportRows(rows);
+    const exportRows = rows.filter(r => {
+      if (r.rowType !== 'item') return true;
+      return r.byggdel.trim() !== '' || r.atgard.trim() !== '';
+    });
+    const data = buildExportRows(exportRows);
     const tsv = exportDataToTsv(data);
     try {
       await navigator.clipboard.writeText(tsv);
@@ -700,13 +699,11 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
   // ---------------------------------------------------------------------------
 
   const handleExportCsv = useCallback(() => {
-    const issues = validatePlanData(rows, 'export');
-    const blocking = issues.filter(i => i.severity === 'error');
-    if (blocking.length > 0) {
-      onNotify?.(`${blocking.length} rad(er) saknar byggdel/åtgärd — åtgärda innan export.`, 'error');
-      return;
-    }
-    const data = buildExportRows(rows);
+    const exportRows = rows.filter(r => {
+      if (r.rowType !== 'item') return true;
+      return r.byggdel.trim() !== '' || r.atgard.trim() !== '';
+    });
+    const data = buildExportRows(exportRows);
     const csv = exportDataToCsv(data);
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM for Swedish chars
     const url = URL.createObjectURL(blob);
@@ -1385,45 +1382,61 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                 )}
 
                 {/* Subsections */}
-                {section.subsections.map(sub => (
-                  <Box key={sub.subsectionRow.id} sx={{ mt: 0.5 }}>
-                    {/* Subsection header */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        px: { xs: 1.5, sm: 3 },
-                        py: 1,
-                        bgcolor: '#eceff1',
-                        borderTop: '1px solid',
-                        borderColor: 'divider',
-                        borderLeft: '3px solid',
-                        borderLeftColor: 'primary.light',
-                      }}
-                    >
-                      <Typography variant="body2" fontWeight={700} color="text.primary">
-                        {sub.subsectionRow.byggdel}
-                      </Typography>
-                    </Box>
-
-                    {/* Subsection items */}
-                    <Box sx={{ pl: { xs: 0.5, sm: 2 }, pr: { xs: 0, sm: 1 } }}>
-                      {renderItemsTable(sub.items)}
-                    </Box>
-
-                    {/* Add item to this subsection */}
-                    <Box sx={{ pl: { xs: 2, sm: 4 }, py: 0.5 }}>
-                      <Button
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => handleAddItem(sub.subsectionRow.id)}
-                        sx={{ textTransform: 'none', color: 'text.disabled', fontSize: '0.75rem', '&:hover': { color: 'text.secondary' } }}
+                {section.subsections.map(sub => {
+                  const subId = sub.subsectionRow.id;
+                  const isSubCollapsed = collapsedSubsections.has(subId);
+                  return (
+                    <Box key={subId} sx={{ mt: 0.5 }}>
+                      {/* Subsection header */}
+                      <Box
+                        onClick={() => toggleSubsection(subId)}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          px: { xs: 1.5, sm: 3 },
+                          py: 1,
+                          bgcolor: '#eceff1',
+                          borderTop: '1px solid',
+                          borderColor: 'divider',
+                          borderLeft: '3px solid',
+                          borderLeftColor: 'primary.light',
+                          cursor: 'pointer',
+                          '&:hover': { bgcolor: '#cfd8dc' },
+                          transition: 'background-color 0.15s',
+                        }}
                       >
-                        Lägg till
-                      </Button>
+                        <IconButton size="small" sx={{ mr: 0.5, p: 0.25 }}>
+                          {isSubCollapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                        </IconButton>
+                        <Typography variant="body2" fontWeight={700} color="text.primary">
+                          {sub.subsectionRow.byggdel}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                          ({sub.items.length})
+                        </Typography>
+                      </Box>
+
+                      {/* Subsection items (collapsible) */}
+                      <Collapse in={!isSubCollapsed} timeout="auto" unmountOnExit>
+                        <Box sx={{ pl: { xs: 0.5, sm: 2 }, pr: { xs: 0, sm: 1 } }}>
+                          {renderItemsTable(sub.items)}
+                        </Box>
+
+                        {/* Add item to this subsection */}
+                        <Box sx={{ pl: { xs: 2, sm: 4 }, py: 0.5 }}>
+                          <Button
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={() => handleAddItem(sub.subsectionRow.id)}
+                            sx={{ textTransform: 'none', color: 'text.disabled', fontSize: '0.75rem', '&:hover': { color: 'text.secondary' } }}
+                          >
+                            Lägg till
+                          </Button>
+                        </Box>
+                      </Collapse>
                     </Box>
-                  </Box>
-                ))}
+                  );
+                })}
               </Box>
             </Collapse>
           </Paper>
