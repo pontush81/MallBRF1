@@ -100,6 +100,9 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addDialogYear, setAddDialogYear] = useState<string>('');
 
+  // Fill empty years
+  const [fillAllValue, setFillAllValue] = useState('');
+
   // ---------------------------------------------------------------------------
   // Derived data
   // ---------------------------------------------------------------------------
@@ -282,6 +285,38 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
   }, [setRows, setIsDirty]);
 
   // ---------------------------------------------------------------------------
+  // Fill empty years with a uniform value
+  // ---------------------------------------------------------------------------
+
+  const handleFillEmptyYears = useCallback(
+    (rowId: string) => {
+      const parsed = fillAllValue.trim() === ''
+        ? null
+        : parseFloat(fillAllValue.replace(/\s/g, '').replace(',', '.'));
+      const numVal = parsed !== null && !isNaN(parsed) ? Math.round(parsed) : null;
+      if (numVal === null) return;
+
+      setRows(prevRows => {
+        const newRows = prevRows.map(r => {
+          if (r.id !== rowId) return r;
+          const updated = { ...r };
+          for (const yc of YEAR_COLUMNS) {
+            const current = updated[yc] as number | null;
+            if (current === null || current === undefined || current === 0) {
+              (updated as unknown as Record<string, number | null>)[yc] = numVal;
+            }
+          }
+          return updated;
+        });
+        setIsDirty(true);
+        return recalcSummaryRows(newRows);
+      });
+      setFillAllValue('');
+    },
+    [fillAllValue, setRows, setIsDirty],
+  );
+
+  // ---------------------------------------------------------------------------
   // Render: year box in expanded item detail
   // ---------------------------------------------------------------------------
 
@@ -440,9 +475,41 @@ const MaintenancePlanYearView: React.FC<YearViewProps> = ({ rows, setRows, setIs
             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
               <Box sx={{ px: 3, py: 2, bgcolor: '#fafafa' }}>
                 {/* Year boxes for ALL 10 years */}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
                   {YEAR_COLUMNS.map(yc => renderYearBox(item.row, yc))}
                 </Box>
+
+                {/* Fill empty years */}
+                {YEAR_COLUMNS.some(yc => {
+                  const v = item.row[yc] as number | null;
+                  return v === null || v === undefined || v === 0;
+                }) && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <TextField
+                      size="small"
+                      placeholder="Belopp"
+                      value={fillAllValue}
+                      onChange={e => setFillAllValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleFillEmptyYears(item.row.id);
+                        }
+                      }}
+                      inputProps={{ style: { fontSize: '0.8125rem' } }}
+                      sx={{ width: 120 }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleFillEmptyYears(item.row.id)}
+                      disabled={fillAllValue.trim() === ''}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+                    >
+                      Fyll tomma år
+                    </Button>
+                  </Box>
+                )}
 
                 {/* Meta info */}
                 <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>

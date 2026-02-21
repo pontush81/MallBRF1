@@ -113,14 +113,9 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows })
         <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           {fmtKr(totalInklOsakerhet)}
         </Typography>
-        <Box>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-            2026–2035
-          </Typography>
-          <Typography variant="caption" color="text.disabled">
-            exkl. osäkerhet: {fmtKr(grandTotal)}
-          </Typography>
-        </Box>
+        <Typography variant="caption" color="text.disabled">
+          exkl. osäkerhet: {fmtKr(grandTotal)}
+        </Typography>
       </Box>
 
       {/* Collapsible content */}

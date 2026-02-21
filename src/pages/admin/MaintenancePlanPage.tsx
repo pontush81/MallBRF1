@@ -158,7 +158,7 @@ const MaintenancePlanPage: React.FC = () => {
       if (saved) {
         setVersion(saved.version);
         setIsDirty(false);
-        setSnackbar({ open: true, message: `Sparad v${saved.version}`, severity: 'success' });
+        setSnackbar({ open: true, message: 'Sparad', severity: 'success' });
       } else {
         setSnackbar({ open: true, message: 'Kunde inte spara', severity: 'error' });
       }
@@ -297,14 +297,9 @@ const MaintenancePlanPage: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Underhållsplan 2026–2035
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle1" color="text.secondary">
-            Brf Gulmåran &middot; Version {version}
-          </Typography>
-          {isDirty && (
-            <Chip label="Osparade ändringar" color="warning" size="small" />
-          )}
-        </Box>
+        {isDirty && (
+          <Chip label="Osparade ändringar" color="warning" size="small" />
+        )}
       </Box>
 
       {/* Summary (collapsible) */}

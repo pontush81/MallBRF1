@@ -1,4 +1,4 @@
-import { safeGetSession } from './supabaseClient';
+import { safeGetSession, supabaseClient } from './supabaseClient';
 
 const SUPABASE_URL = 'https://qhdgqevdmvkrwnzpwikz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk';
@@ -65,24 +65,33 @@ export const VISIBLE_COLUMNS = [
 
 // --- REST helper ---
 
-async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 30000) {
-  let authToken: string | null = null;
+async function getAuthToken(): Promise<string | null> {
   try {
     const { data: { session } } = await safeGetSession();
     if (session?.access_token) {
-      authToken = session.access_token;
+      return session.access_token;
     }
   } catch (error) {
     console.error('Failed to get session:', error);
   }
+  return null;
+}
 
-  if (!authToken && method !== 'GET') {
-    throw new Error('Authentication required for write operations');
+async function refreshAuthToken(): Promise<string | null> {
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.refreshSession();
+    if (error) {
+      console.error('Failed to refresh session:', error);
+      return null;
+    }
+    return session?.access_token ?? null;
+  } catch (error) {
+    console.error('Failed to refresh session:', error);
+    return null;
   }
-  if (!authToken) {
-    authToken = SUPABASE_ANON_KEY;
-  }
+}
 
+async function doFetch(method: string, endpoint: string, authToken: string, body?: any, timeout: number = 30000) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
     method,
     headers: {
@@ -94,6 +103,29 @@ async function directRestCall(method: string, endpoint: string, body?: any, time
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(timeout)
   });
+  return response;
+}
+
+async function directRestCall(method: string, endpoint: string, body?: any, timeout: number = 30000) {
+  let authToken = await getAuthToken();
+
+  if (!authToken && method !== 'GET') {
+    throw new Error('Authentication required for write operations');
+  }
+  if (!authToken) {
+    authToken = SUPABASE_ANON_KEY;
+  }
+
+  let response = await doFetch(method, endpoint, authToken, body, timeout);
+
+  // On 401, try refreshing the token and retry once
+  if (response.status === 401) {
+    const newToken = await refreshAuthToken();
+    if (newToken) {
+      authToken = newToken;
+      response = await doFetch(method, endpoint, authToken, body, timeout);
+    }
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

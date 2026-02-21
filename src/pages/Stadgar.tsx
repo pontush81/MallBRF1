@@ -24,6 +24,12 @@ import {
   VpnKey as VpnKeyIcon,
   Email as EmailIcon,
   CalendarMonth as CalendarMonthIcon,
+  MeetingRoom as MeetingRoomIcon,
+  PersonAdd as PersonAddIcon,
+  Handyman as HandymanIcon,
+  Warning as WarningIcon,
+  Block as BlockIcon,
+  EditNote as EditNoteIcon,
 } from '@mui/icons-material';
 import { bastadTheme } from '../theme/bastadTheme';
 import CompactHero from '../components/common/CompactHero';
@@ -64,7 +70,9 @@ const stadgarSections: StadgarSection[] = [
     title: 'Avgifter – översikt',
     body: [
       'Medlemmar betalar avgifter till föreningen för att täcka kostnader för drift, underhåll och förvaltning.',
-      'Beslut om avgifter fattas enligt föreningens stadgar av föreningsstämman eller styrelsen.',
+      'Årsavgiften fördelas efter lägenheternas andelstal. Beslut om ändring av andelstal fattas av föreningsstämman.',
+      'Vid överlåtelse tas en överlåtelseavgift ut på högst 2,5 % av prisbasbeloppet. Vid pantsättning tas en pantsättningsavgift ut på högst 1 % av prisbasbeloppet.',
+      'Om avgifter inte betalas i tid har föreningen rätt att ta ut dröjsmålsränta samt påminnelseavgift enligt gällande lagstiftning.',
     ],
     icon: <PaymentsIcon />,
     color: bastadTheme.colors.terracotta[500],
@@ -75,9 +83,9 @@ const stadgarSections: StadgarSection[] = [
     body: [
       'Föreningsstämman är föreningens högsta beslutande organ.',
       'Ordinarie stämma hålls senast i juni varje år.',
-      'Motioner ska lämnas senast den 1 februari.',
+      'Motioner ska lämnas senast den 1 februari, eller inom den senare tidpunkt styrelsen beslutar.',
       'Varje medlem har en röst, oavsett antal lägenheter.',
-      'Du kan företrädas av ombud med skriftlig fullmakt.',
+      'Du kan företrädas av ombud med skriftlig fullmakt. Ett ombud får företräda högst två medlemmar. Ombud kan vara familjemedlem, sambo, närstående eller god man.',
       'Kallelse skickas ut 2–6 veckor före stämman.',
     ],
     icon: <HowToVoteIcon />,
@@ -87,8 +95,10 @@ const stadgarSections: StadgarSection[] = [
     id: 'styrelse',
     title: 'Styrelse och ansvar',
     body: [
+      'Styrelsen består av minst tre och högst sju ledamöter med högst tre suppleanter. Styrelsen väljs av föreningsstämman.',
       'Styrelsen ansvarar för den löpande förvaltningen av föreningen och företräder föreningen utåt.',
       'Styrelsen verkställer beslut fattade av föreningsstämman och ansvarar för att gällande lagar och stadgar följs.',
+      'Föreningens firma tecknas – förutom av styrelsen – av minst två ledamöter tillsammans.',
     ],
     icon: <BusinessCenterIcon />,
     color: bastadTheme.colors.twilight[500],
@@ -110,17 +120,29 @@ const stadgarSections: StadgarSection[] = [
       'Du som bostadsrättshavare ansvarar för ytskikt på väggar, golv och tak, innerdörrar, fönsterbeslag, lås och nycklar, el från säkringsskåp, vitvaror, sanitetsporslin och brandvarnare.',
       'I våtrum ansvarar du även för tätskikt, golvbrunn och tvättmaskin. I kök för vitvaror, köksfläkt och diskmaskin.',
       'Föreningen ansvarar för fastighetens gemensamma delar, byggnadens yttre samt stamledningar för vatten och avlopp.',
-      'Balkong och altan: Du ansvarar för renhållning och snöskottning.',
+      'Balkong och altan: Du ansvarar för renhållning och snöskottning samt att avledning för dagvatten inte hindras.',
+      'Du är skyldig att anmäla fel och brister i lägenheten till föreningen (felanmälan).',
     ],
     icon: <HomeIcon />,
     color: bastadTheme.colors.terracotta[500],
+  },
+  {
+    id: 'ovriga-anordningar',
+    title: 'Övriga anordningar',
+    body: [
+      'Anordningar som värmepumpar, inglasning, markiser, belysningsarmaturer, solskydd, parabolantenner och liknande får sättas upp endast efter föreningens godkännande.',
+      'Bostadsrättshavaren svarar för skötsel och underhåll av sådana anordningar.',
+      'Om det behövs för husets underhåll eller för att fullgöra myndighetsbeslut kan föreningen begära att anordningar demonteras på bostadsrättshavarens bekostnad.',
+    ],
+    icon: <HandymanIcon />,
+    color: bastadTheme.colors.seagreen[500],
   },
   {
     id: 'forandringar',
     title: 'Förändringar och renovering',
     body: [
       'Styrelsens tillstånd krävs för ingrepp i bärande konstruktion, ändring av ledningar för avlopp, värme, gas eller vatten, samt annan väsentlig förändring av lägenheten.',
-      'Styrelsen får endast neka om åtgärden är till påtaglig skada för föreningen.',
+      'Styrelsen får endast neka om åtgärden är till påtaglig skada eller olägenhet för föreningen.',
       'Alla förändringar ska utföras fackmässigt och du ansvarar för att inhämta eventuella myndighetstillstånd.',
     ],
     icon: <BuildIcon />,
@@ -131,10 +153,39 @@ const stadgarSections: StadgarSection[] = [
     title: 'Användning av bostaden',
     body: [
       'Lägenheten ska användas för sitt avsedda ändamål.',
-      'Sundhet, ordning och gott skick ska upprätthållas.',
+      'Sundhet, ordning och gott skick ska upprätthållas – detta gäller även hushållet, gäster och hantverkare.',
+      'Ohyra får inte föras in i lägenheten.',
     ],
     icon: <ApartmentIcon />,
     color: bastadTheme.colors.twilight[500],
+  },
+  {
+    id: 'vanvard',
+    title: 'Vanvård',
+    body: [
+      'Om du som bostadsrättshavare försummar ditt ansvar för lägenhetens skick i sådan utsträckning att annans säkerhet äventyras eller att det finns risk för omfattande skador, har föreningen efter rättelseanmaning rätt att åtgärda bristen på din bekostnad.',
+    ],
+    icon: <WarningIcon />,
+    color: bastadTheme.colors.terracotta[500],
+  },
+  {
+    id: 'tilltradesratt',
+    title: 'Tillträdesrätt',
+    body: [
+      'Företrädare för föreningen har rätt att få komma in i lägenheten när det behövs för tillsyn eller för att utföra arbete som föreningen svarar för eller har rätt att utföra.',
+      'Om du inte lämnar tillträde till lägenheten kan styrelsen ansöka om särskild handräckning hos kronofogdemyndigheten.',
+    ],
+    icon: <MeetingRoomIcon />,
+    color: bastadTheme.colors.ocean[600],
+  },
+  {
+    id: 'inneboende',
+    title: 'Inneboende',
+    body: [
+      'Du får inte låta utomstående personer bo i lägenheten om det kan medföra olägenhet för föreningen eller annan medlem.',
+    ],
+    icon: <PersonAddIcon />,
+    color: bastadTheme.colors.seagreen[500],
   },
   {
     id: 'andrahandsuthyrning',
@@ -147,6 +198,17 @@ const stadgarSections: StadgarSection[] = [
     ],
     icon: <VpnKeyIcon />,
     color: bastadTheme.colors.seagreen[500],
+  },
+  {
+    id: 'forverkande',
+    title: 'Förverkande av bostadsrätt',
+    body: [
+      'Under vissa omständigheter kan nyttjanderätten till lägenheten förverkas – exempelvis vid utebliven betalning av avgifter, otillåten andrahandsuthyrning, vanvård, eller om lägenheten används i strid med sitt ändamål.',
+      'Föreningen ska normalt först uppmana bostadsrättshavaren att vidta rättelse innan föreningen har rätt att säga upp bostadsrätten.',
+      'Närmare regler om förverkande finns i bostadsrättslagen.',
+    ],
+    icon: <BlockIcon />,
+    color: bastadTheme.colors.terracotta[500],
   },
   {
     id: 'kommunikation',
@@ -162,9 +224,22 @@ const stadgarSections: StadgarSection[] = [
     title: 'Underhåll och långsiktig planering',
     body: [
       'Föreningen arbetar långsiktigt med fastighetens underhåll och planering.',
+      'Inom föreningen bildas en fond för yttre underhåll. Avsättningen ska vara minst 50 kr per kvadratmeter bostadsarea (BOA) per år.',
+      'Styrelsen ska årligen upprätta en budget för att säkerställa behövliga medel för att trygga underhållet av föreningens hus.',
     ],
     icon: <CalendarMonthIcon />,
     color: bastadTheme.colors.ocean[700],
+  },
+  {
+    id: 'stadgeandring',
+    title: 'Stadgeändring',
+    body: [
+      'Föreningens stadgar kan ändras om samtliga röstberättigade är ense om det, eller genom beslut på två på varandra följande föreningsstämmor.',
+      'Den första stämmans beslut kräver enkel majoritet. Den andra stämman kräver att minst två tredjedelar av de röstande går med på beslutet.',
+      'Bostadsrättslagen kan för vissa beslut föreskriva högre majoritetskrav.',
+    ],
+    icon: <EditNoteIcon />,
+    color: bastadTheme.colors.twilight[500],
   },
   {
     id: 'juridik',

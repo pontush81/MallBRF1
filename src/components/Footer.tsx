@@ -65,7 +65,7 @@ const Footer: React.FC = () => {
           }}
         >
           {/* Brand Section */}
-          <Box sx={{ maxWidth: 300 }}>
+          <Box sx={{ maxWidth: 360 }}>
             <Typography
               variant="h6"
               sx={{
