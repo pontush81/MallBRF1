@@ -90,7 +90,8 @@ interface ReportProps {
 type ChipColor = 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
 
 const STATUS_OPTIONS: { value: PlanRowStatus; label: string; color: ChipColor; variant: 'filled' | 'outlined' }[] = [
-  { value: 'planned', label: 'Planerad', color: 'default', variant: 'outlined' },
+  { value: '', label: '\u2013', color: 'default', variant: 'outlined' },
+  { value: 'planned', label: 'Planerad', color: 'info', variant: 'filled' },
   { value: 'in_progress', label: 'Pågår', color: 'warning', variant: 'filled' },
   { value: 'completed', label: 'Utförd', color: 'success', variant: 'filled' },
   { value: 'postponed', label: 'Försenad', color: 'error', variant: 'filled' },
@@ -547,7 +548,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
         sortIndex: 0,
         indentLevel: 2,
         isLocked: false,
-        status: 'planned',
+        status: '',
       };
 
       const newRows = [...prevRows];
@@ -612,7 +613,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
         sortIndex: 0,
         indentLevel: 0,
         isLocked: true,
-        status: 'planned',
+        status: '',
       };
 
       const newRows = [...prevRows];
@@ -973,7 +974,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
           {/* Status — hidden on mobile (visible in expanded view) */}
           <TableCell sx={{ width: 130, display: { xs: 'none', sm: 'table-cell' } }}>
             <Select
-              value={item.status || 'planned'}
+              value={item.status ?? ''}
               onChange={e => handleStatusChange(item.id, e.target.value as PlanRowStatus)}
               variant="standard"
               disableUnderline
@@ -1024,7 +1025,7 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                 <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1, mb: 2 }}>
                   <Typography variant="caption" color="text.secondary">Status:</Typography>
                   <Select
-                    value={item.status || 'planned'}
+                    value={item.status ?? ''}
                     onChange={e => handleStatusChange(item.id, e.target.value as PlanRowStatus)}
                     variant="standard"
                     disableUnderline
