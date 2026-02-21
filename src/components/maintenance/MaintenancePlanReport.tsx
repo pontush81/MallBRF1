@@ -1364,9 +1364,23 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
             <Collapse in={!isCollapsed} timeout="auto" unmountOnExit>
               <Box>
                 {/* Direct items (no subsection parent) */}
-                {section.directItems.length > 0 && (
-                  <Box sx={{ px: 1 }}>
-                    {renderItemsTable(section.directItems)}
+                {(section.directItems.length > 0 || section.subsections.length === 0) && (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Box sx={{ pl: { xs: 0.5, sm: 2 }, pr: { xs: 0, sm: 1 } }}>
+                      {renderItemsTable(section.directItems)}
+                    </Box>
+
+                    {/* Add item directly to section */}
+                    <Box sx={{ pl: { xs: 2, sm: 4 }, py: 0.5 }}>
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() => handleAddItem(section.sectionRow.id)}
+                        sx={{ textTransform: 'none', color: 'text.disabled', fontSize: '0.75rem', '&:hover': { color: 'text.secondary' } }}
+                      >
+                        Lägg till
+                      </Button>
+                    </Box>
                   </Box>
                 )}
 
@@ -1410,20 +1424,6 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                     </Box>
                   </Box>
                 ))}
-
-                {/* Add item directly to section (shown when no subsections exist) */}
-                {section.subsections.length === 0 && (
-                  <Box sx={{ pl: { xs: 2, sm: 4 }, py: 1 }}>
-                    <Button
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => handleAddItem(section.sectionRow.id)}
-                      sx={{ textTransform: 'none', color: 'text.disabled', fontSize: '0.75rem', '&:hover': { color: 'text.secondary' } }}
-                    >
-                      Lägg till
-                    </Button>
-                  </Box>
-                )}
               </Box>
             </Collapse>
           </Paper>
