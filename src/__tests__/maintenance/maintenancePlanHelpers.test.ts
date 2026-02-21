@@ -7,6 +7,8 @@ import {
   getLagkravItems,
   computeYearlyTotals,
   groupItemsByYear,
+  getSectionsAndSubsections,
+  getActionSuggestions,
   COLUMN_HEADERS,
   COLUMN_WIDTHS,
   FIELD_KEYS,
@@ -797,5 +799,90 @@ describe('groupItemsByYear', () => {
     const result = groupItemsByYear(rows);
     const y2026 = result.find(y => y.yearCol === 'year_2026')!;
     expect(y2026.items[0].byggdel).toBe('Fasader');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSectionsAndSubsections
+// ---------------------------------------------------------------------------
+
+describe('getSectionsAndSubsections', () => {
+  it('extracts sections with their subsections', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'sec1', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
+      makeRow({ id: 'sub1a', rowType: 'subsection', byggdel: 'Fasader' }),
+      makeRow({ id: 'item1', atgard: 'Målning', year_2026: 25000 }),
+      makeRow({ id: 'sub1b', rowType: 'subsection', byggdel: 'Fönster' }),
+      makeRow({ id: 'sec2', rowType: 'section', nr: '2', byggdel: 'Invändigt' }),
+      makeRow({ id: 'sub2a', rowType: 'subsection', byggdel: 'Tvättstuga' }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = getSectionsAndSubsections(rows);
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('sec1');
+    expect(result[0].label).toBe('1. Utvändigt');
+    expect(result[0].subsections).toHaveLength(2);
+    expect(result[0].subsections[0]).toEqual({ id: 'sub1a', label: 'Fasader' });
+    expect(result[0].subsections[1]).toEqual({ id: 'sub1b', label: 'Fönster' });
+    expect(result[1].subsections).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getActionSuggestions
+// ---------------------------------------------------------------------------
+
+describe('getActionSuggestions', () => {
+  it('returns unique suggestions from existing items', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'sec1', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
+      makeRow({ id: 'sub1', rowType: 'subsection', byggdel: 'Fasader' }),
+      makeRow({ id: 'a', atgard: 'Målning', byggdel: 'Sophus', year_2026: 25000, tek_livslangd: '10 år' }),
+      makeRow({ id: 'b', atgard: 'Plåtarbeten', byggdel: 'Ventilationsintag', year_2028: 88000 }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = getActionSuggestions(rows);
+    expect(result).toHaveLength(2);
+    expect(result[0].atgard).toBe('Målning');
+    expect(result[0].byggdel).toBe('Sophus');
+    expect(result[0].sectionId).toBe('sec1');
+    expect(result[0].subsectionId).toBe('sub1');
+    expect(result[0].amount).toBe(25000);
+    expect(result[0].latestYear).toBe('2026');
+    expect(result[0].tek_livslangd).toBe('10 år');
+  });
+
+  it('deduplicates by atgard+byggdel keeping latest year', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'sec1', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
+      makeRow({ id: 'sub1', rowType: 'subsection', byggdel: 'Fasader' }),
+      makeRow({ id: 'a', atgard: 'Målning', byggdel: 'Sophus', year_2026: 20000, year_2028: 25000 }),
+      ...makeSummaryRows(),
+    ];
+
+    const result = getActionSuggestions(rows);
+    expect(result).toHaveLength(1);
+    expect(result[0].latestYear).toBe('2028');
+    expect(result[0].amount).toBe(25000);
+  });
+
+  it('filters by subsectionId when provided', () => {
+    const rows: PlanRow[] = [
+      makeRow({ id: 'sec1', rowType: 'section', nr: '1', byggdel: 'Utvändigt' }),
+      makeRow({ id: 'sub1', rowType: 'subsection', byggdel: 'Fasader' }),
+      makeRow({ id: 'a', atgard: 'Målning', byggdel: 'Sophus', year_2026: 25000 }),
+      makeRow({ id: 'sub2', rowType: 'subsection', byggdel: 'Fönster' }),
+      makeRow({ id: 'b', atgard: 'Byte fönster', byggdel: 'Fönster', year_2028: 330000 }),
+      ...makeSummaryRows(),
+    ];
+
+    const filtered = getActionSuggestions(rows, 'sub1');
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].atgard).toBe('Målning');
+
+    const all = getActionSuggestions(rows);
+    expect(all).toHaveLength(2);
   });
 });

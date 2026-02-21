@@ -481,3 +481,94 @@ export function groupItemsByYear(rows: PlanRow[]): YearGroup[] {
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Add-action dialog helpers
+// ---------------------------------------------------------------------------
+
+export interface SectionInfo {
+  id: string;
+  label: string;
+  subsections: { id: string; label: string }[];
+}
+
+/** Extract sections and their subsections from plan rows. */
+export function getSectionsAndSubsections(rows: PlanRow[]): SectionInfo[] {
+  const sections: SectionInfo[] = [];
+  let current: SectionInfo | null = null;
+
+  for (const r of rows) {
+    if (r.rowType === 'section') {
+      if (current) sections.push(current);
+      current = {
+        id: r.id,
+        label: r.nr ? `${r.nr}. ${r.byggdel}` : r.byggdel,
+        subsections: [],
+      };
+    } else if (r.rowType === 'subsection' && current) {
+      current.subsections.push({ id: r.id, label: r.byggdel });
+    }
+  }
+  if (current) sections.push(current);
+
+  return sections;
+}
+
+export interface ActionSuggestion {
+  atgard: string;
+  byggdel: string;
+  sectionId: string;
+  subsectionId: string;
+  amount: number;
+  latestYear: string;
+  tek_livslangd: string;
+  utredningspunkter: string;
+}
+
+/** Build template suggestions from existing item rows. Optionally filter by subsectionId. */
+export function getActionSuggestions(rows: PlanRow[], subsectionId?: string): ActionSuggestion[] {
+  let currentSectionId = '';
+  let currentSubsectionId = '';
+
+  const items: { row: PlanRow; sectionId: string; subsectionId: string }[] = [];
+  for (const r of rows) {
+    if (r.rowType === 'section') currentSectionId = r.id;
+    else if (r.rowType === 'subsection') currentSubsectionId = r.id;
+    else if (r.rowType === 'item') {
+      items.push({ row: r, sectionId: currentSectionId, subsectionId: currentSubsectionId });
+    }
+  }
+
+  const filtered = subsectionId ? items.filter(i => i.subsectionId === subsectionId) : items;
+
+  const map = new Map<string, ActionSuggestion>();
+  for (const { row, sectionId, subsectionId: subId } of filtered) {
+    const key = `${row.atgard}|${row.byggdel}`;
+
+    let latestYear = '';
+    let latestAmount = 0;
+    for (const yc of YEAR_COLUMNS) {
+      const val = row[yc];
+      if (typeof val === 'number' && val > 0) {
+        latestYear = yc.replace('year_', '');
+        latestAmount = val;
+      }
+    }
+
+    const existing = map.get(key);
+    if (!existing || (latestYear && latestYear > (existing.latestYear || ''))) {
+      map.set(key, {
+        atgard: row.atgard,
+        byggdel: row.byggdel,
+        sectionId,
+        subsectionId: subId,
+        amount: latestAmount,
+        latestYear,
+        tek_livslangd: row.tek_livslangd,
+        utredningspunkter: row.utredningspunkter,
+      });
+    }
+  }
+
+  return Array.from(map.values());
+}
