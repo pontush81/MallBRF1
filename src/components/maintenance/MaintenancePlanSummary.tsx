@@ -85,14 +85,6 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows })
     return sum || grandTotal;
   }, [rows, grandTotal]);
   const maxYear = useMemo(() => Math.max(...Object.values(yearlyTotals), 1), [yearlyTotals]);
-  const peakYearCol = useMemo(() => {
-    let peak = '';
-    let peakVal = 0;
-    for (const [yc, val] of Object.entries(yearlyTotals)) {
-      if (val > peakVal) { peakVal = val; peak = yc; }
-    }
-    return peak;
-  }, [yearlyTotals]);
 
   // Year detail
   const yearDetailItems = useMemo(
@@ -143,7 +135,6 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows })
             const amount = yearlyTotals[yc] || 0;
             const pct = (amount / maxYear) * 100;
             const isSelected = selectedYear === yc;
-            const isPeak = yc === peakYearCol && amount > 0;
 
             return (
               <Box
@@ -153,10 +144,10 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows })
                   flex: { xs: '1 0 55px', sm: '1 0 80px' },
                   maxWidth: { xs: 70, sm: 100 },
                   border: '2px solid',
-                  borderColor: isSelected ? 'primary.main' : isPeak ? 'warning.main' : 'divider',
+                  borderColor: isSelected ? 'primary.main' : 'divider',
                   borderRadius: 1,
                   p: 1,
-                  bgcolor: isSelected ? 'primary.50' : isPeak ? 'warning.50' : 'background.paper',
+                  bgcolor: isSelected ? 'primary.50' : 'background.paper',
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
@@ -166,12 +157,12 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows })
                   },
                 }}
               >
-                <Typography variant="caption" color={isPeak ? 'warning.dark' : 'text.secondary'} display="block" fontWeight={isPeak ? 700 : 400}>
+                <Typography variant="caption" color="text.secondary" display="block">
                   {year}
                 </Typography>
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: 700, color: isSelected ? 'primary.main' : isPeak ? 'warning.dark' : 'text.primary' }}
+                  sx={{ fontWeight: 700, color: isSelected ? 'primary.main' : 'text.primary' }}
                 >
                   {fmtCompact(amount)}
                 </Typography>
@@ -188,7 +179,7 @@ const MaintenancePlanSummary: React.FC<MaintenancePlanSummaryProps> = ({ rows })
                     sx={{
                       height: '100%',
                       width: `${pct}%`,
-                      bgcolor: isPeak ? 'warning.main' : 'primary.main',
+                      bgcolor: 'primary.main',
                       borderRadius: 1,
                     }}
                   />

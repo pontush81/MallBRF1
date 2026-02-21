@@ -853,7 +853,6 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
             onClick={(e) => { e.stopPropagation(); if (!editingText) startEditText(item.id, 'atgard', item.atgard); }}
             sx={{
               cursor: 'pointer',
-              ...(validationMap[item.id]?.length ? { borderLeft: '3px solid #f9a825' } : {}),
             }}
           >
             {editingText?.rowId === item.id && editingText.field === 'atgard' ? (
