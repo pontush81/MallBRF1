@@ -1460,6 +1460,20 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                     </Box>
                   </Box>
                 ))}
+
+                {/* Add item directly to section (shown when no subsections exist) */}
+                {section.subsections.length === 0 && (
+                  <Box sx={{ pl: { xs: 2, sm: 4 }, py: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={() => handleAddItem(section.sectionRow.id)}
+                      sx={{ textTransform: 'none', color: 'text.disabled', fontSize: '0.75rem', '&:hover': { color: 'text.secondary' } }}
+                    >
+                      Lägg till
+                    </Button>
+                  </Box>
+                )}
               </Box>
             </Collapse>
           </Paper>
