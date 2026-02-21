@@ -90,7 +90,7 @@ interface ReportProps {
 type ChipColor = 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
 
 const STATUS_OPTIONS: { value: PlanRowStatus; label: string; color: ChipColor; variant: 'filled' | 'outlined' }[] = [
-  { value: 'planned', label: '\u2013', color: 'default', variant: 'outlined' },
+  { value: 'planned', label: 'Planerad', color: 'default', variant: 'outlined' },
   { value: 'in_progress', label: 'Pågår', color: 'warning', variant: 'filled' },
   { value: 'completed', label: 'Utförd', color: 'success', variant: 'filled' },
   { value: 'postponed', label: 'Försenad', color: 'error', variant: 'filled' },
