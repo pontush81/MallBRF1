@@ -1414,6 +1414,14 @@ const MaintenancePlanReport: React.FC<ReportProps> = ({
                         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                           ({sub.items.length})
                         </Typography>
+                        {(() => {
+                          const subTotal = sub.items.reduce((sum, item) => sum + computeRowTotal(item), 0);
+                          return subTotal > 0 ? (
+                            <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ ml: 'auto', mr: 0.5 }}>
+                              {fmtTkr(subTotal)}
+                            </Typography>
+                          ) : null;
+                        })()}
                       </Box>
 
                       {/* Subsection items (collapsible) */}
