@@ -8,10 +8,14 @@ import {
   CircularProgress,
   IconButton,
   Collapse,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import WarningIcon from '@mui/icons-material/Warning';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ViewListIcon from '@mui/icons-material/ViewList';
 
 import {
   PlanRow,
@@ -26,6 +30,7 @@ import { createDefaultPlanData } from '../../data/maintenancePlanSeedData';
 import { useAuth } from '../../context/AuthContextNew';
 import MaintenancePlanSummary from '../../components/maintenance/MaintenancePlanSummary';
 import MaintenancePlanReport from '../../components/maintenance/MaintenancePlanReport';
+import MaintenancePlanYearView from '../../components/maintenance/MaintenancePlanYearView';
 import ExcelImportDialog from '../../components/maintenance/ExcelImportDialog';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +46,10 @@ const MaintenancePlanPage: React.FC = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // View toggle
+  type ViewMode = 'byggdel' | 'year';
+  const [viewMode, setViewMode] = useState<ViewMode>('byggdel');
 
   // Import dialog
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -301,19 +310,46 @@ const MaintenancePlanPage: React.FC = () => {
       {/* Summary (collapsible) */}
       <MaintenancePlanSummary rows={rows} />
 
-      {/* Report (section list + toolbar) */}
-      <MaintenancePlanReport
-        rows={rows}
-        setRows={setRows}
-        version={version}
-        isDirty={isDirty}
-        setIsDirty={setIsDirty}
-        isSaving={isSaving}
-        onSave={handleManualSave}
-        onRestoreVersion={handleRestoreVersion}
-        onOpenImport={() => setImportDialogOpen(true)}
-        onNotify={handleNotify}
-      />
+      {/* View toggle */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={(_, val) => { if (val) setViewMode(val); }}
+          size="small"
+        >
+          <ToggleButton value="byggdel" sx={{ textTransform: 'none', px: 2, gap: 0.5 }}>
+            <ViewListIcon fontSize="small" />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Byggdel</Box>
+          </ToggleButton>
+          <ToggleButton value="year" sx={{ textTransform: 'none', px: 2, gap: 0.5 }}>
+            <CalendarMonthIcon fontSize="small" />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>År för år</Box>
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {/* Report / Year view */}
+      {viewMode === 'byggdel' ? (
+        <MaintenancePlanReport
+          rows={rows}
+          setRows={setRows}
+          version={version}
+          isDirty={isDirty}
+          setIsDirty={setIsDirty}
+          isSaving={isSaving}
+          onSave={handleManualSave}
+          onRestoreVersion={handleRestoreVersion}
+          onOpenImport={() => setImportDialogOpen(true)}
+          onNotify={handleNotify}
+        />
+      ) : (
+        <MaintenancePlanYearView
+          rows={rows}
+          setRows={setRows}
+          setIsDirty={setIsDirty}
+        />
+      )}
 
       {/* Lagkrav warnings — bottom of page */}
       {lagkravWarnings.length > 0 && (
