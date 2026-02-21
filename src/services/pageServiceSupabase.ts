@@ -503,36 +503,10 @@ const pageServiceSupabase = {
     }
 
     try {
-      console.log('🗑️ Deleting page:', id);
+      console.log('🗑️ Deleting page via Edge Function:', id);
 
-      // Use direct REST API call (same pattern as getAllPages — avoids Supabase SDK hanging)
+      // Use Edge Function directly — RLS blocks direct deletes silently (returns 200 but 0 rows)
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-
-      // Get auth token for RLS
-      const { data: { session } } = await safeGetSession(2000);
-      const authToken = session?.access_token || SUPABASE_ANON_KEY;
-
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/pages?id=eq.${encodeURIComponent(id)}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          }
-        }
-      );
-
-      if (response.ok) {
-        console.log('✅ Page deleted successfully via REST API');
-        await logUserAccess('pages', 'DELETE', id, 'admin_delete_page');
-        return;
-      }
-
-      // If RLS blocked (403/401), fall back to Edge Function
-      console.warn('⚠️ REST delete failed:', response.status, '- trying Edge Function...');
 
       const edgeResponse = await fetch(`${SUPABASE_URL}/functions/v1/admin-pages`, {
         method: 'DELETE',
