@@ -195,11 +195,11 @@ serve(async (req) => {
 
     const report = data
 
-    // Send email notifications (fire-and-forget, don't block response)
-    const emailPromises: Promise<void>[] = []
+    // Send notifications (fire-and-forget, don't block response)
+    const notificationPromises: Promise<void>[] = []
 
     // Admin notification(s)
-    emailPromises.push((async () => {
+    notificationPromises.push((async () => {
       try {
         const { data: settings } = await supabase
           .from('notification_settings')
@@ -243,9 +243,44 @@ serve(async (req) => {
       }
     })())
 
+    // WhatsApp notification(s)
+    notificationPromises.push((async () => {
+      try {
+        const { data: waSettings } = await supabase
+          .from('notification_settings')
+          .select('whatsapp_notifications, whatsapp_phones')
+          .limit(1)
+          .single()
+
+        if (!waSettings?.whatsapp_notifications || !waSettings?.whatsapp_phones?.length) return
+
+        const waMessage = `Ny felanmälan (${report.reference_number})\nLägenhet: ${apartment_number}\nPlats: ${LOCATION_LABELS[location] || location}\nBeskrivning: ${description}`
+
+        for (const phone of waSettings.whatsapp_phones) {
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                to: phone,
+                message: waMessage,
+              }),
+            })
+          } catch (sendErr) {
+            console.error(`Failed to send WhatsApp to ${phone}:`, sendErr)
+          }
+        }
+      } catch (err) {
+        console.error('WhatsApp notification failed:', err)
+      }
+    })())
+
     // Reporter confirmation
     if (contact_email) {
-      emailPromises.push((async () => {
+      notificationPromises.push((async () => {
         try {
           await fetch(`${supabaseUrl}/functions/v1/send-email`, {
             method: 'POST',
@@ -269,7 +304,7 @@ serve(async (req) => {
 
     // Wait for emails (with timeout so we don't hang)
     await Promise.race([
-      Promise.allSettled(emailPromises),
+      Promise.allSettled(notificationPromises),
       new Promise(resolve => setTimeout(resolve, 5000)),
     ])
 

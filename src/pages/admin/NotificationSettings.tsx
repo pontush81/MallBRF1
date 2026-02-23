@@ -26,6 +26,7 @@ import {
   Email as EmailIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  WhatsApp as WhatsAppIcon,
 } from '@mui/icons-material';
 import { StandardLoading } from '../../components/common/StandardLoading';
 import { authenticatedRestCall } from '../../services/supabaseClient';
@@ -39,6 +40,8 @@ interface NotificationSettingsData {
   fault_report_notifications: boolean;
   admin_email: string;
   fault_report_emails: string[];
+  whatsapp_notifications: boolean;
+  whatsapp_phones: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -52,12 +55,15 @@ const NotificationSettings: React.FC = () => {
     fault_report_notifications: true,
     admin_email: '',
     fault_report_emails: [],
+    whatsapp_notifications: false,
+    whatsapp_phones: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -73,6 +79,8 @@ const NotificationSettings: React.FC = () => {
         setSettings({
           ...data[0],
           fault_report_emails: data[0].fault_report_emails || [],
+          whatsapp_notifications: data[0].whatsapp_notifications || false,
+          whatsapp_phones: data[0].whatsapp_phones || [],
         });
       }
     } catch (err: any) {
@@ -96,6 +104,8 @@ const NotificationSettings: React.FC = () => {
         fault_report_notifications: settings.fault_report_notifications,
         admin_email: settings.admin_email,
         fault_report_emails: settings.fault_report_emails,
+        whatsapp_notifications: settings.whatsapp_notifications,
+        whatsapp_phones: settings.whatsapp_phones,
       };
 
       let data;
@@ -157,6 +167,31 @@ const NotificationSettings: React.FC = () => {
     setSettings(prev => ({
       ...prev,
       fault_report_emails: prev.fault_report_emails.filter(e => e !== email),
+    }));
+  };
+
+  const handleAddPhone = () => {
+    const phone = newPhone.trim();
+    if (!phone) return;
+    if (!/^\+46\d{8,11}$/.test(phone)) {
+      setError('Telefonnumret måste vara i formatet +46XXXXXXXXX');
+      return;
+    }
+    if (settings.whatsapp_phones.includes(phone)) {
+      setError('Telefonnumret finns redan i listan.');
+      return;
+    }
+    setSettings(prev => ({
+      ...prev,
+      whatsapp_phones: [...prev.whatsapp_phones, phone],
+    }));
+    setNewPhone('');
+  };
+
+  const handleRemovePhone = (phone: string) => {
+    setSettings(prev => ({
+      ...prev,
+      whatsapp_phones: prev.whatsapp_phones.filter(p => p !== phone),
     }));
   };
 
@@ -361,6 +396,91 @@ const NotificationSettings: React.FC = () => {
                 <Alert severity="info">
                   <Typography variant="body2">
                     E-post skickas via Gmail SMTP (gulmaranbrf@gmail.com).
+                  </Typography>
+                </Alert>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        {/* WhatsApp Configuration */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardHeader
+              title="WhatsApp-konfiguration"
+              avatar={<WhatsAppIcon />}
+            />
+            <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.whatsapp_notifications}
+                        onChange={handleToggle('whatsapp_notifications')}
+                        disabled={!settings.email_notifications}
+                      />
+                    }
+                    label="WhatsApp-notiser vid felanmälan"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: -0.5, mb: 1 }}>
+                    Skickar WhatsApp-meddelande till styrelsen när en ny felanmälan inkommer
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Mottagare (telefonnummer)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+                  Dessa telefonnummer får WhatsApp-notis vid ny felanmälan.
+                </Typography>
+
+                {settings.whatsapp_phones.length > 0 && (
+                  <List dense disablePadding>
+                    {settings.whatsapp_phones.map((phone) => (
+                      <ListItem key={phone} disableGutters>
+                        <ListItemText primary={phone} />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            size="small"
+                            onClick={() => handleRemovePhone(phone)}
+                            aria-label={`Ta bort ${phone}`}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    label="Lägg till telefonnummer"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPhone(); } }}
+                    fullWidth
+                    size="small"
+                    placeholder="+46701234567"
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleAddPhone}
+                    startIcon={<AddIcon />}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    Lägg till
+                  </Button>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                <Alert severity="info">
+                  <Typography variant="body2">
+                    Kräver WhatsApp Business Cloud API. Kontakta admin för att sätta upp API-nyckel.
                   </Typography>
                 </Alert>
               </Box>
