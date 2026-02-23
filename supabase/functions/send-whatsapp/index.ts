@@ -7,7 +7,12 @@ const corsHeaders = {
 
 interface WhatsAppRequest {
   to: string
-  message: string
+  message?: string
+  template?: {
+    name: string
+    language: string
+    parameters?: string[]
+  }
 }
 
 serve(async (req) => {
@@ -16,11 +21,11 @@ serve(async (req) => {
   }
 
   try {
-    const { to, message }: WhatsAppRequest = await req.json()
+    const { to, message, template }: WhatsAppRequest = await req.json()
 
-    if (!to || !message) {
+    if (!to || (!message && !template)) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: to, message' }),
+        JSON.stringify({ error: 'Missing required fields: to, and either message or template' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -36,7 +41,36 @@ serve(async (req) => {
       )
     }
 
-    console.log(`📱 Sending WhatsApp message to: ${to}`)
+    // Build message payload: template or text
+    let messagePayload: Record<string, unknown>
+
+    if (template) {
+      console.log(`📱 Sending WhatsApp template "${template.name}" to: ${to}`)
+      const templateObj: Record<string, unknown> = {
+        name: template.name,
+        language: { code: template.language },
+      }
+      if (template.parameters?.length) {
+        templateObj.components = [{
+          type: 'body',
+          parameters: template.parameters.map(p => ({ type: 'text', text: p })),
+        }]
+      }
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'template',
+        template: templateObj,
+      }
+    } else {
+      console.log(`📱 Sending WhatsApp text message to: ${to}`)
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'text',
+        text: { body: message },
+      }
+    }
 
     const response = await fetch(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -46,12 +80,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'text',
-          text: { body: message },
-        }),
+        body: JSON.stringify(messagePayload),
       }
     )
 

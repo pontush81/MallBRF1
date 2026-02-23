@@ -254,20 +254,37 @@ serve(async (req) => {
 
         if (!waSettings?.whatsapp_notifications || !waSettings?.whatsapp_phones?.length) return
 
+        const WHATSAPP_TEMPLATE = Deno.env.get('WHATSAPP_TEMPLATE_NAME')
         const waMessage = `Ny felanmälan (${report.reference_number})\nLägenhet: ${apartment_number}\nPlats: ${LOCATION_LABELS[location] || location}\nBeskrivning: ${description}`
 
         for (const phone of waSettings.whatsapp_phones) {
           try {
+            const payload: Record<string, unknown> = { to: phone }
+
+            if (WHATSAPP_TEMPLATE) {
+              // Use template message (works in production without prior opt-in)
+              payload.template = {
+                name: WHATSAPP_TEMPLATE,
+                language: 'sv',
+                parameters: [
+                  report.reference_number,
+                  apartment_number,
+                  LOCATION_LABELS[location] || location,
+                  description.substring(0, 100),
+                ],
+              }
+            } else {
+              // Free text (works in dev mode after recipient opt-in)
+              payload.message = waMessage
+            }
+
             await fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${supabaseServiceKey}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                to: phone,
-                message: waMessage,
-              }),
+              body: JSON.stringify(payload),
             })
           } catch (sendErr) {
             console.error(`Failed to send WhatsApp to ${phone}:`, sendErr)
