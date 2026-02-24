@@ -78,8 +78,8 @@ const FaultReportPage: React.FC = () => {
     }
     if (!description.trim()) {
       newErrors.description = 'Beskriv felet';
-    } else if (description.trim().length < 10) {
-      newErrors.description = 'Beskrivningen måste vara minst 10 tecken';
+    } else if (description.trim().length < 5) {
+      newErrors.description = 'Beskrivningen måste vara minst 5 tecken';
     }
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
       newErrors.contactEmail = 'Ogiltig e-postadress';

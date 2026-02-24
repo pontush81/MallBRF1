@@ -148,9 +148,9 @@ serve(async (req) => {
       )
     }
 
-    if (description.trim().length < 10) {
+    if (description.trim().length < 5) {
       return new Response(
-        JSON.stringify({ error: 'Beskrivningen måste vara minst 10 tecken.' }),
+        JSON.stringify({ error: 'Beskrivningen måste vara minst 5 tecken.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
