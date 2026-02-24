@@ -443,70 +443,22 @@ const BookingPage: React.FC = () => {
     setBackupMenuAnchorEl(null);
   };
 
-  // Hämta befintliga bokningar när komponenten laddas (optimerat med cache)
+  // Hämta bokningsdata - publik availability för kalendern, full data om inloggad
   const fetchBookings = async () => {
     try {
       setLoadingBookings(true);
-      
-      // Använd cachade data för snabbare laddning
-      const bookings = await bookingServiceSupabase.getAllBookings();
-      
-      if (!bookings || bookings.length === 0) {
-        setExistingBookings([]);
+
+      if (isLoggedIn) {
+        // Authenticated: fetch full booking details (personal data included)
+        const bookings = await bookingServiceSupabase.getAllBookings();
+        setExistingBookings(bookings || []);
         setCalendarEvents([]);
-        setLoadingBookings(false);
-        return;
+      } else {
+        // Public: fetch only date availability (no personal data)
+        const availability = await bookingServiceSupabase.getBookingAvailability();
+        setExistingBookings(availability || []);
+        setCalendarEvents([]);
       }
-      
-      // Data är redan normaliserad i service-lagret, inget behov av extra processing
-      setExistingBookings(bookings);
-      
-      const events = bookings
-        .map(booking => {
-          try {
-            if (!booking.startDate || !booking.endDate) {
-              return null;
-            }
-            
-            const startDateObj = new Date(booking.startDate);
-            const endDateObj = new Date(booking.endDate);
-            
-            if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
-              return null;
-            }
-            
-            return {
-              title: booking.name,
-              start: booking.startDate,
-              end: booking.endDate,
-              backgroundColor: '#ffcccc',
-              borderColor: '#ff8888',
-              textColor: '#222222',
-              display: 'block',
-              extendedProps: {
-                bookingId: booking.id,
-                bookerName: booking.name,
-                bookerEmail: booking.email,
-                bookerPhone: booking.phone || '',
-                dates: (() => {
-                  try {
-                    const startFormatted = booking.startDate ? dateFns.format(startDateObj, 'dd/MM', { locale: sv }) : 'N/A';
-                    const endFormatted = booking.endDate ? dateFns.format(endDateObj, 'dd/MM', { locale: sv }) : 'N/A';
-                    return `${startFormatted} - ${endFormatted}`;
-                  } catch (error) {
-                    return 'Ogiltigt datumformat';
-                  }
-                })()
-              }
-            };
-          } catch (e) {
-            console.error('Fel vid konvertering av bokning till kalenderhändelse:', e);
-            return null;
-          }
-        })
-        .filter(event => event !== null);
-        
-      setCalendarEvents(events);
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -516,7 +468,7 @@ const BookingPage: React.FC = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (calendarRef.current) {
@@ -1854,7 +1806,7 @@ const BookingPage: React.FC = () => {
             </Grid>
           </Grid>
 
-          {renderBookingStatus()}
+          {isLoggedIn && renderBookingStatus()}
 
           {isAdmin && (
             <Box sx={{ 

@@ -75,16 +75,18 @@ const BookingStatusPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const fetchedBookings = await bookingServiceSupabase.getAllBookings();
-      console.log('Fetched bookings from API:', fetchedBookings);
-      setBookings(fetchedBookings);
+      if (isLoggedIn) {
+        // Authenticated: fetch full booking details
+        const fetchedBookings = await bookingServiceSupabase.getAllBookings();
+        setBookings(fetchedBookings);
+      } else {
+        // Public: fetch only availability (no personal data)
+        const availability = await bookingServiceSupabase.getBookingAvailability();
+        setBookings(availability);
+      }
     } catch (err) {
       setError('Kunde inte hämta bokningar');
       console.error('Error fetching bookings:', err);
@@ -92,6 +94,10 @@ const BookingStatusPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBookings();
+  }, [isLoggedIn]);
 
   const groupBookingsByMonth = (bookings: Booking[]) => {
     return bookings.reduce((acc: Record<string, Booking[]>, booking) => {
