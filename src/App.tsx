@@ -52,6 +52,7 @@ import {
   LazyNotFound,
   LazyHSBReportEditor,
   LazyFaultReportsList,
+  LazyActivityLogPage,
   CookieConsentBanner
 } from './components/LazyComponents';
 
@@ -352,6 +353,13 @@ function AppRoutes() {
             <Suspense fallback={<AdminLoadingFallback />}>
               <LazyFaultReportsList />
             </Suspense>
+          } />
+          <Route path="activity" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <LazyActivityLogPage />
+              </Suspense>
+            </ProtectedRoute>
           } />
         </Route>
         

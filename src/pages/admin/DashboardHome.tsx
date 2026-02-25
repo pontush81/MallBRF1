@@ -15,7 +15,8 @@ import {
   Settings as SettingsIcon,
   Notifications as NotificationIcon,
   Assessment as ReportIcon,
-  ReportProblem as FaultIcon
+  ReportProblem as FaultIcon,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -97,6 +98,14 @@ const DashboardHome: React.FC = () => {
       icon: <FaultIcon />,
       path: '/admin/felanmalningar',
       color: bastadTheme.colors.error
+    },
+    {
+      title: 'Aktivitetslogg',
+      description: 'Se vad användare har gjort i systemet',
+      icon: <HistoryIcon />,
+      path: '/admin/activity',
+      color: bastadTheme.colors.ocean[700],
+      allowedRoles: ['admin']
     }
   ];
 

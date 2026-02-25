@@ -36,6 +36,7 @@ export const LazyNotificationSettings = lazy(() => import('../pages/admin/Notifi
 export const LazyMaintenancePlanPage = lazy(() => import('../pages/admin/MaintenancePlanPage'));
 export const LazyDataRetentionManager = lazy(() => import('../pages/admin/DataRetentionManager'));
 export const LazyFaultReportsList = lazy(() => import('../pages/admin/FaultReportsList'));
+export const LazyActivityLogPage = lazy(() => import('../pages/admin/ActivityLogPage'));
 
 // Component Exports
 
