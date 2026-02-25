@@ -838,7 +838,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             color={isModified ? "warning.main" : "primary.main"}
             fontWeight="bold"
           >
-            {totalAmount.toFixed(2)} kr
+            {totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr
           </Typography>
         </Box>
       </Box>
@@ -923,7 +923,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                           />
                         </Box>
                         <Typography variant="h6" color="primary.main" fontWeight="bold">
-                          Summa: {item.totalAmount.toFixed(2)} kr
+                          Summa: {item.totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                           <Button
@@ -959,7 +959,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                             Lgh {item.apartmentNumber}
                           </Typography>
                           <Typography variant="h6" color="primary.main" fontWeight="bold">
-                            {item.totalAmount.toFixed(2)} kr
+                            {item.totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr
                           </Typography>
                         </Box>
                         <Typography variant="body1" fontWeight="medium" sx={{ mb: 1 }}>
@@ -987,7 +987,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                             );
                           })()}
                           <Chip size="small" label={`Antal: ${item.quantity}`} />
-                          <Chip size="small" label={`á ${item.unitPrice.toFixed(2)} kr`} />
+                          <Chip size="small" label={`á ${item.unitPrice.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr`} />
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                           <EditIcon color="action" fontSize="small" />
@@ -1066,7 +1066,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                       key={index}
                       tabIndex={0}
                       role="button"
-                      aria-label={`Redigera rad ${index + 1}: ${item.resident || 'Tom rad'}, ${item.totalAmount.toFixed(2)} kr`}
+                      aria-label={`Redigera rad ${index + 1}: ${item.resident || 'Tom rad'}, ${item.totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr`}
                       onClick={() => editingRow !== index && setEditingRow(index)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -1212,11 +1212,11 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                             )}
                           </Box>
                         ) : (
-                          `${item.unitPrice.toFixed(2)} kr`
+                          `${item.unitPrice.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr`
                         )}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                        {item.totalAmount.toFixed(2)} kr
+                        {item.totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr
                       </TableCell>
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
@@ -1279,7 +1279,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                       Total summa:
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '1.1em' }}>
-                      {totalAmount.toFixed(2)} kr
+                      {totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title="Lägg till ny post">
@@ -1484,7 +1484,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             Användaren kommer att skriva ut Debiteringsunderlag för {getCurrentPeriodLabel()}.
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
+            Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr.
           </Typography>
         </DialogContent>
         <DialogActions>
