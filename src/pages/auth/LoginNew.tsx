@@ -59,7 +59,7 @@ export const Login: React.FC = () => {
           onClick={handleGoogleLogin}
           loading={loading}
           loadingPosition="start"
-          sx={{ py: 1.5 }}
+          sx={{ py: 1.5, minHeight: 48 }}
         >
           {loading ? 'Loggar in...' : 'Logga in med Google'}
         </LoadingButton>
