@@ -82,7 +82,7 @@ function transformBookingFromDB(row: any): Booking {
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
     createdat: row.created_at || row.createdat,
-    updatedat: row.updated_at || row.updatedat
+    updated_at: row.updated_at || row.updated_at
   };
 }
 
@@ -115,7 +115,7 @@ function transformBookingToDB(booking: Partial<Booking> | CreateBookingData): an
       notes: booking.message || '',
       parkering: booking.parkingSpace || null,
       status: (booking as Booking).status || 'pending',
-      updatedat: new Date().toISOString()
+      updated_at: new Date().toISOString()
     };
   }
 
@@ -129,7 +129,7 @@ function transformBookingToDB(booking: Partial<Booking> | CreateBookingData): an
     notes: (booking as Booking).notes || '',
     parkering: (booking as Booking).parking || null,
     status: (booking as Booking).status || 'pending',
-    updatedat: new Date().toISOString()
+    updated_at: new Date().toISOString()
   };
 }
 

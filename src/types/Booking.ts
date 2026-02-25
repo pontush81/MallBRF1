@@ -30,7 +30,7 @@ export interface Booking {
   createdAt?: string;
   updatedAt?: string;
   createdat?: string;  // Database format
-  updatedat?: string;  // Database format
+  updated_at?: string;  // Database format
 }
 
 // Legacy booking interface (håll för bakåtkompatibilitet)
