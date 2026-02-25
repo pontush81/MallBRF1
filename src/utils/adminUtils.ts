@@ -1,5 +1,5 @@
 import { toast } from 'react-hot-toast';
-import { SUPABASE_ANON_KEY } from '../config';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 import { User } from '../types/User';
 
 export interface AdminUtilsProps {
@@ -181,7 +181,7 @@ export const adminUtils = {
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.download = `backup-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'csv' : format}`;
+        link.download = `backup-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'tsv' : format}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -283,5 +283,75 @@ export const adminUtils = {
         message: errorMessage
       };
     }
+  },
+
+  /**
+   * Skicka HSB-rapport via e-post som PDF-bilaga
+   */
+  async sendHsbReportEmail(
+    recipientEmail: string,
+    period: { month?: number; quarter?: number; year: number },
+    currentUser?: User | null,
+    options: AdminUtilsProps = {}
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const monthParam = period.month ? `&month=${period.month}` : '';
+      const quarterParam = period.quarter ? `&quarter=${period.quarter}` : '';
+      const yearParam = `&year=${period.year}`;
+      const userParam = currentUser ? `&reporterName=${encodeURIComponent(currentUser.name || currentUser.email)}` : '';
+      const emailParam = `&recipientEmail=${encodeURIComponent(recipientEmail)}`;
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true${emailParam}${monthParam}${quarterParam}${yearParam}${userParam}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HSB email response error:', errorText);
+
+        let errorMessage = 'Kunde inte skicka HSB-rapport via e-post';
+        if (response.status === 401) {
+          errorMessage = 'Auktoriseringsfel - kontakta administratör';
+        } else if (response.status === 500) {
+          errorMessage = 'Serverfel vid e-postutskick';
+        }
+
+        toast.error(errorMessage, {
+          duration: 4000,
+          position: options.isMobile ? 'bottom-center' : 'top-right',
+        });
+
+        return { success: false, message: errorMessage };
+      }
+
+      const data = await response.json();
+      const successMessage = `HSB-rapport skickad till ${recipientEmail}!`;
+      toast.success(successMessage, {
+        duration: 4000,
+        position: options.isMobile ? 'bottom-center' : 'top-right',
+      });
+
+      return { success: true, message: successMessage, data };
+
+    } catch (error) {
+      console.error('Fel vid HSB e-postutskick:', error);
+
+      let errorMessage = 'Kunde inte skicka HSB-rapport via e-post';
+      if (error instanceof TypeError) {
+        errorMessage = 'Nätverksfel - kontrollera internetanslutning';
+      }
+
+      toast.error(errorMessage, {
+        duration: 4000,
+        position: options.isMobile ? 'bottom-center' : 'top-right',
+      });
+
+      return { success: false, message: errorMessage };
+    }
   }
-}; 
+};

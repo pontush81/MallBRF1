@@ -39,7 +39,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Menu
+  Menu,
+  ToggleButtonGroup,
+  ToggleButton
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -58,8 +60,10 @@ import {
   Home as HomeIcon,
   SwapHoriz as SubletIcon,
   AttachMoney as ExtraIcon,
-  MoreHoriz as OtherIcon
+  MoreHoriz as OtherIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
+import SendEmailDialog from './SendEmailDialog';
 
 interface HSBReportData {
   apartmentNumber: string;
@@ -111,6 +115,10 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   // Month/Year selection state - Default to July 2025 for testing
   const [selectedMonth, setSelectedMonth] = useState<number>(7);
   const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [periodMode, setPeriodMode] = useState<'month' | 'quarter'>('month');
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(3); // Q3 default
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -123,7 +131,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   useEffect(() => {
     fetchReportData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, periodMode, selectedQuarter]);
 
     const fetchReportData = useCallback(async () => {
     try {
@@ -133,7 +141,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
 
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}&reporterName=${reporterName}`, {
+      const quarterParam = periodMode === 'quarter' ? `&quarter=${selectedQuarter}` : '';
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}${quarterParam}&reporterName=${reporterName}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -172,7 +181,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, currentUser?.email, currentUser?.name]);
+  }, [selectedMonth, selectedYear, periodMode, selectedQuarter, currentUser?.email, currentUser?.name]);
 
 
 
@@ -368,25 +377,63 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     }
   };
 
+  // Get current period label for display
+  const getCurrentPeriodLabel = () => {
+    if (periodMode === 'quarter') {
+      const quarterNames = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Okt-Dec)'];
+      return `${quarterNames[selectedQuarter - 1]} ${selectedYear}`;
+    }
+    return `${monthNames[selectedMonth - 1]} ${selectedYear}`;
+  };
+
   // Handle period change with unsaved changes warning
   const handlePeriodChange = (newMonth: number, newYear: number) => {
     if (isModified) {
-      // Show confirmation dialog
+      const currentLabel = getCurrentPeriodLabel();
       const confirmed = window.confirm(
-        `Du har osparade ändringar för ${monthNames[selectedMonth - 1]} ${selectedYear}.\nVill du byta till ${monthNames[newMonth - 1]} ${newYear}? Osparade ändringar går förlorade.`
+        `Du har osparade ändringar för ${currentLabel}.\nVill du byta period? Osparade ändringar går förlorade.`
       );
-      
+
       if (!confirmed) {
         return; // User cancelled, don't change period
       }
     }
-    
+
     // Change period and reload data
     setSelectedMonth(newMonth);
     setSelectedYear(newYear);
     setIsModified(false); // Reset modification state
     setEditingRow(null); // Exit edit mode
     setFieldErrors({}); // Clear field errors
+  };
+
+  const handleQuarterChange = (newQuarter: number) => {
+    if (isModified) {
+      const currentLabel = getCurrentPeriodLabel();
+      const confirmed = window.confirm(
+        `Du har osparade ändringar för ${currentLabel}.\nVill du byta period? Osparade ändringar går förlorade.`
+      );
+      if (!confirmed) return;
+    }
+    setSelectedQuarter(newQuarter);
+    setIsModified(false);
+    setEditingRow(null);
+    setFieldErrors({});
+  };
+
+  const handlePeriodModeChange = (_: React.MouseEvent<HTMLElement>, newMode: 'month' | 'quarter' | null) => {
+    if (!newMode) return;
+    if (isModified) {
+      const currentLabel = getCurrentPeriodLabel();
+      const confirmed = window.confirm(
+        `Du har osparade ändringar för ${currentLabel}.\nVill du byta periodtyp? Osparade ändringar går förlorade.`
+      );
+      if (!confirmed) return;
+    }
+    setPeriodMode(newMode);
+    setIsModified(false);
+    setEditingRow(null);
+    setFieldErrors({});
   };
 
   const validateData = (): string[] => {
@@ -423,9 +470,10 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
       // Use selected month and year from state
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
-      
+      const quarterParam = periodMode === 'quarter' ? `&quarter=${selectedQuarter}` : '';
+
       // Send edited data to backend for PDF generation
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${selectedMonth}&year=${selectedYear}&reporterName=${reporterName}`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${selectedMonth}&year=${selectedYear}${quarterParam}&reporterName=${reporterName}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -443,7 +491,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.pdf`;
+        a.download = periodMode === 'quarter'
+          ? `HSB-rapport-${selectedYear}-Q${selectedQuarter}.pdf`
+          : `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -463,9 +513,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     }
   };
 
-  // Email functionality temporarily disabled - function commented out to remove warning
-  /*
-  const handleSendEmail = async () => {
+  const handleSendEmail = async (recipientEmail: string) => {
     const errors = validateData();
     if (errors.length > 0) {
       setError(`Validering misslyckades:\n${errors.join('\n')}`);
@@ -473,33 +521,41 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     }
 
     try {
-      setSaving(true);
-      
+      setSendingEmail(true);
+
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&month=${selectedMonth}&year=${selectedYear}`, {
-        method: 'GET',
+      const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
+      const quarterParam = periodMode === 'quarter' ? `&quarter=${selectedQuarter}` : '';
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&recipientEmail=${encodeURIComponent(recipientEmail)}&month=${selectedMonth}&year=${selectedYear}${quarterParam}&reporterName=${reporterName}`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          editedData: editableHsbData,
+          residentData: residentData
+        })
       });
 
       if (response.ok) {
-        onSent?.('HSB-rapporten har skickats till HSB och administratören via e-post');
-        showSnackbar('Rapport skickad via e-post', 'success');
-        setConfirmDialog(null);
+        await response.json();
+        onSent?.(`HSB-rapporten har skickats till ${recipientEmail}`);
+        showSnackbar(`Rapport skickad till ${recipientEmail}`, 'success');
+        setEmailDialogOpen(false);
       } else {
-        throw new Error('Kunde inte skicka e-post');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.details || 'Kunde inte skicka e-post');
       }
-      
+
     } catch (err) {
       console.error('Error sending email:', err);
       setError(err instanceof Error ? err.message : 'Ett fel uppstod vid e-postsändning');
     } finally {
-      setSaving(false);
+      setSendingEmail(false);
     }
   };
-  */
 
   const totalAmount = editableHsbData.reduce((sum, item) => sum + item.totalAmount, 0);
 
@@ -551,7 +607,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   
   if (loading) {
     return (
-      <PageLoading message={`Laddar data för ${monthNames[selectedMonth - 1]} ${selectedYear}...`} />
+      <PageLoading message={`Laddar data för ${getCurrentPeriodLabel()}...`} />
     );
   }
   
@@ -605,18 +661,31 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
             width: { xs: '100%', sm: 'auto' },
             justifyContent: { xs: 'stretch', sm: 'flex-end' }
           }}>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               startIcon={saving ? <MinimalLoading size={16} /> : <PictureAsPdfIcon />}
               onClick={() => setConfirmDialog('pdf')}
-              disabled={saving || editableHsbData.length === 0}
+              disabled={saving || sendingEmail || editableHsbData.length === 0}
               size={isSmallMobile ? "small" : "medium"}
-              sx={{ 
+              sx={{
                 flex: { xs: 1, sm: 'none' },
                 fontSize: { xs: '0.8rem', sm: '0.875rem' }
               }}
             >
               {saving ? 'Skapar PDF...' : 'Skapa PDF'}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={sendingEmail ? <MinimalLoading size={16} /> : <EmailIcon />}
+              onClick={() => setEmailDialogOpen(true)}
+              disabled={saving || sendingEmail || editableHsbData.length === 0}
+              size={isSmallMobile ? "small" : "medium"}
+              sx={{
+                flex: { xs: 1, sm: 'none' },
+                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+              }}
+            >
+              {isSmallMobile ? 'E-post' : 'Skicka via e-post'}
             </Button>
             
             <IconButton 
@@ -641,49 +710,84 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           mb: 2,
           width: '100%'
         }}>
-          <Box sx={{ 
-            display: 'flex', 
-            gap: { xs: 1, sm: 2 }, 
+          <ToggleButtonGroup
+            value={periodMode}
+            exclusive
+            onChange={handlePeriodModeChange}
+            size="small"
+            sx={{ mb: { xs: 1, sm: 0 } }}
+          >
+            <ToggleButton value="month" sx={{ minHeight: 40 }}>Månad</ToggleButton>
+            <ToggleButton value="quarter" sx={{ minHeight: 40 }}>Kvartal</ToggleButton>
+          </ToggleButtonGroup>
+
+          <Box sx={{
+            display: 'flex',
+            gap: { xs: 1, sm: 2 },
             width: { xs: '100%', sm: 'auto' },
             alignItems: 'center'
           }}>
-            <FormControl 
-              size="small" 
-              sx={{ 
-                minWidth: { xs: 100, sm: 120 },
-                flex: { xs: 1, sm: 'none' }
-              }}
-              fullWidth={isSmallMobile}
-            >
-              <InputLabel>Månad</InputLabel>
-              <Select 
-                value={selectedMonth}
-                label="Månad"
-                onChange={(e) => handlePeriodChange(Number(e.target.value), selectedYear)}
-                sx={{ minHeight: 48 }} // Ensure touch target size
+            {periodMode === 'month' ? (
+              <FormControl
+                size="small"
+                sx={{
+                  minWidth: { xs: 100, sm: 120 },
+                  flex: { xs: 1, sm: 'none' }
+                }}
+                fullWidth={isSmallMobile}
               >
-                {monthNames.map((month, index) => (
-                  <MenuItem key={index + 1} value={index + 1}>
-                    {month}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <FormControl 
-              size="small" 
-              sx={{ 
+                <InputLabel>Månad</InputLabel>
+                <Select
+                  value={selectedMonth}
+                  label="Månad"
+                  onChange={(e) => handlePeriodChange(Number(e.target.value), selectedYear)}
+                  sx={{ minHeight: 48 }}
+                >
+                  {monthNames.map((month, index) => (
+                    <MenuItem key={index + 1} value={index + 1}>
+                      {month}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <FormControl
+                size="small"
+                sx={{
+                  minWidth: { xs: 120, sm: 150 },
+                  flex: { xs: 1, sm: 'none' }
+                }}
+                fullWidth={isSmallMobile}
+              >
+                <InputLabel>Kvartal</InputLabel>
+                <Select
+                  value={selectedQuarter}
+                  label="Kvartal"
+                  onChange={(e) => handleQuarterChange(Number(e.target.value))}
+                  sx={{ minHeight: 48 }}
+                >
+                  <MenuItem value={1}>Q1 (Jan-Mar)</MenuItem>
+                  <MenuItem value={2}>Q2 (Apr-Jun)</MenuItem>
+                  <MenuItem value={3}>Q3 (Jul-Sep)</MenuItem>
+                  <MenuItem value={4}>Q4 (Okt-Dec)</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
+            <FormControl
+              size="small"
+              sx={{
                 minWidth: { xs: 80, sm: 100 },
                 flex: { xs: 0.6, sm: 'none' }
               }}
               fullWidth={isSmallMobile}
             >
               <InputLabel>År</InputLabel>
-              <Select 
+              <Select
                 value={selectedYear}
                 label="År"
                 onChange={(e) => handlePeriodChange(selectedMonth, Number(e.target.value))}
-                sx={{ minHeight: 48 }} // Ensure touch target size
+                sx={{ minHeight: 48 }}
               >
                 {Array.from({ length: 5 }, (_, i) => (
                   <MenuItem key={2023 + i} value={2023 + i}>
@@ -1303,7 +1407,16 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           horizontal: 'right',
         }}
       >
-        {/* HSB Send functionality removed */}
+        <MenuItem
+          onClick={() => {
+            setMoreMenuAnchorEl(null);
+            setEmailDialogOpen(true);
+          }}
+          disabled={saving || sendingEmail || editableHsbData.length === 0}
+        >
+          <EmailIcon sx={{ mr: 1 }} />
+          Skicka via e-post
+        </MenuItem>
         
         {isModified && (
           <MenuItem 
@@ -1359,7 +1472,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         </DialogTitle>
         <DialogContent>
           <Typography paragraph>
-            Användaren kommer att skriva ut Debiteringsunderlag för {monthNames[selectedMonth - 1]} {selectedYear}.
+            Användaren kommer att skriva ut Debiteringsunderlag för {getCurrentPeriodLabel()}.
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Rapporten innehåller {editableHsbData.length} poster med en total summa på {totalAmount.toFixed(2)} kr.
@@ -1381,7 +1494,15 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         </DialogActions>
       </Dialog>
 
-      {/* HSB Email dialog removed */}
+      <SendEmailDialog
+        open={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        onSend={handleSendEmail}
+        sending={sendingEmail}
+        periodLabel={getCurrentPeriodLabel()}
+        itemCount={editableHsbData.length}
+        totalAmount={totalAmount}
+      />
 
       <Dialog 
         open={confirmDialog === 'reset'} 

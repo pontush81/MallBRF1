@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { PDFDocument, StandardFonts, rgb } from 'https://cdn.skypack.dev/pdf-lib@1.17.1';
+import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
 
 // CORS setup
 function getCorsHeaders(origin?: string | null) {
@@ -58,6 +58,19 @@ function getMonthName(month: number): string {
     'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
   ];
   return monthNames[month - 1] || 'Okänd';
+}
+
+// Get quarter start/end months from quarter number (1-4)
+function getQuarterMonths(quarter: number): { startMonth: number; endMonth: number } {
+  const startMonth = (quarter - 1) * 3 + 1;
+  const endMonth = startMonth + 2;
+  return { startMonth, endMonth };
+}
+
+// Get quarter label for PDF header, e.g. "Q3 2025 (Juli-September)"
+function getQuarterLabel(quarter: number, year: number): string {
+  const { startMonth, endMonth } = getQuarterMonths(quarter);
+  return `Q${quarter} ${year} (${getMonthName(startMonth)}-${getMonthName(endMonth)})`;
 }
 
 // Get ISO week number (same logic as booking system)
@@ -320,7 +333,7 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
 }
 
 // Generate HSB PDF format
-async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string): Promise<Uint8Array> {
+async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string, quarter?: number): Promise<Uint8Array> {
   console.log('📄 Generating PDF format');
   
   const pdfDoc = await PDFDocument.create();
@@ -343,7 +356,8 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
   });
   
   yPosition -= 25;
-  page.drawText(`${getMonthName(month)} ${year}`, {
+  const periodTitle = quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
+  page.drawText(periodTitle, {
     x: margin,
     y: yPosition,
     size: 14,
@@ -600,10 +614,13 @@ Deno.serve(async (req) => {
     const format = url.searchParams.get('format') || 'preview';
     const month = parseInt(url.searchParams.get('month') || String(new Date().getMonth() + 1));
     const year = parseInt(url.searchParams.get('year') || String(new Date().getFullYear()));
+    const quarterParam = url.searchParams.get('quarter');
+    const quarter = quarterParam ? parseInt(quarterParam) : undefined;
     const sendEmail = url.searchParams.get('sendEmail') === 'true';
+    const recipientEmail = url.searchParams.get('recipientEmail') || '';
     const reporterName = decodeURIComponent(url.searchParams.get('reporterName') || 'Admin');
-    
-    console.log('⚙️ Parameters:', { format, month, year, sendEmail, reporterName });
+
+    console.log('⚙️ Parameters:', { format, month, year, quarter, sendEmail, recipientEmail, reporterName });
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -630,20 +647,31 @@ Deno.serve(async (req) => {
     
     // If no edited data provided (GET request or invalid POST), fetch from database
     if (hsbData.length === 0) {
-    
-    // Get bookings that start in the selected month (to prevent double billing)
-    const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
-    const nextMonth = month === 12 ? 1 : month + 1;
-    const nextYear = month === 12 ? year + 1 : year;
-    const nextMonthStart = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
-    
-    console.log(`📅 Searching for bookings starting in ${monthStart} to ${nextMonthStart}`);
+
+    // Calculate date range based on month or quarter
+    let rangeStart: string;
+    let rangeEnd: string;
+
+    if (quarter) {
+      const { startMonth, endMonth } = getQuarterMonths(quarter);
+      rangeStart = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+      const nextMonth = endMonth === 12 ? 1 : endMonth + 1;
+      const nextYear = endMonth === 12 ? year + 1 : year;
+      rangeEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      console.log(`📅 Quarter ${quarter}: Searching for bookings starting in ${rangeStart} to ${rangeEnd}`);
+    } else {
+      rangeStart = `${year}-${String(month).padStart(2, '0')}-01`;
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const nextYear = month === 12 ? year + 1 : year;
+      rangeEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      console.log(`📅 Searching for bookings starting in ${rangeStart} to ${rangeEnd}`);
+    }
     
     const { data: bookings, error } = await supabase
       .from('bookings')
       .select('*')
-      .gte('startdate', monthStart)
-      .lt('startdate', nextMonthStart)
+      .gte('startdate', rangeStart)
+      .lt('startdate', rangeEnd)
       .order('startdate', { ascending: true });
 
     if (error) {
@@ -651,31 +679,37 @@ Deno.serve(async (req) => {
       throw error;
     }
 
-    console.log(`📊 Found ${bookings?.length || 0} bookings that start in ${month}/${year}`);
+    const periodLabel = quarter ? `Q${quarter}/${year}` : `${month}/${year}`;
+    console.log(`📊 Found ${bookings?.length || 0} bookings that start in ${periodLabel}`);
     console.log('🔍 Raw bookings data:', JSON.stringify(bookings, null, 2));
 
-    // Filter bookings to only include those that START in the selected month
+    // Filter bookings to only include those that START in the selected period
     // This prevents double billing for bookings that span multiple months
     const filteredBookings = (bookings || []).filter(booking => {
       if (!booking.startdate || !booking.enddate) return false;
-      
+
       const bookingStart = new Date(booking.startdate);
-      const bookingStartMonth = bookingStart.getMonth() + 1; // JavaScript months are 0-indexed
+      const bookingStartMonth = bookingStart.getMonth() + 1;
       const bookingStartYear = bookingStart.getFullYear();
-      
-      // Only include bookings that START in the selected month/year
-      const belongsToThisMonth = bookingStartMonth === month && bookingStartYear === year;
-      
-      if (belongsToThisMonth) {
-        console.log(`✅ Booking starts in ${month}/${year}: ${booking.name} (${booking.startdate} to ${booking.enddate})`);
+
+      let belongsToPeriod: boolean;
+      if (quarter) {
+        const { startMonth, endMonth } = getQuarterMonths(quarter);
+        belongsToPeriod = bookingStartYear === year && bookingStartMonth >= startMonth && bookingStartMonth <= endMonth;
       } else {
-        console.log(`❌ Booking starts in ${bookingStartMonth}/${bookingStartYear}, not ${month}/${year}: ${booking.name} (${booking.startdate} to ${booking.enddate})`);
+        belongsToPeriod = bookingStartMonth === month && bookingStartYear === year;
       }
-      
-      return belongsToThisMonth;
+
+      if (belongsToPeriod) {
+        console.log(`✅ Booking starts in ${periodLabel}: ${booking.name} (${booking.startdate} to ${booking.enddate})`);
+      } else {
+        console.log(`❌ Booking starts in ${bookingStartMonth}/${bookingStartYear}, not ${periodLabel}: ${booking.name} (${booking.startdate} to ${booking.enddate})`);
+      }
+
+      return belongsToPeriod;
     });
 
-    console.log(`🎯 Found ${filteredBookings.length} bookings that start in ${month}/${year}`);
+    console.log(`🎯 Found ${filteredBookings.length} bookings that start in ${periodLabel}`);
 
     // Transform bookings to HSB format
     hsbData = await transformBookingsToHSB(filteredBookings, month, year, supabase);
@@ -703,14 +737,70 @@ Deno.serve(async (req) => {
       
       case 'pdf':
         console.log('📄 Generating PDF format');
-        const pdfBytes = await generateHSBPDF(hsbData, residentData, month, year, reporterName);
-        
+        const pdfBytes = await generateHSBPDF(hsbData, residentData, month, year, reporterName, quarter);
+        const pdfFileName = quarter
+          ? `HSB-rapport-${year}-Q${quarter}.pdf`
+          : `HSB-rapport-${getMonthName(month)}-${year}.pdf`;
+
+        // If sendEmail is requested, send the PDF as an attachment via email
+        if (sendEmail && recipientEmail) {
+          console.log(`📧 Sending PDF via email to ${recipientEmail}`);
+          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+          const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+          const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
+          const periodDesc = quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
+
+          const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: recipientEmail,
+              subject: `HSB Debiteringsunderlag - ${periodDesc}`,
+              text: `Bifogat finner du HSB debiteringsunderlag for ${periodDesc}.\n\nAntal poster: ${hsbData.length}\nTotal summa: ${totalAmount.toLocaleString('sv-SE')} kr\n\nRapport genererad: ${new Date().toLocaleString('sv-SE')}\nUppgiftslamnare: ${reporterName}`,
+              html: `<h2>HSB Debiteringsunderlag</h2><p>Bifogat finner du HSB debiteringsunderlag f&ouml;r <strong>${periodDesc}</strong>.</p><ul><li>Antal poster: ${hsbData.length}</li><li>Total summa: ${totalAmount.toLocaleString('sv-SE')} kr</li></ul><p><em>Rapport genererad: ${new Date().toLocaleString('sv-SE')}<br/>Uppgiftsl&auml;mnare: ${reporterName}</em></p>`,
+              type: 'hsb-report',
+              attachments: [{
+                filename: pdfFileName,
+                content: Array.from(pdfBytes)
+              }]
+            })
+          });
+
+          if (!emailResponse.ok) {
+            const emailError = await emailResponse.text();
+            console.error('❌ Email sending failed:', emailError);
+            throw new Error(`Kunde inte skicka e-post: ${emailError}`);
+          }
+
+          console.log('✅ Email sent successfully');
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: `Rapport skickad till ${recipientEmail}`,
+              recipientEmail,
+              period: periodDesc,
+              itemCount: hsbData.length,
+              totalAmount
+            }),
+            {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        }
+
         return new Response(pdfBytes, {
           status: 200,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="HSB-rapport-${getMonthName(month)}-${year}.pdf"`
+            'Content-Disposition': `attachment; filename="${pdfFileName}"`
           }
         });
       
