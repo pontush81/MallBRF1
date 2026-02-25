@@ -73,6 +73,11 @@ function getQuarterLabel(quarter: number, year: number): string {
   return `Q${quarter} ${year} (${getMonthName(startMonth)}-${getMonthName(endMonth)})`;
 }
 
+// Get year label for PDF header, e.g. "Helår 2025 (Januari-December)"
+function getYearLabel(year: number): string {
+  return `Helår ${year} (Januari-December)`;
+}
+
 // Get ISO week number (same logic as booking system)
 function getISOWeek(date: Date): number {
   const target = new Date(date.valueOf());
@@ -337,7 +342,7 @@ async function getResidentData(supabase: any): Promise<ResidentData[]> {
 }
 
 // Generate HSB PDF format
-async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string, quarter?: number): Promise<Uint8Array> {
+async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentData[], month: number, year: number, reporterName: string, quarter?: number, yearly?: boolean): Promise<Uint8Array> {
   console.log('📄 Generating PDF format');
   
   const pdfDoc = await PDFDocument.create();
@@ -360,7 +365,7 @@ async function generateHSBPDF(hsbData: HSBReportItem[], residentData: ResidentDa
   });
   
   yPosition -= 25;
-  const periodTitle = quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
+  const periodTitle = yearly ? getYearLabel(year) : quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
   page.drawText(periodTitle, {
     x: margin,
     y: yPosition,
@@ -620,11 +625,12 @@ Deno.serve(async (req) => {
     const year = parseInt(url.searchParams.get('year') || String(new Date().getFullYear()));
     const quarterParam = url.searchParams.get('quarter');
     const quarter = quarterParam ? parseInt(quarterParam) : undefined;
+    const yearly = url.searchParams.get('yearly') === 'true';
     const sendEmail = url.searchParams.get('sendEmail') === 'true';
     const recipientEmail = url.searchParams.get('recipientEmail') || '';
     const reporterName = decodeURIComponent(url.searchParams.get('reporterName') || 'Admin');
 
-    console.log('⚙️ Parameters:', { format, month, year, quarter, sendEmail, recipientEmail, reporterName });
+    console.log('⚙️ Parameters:', { format, month, year, quarter, yearly, sendEmail, recipientEmail, reporterName });
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -652,11 +658,15 @@ Deno.serve(async (req) => {
     // If no edited data provided (GET request or invalid POST), fetch from database
     if (hsbData.length === 0) {
 
-    // Calculate date range based on month or quarter
+    // Calculate date range based on yearly, quarter, or month
     let rangeStart: string;
     let rangeEnd: string;
 
-    if (quarter) {
+    if (yearly) {
+      rangeStart = `${year}-01-01`;
+      rangeEnd = `${year + 1}-01-01`;
+      console.log(`📅 Yearly: Searching for bookings starting in ${rangeStart} to ${rangeEnd}`);
+    } else if (quarter) {
       const { startMonth, endMonth } = getQuarterMonths(quarter);
       rangeStart = `${year}-${String(startMonth).padStart(2, '0')}-01`;
       const nextMonth = endMonth === 12 ? 1 : endMonth + 1;
@@ -683,7 +693,7 @@ Deno.serve(async (req) => {
       throw error;
     }
 
-    const periodLabel = quarter ? `Q${quarter}/${year}` : `${month}/${year}`;
+    const periodLabel = yearly ? `Helår ${year}` : quarter ? `Q${quarter}/${year}` : `${month}/${year}`;
     console.log(`📊 Found ${bookings?.length || 0} bookings that start in ${periodLabel}`);
     console.log('🔍 Raw bookings data:', JSON.stringify(bookings, null, 2));
 
@@ -697,7 +707,9 @@ Deno.serve(async (req) => {
       const bookingStartYear = bookingStart.getFullYear();
 
       let belongsToPeriod: boolean;
-      if (quarter) {
+      if (yearly) {
+        belongsToPeriod = bookingStartYear === year;
+      } else if (quarter) {
         const { startMonth, endMonth } = getQuarterMonths(quarter);
         belongsToPeriod = bookingStartYear === year && bookingStartMonth >= startMonth && bookingStartMonth <= endMonth;
       } else {
@@ -741,10 +753,12 @@ Deno.serve(async (req) => {
       
       case 'pdf':
         console.log('📄 Generating PDF format');
-        const pdfBytes = await generateHSBPDF(hsbData, residentData, month, year, reporterName, quarter);
-        const pdfFileName = quarter
-          ? `HSB-rapport-${year}-Q${quarter}.pdf`
-          : `HSB-rapport-${getMonthName(month)}-${year}.pdf`;
+        const pdfBytes = await generateHSBPDF(hsbData, residentData, month, year, reporterName, quarter, yearly);
+        const pdfFileName = yearly
+          ? `HSB-rapport-${year}.pdf`
+          : quarter
+            ? `HSB-rapport-${year}-Q${quarter}.pdf`
+            : `HSB-rapport-${getMonthName(month)}-${year}.pdf`;
 
         // If sendEmail is requested, send the PDF as an attachment via email
         if (sendEmail && recipientEmail) {
@@ -752,7 +766,7 @@ Deno.serve(async (req) => {
           const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
           const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
           const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
-          const periodDesc = quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
+          const periodDesc = yearly ? getYearLabel(year) : quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
 
           // Build detailed table rows for the email
           const tableRows = hsbData.map(item =>

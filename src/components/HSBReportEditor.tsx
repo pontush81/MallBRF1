@@ -115,7 +115,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
   // Month/Year selection state - Default to July 2025 for testing
   const [selectedMonth, setSelectedMonth] = useState<number>(7);
   const [selectedYear, setSelectedYear] = useState<number>(2025);
-  const [periodMode, setPeriodMode] = useState<'month' | 'quarter'>('month');
+  const [periodMode, setPeriodMode] = useState<'month' | 'quarter' | 'year'>('month');
   const [selectedQuarter, setSelectedQuarter] = useState<number>(3); // Q3 default
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -142,7 +142,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
 
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
       const quarterParam = periodMode === 'quarter' ? `&quarter=${selectedQuarter}` : '';
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}${quarterParam}&reporterName=${reporterName}`, {
+      const yearlyParam = periodMode === 'year' ? '&yearly=true' : '';
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=preview&month=${selectedMonth}&year=${selectedYear}${quarterParam}${yearlyParam}&reporterName=${reporterName}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -379,6 +380,9 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
 
   // Get current period label for display
   const getCurrentPeriodLabel = () => {
+    if (periodMode === 'year') {
+      return `Helår ${selectedYear}`;
+    }
     if (periodMode === 'quarter') {
       const quarterNames = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Okt-Dec)'];
       return `${quarterNames[selectedQuarter - 1]} ${selectedYear}`;
@@ -421,7 +425,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
     setFieldErrors({});
   };
 
-  const handlePeriodModeChange = (_: React.MouseEvent<HTMLElement>, newMode: 'month' | 'quarter' | null) => {
+  const handlePeriodModeChange = (_: React.MouseEvent<HTMLElement>, newMode: 'month' | 'quarter' | 'year' | null) => {
     if (!newMode) return;
     if (isModified) {
       const currentLabel = getCurrentPeriodLabel();
@@ -471,9 +475,10 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       // Use selected month and year from state
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
       const quarterParam = periodMode === 'quarter' ? `&quarter=${selectedQuarter}` : '';
+      const yearlyParam = periodMode === 'year' ? '&yearly=true' : '';
 
       // Send edited data to backend for PDF generation
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${selectedMonth}&year=${selectedYear}${quarterParam}&reporterName=${reporterName}`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&month=${selectedMonth}&year=${selectedYear}${quarterParam}${yearlyParam}&reporterName=${reporterName}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -491,9 +496,11 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = periodMode === 'quarter'
-          ? `HSB-rapport-${selectedYear}-Q${selectedQuarter}.pdf`
-          : `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.pdf`;
+        a.download = periodMode === 'year'
+          ? `HSB-rapport-${selectedYear}.pdf`
+          : periodMode === 'quarter'
+            ? `HSB-rapport-${selectedYear}-Q${selectedQuarter}.pdf`
+            : `HSB-rapport-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -526,7 +533,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
       const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('../config');
       const reporterName = encodeURIComponent(currentUser?.name || currentUser?.email || 'Okänd användare');
       const quarterParam = periodMode === 'quarter' ? `&quarter=${selectedQuarter}` : '';
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&recipientEmail=${encodeURIComponent(recipientEmail)}&month=${selectedMonth}&year=${selectedYear}${quarterParam}&reporterName=${reporterName}`, {
+      const yearlyParam = periodMode === 'year' ? '&yearly=true' : '';
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hsb-form-v2?format=pdf&sendEmail=true&recipientEmail=${encodeURIComponent(recipientEmail)}&month=${selectedMonth}&year=${selectedYear}${quarterParam}${yearlyParam}&reporterName=${reporterName}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -719,6 +727,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           >
             <ToggleButton value="month" sx={{ minHeight: 40 }}>Månad</ToggleButton>
             <ToggleButton value="quarter" sx={{ minHeight: 40 }}>Kvartal</ToggleButton>
+            <ToggleButton value="year" sx={{ minHeight: 40 }}>År</ToggleButton>
           </ToggleButtonGroup>
 
           <Box sx={{
@@ -750,7 +759,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                   ))}
                 </Select>
               </FormControl>
-            ) : (
+            ) : periodMode === 'quarter' ? (
               <FormControl
                 size="small"
                 sx={{
@@ -772,7 +781,7 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
                   <MenuItem value={4}>Q4 (Okt-Dec)</MenuItem>
                 </Select>
               </FormControl>
-            )}
+            ) : null}
 
             <FormControl
               size="small"
