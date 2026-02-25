@@ -811,7 +811,8 @@ Fullst&auml;ndig rapport bifogad som PDF.
               type: 'hsb-report',
               attachments: [{
                 filename: pdfFileName,
-                content: Array.from(pdfBytes)
+                content: btoa(String.fromCharCode(...pdfBytes)),
+                encoding: 'base64'
               }]
             })
           });

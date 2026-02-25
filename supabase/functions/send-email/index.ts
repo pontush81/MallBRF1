@@ -15,6 +15,7 @@ interface EmailRequest {
   attachments?: Array<{
     filename: string
     content: number[] | string
+    encoding?: string
   }>
 }
 
@@ -69,7 +70,8 @@ serve(async (req) => {
     if (attachments?.length) {
       mailOptions.attachments = attachments.map(att => ({
         filename: att.filename,
-        content: Array.isArray(att.content) ? Buffer.from(att.content) : att.content,
+        content: att.encoding === 'base64' ? att.content : (Array.isArray(att.content) ? Buffer.from(att.content) : att.content),
+        ...(att.encoding ? { encoding: att.encoding } : {}),
       }))
     }
 
