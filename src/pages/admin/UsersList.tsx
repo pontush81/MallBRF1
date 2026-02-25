@@ -28,6 +28,7 @@ import {
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { UserRole } from '../../types/User';
+import { logActivity } from '../../services/activityLogService';
 // import supabaseClient from '../../services/supabaseClient'; // Not currently used
 
 interface User {
@@ -103,10 +104,15 @@ const UsersList: React.FC = () => {
         throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
+      const user = users.find(u => u.id === userId);
+      const newIsActive = !currentStatus;
       setSuccess('Användarstatus uppdaterad');
       fetchUsers(); // Refresh the list
       console.log('✅ User status updated via direct API (FAST!)');
-      
+      if (user) {
+        logActivity('user_updated', `Användare ${user.email} ${newIsActive ? 'aktiverad' : 'inaktiverad'}`);
+      }
+
     } catch (err: any) {
       setError('Kunde inte uppdatera användarstatus: ' + err.message);
       console.error('❌ Error updating user status via direct API:', err);
@@ -132,10 +138,14 @@ const UsersList: React.FC = () => {
         throw new Error(`Direct API error: ${response.status} ${response.statusText}`);
       }
 
+      const user = users.find(u => u.id === userId);
       setSuccess('Användarroll uppdaterad');
       fetchUsers(); // Refresh the list
       console.log('✅ User role updated via direct API (FAST!)');
-      
+      if (user) {
+        logActivity('user_updated', `Användare ${user.email} ändrad till roll: ${newRole}`);
+      }
+
     } catch (err: any) {
       setError('Kunde inte uppdatera användarroll: ' + err.message);
       console.error('❌ Error updating user role via direct API:', err);

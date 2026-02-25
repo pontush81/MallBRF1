@@ -59,6 +59,7 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
 } from '../../services/faultReportService';
+import { logActivity } from '../../services/activityLogService';
 
 const FaultReportsList: React.FC = () => {
   // Data state
@@ -166,6 +167,10 @@ const FaultReportsList: React.FC = () => {
           .catch(console.error);
       }
       
+      logActivity('fault_report_status_changed', `Felanmälan ${selectedReport.reference_number} uppdaterad`, {
+        reference_number: selectedReport.reference_number,
+        new_status: editStatus,
+      });
       setEditDialogOpen(false);
       loadData();
     } else {

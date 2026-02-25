@@ -1,6 +1,7 @@
 import { Booking, CreateBookingData, UpdateBookingData } from '../types/Booking';
 import { authenticatedRestCall } from './supabaseClient';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
+import { logActivity } from './activityLogService';
 
 // Database table mapping
 const BOOKINGS_TABLE = 'bookings';
@@ -340,7 +341,12 @@ const bookingServiceSupabase = {
       }
 
       console.log('✅ Created booking (authenticated):', data[0]);
-      return transformBookingFromDB(data[0]);
+      const result = transformBookingFromDB(data[0]);
+      logActivity('booking_created', `Ny bokning skapad för ${bookingData.name || bookingData.email}`, {
+        booking_id: result?.id,
+        apartment: bookingData.apartment,
+      });
+      return result;
 
     } catch (error: any) {
       console.error('❌ Error creating booking:', error);
@@ -368,6 +374,7 @@ const bookingServiceSupabase = {
       });
 
       console.log('✅ Updated booking (authenticated):', data);
+      logActivity('booking_updated', 'Bokning uppdaterad', { booking_id: id });
       return data && data.length > 0 ? transformBookingFromDB(data[0]) : null;
 
     } catch (error) {
@@ -391,6 +398,7 @@ const bookingServiceSupabase = {
       });
 
       console.log('✅ Deleted booking (authenticated):', id);
+      logActivity('booking_cancelled', 'Bokning avbokad', { booking_id: id });
 
     } catch (error) {
       console.error('❌ Error deleting booking:', error);

@@ -64,6 +64,7 @@ import {
   Email as EmailIcon
 } from '@mui/icons-material';
 import SendEmailDialog from './SendEmailDialog';
+import { logActivity } from '../services/activityLogService';
 
 interface HSBReportData {
   apartmentNumber: string;
@@ -552,6 +553,10 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
         onSent?.(`HSB-rapporten har skickats till ${recipientEmail}`);
         showSnackbar(`Rapport skickad till ${recipientEmail}`, 'success');
         setEmailDialogOpen(false);
+        logActivity('hsb_report_sent', `HSB-rapport skickad`, {
+          month: selectedMonth,
+          year: selectedYear,
+        });
       } else {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.details || 'Kunde inte skicka e-post');

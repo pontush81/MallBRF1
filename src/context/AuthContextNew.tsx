@@ -1,11 +1,12 @@
 // New AuthContext using pure Supabase (replaces Firebase)
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { 
-  AuthUser, 
-  getCurrentUser, 
-  logout as supabaseLogout, 
-  onAuthStateChange 
+import {
+  AuthUser,
+  getCurrentUser,
+  logout as supabaseLogout,
+  onAuthStateChange
 } from '../services/supabaseAuthNew';
+import { logActivity } from '../services/activityLogService';
 
 interface AuthContextType {
   currentUser: AuthUser | null;
@@ -124,11 +125,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     console.log('Login called for:', user.email);
     updateUser(user);
     console.log('✅ Auth state updated for:', user.email, '| Role:', user.role);
+    logActivity('login', `${user.name || user.email} loggade in`);
   };
 
   const logout = async () => {
+    const logoutUser = currentUserRef.current;
+    if (logoutUser) {
+      logActivity('logout', `${logoutUser.name || logoutUser.email} loggade ut`);
+    }
     console.log('🔄 AuthContext logout called - clearing UI state immediately');
-    
+
     // CRITICAL: Clear UI state IMMEDIATELY (don't wait for Supabase)
     clearUserData();
     

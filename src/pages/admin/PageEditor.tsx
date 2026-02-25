@@ -58,6 +58,7 @@ import '../../styles/PageEditor.css';
 
 import { Page, FileInfo } from '../../types/Page';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
+import { logActivity } from '../../services/activityLogService';
 
 // Interfacet för våra TabPanel komponenter
 interface TabPanelProps {
@@ -257,10 +258,12 @@ const PageEditor: React.FC = () => {
         }
         
         setSnackbarMessage('Sidan har uppdaterats! Återgår till listan...');
+        logActivity('page_updated', `Sida "${title}" uppdaterad`);
       } else {
         // Skapa ny sida
         result = await pageServiceSupabase.createPage(pageData);
         setSnackbarMessage('Sidan har skapats! Återgår till listan...');
+        logActivity('page_created', `Sida "${title}" skapad`);
       }
       
       // Visa meddelandet omedelbart
