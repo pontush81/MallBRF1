@@ -26,7 +26,6 @@ root.render(
 
 // Förbättrad cache-detection och automatisk åtgärd
 // Current version - update when deploying new cache-breaking changes
-const CURRENT_CACHE_VERSION = 'gulmaran-v8';
 const CURRENT_APP_VERSION = 'v8';
 
 const detectAndFixCacheIssues = async () => {

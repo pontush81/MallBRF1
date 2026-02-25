@@ -10,8 +10,6 @@ import {
   Paper,
   Fade,
   Stack,
-  Button,
-  Collapse,
   Divider
 } from '@mui/material';
 import { 
@@ -49,7 +47,6 @@ const ModernPagesListProfessional: React.FC<ModernPagesListProfessionalProps> = 
   isLoading = false 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [tocExpanded, setTocExpanded] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   const toggleCardExpansion = (pageId: string) => {

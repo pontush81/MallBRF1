@@ -132,11 +132,6 @@ const FaultReportPage: React.FC = () => {
     }
   };
   
-  const handleNewReport = () => {
-    setSuccess(false);
-    setError(null);
-  };
-  
   // Success view
   if (success && submittedReport) {
     return (

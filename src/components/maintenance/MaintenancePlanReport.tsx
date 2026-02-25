@@ -49,7 +49,6 @@ import {
   getAllVersions,
 } from '../../services/maintenancePlanService';
 import {
-  COLUMN_HEADERS,
   computeRowTotal,
   recalcSummaryRows,
   buildByggdelMap,

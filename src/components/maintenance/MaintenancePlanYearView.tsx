@@ -77,11 +77,6 @@ function fmtKr(amount: number | null): string {
   return amount.toLocaleString('sv-SE') + ' kr';
 }
 
-function fmtTkr(amount: number): string {
-  if (!amount) return '\u2013';
-  return Math.round(amount / 1000).toLocaleString('sv-SE') + ' tkr';
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------

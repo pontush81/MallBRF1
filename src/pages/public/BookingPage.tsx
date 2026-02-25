@@ -257,7 +257,6 @@ const CustomPickersDay = ({
   const { isSelected, isStartDate, isEndDate, isInRange } = dateRangeStatus;
   
   const isFullyBooked = isDateFullyBooked(other.day);
-  const isCheckout = isCheckoutDate(other.day);
   const isCheckin = isCheckinDate(other.day);
   const isBackToBack = hasBackToBackBookings(other.day);
   

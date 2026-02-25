@@ -23,7 +23,6 @@ import {
 import {
   Search as SearchIcon,
   CheckCircle as CheckCircleIcon,
-  Schedule as ScheduleIcon,
   Build as BuildIcon,
   Done as DoneIcon,
 } from '@mui/icons-material';
