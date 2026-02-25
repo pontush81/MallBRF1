@@ -677,7 +677,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               size={isSmallMobile ? "small" : "medium"}
               sx={{
                 flex: { xs: 1, sm: 'none' },
-                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                minHeight: 42
               }}
             >
               {saving ? 'Skapar PDF...' : 'Skapa PDF'}
@@ -690,7 +691,8 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
               size={isSmallMobile ? "small" : "medium"}
               sx={{
                 flex: { xs: 1, sm: 'none' },
-                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                minHeight: 42
               }}
             >
               {isSmallMobile ? 'E-post' : 'Skicka via e-post'}
@@ -1491,12 +1493,13 @@ const HSBReportEditor: React.FC<HSBReportEditorProps> = ({ onClose, onSent }) =>
           <Button onClick={() => setConfirmDialog(null)} disabled={saving}>
             Avbryt
           </Button>
-          <Button 
+          <Button
             onClick={handleGeneratePDF}
             variant="contained"
             disabled={saving}
             startIcon={saving ? <ButtonLoading /> : <PictureAsPdfIcon />}
             color="primary"
+            sx={{ minWidth: 160, minHeight: 42 }}
           >
             {saving ? 'Skapar PDF...' : 'Skapa rapport'}
           </Button>
