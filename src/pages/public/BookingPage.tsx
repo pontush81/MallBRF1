@@ -25,7 +25,7 @@ import {
   Stack,
   Menu,
   MenuItem,
-
+  Select,
 
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -428,6 +428,7 @@ const BookingPage: React.FC = () => {
 
   
   // Admin toolbar state
+  const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
   const [backupLoading, setBackupLoading] = useState(false);
 
   const [backupMenuAnchorEl, setBackupMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -1336,10 +1337,17 @@ const BookingPage: React.FC = () => {
     const renderYearlySummary = () => {
       if (!isAdmin) return null;
 
-      const currentYear = new Date().getFullYear();
+      const availableYears = [...new Set(
+        existingBookings
+          .filter(b => b.startDate)
+          .map(b => new Date(b.startDate).getFullYear())
+      )].sort((a, b) => b - a);
+
+      if (availableYears.length === 0) return null;
+
       const yearlyBookings = existingBookings.filter(booking => {
         const bookingYear = new Date(booking.startDate).getFullYear();
-        return bookingYear === currentYear;
+        return bookingYear === summaryYear;
       });
 
       const { apartmentRevenue, parkingRevenue, totalRevenue, totalNights } = calculateTotalRevenue(yearlyBookings);
@@ -1356,15 +1364,40 @@ const BookingPage: React.FC = () => {
             borderRadius: 2,
           }}
         >
-          <Typography variant="h5" sx={{ 
+          <Box sx={{
             mb: 3,
-            color: 'primary.main',
-            fontWeight: 600,
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: 1.5,
           }}>
-            Årssummering {currentYear}
-          </Typography>
+            <Typography variant="h5" sx={{
+              color: 'primary.main',
+              fontWeight: 600,
+            }}>
+              Årssummering
+            </Typography>
+            <Select
+              value={summaryYear}
+              onChange={(e) => setSummaryYear(Number(e.target.value))}
+              size="small"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.2rem',
+                color: 'primary.main',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'primary.light',
+                },
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                  px: 1.5,
+                },
+              }}
+            >
+              {availableYears.map(y => (
+                <MenuItem key={y} value={y}>{y}</MenuItem>
+              ))}
+            </Select>
+          </Box>
           
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} md={4}>
