@@ -223,7 +223,7 @@ async function transformBookingsToHSB(bookings: any[], month: number, year: numb
     
     // Add parking if applicable
     let parkingAmount = 0;
-    if (booking.parkering === 'true' || booking.parkering === true || booking.parking === true) {
+    if (!!booking.parkering || booking.parking === true) {
       parkingAmount = nights * 75;
       console.log(`🚗 Added parking: ${nights} × 75 kr = ${parkingAmount} kr`);
     }
