@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -115,7 +116,7 @@ Skapad: ${booking.createdat ? new Date(booking.createdat).toLocaleString('sv-SE'
     }
 
     // Generate content based on format
-    const fileContent = generateBackupContent(backupData, finalFormat, timestamp);
+    const fileContent = await generateBackupContent(backupData, finalFormat, timestamp);
     const fileName = `backup-${timestamp}.${getFileExtension(finalFormat)}`;
     const contentType = getContentType(finalFormat);
 
@@ -225,12 +226,12 @@ JSON-data ar bifogad som fil.
   }
 })
 
-function generateBackupContent(backupData: Record<string, any[]>, format: string, timestamp: string): Uint8Array {
+async function generateBackupContent(backupData: Record<string, any[]>, format: string, timestamp: string): Promise<Uint8Array> {
   switch (format) {
     case 'excel':
       return generateExcelBackup(backupData, timestamp);
     case 'pdf':
-      return generatePdfBackup(backupData, timestamp);
+      return await generatePdfBackup(backupData, timestamp);
     case 'json':
     default:
       return new TextEncoder().encode(JSON.stringify(backupData, null, 2));
@@ -238,72 +239,118 @@ function generateBackupContent(backupData: Record<string, any[]>, format: string
 }
 
 function generateExcelBackup(backupData: Record<string, any[]>, timestamp: string): Uint8Array {
-  // Simple CSV format for Excel compatibility
-  let content = `BACKUP RAPPORT - ${new Date().toLocaleDateString('sv-SE')}\n`;
-  content += `Skapad: ${timestamp}\n\n`;
-  
+  // Tab-separated values (TSV) - handles Excel better than CSV
+  // BOM for proper UTF-8 in Excel
+  const BOM = '\uFEFF';
+  let content = BOM;
+
   Object.entries(backupData).forEach(([tableName, records]) => {
-    content += `\n${tableName.toUpperCase()} (${records.length} poster)\n`;
-    content += '='.repeat(50) + '\n';
-    
     if (records.length > 0) {
       // Header row
       const headers = Object.keys(records[0]);
-      content += headers.join(',') + '\n';
-      
+      content += headers.join('\t') + '\n';
+
       // Data rows
       records.forEach(record => {
         const values = headers.map(header => {
           const value = record[header];
-          // Escape commas and quotes in CSV
-          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value || '';
+          if (value === null || value === undefined) return '';
+          // Convert to string and remove tabs/newlines that would break TSV
+          return String(value).replace(/[\t\n\r]/g, ' ');
         });
-        content += values.join(',') + '\n';
+        content += values.join('\t') + '\n';
       });
     }
-    content += '\n';
   });
-  
+
   return new TextEncoder().encode(content);
 }
 
-function generatePdfBackup(backupData: Record<string, any[]>, timestamp: string): Uint8Array {
-  // For now, generate text content that could be converted to PDF
-  let content = `BACKUP RAPPORT\n`;
-  content += `Skapad: ${timestamp}\n`;
-  content += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
-  
-  Object.entries(backupData).forEach(([tableName, records]) => {
-    content += `${tableName.toUpperCase()}\n`;
-    content += '='.repeat(30) + '\n';
-    content += `Antal poster: ${records.length}\n\n`;
-    
+async function generatePdfBackup(backupData: Record<string, any[]>, timestamp: string): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const fontSize = 9;
+  const titleSize = 16;
+  const headerSize = 12;
+  const lineHeight = 14;
+  const margin = 50;
+  const pageWidth = 842; // A4 landscape
+  const pageHeight = 595;
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+
+  function addPage() {
+    page = pdfDoc.addPage([pageWidth, pageHeight]);
+    y = pageHeight - margin;
+  }
+
+  function drawText(text: string, x: number, options: { font?: any; size?: number; color?: any } = {}) {
+    const f = options.font || font;
+    const s = options.size || fontSize;
+    const c = options.color || rgb(0, 0, 0);
+    // Replace non-ASCII chars that Helvetica can't render
+    const safeText = text.replace(/[^\x00-\x7F]/g, ch => {
+      const map: Record<string, string> = { 'å': 'a', 'ä': 'a', 'ö': 'o', 'Å': 'A', 'Ä': 'A', 'Ö': 'O', 'é': 'e', 'ü': 'u' };
+      return map[ch] || '?';
+    });
+    page.drawText(safeText, { x, y, font: f, size: s, color: c });
+  }
+
+  // Title
+  drawText(`BACKUP RAPPORT`, margin, { font: boldFont, size: titleSize });
+  y -= lineHeight * 2;
+  drawText(`Skapad: ${timestamp}`, margin, { size: 10 });
+  y -= lineHeight * 2;
+
+  for (const [tableName, records] of Object.entries(backupData)) {
+    drawText(`${tableName.toUpperCase()} (${records.length} poster)`, margin, { font: boldFont, size: headerSize });
+    y -= lineHeight * 1.5;
+
+    // Draw separator line
+    page.drawLine({ start: { x: margin, y: y + 4 }, end: { x: pageWidth - margin, y: y + 4 }, thickness: 1, color: rgb(0.3, 0.3, 0.3) });
+    y -= lineHeight;
+
     if (records.length > 0 && tableName === 'bookings') {
       records.forEach((booking: any, index: number) => {
-        content += `${index + 1}. ${booking.name || 'N/A'}\n`;
-        content += `   E-post: ${booking.email || 'N/A'}\n`;
-        content += `   Datum: ${booking.startdate || 'N/A'} - ${booking.enddate || 'N/A'}\n`;
-        content += `   Status: ${booking.status || 'N/A'}\n`;
-        content += `   Parkering: ${booking.parkering ? 'Ja' : 'Nej'}\n`;
-        if (booking.notes) {
-          content += `   Anteckningar: ${booking.notes}\n`;
-        }
-        content += '\n';
+        if (y < margin + lineHeight * 7) addPage();
+
+        // Booking header
+        drawText(`${index + 1}. ${booking.name || 'N/A'}`, margin, { font: boldFont, size: 10 });
+        y -= lineHeight;
+
+        const fields = [
+          ['E-post', booking.email || '-'],
+          ['Startdatum', booking.startdate ? booking.startdate.split('T')[0] : '-'],
+          ['Slutdatum', booking.enddate ? booking.enddate.split('T')[0] : '-'],
+          ['Status', booking.status || '-'],
+          ['Parkering', booking.parkering === 'true' || booking.parkering === 'Ja' ? 'Ja' : 'Nej'],
+          ['Pris', booking.price != null ? `${booking.price} kr` : '-'],
+          ['Betalning', booking.payment_status || '-'],
+          ['Anteckningar', booking.notes || '-'],
+        ];
+
+        fields.forEach(([label, value]) => {
+          drawText(`${label}: ${value}`, margin + 15, { size: fontSize });
+          y -= lineHeight;
+        });
+
+        y -= lineHeight * 0.5;
       });
     }
-    content += '\n';
-  });
-  
-  return new TextEncoder().encode(content);
+    y -= lineHeight;
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  return new Uint8Array(pdfBytes);
 }
 
 function getFileExtension(format: string): string {
   switch (format) {
-    case 'excel': return 'csv';
-    case 'pdf': return 'txt'; // Simple text for now, could be enhanced to actual PDF
+    case 'excel': return 'tsv';
+    case 'pdf': return 'pdf';
     case 'json':
     default: return 'json';
   }
@@ -311,8 +358,8 @@ function getFileExtension(format: string): string {
 
 function getContentType(format: string): string {
   switch (format) {
-    case 'excel': return 'text/csv';
-    case 'pdf': return 'text/plain'; // Would be 'application/pdf' for real PDF
+    case 'excel': return 'text/tab-separated-values';
+    case 'pdf': return 'application/pdf';
     case 'json':
     default: return 'application/json';
   }
