@@ -188,10 +188,14 @@ async function transformBookingsToHSB(bookings: any[], month: number, year: numb
     // Get apartment number
     const apartmentNumber = await getApartmentNumberByName(booking.name, booking.email, supabase);
     
-    // Format period
+    // Format period (handle cross-month bookings)
     const startDate = new Date(booking.startdate);
     const endDate = new Date(booking.enddate);
-    const period = `${startDate.getDate()}-${endDate.getDate()} ${getMonthName(startDate.getMonth() + 1).toLowerCase()}`;
+    const startMonthName = getMonthName(startDate.getMonth() + 1).toLowerCase().substring(0, 3);
+    const endMonthName = getMonthName(endDate.getMonth() + 1).toLowerCase().substring(0, 3);
+    const period = startDate.getMonth() === endDate.getMonth()
+      ? `${startDate.getDate()}-${endDate.getDate()} ${startMonthName}`
+      : `${startDate.getDate()} ${startMonthName} - ${endDate.getDate()} ${endMonthName}`;
     
     // Simple approach: Use booking system's exact calculation
     let description = 'Hyra gästlägenhet';
@@ -750,6 +754,49 @@ Deno.serve(async (req) => {
           const totalAmount = hsbData.reduce((sum, item) => sum + item.totalAmount, 0);
           const periodDesc = quarter ? getQuarterLabel(quarter, year) : `${getMonthName(month)} ${year}`;
 
+          // Build detailed table rows for the email
+          const tableRows = hsbData.map(item =>
+            `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">${item.apartmentNumber}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${item.resident}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${item.period}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${item.description}</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right">${item.unitPrice} kr</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:bold">${item.totalAmount.toLocaleString('sv-SE')} kr</td></tr>`
+          ).join('');
+
+          // Build plain text version with details
+          const textLines = hsbData.map(item =>
+            `Lgh ${item.apartmentNumber} | ${item.resident} | ${item.period} | ${item.description} | ${item.quantity} x ${item.unitPrice} kr = ${item.totalAmount} kr`
+          ).join('\n');
+
+          const emailHtml = `
+<h2 style="color:#1a365d;margin-bottom:4px">HSB Debiteringsunderlag</h2>
+<p style="color:#555;margin-top:0">BRF Gulm&aring;ran &mdash; ${periodDesc}</p>
+<table style="border-collapse:collapse;width:100%;font-size:13px;font-family:Arial,sans-serif">
+<thead>
+<tr style="background:#f0f4f8">
+<th style="padding:6px 8px;text-align:left;border-bottom:2px solid #ccc">Lgh</th>
+<th style="padding:6px 8px;text-align:left;border-bottom:2px solid #ccc">Namn</th>
+<th style="padding:6px 8px;text-align:left;border-bottom:2px solid #ccc">Period</th>
+<th style="padding:6px 8px;text-align:left;border-bottom:2px solid #ccc">Beskrivning</th>
+<th style="padding:6px 8px;text-align:center;border-bottom:2px solid #ccc">Antal</th>
+<th style="padding:6px 8px;text-align:right;border-bottom:2px solid #ccc">&aacute; pris</th>
+<th style="padding:6px 8px;text-align:right;border-bottom:2px solid #ccc">Summa</th>
+</tr>
+</thead>
+<tbody>
+${tableRows}
+</tbody>
+<tfoot>
+<tr style="background:#f0f4f8">
+<td colspan="6" style="padding:8px;text-align:right;font-weight:bold;border-top:2px solid #333">TOTAL SUMMA:</td>
+<td style="padding:8px;text-align:right;font-weight:bold;font-size:14px;border-top:2px solid #333">${totalAmount.toLocaleString('sv-SE')} kr</td>
+</tr>
+</tfoot>
+</table>
+<p style="color:#888;font-size:12px;margin-top:16px">
+<em>Rapport genererad: ${new Date().toLocaleString('sv-SE')}<br/>
+Uppgiftsl&auml;mnare: ${reporterName}</em><br/>
+Fullst&auml;ndig rapport bifogad som PDF.
+</p>`;
+
+          const emailText = `HSB Debiteringsunderlag - ${periodDesc}\nBRF Gulmaran\n\n${textLines}\n\nTOTAL SUMMA: ${totalAmount.toLocaleString('sv-SE')} kr\n\nAntal poster: ${hsbData.length}\nRapport genererad: ${new Date().toLocaleString('sv-SE')}\nUppgiftslamnare: ${reporterName}\n\nFullstandig rapport bifogad som PDF.`;
+
           const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
             method: 'POST',
             headers: {
@@ -759,8 +806,8 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               to: recipientEmail,
               subject: `HSB Debiteringsunderlag - ${periodDesc}`,
-              text: `Bifogat finner du HSB debiteringsunderlag for ${periodDesc}.\n\nAntal poster: ${hsbData.length}\nTotal summa: ${totalAmount.toLocaleString('sv-SE')} kr\n\nRapport genererad: ${new Date().toLocaleString('sv-SE')}\nUppgiftslamnare: ${reporterName}`,
-              html: `<h2>HSB Debiteringsunderlag</h2><p>Bifogat finner du HSB debiteringsunderlag f&ouml;r <strong>${periodDesc}</strong>.</p><ul><li>Antal poster: ${hsbData.length}</li><li>Total summa: ${totalAmount.toLocaleString('sv-SE')} kr</li></ul><p><em>Rapport genererad: ${new Date().toLocaleString('sv-SE')}<br/>Uppgiftsl&auml;mnare: ${reporterName}</em></p>`,
+              text: emailText,
+              html: emailHtml,
               type: 'hsb-report',
               attachments: [{
                 filename: pdfFileName,
