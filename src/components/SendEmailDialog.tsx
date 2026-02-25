@@ -134,6 +134,7 @@ const SendEmailDialog: React.FC<SendEmailDialogProps> = ({
           variant="contained"
           disabled={sending || !email.trim()}
           startIcon={sending ? <ButtonLoading /> : <EmailIcon />}
+          sx={{ minWidth: 130, minHeight: 42 }}
         >
           {sending ? 'Skickar...' : 'Skicka'}
         </Button>
