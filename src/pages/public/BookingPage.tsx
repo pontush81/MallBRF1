@@ -726,6 +726,7 @@ const BookingPage: React.FC = () => {
                     textTransform: 'none',
                     fontSize: { xs: '16px', sm: '1rem' }, // More reasonable text size
                     minHeight: { xs: '44px', sm: '42px' }, // Smaller but still good touch target
+                    minWidth: { xs: 'auto', sm: 200 },
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     '&:hover': {
                       boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
@@ -1751,7 +1752,7 @@ const BookingPage: React.FC = () => {
                     startIcon={<BackupIcon fontSize="small" />}
                     onClick={handleBackupMenuClick}
                     disabled={backupLoading}
-                    sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5 }}
+                    sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5, minWidth: 140, minHeight: 32 }}
                   >
                     {backupLoading ? <MinimalLoading size={14} /> : 'Säkerhetskopiera'}
                   </Button>
@@ -2341,9 +2342,11 @@ const BookingPage: React.FC = () => {
                 variant="contained" 
                 color="primary"
                 disabled={editLoading}
-                sx={{ 
+                sx={{
                   borderRadius: 1,
                   boxShadow: 2,
+                  minWidth: 100,
+                  minHeight: 42,
                   '&:hover': {
                     boxShadow: 4
                   }
