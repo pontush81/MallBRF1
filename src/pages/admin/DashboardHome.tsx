@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Typography,
   Box,
   Grid,
   Card,
   CardContent,
-  CardActionArea,
-  useMediaQuery,
-  useTheme
+  CardActionArea
 } from '@mui/material';
 import {
   Article as ArticleIcon,
@@ -17,15 +15,12 @@ import {
   Settings as SettingsIcon,
   Notifications as NotificationIcon,
   Assessment as ReportIcon,
-  ReportProblem as FaultIcon,
-  Email as EmailIcon
+  ReportProblem as FaultIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContextNew';
 import { bastadTheme } from '../../theme/bastadTheme';
-import SendEmailDialog from '../../components/SendEmailDialog';
-import { adminUtils } from '../../utils/adminUtils';
 
 interface QuickActionCard {
   title: string;
@@ -34,15 +29,10 @@ interface QuickActionCard {
   path: string;
   color: string;
   allowedRoles?: string[];
-  action?: string;
 }
 
 const DashboardHome: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
 
   const quickActions: QuickActionCard[] = [
     {
@@ -102,15 +92,6 @@ const DashboardHome: React.FC = () => {
       allowedRoles: ['admin']
     },
     {
-      title: 'Skicka HSB-rapport',
-      description: 'Skicka senaste HSB-rapporten via e-post',
-      icon: <EmailIcon />,
-      path: '',
-      action: 'sendHsbEmail',
-      color: bastadTheme.colors.ocean[500],
-      allowedRoles: ['admin']
-    },
-    {
       title: 'Felanmälningar',
       description: 'Hantera felanmälningar från boende',
       icon: <FaultIcon />,
@@ -128,41 +109,7 @@ const DashboardHome: React.FC = () => {
   });
 
   const handleCardClick = (action: QuickActionCard) => {
-    if (action.action === 'sendHsbEmail') {
-      setEmailDialogOpen(true);
-      return;
-    }
     navigate(action.path);
-  };
-
-  const handleSendHsbEmail = async (recipientEmail: string) => {
-    setSendingEmail(true);
-    try {
-      // Default to previous month
-      const now = new Date();
-      const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth(); // getMonth() is 0-indexed
-      const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-
-      await adminUtils.sendHsbReportEmail(
-        recipientEmail,
-        { month: prevMonth, year: prevYear },
-        currentUser,
-        { isMobile }
-      );
-      setEmailDialogOpen(false);
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
-  // Period label for the email dialog (previous month)
-  const getDefaultPeriodLabel = () => {
-    const now = new Date();
-    const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
-    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-                        'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
-    return `${monthNames[prevMonth - 1]} ${prevYear}`;
   };
 
   return (
@@ -264,15 +211,6 @@ const DashboardHome: React.FC = () => {
         </Grid>
       </Box>
 
-      <SendEmailDialog
-        open={emailDialogOpen}
-        onClose={() => setEmailDialogOpen(false)}
-        onSend={handleSendHsbEmail}
-        sending={sendingEmail}
-        periodLabel={getDefaultPeriodLabel()}
-        itemCount={0}
-        totalAmount={0}
-      />
     </Box>
   );
 };
