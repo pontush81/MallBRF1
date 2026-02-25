@@ -8,12 +8,13 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { StandardLoading } from '../../components/common/StandardLoading';
-import { format, differenceInDays, getISOWeek, isValid } from 'date-fns';
+import { format, getISOWeek, isValid } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Booking } from '../../types/Booking';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
 import BookingStatus from '../../components/booking/BookingStatus';
 import { useAuth } from '../../context/AuthContextNew';
+import { calculateTotalRevenue } from '../../utils/bookingPricing';
 
 // Robust week number calculation that works consistently across platforms
 const getWeekNumber = (date: Date | string | any): number => {
@@ -115,46 +116,6 @@ const BookingStatusPage: React.FC = () => {
     }, {});
   };
 
-  const calculateNights = (booking: Booking): number => {
-    if (!booking.startDate || !booking.endDate) return 0;
-    
-    const startDate = new Date(booking.startDate);
-    const endDate = new Date(booking.endDate);
-    
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return 0;
-    }
-    
-    return Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-  };
-
-  const calculateTotalNights = (bookings: Booking[]): number => {
-    return bookings.reduce((total, booking) => total + calculateNights(booking), 0);
-  };
-
-  const calculateRevenueForBooking = (booking: Booking): number => {
-    if (!booking.startDate || !booking.endDate) return 0;
-    
-    const startDate = new Date(booking.startDate);
-    const week = isValid(startDate) ? getISOWeek(startDate) : 0;
-    
-    const nights = calculateNights(booking);
-    let pricePerNight = 400; // Default low season price
-    
-    if (week >= 24 && week <= 32) {
-      if ([28, 29].includes(week)) {
-        pricePerNight = 800; // Tennis weeks
-      } else {
-        pricePerNight = 600; // High season
-      }
-    }
-    
-    return nights * pricePerNight;
-  };
-
-  const calculateRevenueForMonth = (bookings: Booking[]): number => {
-    return bookings.reduce((total, booking) => total + calculateRevenueForBooking(booking), 0);
-  };
 
   if (loading) {
     return (
@@ -278,16 +239,10 @@ const BookingStatusPage: React.FC = () => {
               };
             });
 
-            const totalNights = calculateTotalNights(monthBookings);
-            const totalRevenue = calculateRevenueForMonth(monthBookings);
-            
-            const parkingRevenue = monthBookings.reduce((sum, booking) => {
-              if (!booking.parking) return sum;
-              const start = new Date(booking.startDate || '');
-              const end = new Date(booking.endDate || '');
-              const nights = differenceInDays(end, start);
-              return sum + (nights * 75);
-            }, 0);
+            const revenueData = calculateTotalRevenue(monthBookings);
+            const totalNights = revenueData.totalNights;
+            const totalRevenue = revenueData.totalRevenue;
+            const parkingRevenue = revenueData.parkingRevenue;
 
             return (
               <BookingStatus

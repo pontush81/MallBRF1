@@ -55,6 +55,7 @@ import { Booking } from '../../types/Booking';
 import { bastadTheme } from '../../theme/bastadTheme';
 import { adminUtils } from '../../utils/adminUtils';
 import { MinimalLoading, ButtonLoading } from '../../components/common/StandardLoading';
+import { calculateTotalRevenue, calculateBookingPrice, PRICING } from '../../utils/bookingPricing';
 
 // Modern styled components for booking page
 // ModernHeroSection removed - not currently used
@@ -1341,35 +1342,7 @@ const BookingPage: React.FC = () => {
         return bookingYear === currentYear;
       });
 
-      const totalNights = yearlyBookings.reduce((sum, booking) => {
-        const start = new Date(booking.startDate);
-        const end = new Date(booking.endDate);
-        return sum + dateFns.differenceInDays(end, start);
-      }, 0);
-
-      const apartmentRevenue = yearlyBookings.reduce((sum, booking) => {
-        const start = new Date(booking.startDate);
-        const end = new Date(booking.endDate);
-        const nights = dateFns.differenceInDays(end, start);
-        const weekNumber = dateFns.getISOWeek(start);
-        
-        let nightlyRate = 400;
-        if (weekNumber >= 24 && weekNumber <= 32) {
-          nightlyRate = weekNumber >= 28 && weekNumber <= 29 ? 800 : 600;
-        }
-        
-        return sum + (nights * nightlyRate);
-      }, 0);
-
-      const parkingRevenue = yearlyBookings.reduce((sum, booking) => {
-        if (!booking.parking) return sum;
-        const start = new Date(booking.startDate);
-        const end = new Date(booking.endDate);
-        const nights = dateFns.differenceInDays(end, start);
-        return sum + (nights * 75);
-      }, 0);
-
-      const totalRevenue = apartmentRevenue + parkingRevenue;
+      const { apartmentRevenue, parkingRevenue, totalRevenue, totalNights } = calculateTotalRevenue(yearlyBookings);
 
       return (
         <Paper
@@ -1522,34 +1495,7 @@ const BookingPage: React.FC = () => {
           const [year, month] = monthYear.split('-');
           const bookings = groupedBookings[monthYear];
           const monthName = dateFns.format(new Date(Number(year), Number(month) - 1), 'LLLL', { locale: sv });
-          const totalNights = bookings.reduce((sum, booking) => {
-            const start = new Date(booking.startDate);
-            const end = new Date(booking.endDate);
-            return sum + dateFns.differenceInDays(end, start);
-          }, 0);
-
-          const totalRevenue = bookings.reduce((sum, booking) => {
-            const start = new Date(booking.startDate);
-            const end = new Date(booking.endDate);
-            const nights = dateFns.differenceInDays(end, start);
-            const weekNumber = dateFns.getISOWeek(start);
-            
-            let nightlyRate = 400;
-            if (weekNumber >= 24 && weekNumber <= 32) {
-              nightlyRate = weekNumber >= 28 && weekNumber <= 29 ? 800 : 600;
-            }
-            
-            const parkingFee = booking.parking ? nights * 75 : 0;
-            return sum + (nights * nightlyRate) + parkingFee;
-          }, 0);
-
-          const parkingRevenue = bookings.reduce((sum, booking) => {
-            if (!booking.parking) return sum;
-            const start = new Date(booking.startDate);
-            const end = new Date(booking.endDate);
-            const nights = dateFns.differenceInDays(end, start);
-            return sum + (nights * 75);
-          }, 0);
+          const { totalNights, totalRevenue, parkingRevenue } = calculateTotalRevenue(bookings);
 
           const guestData = bookings.map(booking => {
             const startDate = new Date(booking.startDate);
@@ -1562,7 +1508,9 @@ const BookingPage: React.FC = () => {
               departure: dateFns.format(new Date(booking.endDate), 'E d MMM', { locale: sv }),
               week: `v.${week}`,
               notes: booking.notes,
-              parking: booking.parking
+              parking: booking.parking,
+              startDateRaw: booking.startDate,
+              endDateRaw: booking.endDate,
             };
           });
 
@@ -1651,6 +1599,67 @@ const BookingPage: React.FC = () => {
     const formattedEnd = dateFns.format(endDate, 'd MMMM', { locale: sv });
     const nights = dateFns.differenceInDays(endDate, startDate);
     return `Valt datum: ${formattedStart} - ${formattedEnd} (${nights} nätter)`;
+  };
+
+  // Render price summary when dates are selected
+  const renderPriceSummary = () => {
+    if (!startDate || !endDate) return null;
+
+    const breakdown = calculateBookingPrice(startDate, endDate, parking);
+
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          mt: { xs: 2, sm: 3 },
+          mx: 'auto',
+          maxWidth: { xs: '100%', sm: '500px' },
+          p: { xs: 2, sm: 3 },
+          backgroundColor: bastadTheme.colors.ocean[50],
+          border: `1px solid ${bastadTheme.colors.ocean[200]}`,
+          borderRadius: bastadTheme.borderRadius.lg,
+        }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: 'primary.dark' }}>
+          Prisberäkning
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          {breakdown.nights} {breakdown.nights === 1 ? 'natt' : 'nätter'} · {breakdown.seasonLabel} (v.{breakdown.weekNumber})  {breakdown.nightlyRate} kr/natt
+        </Typography>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+          <Typography variant="body2">
+            Lägenhet ({breakdown.nights} × {breakdown.nightlyRate} kr)
+          </Typography>
+          <Typography variant="body2">
+            {breakdown.apartmentSubtotal.toLocaleString()} kr
+          </Typography>
+        </Box>
+
+        {parking && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+            <Typography variant="body2">
+              Parkering ({breakdown.nights} × {PRICING.PARKING_RATE} kr)
+            </Typography>
+            <Typography variant="body2">
+              {breakdown.parkingSubtotal.toLocaleString()} kr
+            </Typography>
+          </Box>
+        )}
+
+        <Divider sx={{ my: 1.5 }} />
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            Totalt
+          </Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            {breakdown.grandTotal.toLocaleString()} kr
+          </Typography>
+        </Box>
+      </Paper>
+    );
   };
 
   // Admin handler functions
@@ -1797,10 +1806,11 @@ const BookingPage: React.FC = () => {
                     </Box>
                   )}
                   {renderCalendarWithMaxWidth()}
+                  {renderPriceSummary()}
                 </>
               )}
             </Grid>
-            
+
             <Grid item xs={12}>
               {renderBookingForm()}
             </Grid>

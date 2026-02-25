@@ -21,7 +21,7 @@ import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import BookingDetails from './BookingDetails';
 import { GuestData } from '../../types/Booking';
 import { formatCurrency, getPlural } from '../../utils/formatting';
-import { differenceInDays } from 'date-fns';
+import { getNightlyRateFromWeekString, calculateBookingPriceFromStrings } from '../../utils/bookingPricing';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import ParkingChip from '../common/ParkingChip';
 
@@ -120,96 +120,29 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    {(() => {
-                      let baseRate = 400;
-                      if (parseInt(guest.week.replace('v.', ''), 10) >= 24 && parseInt(guest.week.replace('v.', ''), 10) <= 32) {
-                        baseRate = [28, 29].includes(parseInt(guest.week.replace('v.', ''), 10)) ? 800 : 600;
-                      }
-                      return `${baseRate} kr`;
-                    })()}
+                    {`${getNightlyRateFromWeekString(guest.week)} kr`}
                   </TableCell>
                   <TableCell align="right">
                     {(() => {
-                      try {
-                        // Konvertera datum från svenska format till Date-objekt
-                        const arrivalParts = guest.arrival.split(' ');
-                        const departureParts = guest.departure.split(' ');
-                        
-                        // Extrahera numeriskt datum och månad
-                        const arrivalDay = parseInt(arrivalParts[1], 10);
-                        const departureDay = parseInt(departureParts[1], 10);
-                        
-                        // Skapa månadsnummer (0-11) baserat på svenska månadsnamn
-                        const getMonthNumber = (monthStr) => {
-                          // Ta bort eventuella punkter från månadsnamnet
-                          const cleanMonthStr = monthStr.replace(/\./g, '').toLowerCase();
-                          const months = {
-                            'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'maj': 4, 'juni': 5,
-                            'juli': 6, 'aug': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
-                          };
-                          return months[cleanMonthStr] || 0;
-                        };
-                        
-                        const arrivalMonth = getMonthNumber(arrivalParts[2]);
-                        const departureMonth = getMonthNumber(departureParts[2]);
-                        
-                        // Antag nuvarande år om inte specificerat
-                        const currentYear = parseInt(year);
-                        
-                        // Skapa Date-objekt
-                        const arrivalDate = new Date(currentYear, arrivalMonth, arrivalDay);
-                        const departureDate = new Date(currentYear, departureMonth, departureDay);
-                        
-                        // Hantera årsskifte
-                        if (departureMonth < arrivalMonth) {
-                          departureDate.setFullYear(currentYear + 1);
-                        }
-                        
-                        // Beräkna nätter
-                        const nights = differenceInDays(departureDate, arrivalDate);
-                        
-                        // Beräkna pris baserat på vecka
-                        let baseRate = 400;
-                        const weekNumber = parseInt(guest.week.replace('v.', ''), 10);
-                        
-                        if (weekNumber >= 24 && weekNumber <= 32) {
-                          baseRate = [28, 29].includes(weekNumber) ? 800 : 600;
-                        }
-                        
-                        const baseAmount = nights * baseRate;
-                        const parkingAmount = guest.parking ? nights * 75 : 0;
-                        const totalAmount = baseAmount + parkingAmount;
-                        
-                        return (
-                          <Box>
-                            {guest.parking ? (
-                              <>
-                                <Typography variant="body2">
-                                  {nights} × {baseRate} kr = {baseAmount} kr
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                  + {parkingAmount} kr (P)
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                                  {totalAmount.toLocaleString()} kr
-                                </Typography>
-                              </>
-                            ) : (
-                              <>
-                                <Typography variant="body2">
-                                  {nights} × {baseRate} kr = {baseAmount} kr
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                                  {totalAmount.toLocaleString()} kr
-                                </Typography>
-                              </>
-                            )}
-                          </Box>
-                        );
-                      } catch (error) {
-                        console.error('Error calculating totals:', error, guest);
+                      if (!guest.startDateRaw || !guest.endDateRaw) {
                         return <Typography color="error">Beräkningsfel</Typography>;
                       }
+                      const breakdown = calculateBookingPriceFromStrings(guest.startDateRaw, guest.endDateRaw, guest.parking ?? false);
+                      return (
+                        <Box>
+                          <Typography variant="body2">
+                            {breakdown.nights} × {breakdown.nightlyRate} kr = {breakdown.apartmentSubtotal} kr
+                          </Typography>
+                          {guest.parking && (
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                              + {breakdown.parkingSubtotal} kr (P)
+                            </Typography>
+                          )}
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: guest.parking ? 0.5 : 0 }}>
+                            {breakdown.grandTotal.toLocaleString()} kr
+                          </Typography>
+                        </Box>
+                      );
                     })()}
                   </TableCell>
                   <TableCell align="center">
