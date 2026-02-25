@@ -37,14 +37,14 @@ CREATE POLICY "Admin can manage HSB schedules"
   USING (
     EXISTS (
       SELECT 1 FROM users
-      WHERE users.id = auth.uid()
+      WHERE users.id = auth.uid()::text
       AND users.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM users
-      WHERE users.id = auth.uid()
+      WHERE users.id = auth.uid()::text
       AND users.role = 'admin'
     )
   );
@@ -56,7 +56,7 @@ CREATE POLICY "Admin can read HSB report logs"
   USING (
     EXISTS (
       SELECT 1 FROM users
-      WHERE users.id = auth.uid()
+      WHERE users.id = auth.uid()::text
       AND users.role = 'admin'
     )
   );
