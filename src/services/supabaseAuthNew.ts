@@ -1,6 +1,6 @@
 // New Pure Supabase Auth Service (replaces Firebase)
 // Modern implementation following Supabase best practices
-import supabase from './supabaseClient';
+import supabase, { authenticatedRestCall } from './supabaseClient';
 import { auditLogger, logLogin, logLogout } from './auditLogger';
 import { UserRole } from '../types/User';
 
@@ -472,72 +472,55 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
   console.log('🔄 Starting processOAuthUser for:', userData.email);
   
   try {
-    // Try to get existing profile by Supabase auth ID via direct REST API (bypass SDK hanging)
-    console.log('🔍 Looking up existing profile by auth ID via direct API...');
-    
-    const response = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?id=eq.${userData.id}&select=id,email,name,role,isactive`, {
-      method: 'GET',
-      headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk',
-        'Content-Type': 'application/json'
-      },
-      signal: AbortSignal.timeout(3000) // 3 second timeout
-    });
+    // Try to get existing profile by Supabase auth ID via authenticated REST call
+    console.log('🔍 Looking up existing profile by auth ID...');
 
-    if (response.ok) {
-      const profileArray = await response.json();
-      if (profileArray && profileArray.length > 0) {
-        const profileData = profileArray[0];
-        const existingProfile = {
-          id: profileData.id,
-          email: profileData.email,
-          name: profileData.name,
-          role: profileData.role as UserRole,
-          isActive: profileData.isactive
-        };
-        
-        console.log('✅ Found existing profile via direct API (FAST!):', existingProfile.email);
-        console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
-        
-        // Skip audit logging for now (causing 400 errors and not critical for login flow)
-        console.log('ℹ️ Skipping audit logging (not critical for login flow)');
-        
-        return existingProfile;
-      } else {
-        console.log('ℹ️ No profile found by auth ID via direct API');
-      }
+    const profileArray = await authenticatedRestCall(
+      'GET',
+      `users?id=eq.${userData.id}&select=id,email,name,role,isactive`,
+      undefined,
+      { timeout: 3000 }
+    );
+
+    if (profileArray && profileArray.length > 0) {
+      const profileData = profileArray[0];
+      const existingProfile = {
+        id: profileData.id,
+        email: profileData.email,
+        name: profileData.name,
+        role: profileData.role as UserRole,
+        isActive: profileData.isactive
+      };
+
+      console.log('✅ Found existing profile:', existingProfile.email);
+      console.log('🔧 Profile details - Role:', existingProfile.role, '| isActive:', existingProfile.isActive, '| ID:', existingProfile.id);
+
+      return existingProfile;
     } else {
-      console.log('ℹ️ Direct API query failed with status:', response.status);
+      console.log('ℹ️ No profile found by auth ID');
     }
   } catch (error) {
-    console.log('ℹ️ Error looking up profile by auth ID via direct API:', error);
+    console.log('ℹ️ Error looking up profile by auth ID:', error);
   }
   
   // Handle Firebase-to-Supabase migration case
-  // Look for existing user by email (from Firebase migration) via direct API
+  // Look for existing user by email (from Firebase migration)
   try {
-        console.log('🔍 Looking up user by email via direct API for migration...');
-        const emailResponse = await fetch(`https://qhdgqevdmvkrwnzpwikz.supabase.co/rest/v1/users?email=eq.${encodeURIComponent(userData.email)}&select=id,email,name,role,isactive`, {
-          method: 'GET',
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZGdxZXZkbXZrcnduenB3aWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjkzMDgsImV4cCI6MjA4NjYyOTMwOH0.g-h09pMoIHGxxOfCOu97hK5TB0_BAtGrAl9CBxWhRwk',
-            'Content-Type': 'application/json'
-          },
-          signal: AbortSignal.timeout(3000)
-        });
-        
-        let existingByEmail = null;
-        if (emailResponse.ok) {
-          const emailArray = await emailResponse.json();
-          if (emailArray && emailArray.length > 0) {
-            existingByEmail = emailArray[0];
-            console.log('✅ Found user by email via direct API:', existingByEmail.email);
-          }
-        }
-        
-        if (existingByEmail) {
+    console.log('🔍 Looking up user by email for migration...');
+    const emailArray = await authenticatedRestCall(
+      'GET',
+      `users?email=eq.${encodeURIComponent(userData.email)}&select=id,email,name,role,isactive`,
+      undefined,
+      { timeout: 3000 }
+    );
+
+    let existingByEmail = null;
+    if (emailArray && emailArray.length > 0) {
+      existingByEmail = emailArray[0];
+      console.log('✅ Found user by email:', existingByEmail.email);
+    }
+
+    if (existingByEmail) {
           console.log('✅ Found existing user by email:', existingByEmail.email);
           
           // If ID already matches, just return the user
