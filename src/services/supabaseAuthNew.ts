@@ -333,6 +333,7 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
         
         // Set the session in Supabase client (so other parts of app work)
         // Add timeout to prevent hanging here too
+        let sessionStored = false;
         try {
           const setSessionPromise = supabase.auth.setSession({
             access_token: accessToken,
@@ -345,9 +346,39 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
           
           await Promise.race([setSessionPromise, sessionTimeoutPromise]);
           console.log('✅ Set Supabase session from parsed tokens');
-        } catch (sessionError) {
+          sessionStored = true;
+        } catch (sessionError: any) {
           console.warn('⚠️ Failed to set Supabase session (skipping):', sessionError.message);
-          // Continue anyway, we have the user data from token
+          
+          // CRITICAL: Manually store the session in localStorage so subsequent API calls work
+          // This bypasses the SDK timeout issue
+          try {
+            const expiresAt = parseInt(urlParams.get('expires_at') || '0');
+            const expiresIn = parseInt(urlParams.get('expires_in') || '3600');
+            
+            const sessionData = {
+              access_token: accessToken,
+              refresh_token: refreshToken,
+              expires_at: expiresAt,
+              expires_in: expiresIn,
+              token_type: 'bearer',
+              user: {
+                id: tokenPayload.sub,
+                email: tokenPayload.email,
+                app_metadata: tokenPayload.app_metadata || {},
+                user_metadata: tokenPayload.user_metadata || {},
+                aud: 'authenticated',
+                role: 'authenticated'
+              }
+            };
+            
+            // Store in the expected Supabase localStorage key format
+            localStorage.setItem('mallbrf-supabase-auth', JSON.stringify(sessionData));
+            console.log('✅ Manually stored session in localStorage (fallback)');
+            sessionStored = true;
+          } catch (storageError) {
+            console.error('❌ Failed to store session manually:', storageError);
+          }
         }
         
         // Create user data from token
