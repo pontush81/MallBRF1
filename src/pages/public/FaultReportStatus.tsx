@@ -257,6 +257,15 @@ const FaultReportStatus: React.FC = () => {
                   </Typography>
                 </Box>
               )}
+              
+              {report.admin_notes && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: bastadTheme.colors.seagreen[50], borderRadius: 2, border: `1px solid ${bastadTheme.colors.seagreen[200]}` }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Vad som åtgärdats
+                  </Typography>
+                  <Typography sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>{report.admin_notes}</Typography>
+                </Box>
+              )}
             </Box>
             
             {/* Waiting status info */}

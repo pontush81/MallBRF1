@@ -315,7 +315,7 @@ export async function getFaultReportByReference(
 ): Promise<{ success: boolean; data?: FaultReport; error?: string }> {
   try {
     const ref = encodeURIComponent(referenceNumber.toUpperCase());
-    const data = await authenticatedRestCall('GET', `fault_reports?reference_number=eq.${ref}&select=id,reference_number,apartment_number,category,location,description,status,created_at,updated_at,resolved_at`, undefined, { timeout: 30000 });
+    const data = await authenticatedRestCall('GET', `fault_reports?reference_number=eq.${ref}&select=id,reference_number,apartment_number,category,location,description,status,created_at,updated_at,resolved_at,admin_notes`, undefined, { timeout: 30000 });
     if (Array.isArray(data) && data.length > 0) {
       return { success: true, data: data[0] as FaultReport };
     }
@@ -421,12 +421,13 @@ export async function sendFaultReportNotification(
 }
 
 /**
- * Send status update email to reporter
+ * Send status update email to reporter (only used when status is resolved/closed)
  */
 export async function sendStatusUpdateEmail(
   report: FaultReport,
   newStatus: FaultStatus,
-  reporterEmail: string
+  reporterEmail: string,
+  adminNotes?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
@@ -442,6 +443,12 @@ export async function sendStatusUpdateEmail(
     };
     
     const statusInfo = statusMessages[newStatus];
+    const notesSection = adminNotes?.trim()
+      ? `\n\nVad som åtgärdats:\n${adminNotes}\n`
+      : '';
+    const notesHtml = adminNotes?.trim()
+      ? `<p><strong>Vad som åtgärdats:</strong></p><p>${adminNotes.replace(/\n/g, '<br/>')}</p><hr/>`
+      : '';
     
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
       method: 'POST',
@@ -452,11 +459,11 @@ export async function sendStatusUpdateEmail(
       body: JSON.stringify({
         to: reporterEmail,
         subject: `${statusInfo.emoji} Felanmälan ${report.reference_number}: ${statusInfo.subject}`,
-        text: `Hej!\n\n${statusInfo.message}\n\nReferensnummer: ${report.reference_number}\nKategori: ${CATEGORY_LABELS[report.category]}\nPlats: ${LOCATION_LABELS[report.location]}\n\nFölj statusen här:\nhttps://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}\n\nMed vänlig hälsning,\nBRF Gulmåran`,
+        text: `Hej!\n\n${statusInfo.message}${notesSection}\nReferensnummer: ${report.reference_number}\nKategori: ${CATEGORY_LABELS[report.category]}\nPlats: ${LOCATION_LABELS[report.location]}\n\nFölj statusen här:\nhttps://www.gulmaran.com/felanmalan/status?ref=${report.reference_number}\n\nMed vänlig hälsning,\nBRF Gulmåran`,
         html: `
           <h2>${statusInfo.emoji} ${statusInfo.subject}</h2>
           <p>${statusInfo.message}</p>
-          <hr/>
+          ${notesHtml}
           <p><strong>Referensnummer:</strong> ${report.reference_number}</p>
           <p><strong>Kategori:</strong> ${CATEGORY_LABELS[report.category]}</p>
           <p><strong>Plats:</strong> ${LOCATION_LABELS[report.location]}</p>

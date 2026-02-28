@@ -156,9 +156,10 @@ const FaultReportsList: React.FC = () => {
     setSaving(false);
     
     if (result.success) {
-      // Send email notification if status changed and reporter has email
-      if (statusChanged && selectedReport.contact_email) {
-        sendStatusUpdateEmail(selectedReport, editStatus, selectedReport.contact_email)
+      // Send email only when issue is resolved/closed (not on every status update)
+      const isResolved = editStatus === 'resolved' || editStatus === 'closed';
+      if (statusChanged && isResolved && selectedReport.contact_email) {
+        sendStatusUpdateEmail(selectedReport, editStatus, selectedReport.contact_email, editNotes)
           .then(emailResult => {
             if (emailResult.success) {
               console.log('✅ Statusuppdatering skickad till:', selectedReport.contact_email);
