@@ -1,6 +1,46 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 
+/**
+ * Make a REST call with a specific access token (bypasses session lookup).
+ * Use this when you already have a valid token (e.g., from OAuth callback URL).
+ */
+export async function restCallWithToken(
+  method: string,
+  endpoint: string,
+  accessToken: string,
+  body?: any,
+  timeout: number = 5000
+): Promise<any> {
+  const preferHeader = (method === 'POST' || method === 'PATCH') ? 'return=representation' : 'return=minimal';
+  
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'Prefer': preferHeader,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(timeout),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error: ${response.status} - ${errorText}`);
+  }
+
+  if (method === 'DELETE') return null;
+
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    const text = await response.text();
+    return text.trim() ? JSON.parse(text) : null;
+  }
+  return null;
+}
+
 // Initialize Supabase client with full auth config (MIGRATION: Updated for pure Supabase auth)
 export const supabaseClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

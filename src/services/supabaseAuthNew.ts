@@ -1,6 +1,6 @@
 // New Pure Supabase Auth Service (replaces Firebase)
 // Modern implementation following Supabase best practices
-import supabase, { authenticatedRestCall } from './supabaseClient';
+import supabase, { authenticatedRestCall, restCallWithToken } from './supabaseClient';
 import { auditLogger, logLogin, logLogout } from './auditLogger';
 import { UserRole } from '../types/User';
 
@@ -364,7 +364,8 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
         console.log('🔄 Processing OAuth user with parsed data...');
         
         // Add timeout to processOAuthUser to prevent hanging on DB operations
-        const processPromise = processOAuthUser(userData);
+        // CRITICAL: Pass the access token so we can make API calls directly
+        const processPromise = processOAuthUser(userData, accessToken);
         const processTimeoutPromise = new Promise<AuthUser>((_, reject) => 
           setTimeout(() => reject(new Error('processOAuthUser timeout after 8 seconds')), 8000)
         );
@@ -468,18 +469,27 @@ export async function handleAuthCallback(): Promise<AuthUser | null> {
 /**
  * Process OAuth user data and handle profile creation/migration
  */
-async function processOAuthUser(userData: any): Promise<AuthUser> {
+async function processOAuthUser(userData: any, accessToken?: string): Promise<AuthUser> {
   console.log('🔄 Starting processOAuthUser for:', userData.email);
+  console.log('🔧 Using direct token for API calls:', !!accessToken);
+  
+  // Helper function to make API calls - uses direct token if available, otherwise falls back
+  const makeApiCall = async (endpoint: string): Promise<any> => {
+    if (accessToken) {
+      // Use direct token (bypasses session lookup issues)
+      return restCallWithToken('GET', endpoint, accessToken, undefined, 5000);
+    } else {
+      // Fall back to authenticated call (may fail if session not set)
+      return authenticatedRestCall('GET', endpoint, undefined, { timeout: 3000 });
+    }
+  };
   
   try {
     // Try to get existing profile by Supabase auth ID via authenticated REST call
     console.log('🔍 Looking up existing profile by auth ID...');
 
-    const profileArray = await authenticatedRestCall(
-      'GET',
-      `users?id=eq.${userData.id}&select=id,email,name,role,isactive`,
-      undefined,
-      { timeout: 3000 }
+    const profileArray = await makeApiCall(
+      `users?id=eq.${userData.id}&select=id,email,name,role,isactive`
     );
 
     if (profileArray && profileArray.length > 0) {
@@ -499,19 +509,16 @@ async function processOAuthUser(userData: any): Promise<AuthUser> {
     } else {
       console.log('ℹ️ No profile found by auth ID');
     }
-  } catch (error) {
-    console.log('ℹ️ Error looking up profile by auth ID:', error);
+  } catch (error: any) {
+    console.log('ℹ️ Error looking up profile by auth ID:', error?.message || error);
   }
   
   // Handle Firebase-to-Supabase migration case
   // Look for existing user by email (from Firebase migration)
   try {
     console.log('🔍 Looking up user by email for migration...');
-    const emailArray = await authenticatedRestCall(
-      'GET',
-      `users?email=eq.${encodeURIComponent(userData.email)}&select=id,email,name,role,isactive`,
-      undefined,
-      { timeout: 3000 }
+    const emailArray = await makeApiCall(
+      `users?email=eq.${encodeURIComponent(userData.email)}&select=id,email,name,role,isactive`
     );
 
     let existingByEmail = null;
