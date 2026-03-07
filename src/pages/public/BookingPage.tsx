@@ -46,6 +46,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import * as dateFns from 'date-fns';
 import { sv } from 'date-fns/locale';
 import bookingServiceSupabase from '../../services/bookingServiceSupabase';
+import { SessionExpiredError } from '../../services/supabaseClient';
 import BookingSkeleton from '../../components/common/BookingSkeleton';
 import pageServiceSupabase from '../../services/pageServiceSupabase';
 import { useAuth } from '../../context/AuthContextNew';
@@ -573,11 +574,12 @@ const BookingPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
-      
-      // Visa snackbar för felet
-      setSnackbarMessage('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      // SessionExpiredError triggers global modal - don't show duplicate snackbar
+      if (!(error instanceof SessionExpiredError)) {
+        setSnackbarMessage('Ett fel uppstod när bokningen skulle skapas. Försök igen senare.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1062,10 +1064,12 @@ const BookingPage: React.FC = () => {
       }, 300);
     } catch (error) {
       console.error('Error deleting booking:', error);
-      setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
       setDeleteDialogOpen(false);
+      if (!(error instanceof SessionExpiredError)) {
+        setSnackbarMessage('Ett fel uppstod vid radering av bokningen');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      }
     }
   };
 
@@ -2332,11 +2336,13 @@ const BookingPage: React.FC = () => {
                     }
                   } catch (error) {
                     console.error('Error updating booking:', error);
-                    setSnackbarMessage('Ett fel uppstod vid uppdatering av bokningen');
-                    setSnackbarSeverity('error');
+                    if (!(error instanceof SessionExpiredError)) {
+                      setSnackbarMessage('Ett fel uppstod vid uppdatering av bokningen');
+                      setSnackbarSeverity('error');
+                      setSnackbarOpen(true);
+                    }
                   } finally {
                     setEditLoading(false);
-                    setSnackbarOpen(true);
                   }
                 }} 
                 variant="contained" 

@@ -7,6 +7,8 @@ import {
   onAuthStateChange
 } from '../services/supabaseAuthNew';
 import { logActivity } from '../services/activityLogService';
+import { SESSION_EXPIRED_EVENT } from '../services/supabaseClient';
+import SessionExpiredModal from '../components/SessionExpiredModal';
 
 interface AuthContextType {
   currentUser: AuthUser | null;
@@ -34,6 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBoard, setIsBoard] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const currentUserRef = useRef<AuthUser | null>(null);
 
   // Helper: update auth state only if data actually changed
@@ -57,9 +60,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
 
+    // Listen for session expired (401 + refresh failed) - show modal and clear state
+    const handleSessionExpired = () => {
+      clearUserData();
+      setSessionExpired(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+
     const initAuth = async () => {
       try {
-
         // Check if there's already a user logged in
         const user = await getCurrentUser();
         if (user) {
@@ -67,8 +76,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         // Listen for auth state changes
-        // CRITICAL: use updateUser() to skip redundant updates that would
-        // interrupt React 18 Suspense/lazy loading with unnecessary re-renders
         unsubscribe = onAuthStateChange((user) => {
           console.log('Auth state changed:', user?.email || 'logged out');
 
@@ -78,7 +85,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             clearUserData();
           }
         });
-
       } catch (error) {
         console.error('Error initializing auth:', error);
         clearUserData();
@@ -94,15 +100,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (unsubscribe) {
         unsubscribe();
       }
-      // Force close any WebLocks for BFCache compatibility
-      // (Silent - no debug logging needed in production)
     };
 
-    // Enhanced BFCache support
     window.addEventListener('pagehide', handlePageHide);
     window.addEventListener('beforeunload', handlePageHide);
 
     return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
       if (unsubscribe) {
         unsubscribe();
       }
@@ -149,6 +153,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     console.log('✅ Logout completed successfully');
   };
 
+  const handleSessionExpiredDismiss = () => {
+    setSessionExpired(false);
+    window.location.href = '/login';
+  };
+
   const value: AuthContextType = {
     currentUser,
     isLoggedIn,
@@ -162,6 +171,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <SessionExpiredModal
+        open={sessionExpired}
+        onLoginAgain={handleSessionExpiredDismiss}
+      />
     </AuthContext.Provider>
   );
 };

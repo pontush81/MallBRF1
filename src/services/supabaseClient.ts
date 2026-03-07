@@ -1,6 +1,17 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 
+/** Custom error when session expired and refresh failed - triggers re-login flow */
+export class SessionExpiredError extends Error {
+  constructor(message = 'Din session har gått ut. Logga in igen för att fortsätta.') {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
+
+/** Event dispatched when 401 + refresh fails - AuthContext listens and shows modal */
+export const SESSION_EXPIRED_EVENT = 'mallbrf-session-expired';
+
 /**
  * Make a REST call with a specific access token (bypasses session lookup).
  * Use this when you already have a valid token (e.g., from OAuth callback URL).
@@ -179,6 +190,7 @@ export async function authenticatedRestCall(
 
   // 4. On 401, try refresh and retry once
   if (response.status === 401) {
+    let refreshSucceeded = false;
     try {
       const refreshPromise = supabaseClient.auth.refreshSession();
       const refreshTimeout = new Promise<never>((_, reject) =>
@@ -187,8 +199,18 @@ export async function authenticatedRestCall(
       const { data: { session: refreshedSession } } = await Promise.race([refreshPromise, refreshTimeout]) as any;
       if (refreshedSession?.access_token) {
         response = await doFetch(refreshedSession.access_token);
+        refreshSucceeded = response.ok;
       }
-    } catch { /* refresh failed, use original response */ }
+    } catch { /* refresh failed */ }
+
+    // 4b. If still 401 after refresh attempt → session invalid, trigger re-login flow
+    if (!refreshSucceeded && response.status === 401) {
+      try {
+        await supabaseClient.auth.signOut();
+      } catch { /* ignore */ }
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      throw new SessionExpiredError();
+    }
   }
 
   // 5. Handle response
