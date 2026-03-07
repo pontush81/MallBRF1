@@ -13,6 +13,23 @@ export class SessionExpiredError extends Error {
 export const SESSION_EXPIRED_EVENT = 'mallbrf-session-expired';
 
 /**
+ * Sign out with a timeout to avoid hanging due to navigator.locks contention.
+ * Clears localStorage manually as fallback if the SDK call times out.
+ */
+async function safeSignOut(timeoutMs = 2000): Promise<void> {
+  try {
+    const signOutPromise = supabaseClient.auth.signOut();
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('signOut timeout')), timeoutMs)
+    );
+    await Promise.race([signOutPromise, timeoutPromise]);
+  } catch {
+    // Fallback: clear the session from localStorage directly
+    try { localStorage.removeItem('mallbrf-supabase-auth'); } catch { /* ignore */ }
+  }
+}
+
+/**
  * Make a REST call with a specific access token (bypasses session lookup).
  * Use this when you already have a valid token (e.g., from OAuth callback URL).
  */
@@ -167,7 +184,7 @@ export async function authenticatedRestCall(
     // If there's a stored user, the session expired silently — show the modal
     const hasStoredUser = !!localStorage.getItem('currentUser');
     if (hasStoredUser) {
-      try { await supabaseClient.auth.signOut(); } catch { /* ignore */ }
+      await safeSignOut();
       window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
       throw new SessionExpiredError();
     }
@@ -212,9 +229,7 @@ export async function authenticatedRestCall(
 
     // 4b. If still 401 after refresh attempt → session invalid, trigger re-login flow
     if (!refreshSucceeded && response.status === 401) {
-      try {
-        await supabaseClient.auth.signOut();
-      } catch { /* ignore */ }
+      await safeSignOut();
       window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
       throw new SessionExpiredError();
     }
