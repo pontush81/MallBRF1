@@ -1,5 +1,5 @@
 import { Booking, CreateBookingData, UpdateBookingData } from '../types/Booking';
-import { authenticatedRestCall } from './supabaseClient';
+import { authenticatedRestCall, SessionExpiredError } from './supabaseClient';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 import { logActivity } from './activityLogService';
 
@@ -350,6 +350,7 @@ const bookingServiceSupabase = {
 
     } catch (error: any) {
       console.error('❌ Error creating booking:', error);
+      if (error instanceof SessionExpiredError) throw error;
       if (error.message?.includes('23505')) {
         throw new Error('En bokning finns redan för denna tid');
       }
@@ -379,6 +380,7 @@ const bookingServiceSupabase = {
 
     } catch (error) {
       console.error('❌ Error updating booking:', error);
+      if (error instanceof SessionExpiredError) throw error;
       throw new Error('Kunde inte uppdatera bokningen');
     }
   },
@@ -402,6 +404,7 @@ const bookingServiceSupabase = {
 
     } catch (error) {
       console.error('❌ Error deleting booking:', error);
+      if (error instanceof SessionExpiredError) throw error;
       throw new Error('Kunde inte ta bort bokningen');
     }
   },

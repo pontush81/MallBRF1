@@ -164,6 +164,13 @@ export async function authenticatedRestCall(
 
   // 2. Check auth requirements
   if (!authToken && requireAuth) {
+    // If there's a stored user, the session expired silently — show the modal
+    const hasStoredUser = !!localStorage.getItem('currentUser');
+    if (hasStoredUser) {
+      try { await supabaseClient.auth.signOut(); } catch { /* ignore */ }
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      throw new SessionExpiredError();
+    }
     throw new Error('Authentication required for this operation');
   }
   if (!authToken) {
